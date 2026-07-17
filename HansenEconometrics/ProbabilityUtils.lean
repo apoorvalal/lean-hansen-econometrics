@@ -2,6 +2,7 @@ import Mathlib.Probability.CDF
 import Mathlib.Probability.CondVar
 import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
+import Mathlib.Probability.Independence.Conditional
 import Mathlib.Probability.Kernel.CondDistrib
 import HansenEconometrics.MultivariateNormal
 
@@ -110,6 +111,104 @@ theorem HasLaw.of_condDistrib_eq_const
   exact hsnd
 
 end ConditionalDistributionHelpers
+
+section ConditionalIndependenceIntegration
+
+variable {mc mΩ : MeasurableSpace Ω} [@StandardBorelSpace Ω mΩ]
+variable {μ : @Measure Ω mΩ} [IsFiniteMeasure μ]
+
+/-- Conditional independence factors the conditional expectation of an integrable product.
+Unlike an `L²`-based formulation, this only requires integrability of the two factors and their
+product. -/
+theorem condExp_mul_eq_mul_condExp_of_condIndepFun
+    {f g : Ω → ℝ} (hm : mc ≤ mΩ)
+    (hfg : CondIndepFun (mΩ := mΩ) mc hm f g μ)
+    (hf : Integrable f μ) (hg : Integrable g μ)
+    (hfg_int : Integrable (fun ω => f ω * g ω) μ) :
+    μ[fun ω => f ω * g ω | mc] =ᵐ[μ]
+      fun ω => μ[f | mc] ω * μ[g | mc] ω := by
+  let f' : Ω → ℝ := hf.aestronglyMeasurable.mk f
+  let g' : Ω → ℝ := hg.aestronglyMeasurable.mk g
+  have hf'_meas : Measurable f' := hf.aestronglyMeasurable.measurable_mk
+  have hg'_meas : Measurable g' := hg.aestronglyMeasurable.measurable_mk
+  have hff' : f =ᵐ[μ] f' := hf.aestronglyMeasurable.ae_eq_mk
+  have hgg' : g =ᵐ[μ] g' := hg.aestronglyMeasurable.ae_eq_mk
+  have hf'_int : Integrable f' μ := hf.congr hff'
+  have hg'_int : Integrable g' μ := hg.congr hgg'
+  have hff'_cond :
+      ∀ᵐ z ∂μ.trim hm, f =ᵐ[condExpKernel μ mc z] f' := by
+    apply @Measure.ae_ae_of_ae_comp Ω Ω mc mΩ
+      (μ.trim hm) (condExpKernel μ mc) (fun z => f z = f' z)
+    rw [condExpKernel_comp_trim hm]
+    exact hff'
+  have hgg'_cond :
+      ∀ᵐ z ∂μ.trim hm, g =ᵐ[condExpKernel μ mc z] g' := by
+    apply @Measure.ae_ae_of_ae_comp Ω Ω mc mΩ
+      (μ.trim hm) (condExpKernel μ mc) (fun z => g z = g' z)
+    rw [condExpKernel_comp_trim hm]
+    exact hgg'
+  have hfg' : CondIndepFun (mΩ := mΩ) mc hm f' g' μ :=
+    Kernel.IndepFun.congr' hfg hff'_cond hgg'_cond
+  have hmap :=
+    (condIndepFun_iff_map_prod_eq_prod_map_map hf'_meas hg'_meas).mp hfg'
+  have hkernel :
+      (fun z => ∫ y, f' y * g' y ∂condExpKernel μ mc z) =ᵐ[μ.trim hm]
+        fun z =>
+          (∫ y, f' y ∂condExpKernel μ mc z) *
+            ∫ y, g' y ∂condExpKernel μ mc z := by
+    filter_upwards [hmap] with z hz
+    have hpair : Measurable (fun y => (f' y, g' y)) :=
+      hf'_meas.prodMk hg'_meas
+    calc
+      (∫ y, f' y * g' y ∂condExpKernel μ mc z) =
+          ∫ x : ℝ × ℝ, x.1 * x.2 ∂((condExpKernel μ mc).map
+            (fun y => (f' y, g' y))) z := by
+              rw [Kernel.map_apply _ hpair]
+              rw [integral_map hpair.aemeasurable]
+              fun_prop
+      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
+          (((condExpKernel μ mc).map f' ×ₖ
+            (condExpKernel μ mc).map g') z) := by
+              rw [hz]
+      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
+          (((condExpKernel μ mc).map f') z).prod
+            (((condExpKernel μ mc).map g') z) := by
+              rw [Kernel.prod_apply]
+      _ = (∫ x, x ∂((condExpKernel μ mc).map f') z) *
+          ∫ y, y ∂((condExpKernel μ mc).map g') z :=
+            integral_prod_mul id id
+      _ = (∫ y, f' y ∂condExpKernel μ mc z) *
+          ∫ y, g' y ∂condExpKernel μ mc z := by
+            rw [Kernel.map_apply _ hf'_meas,
+              Kernel.map_apply _ hg'_meas]
+            rw [integral_map hf'_meas.aemeasurable (by fun_prop),
+              integral_map hg'_meas.aemeasurable (by fun_prop)]
+  have hprod :
+      (fun ω => f ω * g ω) =ᵐ[μ] fun ω => f' ω * g' ω := by
+    filter_upwards [hff', hgg'] with ω hfω hgω
+    rw [hfω, hgω]
+  have hf'g'_int : Integrable (fun ω => f' ω * g' ω) μ :=
+    hfg_int.congr hprod
+  calc
+    μ[fun ω => f ω * g ω | mc] =ᵐ[μ]
+        μ[fun ω => f' ω * g' ω | mc] := condExp_congr_ae hprod
+    _ =ᵐ[μ] (fun z => ∫ y, f' y * g' y ∂condExpKernel μ mc z) :=
+      condExp_ae_eq_integral_condExpKernel hm hf'g'_int
+    _ =ᵐ[μ] (fun z =>
+        (∫ y, f' y ∂condExpKernel μ mc z) *
+          ∫ y, g' y ∂condExpKernel μ mc z) :=
+      ae_eq_of_ae_eq_trim hkernel
+    _ =ᵐ[μ] (fun z => μ[f' | mc] z * μ[g' | mc] z) := by
+      filter_upwards [
+        (condExp_ae_eq_integral_condExpKernel hm hf'_int).symm,
+        (condExp_ae_eq_integral_condExpKernel hm hg'_int).symm
+      ] with z hfz hgz
+      rw [hfz, hgz]
+    _ =ᵐ[μ] (fun ω => μ[f | mc] ω * μ[g | mc] ω) := by
+      filter_upwards [condExp_congr_ae hff', condExp_congr_ae hgg'] with ω hfω hgω
+      rw [hfω, hgω]
+
+end ConditionalIndependenceIntegration
 
 section RealDistributionHelpers
 

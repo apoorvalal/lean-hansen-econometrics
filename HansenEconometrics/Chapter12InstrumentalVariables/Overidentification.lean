@@ -2920,8 +2920,8 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_assumption12_2_part
     [IsProbabilityMeasure μ]
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (hMaintained : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hMaintained : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e) :
     Function.Injective
       (fun v : lb → ℝ => Matrix.vecMul v
@@ -2930,10 +2930,10 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_assumption12_2_part
             (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)))))) := by
   let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
     fun i ω => Sum.elim (Za i ω) (Zb i ω)
-  let hMaintainedGram : TwoSLSAssumption12_2GramConditions μ Za X e :=
-    hMaintained.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions.toGramConditions
-  let hFullGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
-    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions.toGramConditions
+  let hMaintainedGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Za X e :=
+    hMaintained.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions.toGramConditions
+  let hFullGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Zfull X e :=
+    hFull.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions.toGramConditions
   have hZaInt : Integrable (fun ω => Matrix.vecMulVec (Za 0 ω) (Za 0 ω)) μ :=
     hMaintainedGram.instrument_moments.int_outer
   have hFullInt : Integrable (fun ω =>
@@ -2957,7 +2957,7 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_assumption12_2_part
     rw [← hQeq, popGram_fullInstrument_submatrix_inl_inl
       (μ := μ) Za Zb hZaInt hFullInt]
     have hMaintainedIid :=
-      hMaintained.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions.toTwoSLSAssumption12_1IidConditions
+      hMaintained.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions.toTwoSLSSplitIidSecondMomentRankConditions
     exact hMaintainedIid.instrument_popGram_nonsing
   have hQXZ :
       twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X)) =
@@ -2993,8 +2993,8 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_assumption12
     [IsProbabilityMeasure μ]
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (hMaintained : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hMaintained : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e) :
     IsUnit
       ((twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
@@ -3027,8 +3027,8 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_observed_ass
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β) :
     IsUnit
       ((twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
@@ -3107,7 +3107,7 @@ theorem twoSLSSubsetResidualizedScoreCovariance_posDef_of_limitMap_fullRowRank
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (hR_fullRowRank : Function.Injective
       (fun v : lb → ℝ =>
@@ -3139,7 +3139,7 @@ theorem twoSLSSubsetResidualizedScoreCovariance_posDef_of_limitMap_rowGram
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (hGram : IsUnit
       ((twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A) *
@@ -3159,7 +3159,7 @@ theorem twoSLSSubsetResidualizedScoreCovariance_posDef_of_limitMap_rowGram_posDe
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (hGram :
       ((twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A) *
@@ -3433,24 +3433,24 @@ Gram. -/
 theorem scoreCovMat_eq_errorVariance_smul_twoSLSCombinedQZZ_of_assumption12_2_homoskedastic
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e) :
     scoreCovMat μ Z e =
       errorVariance μ e •
         twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) := by
-  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hGram : TwoSLSAssumption12_2GramConditions μ Z X e :=
+  let hIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e :=
     hIid.toGramConditions
   have hpop :
       popGram μ Z =
         twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) :=
     popGram_eq_twoSLSCombinedQZZ_popGram
       (μ := μ) (Z := Z) (X := X)
-      hGram.toTwoSLSAssumption12_1GramConditions.instrument_moments.int_outer
-      hGram.toTwoSLSAssumption12_1GramConditions.combined_gram.int_outer
+      hGram.toTwoSLSGramInstrumentMomentRankConditions.instrument_moments.int_outer
+      hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram.int_outer
   have hcov_base :
       scoreCovMat μ Z e = errorVariance μ e • popGram μ Z :=
     scoreCovMat_eq_errorVariance_smul_popGram_homo
@@ -6184,8 +6184,8 @@ theorem of_assumption12_2_joint_iid_mixed_moments
           (stackOutcomes Y m ω))
       atTop Gnum (fun _ => μ) ν)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -6276,8 +6276,8 @@ theorem twoSLSSubsetCommonSigmaDiff_tendstoInMeasure_zero_of_assumption12_2_boun
           (stackRegressors Za m ω) (stackRegressors X m ω)
           (stackOutcomes Y m ω)))
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -7907,15 +7907,15 @@ private theorem errorVariance_pos_of_assumption12_2_joint_iid_mixed_moments_homo
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e) :
     0 < errorVariance μ e := by
   classical
-  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hGram : TwoSLSAssumption12_2GramConditions μ Z X e :=
+  let hIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e :=
     hIid.toGramConditions
   have hcard_sub : 0 < Fintype.card l - Fintype.card k := Fact.out
   have hkl : Fintype.card k < Fintype.card l := by
@@ -7928,8 +7928,8 @@ private theorem errorVariance_pos_of_assumption12_2_joint_iid_mixed_moments_homo
         twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) :=
     popGram_eq_twoSLSCombinedQZZ_popGram
       (μ := μ) (Z := Z) (X := X)
-      hGram.toTwoSLSAssumption12_1GramConditions.instrument_moments.int_outer
-      hGram.toTwoSLSAssumption12_1GramConditions.combined_gram.int_outer
+      hGram.toTwoSLSGramInstrumentMomentRankConditions.instrument_moments.int_outer
+      hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram.int_outer
   have hpop_pos : (popGram μ Z).PosDef := by
     rw [hpop]
     exact h.qzz_posDef
@@ -7949,7 +7949,7 @@ private theorem errorVariance_pos_of_assumption12_2_observed_textbook_fourth_hom
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e) :
@@ -7970,7 +7970,7 @@ theorem twoSLSSargan_theorem12_16_of_assumption12_2_joint_iid_mixed_moments_homo
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hZ0 : Measurable (Z 0))
@@ -7990,9 +7990,9 @@ theorem twoSLSSargan_theorem12_16_of_assumption12_2_joint_iid_mixed_moments_homo
         twoSLSSarganStatOrZero
           (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) := by
-  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hGram : TwoSLSAssumption12_2GramConditions μ Z X e :=
+  let hIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e :=
     hIid.toGramConditions
   let hCovMom : TwoSLSCovarianceMomentConsistencyConditions
       μ Z X e Y
@@ -8019,14 +8019,14 @@ theorem twoSLSSargan_theorem12_16_of_assumption12_2_joint_iid_mixed_moments_homo
       twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)) =
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))ᵀ :=
     twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
-      (μ := μ) (Z := Z) (X := X) hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+      (μ := μ) (Z := Z) (X := X) hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
   have hpop :
       popGram μ Z =
         twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) :=
     popGram_eq_twoSLSCombinedQZZ_popGram
       (μ := μ) (Z := Z) (X := X)
-      hGram.toTwoSLSAssumption12_1GramConditions.instrument_moments.int_outer
-      hGram.toTwoSLSAssumption12_1GramConditions.combined_gram.int_outer
+      hGram.toTwoSLSGramInstrumentMomentRankConditions.instrument_moments.int_outer
+      hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram.int_outer
   have hcov_base :
       scoreCovMat μ Z e = errorVariance μ e • popGram μ Z :=
     scoreCovMat_eq_errorVariance_smul_popGram_homo
@@ -8055,7 +8055,7 @@ theorem twoSLSSargan_theorem12_16_of_assumption12_2_joint_iid_mixed_moments_homo
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hZ0 : Measurable (Z 0))
@@ -8090,7 +8090,7 @@ theorem twoSLSSargan_theorem12_16_of_assumption12_2_textbook_fourth_homoskedasti
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e)
@@ -8118,7 +8118,7 @@ theorem twoSLSSargan_theorem12_16_of_assumption12_2_textbook_fourth_homoskedasti
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e)
@@ -8150,12 +8150,12 @@ Assumption 12.2 package and conditional homoskedasticity.
 
 This is the textbook-facing observed-data facade; the proof engine is the
 residual-row theorem reached through
-`TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`. -/
+`TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`. -/
 private theorem twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e)
@@ -8183,7 +8183,7 @@ private theorem twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fo
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e)
@@ -8219,7 +8219,7 @@ theorem
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e)
@@ -8254,7 +8254,7 @@ theorem
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hZ0 : Measurable (Z 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZ0))]
     (hhomo : HomoskedasticErrorVariance μ Z e)
@@ -8290,7 +8290,7 @@ theorem twoSLSSarganNumeratorStar_bounded_of_assumption12_2_homoskedastic
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
     (hover : Fintype.card k < Fintype.card l)
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hZ0 : Measurable (Z 0))
@@ -8603,8 +8603,8 @@ theorem of_observed_assumption12_2
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β) :
     TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X := by
   let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
@@ -8618,11 +8618,11 @@ theorem of_observed_assumption12_2
   let hFullCov :=
     hFullMixed.toCovarianceMomentConsistencyConditions β hFull.model
   let hMaintainedGram :=
-    hMaintainedMixed.toTwoSLSAssumption12_2JointIidFourthConditions
+    hMaintainedMixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
       |>.toIidFourthConditions
       |>.toGramConditions
   let hFullGram :=
-    hFullMixed.toTwoSLSAssumption12_2JointIidFourthConditions
+    hFullMixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
       |>.toIidFourthConditions
       |>.toGramConditions
   refine
@@ -9924,7 +9924,7 @@ theorem of_assumption12_2_fullResidualScoreMap_eventuallyAE
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ} {V : Matrix lb lb ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -9969,9 +9969,9 @@ theorem of_assumption12_2_fullResidualScoreMap_eventuallyAE
     twoSLSOveridPopulationResidualMaker QXZ QZZ QZX
   let R : Matrix lb (la ⊕ lb) ℝ := A * M
   let S : Matrix (la ⊕ lb) (la ⊕ lb) ℝ := scoreCovMat μ Zfull e
-  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
-    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+  let hIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Zfull X e :=
+    hFull.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Zfull X e :=
     hIid.toGramConditions
   have hY_meas : ∀ i, AEStronglyMeasurable (Y i) μ :=
     outcome_aestronglyMeasurable_of_linear_model
@@ -10096,7 +10096,7 @@ theorem of_assumption12_2_fullResidualScoreMap_rankProbability
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ} {V : Matrix lb lb ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10136,9 +10136,9 @@ theorem of_assumption12_2_fullResidualScoreMap_rankProbability
     twoSLSOveridPopulationResidualMaker QXZ QZZ QZX
   let R : Matrix lb (la ⊕ lb) ℝ := A * M
   let S : Matrix (la ⊕ lb) (la ⊕ lb) ℝ := scoreCovMat μ Zfull e
-  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
-    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+  let hIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Zfull X e :=
+    hFull.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Zfull X e :=
     hIid.toGramConditions
   have hY_meas : ∀ i, AEStronglyMeasurable (Y i) μ :=
     outcome_aestronglyMeasurable_of_linear_model
@@ -10257,7 +10257,7 @@ theorem of_assumption12_2_fullResidualScoreMap
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ} {V : Matrix lb lb ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10312,7 +10312,7 @@ theorem of_assumption12_2_fullResidualScoreMap_fullRowRankCovariance
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ} {V : Matrix lb lb ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10394,7 +10394,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10445,7 +10445,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_rowGram
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10496,7 +10496,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10529,9 +10529,9 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
       (twoSLSSubsetResidualizedScoreCovariance μ Za Zb X e A) := by
   let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
     fun i ω => Sum.elim (Za i ω) (Zb i ω)
-  let hFullIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
-    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hFullGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+  let hFullIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Zfull X e :=
+    hFull.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hFullGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Zfull X e :=
     hFullIid.toGramConditions
   let hCovMom : TwoSLSCovarianceMomentConsistencyConditions
       μ Zfull X e Y
@@ -10589,7 +10589,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X)))ᵀ :=
     twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
       (μ := μ) (Z := Zfull) (X := X)
-      hFullGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+      hFullGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
   have hV : TendstoInMeasure μ
       (fun (m : ℕ) (ω : Ω) =>
         twoSLSSubsetNeweyCriterionCovHatStar
@@ -10624,7 +10624,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10652,9 +10652,9 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
       (twoSLSSubsetResidualizedScoreCovariance μ Za Zb X e A) := by
   let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
     fun i ω => Sum.elim (Za i ω) (Zb i ω)
-  let hFullIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
-    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hFullGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+  let hFullIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Zfull X e :=
+    hFull.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hFullGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Zfull X e :=
     hFullIid.toGramConditions
   let hCovMom : TwoSLSCovarianceMomentConsistencyConditions
       μ Zfull X e Y
@@ -10712,7 +10712,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X)))ᵀ :=
     twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
       (μ := μ) (Z := Zfull) (X := X)
-      hFullGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+      hFullGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
   have hVraw :=
     twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_sample_moments_scoreMap_rankProbability
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
@@ -10759,7 +10759,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10804,7 +10804,7 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10852,8 +10852,8 @@ theorem
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e) :
     TendstoInMeasure μ
       (fun m ω =>
@@ -10867,9 +10867,9 @@ theorem
     fun i ω => Sum.elim (Za i ω) (Zb i ω)
   let A : Matrix lb (la ⊕ lb) ℝ :=
     twoSLSSubsetResidualizedScoreMapFromGram (popGram μ Zfull)
-  let hFullIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
-    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hFullGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+  let hFullIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Zfull X e :=
+    hFull.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hFullGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Zfull X e :=
     hFullIid.toGramConditions
   have hGram_meas : ∀ m, AEStronglyMeasurable
       (fun ω =>
@@ -10888,14 +10888,14 @@ theorem
       sampleGram_stackRegressors_tendstoInMeasure_popGram
         (μ := μ) (X := Zfull) (e := e) hFullGram.instrument_moments
   let hMaintainedIidFourth :
-      TwoSLSAssumption12_2IidFourthConditions μ Za X e :=
-    hMaintained.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hMaintainedGram : TwoSLSAssumption12_2GramConditions μ Za X e :=
+      TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Za X e :=
+    hMaintained.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hMaintainedGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Za X e :=
     hMaintainedIidFourth.toGramConditions
-  have hMaintainedIid : TwoSLSAssumption12_1IidConditions μ Za X e :=
-    hMaintainedIidFourth.toTwoSLSAssumption12_1IidConditions
-  have hFullIidBase : TwoSLSAssumption12_1IidConditions μ Zfull X e :=
-    hFullIid.toTwoSLSAssumption12_1IidConditions
+  have hMaintainedIid : TwoSLSSplitIidSecondMomentRankConditions μ Za X e :=
+    hMaintainedIidFourth.toTwoSLSSplitIidSecondMomentRankConditions
+  have hFullIidBase : TwoSLSSplitIidSecondMomentRankConditions μ Zfull X e :=
+    hFullIid.toTwoSLSSplitIidSecondMomentRankConditions
   have hZaInt : Integrable (fun ω => Matrix.vecMulVec (Za 0 ω) (Za 0 ω)) μ :=
     hMaintainedGram.instrument_moments.int_outer
   have hFullInt : Integrable
@@ -10928,8 +10928,8 @@ theorem of_assumption12_2_fullInstrumentSampleGram_covarianceTarget
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -10968,9 +10968,9 @@ theorem of_assumption12_2_fullInstrumentSampleGram_covarianceTarget
     fun i ω => Sum.elim (Za i ω) (Zb i ω)
   let A : Matrix lb (la ⊕ lb) ℝ :=
     twoSLSSubsetResidualizedScoreMapFromGram (popGram μ Zfull)
-  let hFullIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
-    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hFullGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+  let hFullIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Zfull X e :=
+    hFull.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hFullGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Zfull X e :=
     hFullIid.toGramConditions
   have hGram_meas : ∀ m, AEStronglyMeasurable
       (fun ω =>
@@ -10989,14 +10989,14 @@ theorem of_assumption12_2_fullInstrumentSampleGram_covarianceTarget
       sampleGram_stackRegressors_tendstoInMeasure_popGram
         (μ := μ) (X := Zfull) (e := e) hFullGram.instrument_moments
   let hMaintainedIidFourth :
-      TwoSLSAssumption12_2IidFourthConditions μ Za X e :=
-    hMaintained.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hMaintainedGram : TwoSLSAssumption12_2GramConditions μ Za X e :=
+      TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Za X e :=
+    hMaintained.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hMaintainedGram : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Za X e :=
     hMaintainedIidFourth.toGramConditions
-  have hMaintainedIid : TwoSLSAssumption12_1IidConditions μ Za X e :=
-    hMaintainedIidFourth.toTwoSLSAssumption12_1IidConditions
-  have hFullIidBase : TwoSLSAssumption12_1IidConditions μ Zfull X e :=
-    hFullIid.toTwoSLSAssumption12_1IidConditions
+  have hMaintainedIid : TwoSLSSplitIidSecondMomentRankConditions μ Za X e :=
+    hMaintainedIidFourth.toTwoSLSSplitIidSecondMomentRankConditions
+  have hFullIidBase : TwoSLSSplitIidSecondMomentRankConditions μ Zfull X e :=
+    hFullIid.toTwoSLSSplitIidSecondMomentRankConditions
   have hZaInt : Integrable (fun ω => Matrix.vecMulVec (Za 0 ω) (Za 0 ω)) μ :=
     hMaintainedGram.instrument_moments.int_outer
   have hFullInt : Integrable
@@ -11034,8 +11034,8 @@ theorem of_assumption12_2_fullInstrumentSampleGram_covarianceTarget_rowGram
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -11091,7 +11091,7 @@ theorem
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa : ∀ (m : ℕ) (ω : Ω),
       Nonempty (Invertible
@@ -11136,7 +11136,7 @@ theorem
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {A : Matrix lb (la ⊕ lb) ℝ}
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa : ∀ (m : ℕ) (ω : Ω),
       Nonempty (Invertible
@@ -11287,8 +11287,8 @@ theorem of_normalEquations_residualizedScoreGaussianCriterion_assumption12_2
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -11430,8 +11430,8 @@ theorem of_normalEquations_residualizedScoreGaussianCriterion_assumption12_2_bou
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -11580,8 +11580,8 @@ theorem of_normalEquations_residualizedScoreGaussianCriterion_assumption12_2_hom
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -11688,8 +11688,8 @@ theorem of_normalEquations_residualizedGaussianCriterionInputs_assumption12_2_ho
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -11777,8 +11777,8 @@ theorem of_normalEquations_fullResidualScoreMap_covarianceTarget_assumption12_2_
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -11888,8 +11888,8 @@ theorem of_normalEquations_fullResidualScoreMap_covarianceTarget_assumption12_2_
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -11974,8 +11974,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -12059,8 +12059,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -12145,8 +12145,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -12223,8 +12223,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -12308,8 +12308,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -12411,8 +12411,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -12495,8 +12495,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -12583,8 +12583,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -12659,8 +12659,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -12727,8 +12727,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -12849,8 +12849,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -14971,8 +14971,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -15109,8 +15109,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -15249,8 +15249,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -15374,8 +15374,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -15504,8 +15504,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -15647,8 +15647,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -15799,8 +15799,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -15925,8 +15925,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -16042,8 +16042,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
-    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e)
+    (hFull : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
@@ -16172,8 +16172,8 @@ theorem TwoSLSSubsetOveridConditions.of_normalEquations_fullResidualScoreMap_cov
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16253,8 +16253,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16330,8 +16330,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16417,8 +16417,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16497,8 +16497,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16566,8 +16566,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16680,8 +16680,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16748,8 +16748,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16866,8 +16866,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -16986,8 +16986,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17099,8 +17099,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17214,8 +17214,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17322,8 +17322,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17432,8 +17432,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17534,8 +17534,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17642,8 +17642,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17746,8 +17746,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17856,8 +17856,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -17962,8 +17962,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18073,8 +18073,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18178,8 +18178,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18290,8 +18290,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18393,8 +18393,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18502,8 +18502,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18616,8 +18616,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18737,8 +18737,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18838,8 +18838,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -18941,8 +18941,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19050,8 +19050,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19160,8 +19160,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19231,9 +19231,9 @@ theorem
         hMaintained.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
         hFull.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
   let hMaintainedMixed :
-      TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e :=
+      TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Za X e :=
     hMaintained.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
-  let hFullMixed : TwoSLSAssumption12_2JointIidMixedMomentConditions
+  let hFullMixed : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
       μ Zfull X e := by
     simpa [Zfull] using
       hFull.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
@@ -19586,8 +19586,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19664,8 +19664,8 @@ abbrev observed
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19692,8 +19692,8 @@ abbrev observed_lowerTail
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19731,8 +19731,8 @@ theorem
     {β : k → ℝ} {A : Matrix lb (la ⊕ lb) ℝ}
     (hover : Fintype.card k < Fintype.card la)
     (hMaintained :
-      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19837,8 +19837,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
@@ -19946,8 +19946,8 @@ theorem
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
     (hMaintained :
-      TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Za X e Y β)
-    (hFull : TwoSLSAssumption12_2JointIidTextbookFourthConditions
+      TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Za X e Y β)
+    (hFull : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]

@@ -533,7 +533,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapProbabilityIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -636,7 +636,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapProbabilityIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -760,7 +760,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapProbabilityIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -843,7 +843,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInMeasure μ
       (fun n ω =>
@@ -1219,7 +1219,7 @@ theorem
     twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_uniform_of_assumption12_2
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e) :
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e) :
     TendstoInBootstrapWeakDistributionIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
       (fun n ω ωs =>
@@ -1479,7 +1479,7 @@ theorem residualSubstitution_secondMoment_tendstoInMeasure_zero
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e) :
     TendstoInMeasure μ
@@ -1579,7 +1579,7 @@ theorem of_assumption12_2_iid_weight_wlln
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e) :
     TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β where
@@ -1610,12 +1610,12 @@ theorem of_textbook_fourth
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β) :
     TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β := by
   let hMixed := h.toJointIidMixedMomentConditions
   exact of_assumption12_2_iid_weight_wlln
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β)
-    hMixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    hMixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
     h.model hMixed.toWeightWLLNConditions
 
 /-- Build the concrete Hansen 12.8 residual-substitution input package from
@@ -2175,7 +2175,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hresid : TwoSLSBootstrapResidualScoreCLTInputs μ Z X Y e) :
     TendstoInBootstrapWeakDistributionIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -2196,7 +2196,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β) :
     TendstoInBootstrapWeakDistributionIndexed μ
@@ -2226,7 +2226,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -2271,7 +2271,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -3364,7 +3364,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y e : ℕ → Ω → ℝ}
     {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
     (hlin : TwoSLSBootstrapCoefficientLinearizationInputs μ
@@ -3394,7 +3394,7 @@ theorem
         (QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
           (μ := μ) (Z := Z) (X := X)
-          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+          hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
         h.qzz_posDef h.omega_posDef h.qzx_rank
   exact
     { bootstrap_probability := fun n ω =>
@@ -3405,7 +3405,7 @@ theorem
       qzx_eq_qxz_transpose :=
         twoSLSCombinedQZX_eq_transpose_QXZ_of_popGram_wlln
           (μ := μ) (Z := Z) (X := X)
-          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+          hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
       score_limit :=
         twoSLSBootstrapRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_uniform_of_assumption12_2_residualSubstitutionInputs
           (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e)
@@ -3433,7 +3433,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y e : ℕ → Ω → ℝ}
     {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
     (hlin : TwoSLSBootstrapCoefficientLinearizationInputs μ
@@ -3551,7 +3551,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y e : ℕ → Ω → ℝ}
     {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
     (hlin : TwoSLSBootstrapCoefficientLinearizationInputs μ
@@ -3594,7 +3594,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y e : ℕ → Ω → ℝ}
     {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -3669,7 +3669,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y e : ℕ → Ω → ℝ}
     {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -3718,7 +3718,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y e : ℕ → Ω → ℝ}
     {β : k → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -3973,7 +3973,7 @@ the concrete resampled covariance consistency to the same formula limit. -/
 theorem of_assumption12_2_iid_weight_wlln_bootstrap_consistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -4028,7 +4028,7 @@ Hansen formula limit. -/
 theorem of_mixed_moment_conditions_bootstrap_consistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hV_boot :
@@ -4044,7 +4044,7 @@ theorem of_mixed_moment_conditions_bootstrap_consistency
     TwoSLSBootstrapRobustCovarianceResampleCloseness μ Z X Y :=
   of_assumption12_2_iid_weight_wlln_bootstrap_consistency
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
     β hmodel
     (h.toWeightWLLNConditions (μ := μ) (Z := Z) (X := X) (e := e))
     hV_boot
@@ -4056,7 +4056,7 @@ theorem of_textbook_fourth_bootstrap_consistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hV_boot :
       TendstoInBootstrapProbabilityIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -4244,7 +4244,7 @@ theorem
     twoSLSBootstrapVHatStarFinSucc_tendstoInBootstrapProbability_formula_uniform_of_assumption12_2_iid_weight_wlln
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -4301,7 +4301,7 @@ theorem
     twoSLSBootstrapVHatStarFinSucc_tendstoInBootstrapProbability_formula_uniform_of_assumption12_2_iid_weight_wlln_resampleCloseness
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -4331,7 +4331,7 @@ theorem
     twoSLSBootstrapVHatStarFinSucc_tendstoInBootstrapProbability_formula_uniform_of_assumption12_2_iid_weight_wlln_resamplePrimitive
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -6196,7 +6196,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -6246,8 +6246,8 @@ theorem
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (scoreCovMat μ Z e)
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
-  let hiid : TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
-    h.toJointIidMixedMomentConditions.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+  let hiid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
+    h.toJointIidMixedMomentConditions.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   let hGram := hiid.toGramConditions
   have hVβ_pos : Vβ.PosDef := by
     dsimp [Vβ]
@@ -6259,7 +6259,7 @@ theorem
         (QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
           (μ := μ) (Z := Z) (X := X)
-          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+          hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
         hiid.qzz_posDef hiid.omega_posDef hiid.qzx_rank
   have hβ0 :=
     twoSLSBetaStar_tendstoInDistribution_formula_of_textbook12_2_joint_iid_fourth
@@ -6335,7 +6335,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -6733,7 +6733,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -6767,7 +6767,7 @@ theorem
         (QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
           (μ := μ) (Z := Z) (X := X)
-          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+          hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
         h.qzz_posDef h.omega_posDef h.qzx_rank
   have hVθ : (R * Vβ * Rᵀ).PosDef := by
     have hcov : ((Rᵀ)ᵀ * Vβ * Rᵀ).PosDef :=
@@ -6831,7 +6831,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -6876,7 +6876,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -6899,7 +6899,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hR : ∃ j : k, R () j ≠ 0)
@@ -6925,7 +6925,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec) :
@@ -6948,7 +6948,7 @@ theorem
         (QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
           (μ := μ) (Z := Z) (X := X)
-          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+          hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
         h.qzz_posDef h.omega_posDef h.qzx_rank
   have hVθ : (R * Vβ * Rᵀ).PosDef := by
     have hcov : ((Rᵀ)ᵀ * Vβ * Rᵀ).PosDef :=
@@ -7019,17 +7019,17 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec) :
     TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs
       μ Z X Y β R := by
-  let hmixed : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e :=
+  let hmixed : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e :=
     h.toJointIidMixedMomentConditions
   exact
     TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs.of_assumption12_2_iid_weight_wlln_rows
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
       (β := β) (R := R)
-      hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+      hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
       h.model
       (hmixed.toWeightWLLNConditions
         (μ := μ) (Z := Z) (X := X) (e := e))
@@ -7043,7 +7043,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0) :
     Tendsto
       (fun n =>
@@ -7241,7 +7241,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -7278,7 +7278,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -7313,7 +7313,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hVhat_pos : ∀ n ω,
@@ -7328,7 +7328,7 @@ theorem
   TwoSLSBootstrapRobustPercentileTCoverageInputs.of_assumption12_2_iid_weight_wlln_cov_posDef_quantileCalibration
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
     (β := β) (R := R) (q := q) (α := α)
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
     hmodel
     (h.toWeightWLLNConditions
       (μ := μ) (Z := Z) (X := X) (e := e))
@@ -7348,7 +7348,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β : k → ℝ} {R : Matrix Unit k ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hVhat_pos : ∀ n ω,
       (twoSLSVHatStar
@@ -7695,7 +7695,7 @@ theorem twoSLSBootstrapRestrictionCov_posDef_of_assumption12_2
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec) :
     (R *
         twoSLSAsymptoticVariance
@@ -7721,7 +7721,7 @@ theorem twoSLSBootstrapRestrictionCov_posDef_of_assumption12_2
         (QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
           (μ := μ) (Z := Z) (X := X)
-          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+          hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
         h.qzz_posDef h.omega_posDef h.qzx_rank
   have hcov : ((Rᵀ)ᵀ * Vβ * Rᵀ).PosDef :=
     restrictionCov_posDef_of_cov_posDef Vβ Rᵀ hVβ hR
@@ -7740,7 +7740,7 @@ theorem twoSLSBootstrapLinearRestrictionStdError_pos_of_assumption12_2
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hR : Function.Injective Rᵀ.mulVec) :
     0 <
       linearRestrictionStdError R
@@ -7768,7 +7768,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -7835,7 +7835,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -7872,7 +7872,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -7960,7 +7960,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8031,7 +8031,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8085,7 +8085,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8166,7 +8166,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8234,7 +8234,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8324,7 +8324,7 @@ theorem
           (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
             (μ := μ) (Z := Z) (X := X)
             (hCombined :=
-              h.toTwoSLSAssumption12_1IidConditions.toGramConditions.combined_gram))
+              h.toTwoSLSSplitIidSecondMomentRankConditions.toGramConditions.combined_gram))
           h.qzz_posDef h.omega_posDef h.qzx_rank
     exact hpos.posSemidef
   have hβdist :
@@ -8383,7 +8383,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8471,7 +8471,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8567,7 +8567,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8646,7 +8646,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8704,7 +8704,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8792,7 +8792,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8850,7 +8850,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -8945,7 +8945,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
@@ -9003,7 +9003,7 @@ the structural equation. The package does not include covariance weight WLLNs,
 standard-error positivity, measurability, scalar numerator tightness,
 studentization joint-tail control, or Gaussian frontier-null conditions; those
 are derived by existing Chapter 10/12 wrappers. -/
-structure TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs
+structure TwoSLSBootstrapEmpiricalProcessInputs
     (μ : Measure Ω)
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
     (Y e : ℕ → Ω → ℝ) (β : k → ℝ)
@@ -9041,7 +9041,7 @@ assumed conclusion.  It lets theorem-facing callers provide the established
 splitting it back into residual-substitution negligibility and score-tail
 fields by hand. -/
 theorem
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
+    TwoSLSBootstrapEmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
@@ -9052,7 +9052,7 @@ theorem
       (scoreCovMat μ Z e)
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))
     (hV : TwoSLSBootstrapRobustCovarianceResampleCloseness μ Z X Y) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R where
+    TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R where
   residual_negligibility :=
     { residual_substitution_negligible :=
         hresid.residual_substitution_negligible }
@@ -9072,7 +9072,7 @@ transfer: callers supply true-score compact-tail control and the centered
 residual-substitution negligibility statement, while feasible residual-score
 compact-tail control is derived later from the structural equation. -/
 theorem
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_residualSubstitutionNegligibility_trueScoreTail_linearization_resampleCloseness
+    TwoSLSBootstrapEmpiricalProcessInputs.of_residualSubstitutionNegligibility_trueScoreTail_linearization_resampleCloseness
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
     (hresid :
@@ -9093,7 +9093,7 @@ theorem
       (scoreCovMat μ Z e)
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))
     (hV : TwoSLSBootstrapRobustCovarianceResampleCloseness μ Z X Y) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R where
+    TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R where
   residual_negligibility := hresid
   true_score_tail := hTrueTail
   coefficient_linearization := hlin
@@ -9111,11 +9111,11 @@ premise `hV_boot` is therefore enough to derive the named
 construct `TwoSLSBootstrapRobustCovarianceResampleCloseness` by hand on this
 route. -/
 theorem
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency
+    TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
     (hlin : TwoSLSBootstrapCoefficientLinearizationInputs μ
@@ -9134,8 +9134,8 @@ theorem
             (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
             (scoreCovMat μ Z e)
             (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R :=
-  TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
+    TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R :=
+  TwoSLSBootstrapEmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
     (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
     (R := R) hresid hlin
     (TwoSLSBootstrapRobustCovarianceResampleCloseness.of_mixed_moment_conditions_bootstrap_consistency
@@ -9144,17 +9144,17 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Literal finite-fourth Assumption 12.2 version of
-`TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency`.
+`TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency`.
 
 Hansen's textbook fourth-moment package derives the mixed-moment covariance
 WLLNs, while the direct bootstrap covariance consistency premise supplies the
 remaining bootstrap covariance input. -/
 theorem
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_textbook_fourth_residualSubstitution_linearization_bootstrapCovarianceConsistency
+    TwoSLSBootstrapEmpiricalProcessInputs.of_textbook_fourth_residualSubstitution_linearization_bootstrapCovarianceConsistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
     (hlin : TwoSLSBootstrapCoefficientLinearizationInputs μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω)) Z X Y
@@ -9172,8 +9172,8 @@ theorem
             (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
             (scoreCovMat μ Z e)
             (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R :=
-  TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency
+    TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R :=
+  TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency
     (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
     (R := R) h.toJointIidMixedMomentConditions h.model hresid hlin hV_boot
 
@@ -9183,18 +9183,18 @@ direct bootstrap robust-covariance consistency under the named mixed-moment
 Assumption 12.2 surface.
 
 Compared with
-`TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency`,
+`TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency`,
 this constructor also keeps coefficient linearization at the closeness layer:
 true-score compact-tail control and residual-substitution negligibility derive
 the population-linearized compact-tail field internally, while direct
 consistency of `twoSLSBootstrapVHatStarFinSucc` supplies the robust covariance
 resampling field. -/
 theorem
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency
+    TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -9224,7 +9224,7 @@ theorem
             (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
             (scoreCovMat μ Z e)
             (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R where
+    TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R where
   residual_negligibility := hresid
   true_score_tail := hTrueTail
   coefficient_linearization := by
@@ -9260,13 +9260,13 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Literal finite-fourth Assumption 12.2 version of
-`TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency`. -/
+`TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency`. -/
 theorem
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency
+    TwoSLSBootstrapEmpiricalProcessInputs.of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
     (hTrueTail : ∀ η : ℝ, 0 < η →
@@ -9295,8 +9295,8 @@ theorem
             (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
             (scoreCovMat μ Z e)
             (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R :=
-  TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency
+    TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R :=
+  TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency
     (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
     (R := R) h.toJointIidMixedMomentConditions h.model
     hresid hTrueTail hcoef hV_boot
@@ -9304,12 +9304,12 @@ theorem
 set_option linter.style.longLine false in
 /-- Primitive empirical-process input surface for Hansen Theorem 12.8.
 
-Compared with `TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs`, this package
+Compared with `TwoSLSBootstrapEmpiricalProcessInputs`, this package
 keeps coefficient linearization and covariance resampling at their primitive
 tail/closeness level. The conversion theorem below derives the established
 residual-substitution, coefficient-linearization, studentization, and robust
 covariance packages used by the public Theorem 12.8 wrappers. -/
-structure TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
+structure TwoSLSBootstrapPrimitiveEmpiricalProcessInputs
     (μ : Measure Ω)
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
     (Y e : ℕ → Ω → ℝ) (β : k → ℝ)
@@ -9335,7 +9335,7 @@ structure TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
   covariance_resample :
     TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs μ Z X Y
 
-namespace TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
+namespace TwoSLSBootstrapPrimitiveEmpiricalProcessInputs
 
 set_option linter.style.longLine false in
 /-- Convert the primitive empirical-process package into the established
@@ -9344,9 +9344,9 @@ theorem toEmpiricalProcessInputs
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
     (h :
-      TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs
+    TwoSLSBootstrapEmpiricalProcessInputs
       μ Z X Y e β R where
   residual_negligibility := h.residual_negligibility
   true_score_tail := h.true_score_tail
@@ -9365,17 +9365,17 @@ theorem toEmpiricalProcessInputs
     h.covariance_resample.toResampleCloseness
       (μ := μ) (Z := Z) (X := X) (Y := Y)
 
-end TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
+end TwoSLSBootstrapPrimitiveEmpiricalProcessInputs
 
 set_option linter.style.longLine false in
 /-- Score-tail primitive empirical-process input surface for Hansen
 Theorem 12.8.
 
-Compared with `TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs`, this
+Compared with `TwoSLSBootstrapPrimitiveEmpiricalProcessInputs`, this
 package removes the population-linearized coefficient compact-tail field.
 That tail is derived from true-score tightness and residual-substitution
 negligibility, then pushed through the fixed population linearization map. -/
-structure TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+structure TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
     (μ : Measure Ω)
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
     (Y e : ℕ → Ω → ℝ) (β : k → ℝ)
@@ -9401,7 +9401,7 @@ structure TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
   covariance_resample :
     TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs μ Z X Y
 
-namespace TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+namespace TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
 
 set_option linter.style.longLine false in
 /-- Build the score-tail primitive Hansen 12.8 empirical-process package from
@@ -9470,7 +9470,7 @@ theorem of_tail_bounds
           (stackRegressors Z (n + 1) ω)
           (stackRegressors X (n + 1) ω)
           (stackOutcomes Y (n + 1) ω)‖ ≤ Bcov n ω ωs) :
-    TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+    TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
       μ Z X Y e β R where
   residual_negligibility :=
     TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_norm_bound
@@ -9552,7 +9552,7 @@ theorem of_tail_bounds_trueScore_norm_bound
           (stackRegressors Z (n + 1) ω)
           (stackRegressors X (n + 1) ω)
           (stackOutcomes Y (n + 1) ω)‖ ≤ Bcov n ω ωs) :
-    TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+    TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
       μ Z X Y e β R :=
   of_tail_bounds
     (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β) (R := R)
@@ -9608,7 +9608,7 @@ theorem of_uniform_remainders_trueScore_norm_bound
               (stackRegressors Z (n + 1) ω)
               (stackRegressors X (n + 1) ω)
               (stackOutcomes Y (n + 1) ω)‖ < δ) :
-    TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+    TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
       μ Z X Y e β R where
   residual_negligibility :=
     TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_uniform_norm_vanish
@@ -9652,7 +9652,7 @@ theorem of_residualSubstitution_closeness_covariancePrimitive
         (scoreCovMat μ Z e)
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))
     (hcov : TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs μ Z X Y) :
-    TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+    TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
       μ Z X Y e β R where
   residual_negligibility :=
     { residual_substitution_negligible :=
@@ -9671,10 +9671,10 @@ theorem toPrimitiveEmpiricalProcessInputs
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
     (h :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
-    TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
+    TwoSLSBootstrapPrimitiveEmpiricalProcessInputs
       μ Z X Y e β R where
   residual_negligibility := h.residual_negligibility
   true_score_tail := h.true_score_tail
@@ -9695,15 +9695,15 @@ theorem toEmpiricalProcessInputs
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {Y e : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
     (h :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
-    TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs
+    TwoSLSBootstrapEmpiricalProcessInputs
       μ Z X Y e β R :=
   (h.toPrimitiveEmpiricalProcessInputs (μ := μ) (Z := Z) (X := X)
     (Y := Y) (e := e) (β := β) (R := R) hmodel).toEmpiricalProcessInputs
 
-end TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+end TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
 
 set_option linter.style.longLine false in
 /-- Hansen Theorem 12.8 from the single-row iid Assumption 12.2 surface plus
@@ -9719,7 +9719,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -9730,7 +9730,7 @@ theorem
       Integrable (fun ω => e 0 ω * X 0 ω j) μ)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R) :
+      TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
         (fun n ω ωs => twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
@@ -9746,7 +9746,7 @@ theorem
         (fun n ω ωs (_ : Unit) =>
           twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
         (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) := by
-  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
+  let hIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
     h.toIidFourthConditions
   let hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e :=
     TwoSLSCovarianceWeightWLLNConditions.of_joint_iid
@@ -9768,17 +9768,17 @@ plus the remaining bootstrap empirical-process inputs.
 
 This wrapper removes the separate scalar mixed-moment arguments from
 `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_empiricalProcess`;
-they are fields of `TwoSLSAssumption12_2JointIidMixedMomentConditions`. -/
+they are fields of `TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions`. -/
 theorem twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_empiricalProcess
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R) :
+      TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
         (fun n ω ωs => twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
@@ -9796,7 +9796,7 @@ theorem twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_empiricalProcess
         (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
   twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_empiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
-    h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions β hmodel
     h.omega_cross_integrable h.omega_quadratic_integrable
     h.sigma_cross_integrable hR hboot
 
@@ -9810,10 +9810,10 @@ theorem twoSLSBootstrap_theorem12_8_of_textbook_fourth_empiricalProcess
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R) :
+      TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
         (fun n ω ωs => twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
@@ -9846,7 +9846,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -9857,7 +9857,7 @@ theorem
       Integrable (fun ω => e 0 ω * X 0 ω j) μ)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -9894,7 +9894,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -9905,7 +9905,7 @@ theorem
       Integrable (fun ω => e 0 ω * X 0 ω j) μ)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -9943,10 +9943,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -9967,7 +9967,7 @@ theorem
   exact
     twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_scoreTailPrimitiveEmpiricalProcess
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
-      hm.toTwoSLSAssumption12_2JointIidFourthConditions β h.model
+      hm.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions β h.model
       hm.omega_cross_integrable hm.omega_quadratic_integrable
       hm.sigma_cross_integrable hR hboot
 
@@ -9985,10 +9985,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -10023,10 +10023,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -10055,10 +10055,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -10090,7 +10090,7 @@ coefficient-linearization, and robust-covariance resampling inputs are supplied
 as scalar envelopes with bootstrap tails.  The theorem then builds the
 score-tail primitive package internally and reuses the established Hansen 12.8
 endpoint, so callers no longer need to assemble
-`TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs` by hand. -/
+`TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs` by hand. -/
 theorem
     twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_tail_bounds
     [IsProbabilityMeasure μ]
@@ -10098,7 +10098,7 @@ theorem
     {R : Matrix Unit k ℝ} {β : k → ℝ}
     {Bresid Bpop Bcoef Bcov :
       ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -10178,7 +10178,7 @@ theorem
   twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_scoreTailPrimitiveEmpiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h β hmodel hOmegaCross hOmegaQuadratic hSigmaCross hR
-    (TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.of_tail_bounds
+    (TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs.of_tail_bounds
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β) (R := R)
       (Bresid := Bresid) (Bpop := Bpop) (Bcoef := Bcoef) (Bcov := Bcov)
       hTrueTail hBresidTail hBresidBound hBpopTail hBpopBound
@@ -10189,7 +10189,7 @@ set_option linter.style.longLine false in
 true-score tightness input supplied by an eventual deterministic norm bound.
 
 This is a theorem-facing version of
-`TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.of_tail_bounds_trueScore_norm_bound`:
+`TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs.of_tail_bounds_trueScore_norm_bound`:
 the deterministic bound is converted to compact-tail control and the rest of
 the proof is delegated to
 `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_tail_bounds`. -/
@@ -10200,7 +10200,7 @@ theorem
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
     {Bresid Bpop Bcoef Bcov :
       ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -10297,7 +10297,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -10356,7 +10356,7 @@ theorem
   twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_scoreTailPrimitiveEmpiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h β hmodel hOmegaCross hOmegaQuadratic hSigmaCross hR
-    (TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.of_uniform_remainders_trueScore_norm_bound
+    (TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs.of_uniform_remainders_trueScore_norm_bound
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
       (R := R) hTrueBound hResidSmall hPopSmall hCoefSmall hCovSmall)
 
@@ -10374,7 +10374,7 @@ theorem
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
     {Bresid Bpop Bcoef Bcov :
       ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -10446,7 +10446,7 @@ theorem
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
       (β := β) (C := C) (Bresid := Bresid) (Bpop := Bpop)
       (Bcoef := Bcoef) (Bcov := Bcov)
-      hm.toTwoSLSAssumption12_2JointIidFourthConditions h.model
+      hm.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions h.model
       hm.omega_cross_integrable hm.omega_quadratic_integrable
       hm.sigma_cross_integrable hR hTrueBound
       hBresidTail hBresidBound hBpopTail hBpopBound
@@ -10464,7 +10464,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -10518,7 +10518,7 @@ theorem
     twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_uniform_remainders_trueScore_norm_bound
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
       (β := β) (C := C)
-      hm.toTwoSLSAssumption12_2JointIidFourthConditions h.model
+      hm.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions h.model
       hm.omega_cross_integrable hm.omega_quadratic_integrable
       hm.sigma_cross_integrable hR hTrueBound hResidSmall hPopSmall
       hCoefSmall hCovSmall
@@ -10537,7 +10537,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -10574,7 +10574,7 @@ theorem
   twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_scoreTailPrimitiveEmpiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h β hmodel hOmegaCross hOmegaQuadratic hSigmaCross hR
-    (TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.of_residualSubstitution_closeness_covariancePrimitive
+    (TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs.of_residualSubstitution_closeness_covariancePrimitive
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
       (R := R) hresid hcoef hcov)
 
@@ -10593,7 +10593,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -10652,7 +10652,7 @@ input supplied through the established residual-substitution package.
 Compared with
 `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_empiricalProcess`,
 this wrapper removes the artificial need to build
-`TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs` manually.  The remaining
+`TwoSLSBootstrapEmpiricalProcessInputs` manually.  The remaining
 premises are still the genuine bootstrap empirical-process gaps:
 residual-substitution negligibility, true-score tail control, coefficient
 linearization, and robust covariance resampling closeness. -/
@@ -10661,7 +10661,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -10697,7 +10697,7 @@ theorem
   twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_empiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h β hmodel hOmegaCross hOmegaQuadratic hSigmaCross hR
-    (TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
+    (TwoSLSBootstrapEmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
       (R := R) hresid hlin hV)
 
@@ -10715,7 +10715,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hcoef :
@@ -10845,7 +10845,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
@@ -10943,7 +10943,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -10953,7 +10953,7 @@ theorem
       Integrable (fun ω => e 0 ω * X 0 ω j) μ)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R)
+      TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R)
     (hsampleSe : ∀ n ω,
       0 < twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc R Z X Y n ω)
     (htstat :
@@ -10990,7 +10990,7 @@ theorem
           twoSLSBootstrapRobustPercentileTCIEventFinSucc
             R Z X Y β α n ω})
       atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
-  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
+  let hIid : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
     h.toIidFourthConditions
   let hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e :=
     TwoSLSCovarianceWeightWLLNConditions.of_joint_iid
@@ -11022,7 +11022,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11078,7 +11078,7 @@ theorem
   twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_empiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h hmodel hOmegaCross hOmegaQuadratic hSigmaCross hR
-    (TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
+    (TwoSLSBootstrapEmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
       (R := R) hresid hlin hV)
     hsampleSe htstat hα_pos hα_lt_one hstrict hlower_meas hupper_meas
@@ -11097,7 +11097,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hcoef :
@@ -11185,7 +11185,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hcoef :
@@ -11262,7 +11262,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
@@ -11305,7 +11305,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11315,7 +11315,7 @@ theorem
       Integrable (fun ω => e 0 ω * X 0 ω j) μ)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs μ Z X Y e β R)
+      TwoSLSBootstrapEmpiricalProcessInputs μ Z X Y e β R)
     (hcoverage :
       TwoSLSBootstrapRobustPercentileTCoverageInputs
         μ Z X Y β R q α) :
@@ -11347,7 +11347,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11357,7 +11357,7 @@ theorem
       Integrable (fun ω => e 0 ω * X 0 ω j) μ)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hcoverage :
       TwoSLSBootstrapRobustPercentileTCoverageInputs
@@ -11395,7 +11395,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11405,7 +11405,7 @@ theorem
       Integrable (fun ω => e 0 ω * X 0 ω j) μ)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hcoverage :
       TwoSLSBootstrapRobustPercentileTCoverageInputs
@@ -11446,7 +11446,7 @@ theorem
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
     {Bresid Bpop Bcoef Bcov :
       ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11545,7 +11545,7 @@ theorem
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
     {Bresid Bpop Bcoef Bcov :
       ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11636,7 +11636,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11715,7 +11715,7 @@ theorem
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
     {Bresid Bpop Bcoef Bcov :
       ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -11781,7 +11781,7 @@ theorem
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
       (β := β) (q := q) (α := α) (C := C)
       (Bresid := Bresid) (Bpop := Bpop) (Bcoef := Bcoef) (Bcov := Bcov)
-      hm.toTwoSLSAssumption12_2JointIidFourthConditions
+      hm.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
       h.model hm.omega_cross_integrable hm.omega_quadratic_integrable
       hm.sigma_cross_integrable hR hTrueBound
       hBresidTail hBresidBound hBpopTail hBpopBound
@@ -11799,7 +11799,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -11847,7 +11847,7 @@ theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_uniform_remainders_trueScore_norm_bound_coverageInputs
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
       (β := β) (q := q) (α := α) (C := C)
-      hm.toTwoSLSAssumption12_2JointIidFourthConditions
+      hm.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
       h.model hm.omega_cross_integrable hm.omega_quadratic_integrable
       hm.sigma_cross_integrable hR hTrueBound hResidSmall hPopSmall
       hCoefSmall hCovSmall hcoverage
@@ -11861,7 +11861,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11890,7 +11890,7 @@ theorem
   twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_empiricalProcess_coverageInputs
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h hmodel hOmegaCross hOmegaQuadratic hSigmaCross hR
-    (TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
+    (TwoSLSBootstrapEmpiricalProcessInputs.of_residualSubstitution_linearization_resampleCloseness
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
       (R := R) hresid hlin hV)
     hcoverage
@@ -11904,7 +11904,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -11934,7 +11934,7 @@ theorem
   twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_scoreTailPrimitiveEmpiricalProcess_coverageInputs
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h hmodel hOmegaCross hOmegaQuadratic hSigmaCross hR
-    (TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.of_residualSubstitution_closeness_covariancePrimitive
+    (TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs.of_residualSubstitution_closeness_covariancePrimitive
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
       (R := R) hresid hcoef hcov)
     hcoverage
@@ -11953,12 +11953,12 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -11977,7 +11977,7 @@ theorem
         (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
   twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_scoreTailPrimitiveEmpiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
-    h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions β hmodel
     h.omega_cross_integrable h.omega_quadratic_integrable
     h.sigma_cross_integrable hR hboot
 
@@ -11997,7 +11997,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -12028,7 +12028,7 @@ theorem
   twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_scoreTailPrimitiveEmpiricalProcess
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
     h β hmodel hR
-    (TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.of_residualSubstitution_closeness_covariancePrimitive
+    (TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs.of_residualSubstitution_closeness_covariancePrimitive
       (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e) (β := β)
       (R := R) hresid hcoef hcov)
 
@@ -12045,7 +12045,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -12105,7 +12105,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -12163,7 +12163,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
@@ -12218,7 +12218,7 @@ theorem
   exact
     twoSLSBootstrap_theorem12_8_of_assumption12_2_weight_wlln_residualSubstitutionNegligibility_trueScoreTail_closeness_fullRank_resampleCloseness
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (R := R)
-      h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+      h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
       β hmodel
       (h.toWeightWLLNConditions (μ := μ) (Z := Z) (X := X) (e := e))
       hresid hTrueTail hcoef hR hV
@@ -12232,7 +12232,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -12294,7 +12294,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueTail : ∀ η : ℝ, 0 < η →
       ∃ K : Set (EuclideanSpace ℝ l), IsCompact K ∧
@@ -12358,7 +12358,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueTail : ∀ η : ℝ, 0 < η →
@@ -12453,7 +12453,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
@@ -12526,7 +12526,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
@@ -12584,8 +12584,8 @@ theorem
         (fun n ω ωs (_ : Unit) =>
           twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
         (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) := by
-  let hm : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e :=
-    { toTwoSLSAssumption12_2JointIidFourthConditions := h
+  let hm : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e :=
+    { toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions := h
       omega_cross_integrable := hOmegaCross
       omega_quadratic_integrable := hOmegaQuadratic
       sigma_cross_integrable := hSigmaCross }
@@ -12604,7 +12604,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueTail : ∀ η : ℝ, 0 < η →
       ∃ K : Set (EuclideanSpace ℝ l), IsCompact K ∧
@@ -12673,7 +12673,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -12734,7 +12734,7 @@ set_option linter.style.longLine false in
 Hansen Theorem 12.8 endpoint.
 
 The proof reuses the residual-row endpoint through
-`TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`,
+`TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`,
 so the empirical-process boundary is unchanged while the public assumption
 surface matches Hansen's observed data rows. -/
 theorem
@@ -12742,7 +12742,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -12807,7 +12807,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -12872,7 +12872,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -12945,7 +12945,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hresid :
@@ -13007,7 +13007,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -13073,7 +13073,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hresid :
@@ -13135,7 +13135,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hresid :
       TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β)
@@ -13200,7 +13200,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueTail : ∀ η : ℝ, 0 < η →
@@ -13273,7 +13273,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueTail : ∀ η : ℝ, 0 < η →
       ∃ K : Set (EuclideanSpace ℝ l), IsCompact K ∧
@@ -13346,7 +13346,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueTail : ∀ η : ℝ, 0 < η →
@@ -13418,7 +13418,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueTail : ∀ η : ℝ, 0 < η →
       ∃ K : Set (EuclideanSpace ℝ l), IsCompact K ∧
@@ -13489,7 +13489,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
@@ -13552,7 +13552,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -13614,7 +13614,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
@@ -13682,7 +13682,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -13747,13 +13747,13 @@ definiteness, and quantile calibration.
 
 This is the observed-row companion to the residual-row textbook-fourth coverage
 wrapper; it changes only the public assumption surface by applying
-`TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`. -/
+`TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`. -/
 theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -13816,7 +13816,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -13884,7 +13884,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -13979,7 +13979,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -14074,7 +14074,7 @@ private theorem boundedScoreCompatibilityFull
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -14173,7 +14173,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hTrueBound :
       ∀ᶠ n in atTop,
@@ -14242,7 +14242,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hresid : TwoSLSBootstrapResidualSubstitutionInputs μ Z X Y e β)
@@ -14289,11 +14289,11 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hcoverage :
       TwoSLSBootstrapRobustPercentileTCoverageInputs
@@ -14330,10 +14330,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hcoverage :
       TwoSLSBootstrapRobustPercentileTCoverageInputs
@@ -14374,11 +14374,11 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hVhat_pos : ∀ n ω,
       (twoSLSVHatStar
@@ -14416,10 +14416,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hVhat_pos : ∀ n ω,
       (twoSLSVHatStar
@@ -14455,10 +14455,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hcoverage :
       TwoSLSBootstrapRobustPercentileTCoverageInputs
@@ -14483,10 +14483,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : Function.Injective Rᵀ.mulVec)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hVhat_pos : ∀ n ω,
       (twoSLSVHatStar
@@ -14517,10 +14517,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hVhat_pos : ∀ n ω,
       (twoSLSVHatStar
@@ -14555,10 +14555,10 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hVhat_pos : ∀ n ω,
       (twoSLSVHatStar
@@ -14618,10 +14618,10 @@ private theorem scoreTailCompatibilityFull
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hboot :
-      TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs
+      TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs
         μ Z X Y e β R)
     (hVhat_pos : ∀ n ω,
       (twoSLSVHatStar
@@ -15403,7 +15403,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapWeakDistributionIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -15413,7 +15413,7 @@ private theorem
       (fun z : EuclideanSpace ℝ l => z) := by
   let hmixed := h.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   have htrue :=
     twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_uniform_of_assumption12_2
       (μ := μ) (Z := Z) (X := X) (e := e) hiid
@@ -15664,17 +15664,17 @@ private theorem twoSLSBootstrapScoreCenterFinSucc_root_bounded_of_observed_textb
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     BoundedInProbabilityNorm μ
       (fun n ω => Real.sqrt (n + 1 : ℝ) •
         twoSLSBootstrapScoreCenterFinSucc Z X Y n ω) := by
   let hmixed := h.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   let hGram := hiid.toGramConditions
   let hMom :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   have htrueDist :=
     scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
       (h := hGram.score_clt)
@@ -15727,7 +15727,7 @@ private theorem twoSLSBootstrapLinearizationMatrixFinSucc_sub_original_tendsto_z
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapProbabilityIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -15738,8 +15738,8 @@ private theorem twoSLSBootstrapLinearizationMatrixFinSucc_sub_original_tendsto_z
       (fun _ => 0) := by
   let hmixed := h.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hMom := hiid.toGramConditions.toTwoSLSAssumption12_1GramConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hMom := hiid.toGramConditions.toTwoSLSGramInstrumentMomentRankConditions
     |>.toSampleMomentConvergenceConditions
   have hboot :=
     twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth
@@ -15844,7 +15844,7 @@ private theorem twoSLSOriginalBreadFinSucc_singular_measure_tendsto_zero
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     Tendsto
       (fun n => μ {ω | ¬ IsUnit
@@ -15857,8 +15857,8 @@ private theorem twoSLSOriginalBreadFinSucc_singular_measure_tendsto_zero
       atTop (𝓝 0) := by
   let hmixed := h.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  let hMom := hiid.toGramConditions.toTwoSLSAssumption12_1GramConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
+  let hMom := hiid.toGramConditions.toTwoSLSGramInstrumentMomentRankConditions
     |>.toSampleMomentConvergenceConditions
   have hsing := measure_twoSLSBread_singular_tendsto_zero_of_sample_moments hMom
   simpa [stackRegressors] using hsing.comp (tendsto_add_atTop_nat 1)
@@ -15871,7 +15871,7 @@ theorem twoSLSBootstrapBetaGapFinSucc_linearized_closeness_of_observed_textbook_
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     ∀ δ : ℝ, 0 < δ →
       TendstoInMeasure μ
@@ -16044,7 +16044,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapWeakDistributionIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -16058,7 +16058,7 @@ private theorem
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
   let hmixed := h.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   let hGram := hiid.toGramConditions
   have hscore :=
     twoSLSBootstrapRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_of_observed_textbook_fourth
@@ -16077,7 +16077,7 @@ private theorem
         hiid.qzz_posDef.1.eq)
       (twoSLSCombinedQZX_eq_transpose_QXZ_of_popGram_wlln
         (μ := μ) (Z := Z) (X := X)
-        hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+        hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
       hscore
   let hcoef : TwoSLSBootstrapCoefficientLinearizationClosenessInputs μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω)) Z X Y
@@ -16160,7 +16160,7 @@ private theorem twoSLSBootstrapBetaFinSucc_tendstoInBootstrapProbability_of_obse
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapProbabilityIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -16264,7 +16264,7 @@ theorem of_observed_textbook_fourth_linearized_closeness
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β)
     (hlinearized_closeness : ∀ δ : ℝ, 0 < δ →
       TendstoInMeasure μ
@@ -16328,7 +16328,7 @@ theorem of_observed_textbook_fourth
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TwoSLSBootstrapCoefficientLinearizationClosenessInputs μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω)) Z X Y
@@ -16366,7 +16366,7 @@ private theorem indexed_bootstrap_joint_row_mean_tendsto
     {r : Type*} [Fintype r]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ}
-    (hjoint : TwoSLSAssumption12_1JointIidConditions μ Z X e)
+    (hjoint : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (g : ((l → ℝ) × (k → ℝ)) × ℝ → EuclideanSpace ℝ r)
     (hg : Measurable g)
     (hmem : MemLp (fun ω => g ((Z 0 ω, X 0 ω), e 0 ω)) 1 μ) :
@@ -16509,7 +16509,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapProbabilityIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -16521,7 +16521,7 @@ private theorem
   let hJoint := h.toTextbookSecondConditions.toJointIidConditions
   let hmixed := h.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   let hw := hmixed.toWeightWLLNConditions
   have hPstar : ∀ n (ω : Ω),
       IsProbabilityMeasure
@@ -16691,7 +16691,7 @@ theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TendstoInBootstrapProbabilityIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -16765,7 +16765,7 @@ theorem of_observed_textbook_fourth
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
     TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs μ Z X Y := by
   have hboot :=
@@ -16804,7 +16804,7 @@ coefficient linearizations, and the studentized pair. Consequently none of
 those tail statements is a package field. Its coefficient-closeness and
 covariance-resampling fields expose the reusable proof boundary; the
 observed-textbook constructor below derives both fields from Assumption 12.2. -/
-structure TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
+structure TwoSLSBootstrapTightEmpiricalProcessInputs
     (μ : Measure Ω)
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
     (Y e : ℕ → Ω → ℝ) (β : k → ℝ)
@@ -16819,7 +16819,7 @@ structure TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
   covariance_resample :
     TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs μ Z X Y
 
-namespace TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
+namespace TwoSLSBootstrapTightEmpiricalProcessInputs
 
 /-- The complete Theorem 12.8 empirical-process package from observed
 textbook Assumption 12.2. -/
@@ -16827,36 +16827,36 @@ theorem of_observed_textbook_fourth
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β) :
-    TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
+    TwoSLSBootstrapTightEmpiricalProcessInputs
       μ Z X Y e β R where
   coefficient_closeness :=
     TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_observed_textbook_fourth h
   covariance_resample :=
     TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs.of_observed_textbook_fourth h
 
-end TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
+end TwoSLSBootstrapTightEmpiricalProcessInputs
 
 /-- Hansen Theorem 12.8 observed-row distribution inputs.
 
 Assumption 12.2 supplies the population Gaussian and covariance
 nondegeneracy facts, the true-score tightness, residual substitution,
 coefficient linearization, and robust covariance resampling. -/
-structure TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+structure TwoSLSBootstrapObservedDistributionInputs
     (μ : Measure Ω)
     [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
     (e Y : ℕ → Ω → ℝ) (R : Matrix Unit k ℝ)
     (β : k → ℝ) : Prop where
   assumption12_2 :
-    TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β
+    TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β
   restriction_row_ne_zero : ∃ j : k, R () j ≠ 0
   empirical_process :
-    TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
+    TwoSLSBootstrapTightEmpiricalProcessInputs
       μ Z X Y e β R
 
-namespace TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+namespace TwoSLSBootstrapObservedDistributionInputs
 
 /-- Complete observed-row distribution inputs from Assumption 12.2 and a
 nonzero one-row restriction. -/
@@ -16864,37 +16864,37 @@ theorem of_observed_textbook_fourth
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0) :
-    TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+    TwoSLSBootstrapObservedDistributionInputs
       μ Z X e Y R β where
   assumption12_2 := h
   restriction_row_ne_zero := hR
   empirical_process :=
-    TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs.of_observed_textbook_fourth h
+    TwoSLSBootstrapTightEmpiricalProcessInputs.of_observed_textbook_fourth h
 
-end TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+end TwoSLSBootstrapObservedDistributionInputs
 
 /-- Full observed-row Hansen Theorem 12.8 inputs.
 
 No pathwise score bound or all-sample covariance positive-definiteness field
 appears. Sample standard-error nondegeneracy is derived in probability from
 Assumption 12.2 covariance consistency. -/
-structure TwoSLSBootstrapTheorem12_8ObservedFullInputs
+structure TwoSLSBootstrapObservedFullInputs
     (μ : Measure Ω)
     [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
     (e Y : ℕ → Ω → ℝ) (R : Matrix Unit k ℝ)
     (β : k → ℝ) (q α : ℝ) : Prop where
   distribution :
-    TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+    TwoSLSBootstrapObservedDistributionInputs
       μ Z X e Y R β
   quantile_calibration :
     TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
       μ Z X Y R q α
 
-namespace TwoSLSBootstrapTheorem12_8ObservedFullInputs
+namespace TwoSLSBootstrapObservedFullInputs
 
 /-- Full observed-row Theorem 12.8 inputs with quantile calibration as the
 only premise beyond Assumption 12.2 and restriction nondegeneracy. -/
@@ -16903,19 +16903,19 @@ theorem of_observed_textbook_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ} {R : Matrix Unit k ℝ}
     {q α : ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0)
     (hquantile : TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
       μ Z X Y R q α) :
-    TwoSLSBootstrapTheorem12_8ObservedFullInputs
+    TwoSLSBootstrapObservedFullInputs
       μ Z X e Y R β q α where
   distribution :=
-    TwoSLSBootstrapTheorem12_8ObservedDistributionInputs.of_observed_textbook_fourth
+    TwoSLSBootstrapObservedDistributionInputs.of_observed_textbook_fourth
       h hR
   quantile_calibration := hquantile
 
-end TwoSLSBootstrapTheorem12_8ObservedFullInputs
+end TwoSLSBootstrapObservedFullInputs
 
 set_option linter.style.longLine false in
 private theorem
@@ -16923,7 +16923,7 @@ private theorem
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+    (h : TwoSLSBootstrapObservedDistributionInputs
       μ Z X e Y R β) :
     TendstoInBootstrapWeakDistributionIndexed μ
       (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -16937,7 +16937,7 @@ private theorem
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
   let hmixed := h.assumption12_2.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   have hscore :=
     twoSLSBootstrapRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_of_observed_textbook_fourth
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β)
@@ -16970,7 +16970,7 @@ private theorem
       (by simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using hiid.qzz_posDef.1.eq)
       (twoSLSCombinedQZX_eq_transpose_QXZ_of_popGram_wlln
         (μ := μ) (Z := Z) (X := X)
-        hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+        hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
       hscore
   have hlinearized :
       TendstoInBootstrapWeakDistributionIndexed μ
@@ -17021,12 +17021,12 @@ Assumption 12.2 derives the true-score CLT, its asymptotic tightness, residual
 substitution, coefficient linearization, robust covariance resampling,
 covariance nondegeneracy, and sample-side covariance WLLNs. The bundled input
 is assembled directly from Assumption 12.2 and a nonzero one-row restriction
-by `TwoSLSBootstrapTheorem12_8ObservedDistributionInputs.of_observed_textbook_fourth`. -/
+by `TwoSLSBootstrapObservedDistributionInputs.of_observed_textbook_fourth`. -/
 theorem distribution
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+    (h : TwoSLSBootstrapObservedDistributionInputs
       μ Z X e Y R β) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
@@ -17045,7 +17045,7 @@ theorem distribution
         (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) := by
   let hmixed := h.assumption12_2.toJointIidMixedMomentConditions
   let hiid :=
-    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    hmixed.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   let Vβ : Matrix k k ℝ :=
     twoSLSAsymptoticVariance
       (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
@@ -17063,7 +17063,7 @@ theorem distribution
         (QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
           (μ := μ) (Z := Z) (X := X)
-          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+          hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram)
         hiid.qzz_posDef hiid.omega_posDef hiid.qzx_rank
   have hβweak :=
     twoSLSBootstrapBetaGapFinSucc_tendstoInBootstrapWeakDistribution_of_observed_tightInputs
@@ -17213,7 +17213,7 @@ theorem distribution_of_observed_textbook_fourth
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ Z X e Y β)
     (hR : ∃ j : k, R () j ≠ 0) :
     TendstoInBootstrapDistributionIndexed μ
@@ -17234,7 +17234,7 @@ theorem distribution_of_observed_textbook_fourth
   distribution
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
     (R := R) (β := β)
-    (TwoSLSBootstrapTheorem12_8ObservedDistributionInputs.of_observed_textbook_fourth
+    (TwoSLSBootstrapObservedDistributionInputs.of_observed_textbook_fourth
       h hR)
 
 /-- Corrected full observed-row Hansen Theorem 12.8 endpoint.
@@ -17247,7 +17247,7 @@ theorem quantiles_and_coverage
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
-    (h : TwoSLSBootstrapTheorem12_8ObservedFullInputs
+    (h : TwoSLSBootstrapObservedFullInputs
       μ Z X e Y R β q α) :
     TendstoInBootstrapDistributionIndexed μ
         (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))

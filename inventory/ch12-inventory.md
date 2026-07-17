@@ -122,9 +122,12 @@
   residual used for covariance estimation, robust and homoskedastic plug-in covariance
   definitions, and the finite-sample structural-error decomposition (12.39).
 - The canonical textbook endpoints are complete for Theorems 12.1--12.6, 12.8,
-  12.16, and 12.17. Theorem 12.7 is false as printed; Theorems 12.9--12.15 and
-  12.18--12.19 retain explicit support surfaces but remain open at their raw
-  assumptions.
+  12.16, and 12.17. Corrected raw endpoints are also complete for Theorems
+  12.9--12.11, 12.15, and 12.18. Theorem 12.7 is false as printed. Theorem
+  12.12 now has its full joint actual-estimator CLT but still lacks a raw proof
+  of covariance-estimator consistency; Theorems 12.13--12.14 consequently
+  remain conditional on that covariance engine, and Theorem 12.19 still lacks
+  the projected quadratic concentration proof behind (12.81).
 - The current asymptotic layer proves the rectangular continuous-mapping step from
   sample IV moment convergence to Hansen's linearization matrix, the resulting
   linearized 2SLS consistency term, iid finite-moment constructors for the main
@@ -324,16 +327,16 @@ crosswalk.
 | Theorem 12.6 | `twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn` |
 | Theorem 12.7 |  |
 | Theorem 12.8 | `TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth` |
-| Theorem 12.9 |  |
-| Theorem 12.10 |  |
-| Theorem 12.11 |  |
+| Theorem 12.9 | `theorem12_9_corrected_normal_covariance_wald_size` |
+| Theorem 12.10 | `generatedRegressor_theorem12_10_conditional_hasLaw_bundle` |
+| Theorem 12.11 | `generatedRegressorLS_theorem12_11_of_corrected_regularities` |
 | Theorem 12.12 |  |
 | Theorem 12.13 |  |
 | Theorem 12.14 |  |
-| Theorem 12.15 |  |
+| Theorem 12.15 | `controlFunctionEndogeneityFTestOrZero_theorem12_15_conditionalNormal_lowerTail` |
 | Theorem 12.16 | `Theorem12_16.observed` |
 | Theorem 12.17 | `Theorem12_17.observed` |
-| Theorem 12.18 |  |
+| Theorem 12.18 | `weakIV_theorem12_18_triangular_estimators_of_raw_moments` |
 | Theorem 12.19 |  |
 
 ## Lean-only support inventory
@@ -409,10 +412,10 @@ canonical crosswalk above.
   a mixture, while the repo has no noncentral or mixture inverse-Gram
   moment-threshold theorem. These facts cannot follow from the literally printed
   joint-normal hypothesis alone.
-- **Theorem 12.8.** `TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs`
+- **Theorem 12.8.** `TwoSLSBootstrapTightEmpiricalProcessInputs`
   retains generic coefficient-linearization and robust-covariance resampling
   fields, but
-  `TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs.of_observed_textbook_fourth`
+  `TwoSLSBootstrapTightEmpiricalProcessInputs.of_observed_textbook_fourth`
   now derives both from observed textbook Assumption 12.2. The public theorem
   `twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth`
   derives the bootstrap-sample linearization matrix limit from observed
@@ -435,7 +438,7 @@ canonical crosswalk above.
   ideal, cross, and quadratic middle-matrix rows plus the 2SLS sandwich CMT;
   `TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs.of_observed_textbook_fourth`
   then derives resampled-versus-original covariance stability.
-  `TwoSLSBootstrapTheorem12_8ObservedDistributionInputs.of_observed_textbook_fourth`
+  `TwoSLSBootstrapObservedDistributionInputs.of_observed_textbook_fourth`
   therefore closes the distribution-side raw obligations from Assumption 12.2
   and a nonzero one-row restriction. The direct wrapper
   `TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth` reuses
@@ -534,23 +537,30 @@ canonical crosswalk above.
   support rather than a canonical crosswalk entry.
 - **Theorem 12.12.**
   `expectationError_theorem12_12_of_assembly` consumes
-  `ExpectationErrorTheorem12_12AssemblyConditions`, whose `asymptotic` field
+  `ExpectationErrorAsymptoticCovarianceAssemblyConditions`, whose `asymptotic` field
   still supplies the main joint CLT and feasible covariance engine instead of
   deriving it from the raw fourth-moment model. The new
   `ExpectationErrorHansenObservedIidConditions` is an honest regularity
   extension of the corrected primitive package: it adds observed-row iid
   sampling and `E[ZZ'] > 0`, neither a limit nor a sample-rank conclusion.
   `ExpectationErrorHansenObservedIidConditions.combinedQZZ_eq_popGram` and
-  `.toGeneratedRegressorLSTheorem12_11RegularityConditions` derive the
+  `.toGeneratedRegressorLSObservedIidRegularityConditions` derive the
   population instrument block and the corrected Theorem 12.11 raw engine.
   Consequently
   `expectationError_firstStepBeta_theorem12_12_of_observed_iid` proves the
   first-step generated-regression beta CLT and structural-residual HC0
-  consistency with Hansen's `V_{ββ}` formula. This does not yet identify that
-  coefficient with the beta block of the full `(What,Uhat)` regression on the
-  vanishing singular-design event, nor derive the alpha CLT, mixed
-  `V_{αβ}` plug-in consistency, or the full displayed covariance estimator;
-  those are the remaining raw 12.12 assembly obligations. The source section
+  consistency with Hansen's `V_{ββ}` formula.
+  `expectationErrorBetaHatStar_tendstoInDistribution_of_observed_iid` now
+  identifies that coefficient with the beta block of the full `(What,Uhat)`
+  regression outside a singular event whose probability is proved to vanish.
+  The raw joint score CLT
+  `rawJointInfluence_tendstoInDistribution_theorem12_12` also derives Hansen's
+  exact full covariance, including the cross block, from the same observed-iid
+  package. `expectationErrorBetaAlphaStar_tendstoInDistribution_theorem12_12_of_observed_iid`
+  proves the actual joint estimator CLT by deriving both block influence
+  remainders and applying Slutsky. The remaining raw obligation is consistency
+  of the full feasible covariance estimator `expectationErrorVHatStar`; the
+  older assembly endpoint still assumes that conclusion. The source section
   is also internally inconsistent: its opening display says
   `Y = X'β + u'α + ν`, which gives `Y-X'β = u'α+ν`, while the subsequent
   derivation and covariance formulas use
@@ -560,7 +570,7 @@ canonical crosswalk above.
   it is not represented as a literal proof of the contradictory printed model.
 - **Theorem 12.13.**
   `controlFunctionAlphaHatStar_theorem12_13_of_assembly` consumes
-  `ControlFunctionTheorem12_13AssemblyConditions`, which explicitly carries the
+  `ControlFunctionAlphaAsymptoticAssemblyConditions`, which explicitly carries the
   expectation-error asymptotic engine and finite-sample bridge obligations.
   The displayed assumptions are not sufficient as a standalone theorem unless
   “the model described in this section” imports omitted projection and sampling
@@ -572,7 +582,7 @@ canonical crosswalk above.
   `controlFunctionEndogeneityMap` uses this correct identity and obtains the
   exact displayed covariance
   `Vα=V22+Vγγ-Vγ2-Vγ2'`. A faithful completion should derive the corrected
-  unequal-block Theorem 12.12 engine from one honest observed-row package,
+  unequal-block joint estimator linearization from one honest observed-row package,
   derive generated-design Gram convergence and high-probability rank, then
   reuse the existing deterministic alpha map and displayed-covariance endpoint.
 - **Theorem 12.14.**
@@ -593,19 +603,20 @@ canonical crosswalk above.
   `controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist`
   and bridge
   `controlFunctionEndogeneityHomoskedasticFStatOrZero_eq_FStatistic`.
-  `controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail`
-  remains conditional on measurable statistic maps and realized restricted/full
-  design rank not derived from Hansen's raw conditional-normal model. The
+  `controlFunctionEndogeneityFTestOrZero_theorem12_15_conditionalNormal_lowerTail`
+  is the canonical totalized endpoint: it derives restricted-design rank from
+  a.e. full augmented-design rank, derives fixed-section measurability from the
+  joint statistic map, and proves both the conditional F law and exact strict
+  upper-tail size. The
   printed conditional-normal assumption is not sufficient by itself:
   conditional normality does not imply design rank (take `X₂=0`), and the
   classical F law also needs `σ²>0`, `k₂>0`, and
   `k₁+2k₂<n`. The statistic and degrees of freedom in Lean match Hansen exactly:
   `W⁰/k₂` and `F(k₂,n-k₁-2k₂)`. The arbitrary-joint kernel theorem
   `controlFunctionEndogeneityHomoskedasticFStatOrZero_condDistrib_eq_const_of_conditionalNormal_ae`
-  already proves the conditional law from an actual error kernel and a.e. rank;
-  a corrected raw endpoint still needs a measurable-design facade, a.e. rank
-  transport from the expectation-error geometry, and unconditional/exact-size
-  corollaries with the omitted dimension and positivity conditions explicit.
+  supplies the underlying conditional law from an actual error kernel and a.e.
+  rank. The theorem-facing wrapper makes every omitted dimension, variance,
+  rank, measurability, and critical-value condition explicit.
 - **Theorem 12.18.** The fixed-prefix conditional assembly is
   `WeakIVGeneralizedEigenvalueAssemblyConditions` with endpoint
   `weakIV_estimators_minus_beta_of_generalizedEigenvalueAssembly`; it is not
@@ -660,7 +671,7 @@ canonical crosswalk above.
   historical compatibility declarations under `WeakIVCompatibility`, not
   canonical Theorem 12.18 support.
 - **Theorem 12.19.** The Hansen-facing non-circular model surface is
-  `ManyInstrumentsTheorem1219HansenRawModelConditions`. Its primitive error row
+  `ManyInstrumentsPrimitiveErrorRawModelConditions`. Its primitive error row
   is exactly `[u1,u2]`, `Sigma` is exactly the conditional covariance in
   (12.74), and the structural error `e = u1 - beta'u2` is derived through
   `ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel.toStructuralErrorModel`.
@@ -675,9 +686,9 @@ canonical crosswalk above.
   `manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_selector`
   now derives the complete 2SLS assembly, normalized LIML pencil, and all three
   estimator limits with Hansen's displayed OLS and 2SLS biases from that raw
-  model plus the reduced-form OLS moment assembly,
-  projected mean-square concentration, and a locally continuous generalized-root
-  selector. The raw model itself now implies the ordinary full-error WLLN through
+  model plus projected mean-square concentration. The raw model now derives the
+  reduced-form OLS moment assembly internally, including Hansen's
+  signal-weighted WLLNs (12.78). It also implies the ordinary full-error WLLN through
   `ManyInstrumentsConditionalHomoskedasticFourthMomentModel.toUnprojectedFullErrorMomentConditions`:
   the proof centers every row-product entry, uses conditional independence to
   eliminate cross-row covariances, and obtains a `B/n` mean-square bound. The
@@ -693,11 +704,14 @@ canonical crosswalk above.
   `manyInstrumentsJointReducedFormCovariance_structuralErrorCovariance` proves
   that this is exactly Hansen's primitive `Sigma`. It also records (12.77) explicitly: Hansen's
   displayed theorem omits that signal-Gram limit, but the proof uses it in
-  (12.78), to identify `H`, and in every estimator limit. Remaining raw work is
-  to derive the signal-weighted reduced-form WLLNs in the OLS assembly, prove the
-  `O(1/n)` projected concentration bounds from conditional independence and
-  (12.74)--(12.75), and construct the concrete smallest generalized-root selector
-  with its local continuity and finite-sample LIML identity. Hansen's argument also uses row independence and
+  (12.78), to identify `H`, and in every estimator limit. The concrete
+  `manyInstrumentsLIMLSmallestRoot` now converges by continuity at the
+  positive-definite limiting denominator, without any finite-sample
+  positive-denominator premise. The sole remaining raw probability step is to
+  derive the `O(1/n)` projected concentration bounds from conditional
+  independence and (12.74)--(12.75), thereby discharging (12.81) rather than
+  accepting `ManyInstrumentsProjectionQuadraticMeanSquareConditions` as a
+  premise. Hansen's argument also uses row independence and
   `Z'Z` nonsingularity, neither of which appears in the numbered theorem
   assumptions. The former additive-row and
   scalar adjustment-gap packages are deprecated compatibility surfaces.
@@ -903,7 +917,7 @@ support inventory above control completion status and preferred public names.
   `twoSLSBootstrapRobustLinearTStatFinSucc_theorem12_8_of_assumption12_2_weight_wlln_fullRank_resampleCloseness`
   now packages Assumption 12.2, coefficient linearization, covariance resampling closeness, and
   full-rank one-row restriction data directly. Consequently
-  `TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs` no longer carries a separate
+  `TwoSLSBootstrapEmpiricalProcessInputs` no longer carries a separate
   `studentization_tail` field and now carries only true-score compact-tail control
   rather than joint true/feasible residual-score compact-tail control, and
   `twoSLSBootstrap_theorem12_8_of_assumption12_2_weight_wlln_residualSubstitution_linearization_fullRank_resampleCloseness`
@@ -913,14 +927,14 @@ support inventory above control completion status and preferred public names.
   route names
   `TwoSLSBootstrapCoefficientLinearizationPrimitiveInputs`,
   `TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs`, and
-  `TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs`; their conversion
+  `TwoSLSBootstrapPrimitiveEmpiricalProcessInputs`; their conversion
   theorems derive coefficient compact tails and robust covariance bootstrap
   closeness from primitive tail/closeness fields, and
   `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_primitiveEmpiricalProcess`
   consumes that smaller package. Direct covariance-consistency package constructors
-  `TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency`
+  `TwoSLSBootstrapEmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitution_linearization_bootstrapCovarianceConsistency`
   and
-  `TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_textbook_fourth_residualSubstitution_linearization_bootstrapCovarianceConsistency`
+  `TwoSLSBootstrapEmpiricalProcessInputs.of_textbook_fourth_residualSubstitution_linearization_bootstrapCovarianceConsistency`
   now derive the empirical-process `covariance_resample` field from direct
   `twoSLSBootstrapVHatStarFinSucc` bootstrap consistency plus the existing
   Chapter 12 original-sample covariance WLLN route, so this package path no
@@ -937,7 +951,7 @@ support inventory above control completion status and preferred public names.
   constructor layer. `TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_norm_bound`,
   `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_dist_bounds`,
   `TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs.of_norm_bound`, and
-  `TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.of_tail_bounds`
+  `TwoSLSBootstrapScoreTailPrimitiveEmpiricalProcessInputs.of_tail_bounds`
   build the empirical-process package from true-score tightness plus scalar
   bootstrap-tail/envelope bounds for residual substitution, population-to-sample
   linearization, coefficient linearization, and robust covariance resampling.
@@ -1014,22 +1028,22 @@ support inventory above control completion status and preferred public names.
   the corrected generalized-eigenvalue public API is inventoried above.
 - For Theorems 12.5 and 12.6, the preferred theorem-facing route is now the
   literal observed-row finite-fourth Assumption 12.2 package
-  `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions` plus the Assumption
-  7.3 derivative-map package `SmoothFunctionPlugInDerivative73`.
+  `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions` plus the Assumption
+  7.3 derivative-map package `SmoothFunctionPlugInDerivativeConditions`.
   The derivative-map package certifies that `Rfun b` locally represents
   Hansen's transpose-oriented derivative matrix for `r` at `b`, includes the
   formal global measurability needed for sample transformations, and retains
   the population full-rank derivative condition through `SmoothFunctionAssumption73`.
-  `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toJointIidMixedMomentConditions`
+  `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toJointIidMixedMomentConditions`
   routes through the residual-row finite-fourth package and derives the
-  proof-facing `TwoSLSAssumption12_2JointIidMixedMomentConditions` by Hölder, so
+  proof-facing `TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions` by Hölder, so
   the mixed `e X Z Z`, `X X Z Z`, and `e X` integrability fields are no longer
   exposed by the preferred 12.5/12.6 endpoints. The theorem names are
   `twoSLSFunction_theorem12_5_of_textbook12_2_observed_iid_73_derivativePlugIn`,
   `twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn`,
   and lower-tail
   `twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn_lowerTail`.
-  `SmoothFunctionPlugInDerivative73.twoSLSDerivativePlugIn_tendstoInMeasure_of_assumption12_1_joint_iid_model`
+  `SmoothFunctionPlugInDerivativeConditions.twoSLSDerivativePlugIn_tendstoInMeasure_of_assumption12_1_joint_iid_model`
   derives Hansen's derivative estimator consistency for
   `Rhat = ∂r(βhat₂SLS)'/∂β`; the older arbitrary-`Rhat`, mixed-moment, and
   constant-derivative wrappers remain compatibility/proof-engine routes. The
@@ -1045,7 +1059,7 @@ support inventory above control completion status and preferred public names.
   and exact residual-substitution step
   `TwoSLSCovarianceRemainderConditions.of_textbook12_2_joint_iid_fourth`
   remain the compatibility surfaces reached by the observed-row package through
-  `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`.
+  `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`.
   The mixed-moment compatibility endpoints
   `twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_joint_iid_mixed_moment_conditions`
   and `TwoSLSCovarianceRemainderConditions.of_assumption12_2_joint_iid_mixed_moment_conditions`
@@ -1361,10 +1375,10 @@ support inventory above control completion status and preferred public names.
   residual-row finite-fourth Hansen-facing endpoint
   `generatedRegressorLS_theorem12_11_of_textbook12_2_populationProjection_auto_rankProbability`
   wraps this route via
-  `TwoSLSAssumption12_2JointIidTextbookFourthConditions.toJointIidMixedMomentConditions`. The
+  `TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions.toJointIidMixedMomentConditions`. The
   preferred observed-row theorem-facing wrapper
   `generatedRegressorLS_theorem12_11_of_observed_textbook12_2_auto_rankProbability`
-  consumes `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions`, whose iid condition is stated
+  consumes `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions`, whose iid condition is stated
   on Hansen's observed row `((Z_i, X_i), Y_i)`, and delegates through
   `toResidualTextbookFourthConditions`.
   The older eventual-rank endpoints remain useful for deterministic fixed-design callers; the
@@ -1414,7 +1428,7 @@ support inventory above control completion status and preferred public names.
   `expectationErrorStructuralError`, `expectationErrorControlError`,
   `expectationErrorOmegaUZeNu`,
   `ExpectationErrorHansenPrimitiveConditions`,
-  `ExpectationErrorTheorem12_12AssemblyConditions`, and
+  `ExpectationErrorAsymptoticCovarianceAssemblyConditions`, and
   `expectationError_theorem12_12_of_assembly`. The primitive records the Section 12.27 model
   equations, row measurability, orthogonality, fourth-moment, and positive-definiteness premises; the
   assembly keeps the still-unproved asymptotic engine separate and
@@ -1487,7 +1501,7 @@ support inventory above control completion status and preferred public names.
   `controlFunctionExpectationErrorTarget`, `controlFunctionStructuralRegressor`,
   `controlFunctionEndogeneityMap_mulVec_expectationErrorTarget`,
   `ControlFunctionHansenPrimitiveConditions`,
-  `ControlFunctionTheorem12_13AssemblyConditions`, and
+  `ControlFunctionAlphaAsymptoticAssemblyConditions`, and
   `controlFunctionAlphaHatStar_theorem12_13_of_assembly`. These record Hansen's Section
   12.28 reduced form, structural error, control-error projection, orthogonality, fourth moments, and
   positive-definite Gram premises, and they connect the expectation-error target `(β₁, β₂, γ)` to
@@ -1669,7 +1683,7 @@ support inventory above control completion status and preferred public names.
   `twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic` and
   `twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_lowerTail`
   now expose Hansen's iid assumption on `((Z_i, X_i), Y_i)` and delegate to the residual-row
-  theorem through `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`.
+  theorem through `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`.
   The preferred observed-row endpoints are the derived-variance-positive
   `Theorem12_16.observed` and `Theorem12_16.observed_lowerTail`.
   They remove the separate scalar `0 < errorVariance μ e` premise by deriving
@@ -1811,7 +1825,7 @@ support inventory above control completion status and preferred public names.
   `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail`
   state the maintained and full-instrument Assumption 12.2 packages on observed rows, then reuse
   the residual-row full-Gram/fitted-Gram theorem through
-  `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`.
+  `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`.
   Newey covariance consistency now has a finite-sample middle
   identity
   `twoSLSSubsetNeweyMiddleStar_card_inv_smul_eq_scoreMap_overidResidualMaker_sampleQZZ`,
@@ -1856,7 +1870,7 @@ support inventory above control completion status and preferred public names.
   `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail`
   expose the same route with maintained and full Assumption 12.2 packages on
   Hansen's observed rows, delegating through
-  `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`.
+  `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`.
   The full-instrument sample-Gram/full-homoskedastic observed endpoints
   `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos`
   /

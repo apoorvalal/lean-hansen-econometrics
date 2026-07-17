@@ -3076,7 +3076,7 @@ sample identity between OLS on `ZÂ` and 2SLS. -/
 theorem
     generatedRegressorLS_theorem12_11_of_assumption12_2_projection
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (A : Matrix l k ℝ)
@@ -3126,7 +3126,7 @@ theorem
   have hcoef2sls_raw :=
     twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-      h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+      h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions β hmodel
   have hcoef2sls :
       TendstoInDistribution
         (fun (m : ℕ) ω =>
@@ -4664,7 +4664,7 @@ The honest raw model/moment surface is
 `ExpectationErrorHansenPrimitiveConditions`. This assembly contains only the
 asymptotic engine actually consumed by its endpoint; a future raw constructor
 must derive it from the primitive iid fourth-moment model. -/
-structure ExpectationErrorTheorem12_12AssemblyConditions
+structure ExpectationErrorAsymptoticCovarianceAssemblyConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (ν : Measure Ωlim) [IsProbabilityMeasure ν]
     (Z : ℕ → Ω → l → ℝ) (X u : ℕ → Ω → k → ℝ)
@@ -5133,7 +5133,7 @@ theorem expectationError_theorem12_12_of_assembly
     {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
     {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
     {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
-    (h : ExpectationErrorTheorem12_12AssemblyConditions
+    (h : ExpectationErrorAsymptoticCovarianceAssemblyConditions
       μ ν Z X u νe Y A β α G) :
     TendstoInDistribution
       (fun (m : ℕ) ω =>
@@ -5936,7 +5936,7 @@ explicit side condition. -/
 theorem
     generatedRegressorLS_theorem12_11_of_assumption12_2_projection_eventual_nonsingular
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (A : Matrix l k ℝ)
@@ -5994,7 +5994,7 @@ theorem
   have hcoef2sls_raw :=
     twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-      h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+      h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions β hmodel
   have hcoef2sls :
       TendstoInDistribution
         (fun (m : ℕ) ω =>
@@ -6386,7 +6386,7 @@ nonsingularity and generated-statistic measurability, remain explicit. -/
 theorem
     generatedRegressorLS_theorem12_11_of_assumption12_2_population_projection_eventual
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
@@ -6432,14 +6432,14 @@ theorem
   have hQZZ : IsUnit QZZ.det :=
     (Matrix.isUnit_iff_isUnit_det QZZ).mp h.qzz_posDef.isUnit
   have hIidFourth :
-      TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+      TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   have hGram :
-      TwoSLSAssumption12_2GramConditions μ Z X e :=
+      TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e :=
     hIidFourth.toGramConditions
   have hCombined :
       SampleGramWLLNConditions μ (twoSLSCombinedRegressors Z X) :=
-    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
   have hQZX : QZX = QZZ * A := by
     dsimp [A]
     exact (qzz_mul_generatedRegressorPopulationProjectionCoef_eq hQZZ).symm
@@ -6470,7 +6470,7 @@ eventual first-stage rank condition remains explicit. -/
 theorem
     generatedRegressorLS_theorem12_11_of_assumption12_2_population_projection_eventual_auto_measurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
@@ -8736,13 +8736,13 @@ theorem generatedRegressorLS_theorem12_11_of_corrected_regularities
   have hGram : TwoSLSGramScoreCLTConditions μ Z X e :=
     h2.toGramScoreCLTConditions
   have hMom :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   have hQZZunit : IsUnit QZZ.det :=
     (Matrix.isUnit_iff_isUnit_det QZZ).mp (by simpa [QZZ] using h.qzz_posDef.isUnit)
   have hQZX :
       twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)) = QZZ * A := by
     simpa [QZZ] using h.population_projection
-  have hCombined := hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+  have hCombined := hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
   have hQXZ :
       twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)) = Aᵀ * QZZ := by
     simpa [QZZ] using twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
@@ -8854,7 +8854,7 @@ rank fact supplied by Gram convergence plus population positive definiteness. -/
 theorem
     generatedRegressorLS_theorem12_11_assumption12_2_projection_rankProbability
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (A : Matrix l k ℝ)
@@ -8914,7 +8914,7 @@ theorem
   have hcoef2sls_raw :=
     twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-      h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+      h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions β hmodel
   have hcoef2sls :
       TendstoInDistribution
         (fun (m : ℕ) ω =>
@@ -8967,7 +8967,7 @@ high-probability first-stage nonsingularity. -/
 theorem
     generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_rankProbability
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hsingular : Tendsto
@@ -9015,14 +9015,14 @@ theorem
   have hQZZ : IsUnit QZZ.det :=
     (Matrix.isUnit_iff_isUnit_det QZZ).mp h.qzz_posDef.isUnit
   have hIidFourth :
-      TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+      TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   have hGram :
-      TwoSLSAssumption12_2GramConditions μ Z X e :=
+      TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e :=
     hIidFourth.toGramConditions
   have hCombined :
       SampleGramWLLNConditions μ (twoSLSCombinedRegressors Z X) :=
-    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
   have hQZX : QZX = QZZ * A := by
     dsimp [A]
     exact (qzz_mul_generatedRegressorPopulationProjectionCoef_eq hQZZ).symm
@@ -9046,7 +9046,7 @@ first-stage nonsingularity. -/
 theorem
     generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_rankProbability_autoMeas
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hsingular : Tendsto
@@ -9104,7 +9104,7 @@ vanishes; no eventual a.e. full-rank assertion is inferred. -/
 theorem
     generatedRegressorLS_firstStage_singularProb_tendsto_zero_of_assumption12_2
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e) :
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e) :
     Tendsto
       (fun m => μ {ω |
         ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)})
@@ -9112,17 +9112,17 @@ theorem
   let QZZ : Matrix l l ℝ :=
     twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
   have hIidFourth :
-      TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+      TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e :=
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
   have hGram :
-      TwoSLSAssumption12_2GramConditions μ Z X e :=
+      TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e :=
     hIidFourth.toGramConditions
   have hMoments :
       TwoSLSSampleMomentConvergenceConditions μ Z X e
         (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))) :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   have hQZZ : IsUnit QZZ.det :=
     (Matrix.isUnit_iff_isUnit_det QZZ).mp h.qzz_posDef.isUnit
   exact
@@ -9143,7 +9143,7 @@ nonsingularity derived internally. -/
 theorem
     generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_auto_rankProbability
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInDistribution
@@ -9183,13 +9183,13 @@ omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
 surface for the population-projection generated-regressor LS route.
 
 This wrapper keeps Hansen's textbook fourth-moment assumptions explicit and
-reuses `TwoSLSAssumption12_2JointIidTextbookFourthConditions.toJointIidMixedMomentConditions`
+reuses `TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions.toJointIidMixedMomentConditions`
 to discharge the mixed moments used by the proof engine. -/
 theorem
     generatedRegressorLS_theorem12_11_of_textbook12_2_populationProjection_auto_rankProbability
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInDistribution
       (fun (m : ℕ) ω =>
         Real.sqrt (m : ℝ) •
@@ -9228,13 +9228,13 @@ surface for the population-projection generated-regressor LS route.
 This is the theorem-facing version whose iid condition is stated on Hansen's
 observed row `((Z_i, X_i), Y_i)`. It delegates to the residual-row proof engine
 through
-`TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`.
+`TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`.
 -/
 theorem
     generatedRegressorLS_theorem12_11_of_observed_textbook12_2_auto_rankProbability
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInDistribution
       (fun (m : ℕ) ω =>
         Real.sqrt (m : ℝ) •
@@ -11363,7 +11363,7 @@ The target coefficient is stated in Hansen's control-function coordinates
 expectation-error target `(β₁, β₂, γ)` with `γ = β₂ + α`, and the covariance
 block symmetry field rewrites the pushed-forward covariance as
 `V₂₂ + Vγγ - Vγ2 - Vγ2'`. -/
-structure ControlFunctionTheorem12_13AssemblyConditions
+structure ControlFunctionAlphaAsymptoticAssemblyConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (ν : Measure Ωlim) [IsProbabilityMeasure ν]
     (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ u₂ : ℕ → Ω → k₂ → ℝ)
@@ -11766,7 +11766,7 @@ theorem controlFunctionAlphaHatStar_theorem12_13_of_assembly
     {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
     {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
     {VgammaGamma : Matrix k₂ k₂ ℝ}
-    (h : ControlFunctionTheorem12_13AssemblyConditions
+    (h : ControlFunctionAlphaAsymptoticAssemblyConditions
       μ ν X₁ X₂ u₂ Z Y e νe Γ β α G
         VbetaBeta VbetaGamma VgammaBeta VgammaGamma) :
     TendstoInDistribution
@@ -14410,7 +14410,7 @@ theorem
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 12.14**, primitive control-function assembly facade.
 
-The `ControlFunctionTheorem12_13AssemblyConditions` package supplies the raw
+The `ControlFunctionAlphaAsymptoticAssemblyConditions` package supplies the raw
 model, covariance-block symmetry, and the expectation-error CLT/covariance
 engine. The primitive package directly implies the null bridge used by the
 formula-facing Wald theorem.
@@ -14430,7 +14430,7 @@ theorem
     {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
     {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
     {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
-    (h : ControlFunctionTheorem12_13AssemblyConditions
+    (h : ControlFunctionAlphaAsymptoticAssemblyConditions
       μ ν X₁ X₂ u₂ Z Y e νe Γ β α G
         VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
     (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
@@ -25284,7 +25284,7 @@ theorem generatedRegressorLSFirstStageCoefStar_tendstoInMeasure_of_observed_iid
   have hGram : TwoSLSGramScoreCLTConditions μ Z X e :=
     h2.toGramScoreCLTConditions
   let hMom :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   let QZZ : Matrix l l ℝ :=
     twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
   let QZX : Matrix l k ℝ :=
@@ -25960,7 +25960,7 @@ theorem expectationErrorFittedStar_sampleGram_tendstoInMeasure_of_observed_iid
   have hGram : TwoSLSGramScoreCLTConditions μ Z X e :=
     h2.toGramScoreCLTConditions
   let hMom :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   let QZZ : Matrix l l ℝ :=
     twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
   let QXZ : Matrix k l ℝ :=
@@ -25978,7 +25978,7 @@ theorem expectationErrorFittedStar_sampleGram_tendstoInMeasure_of_observed_iid
   have hQZX : QZX = QZZ * A := by
     simpa [QZX, QZZ] using hLS.population_projection
   have hCombined :=
-    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram
   have hQXZ : QXZ = Aᵀ * QZZ := by
     simpa [QXZ, QZZ] using
       twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
@@ -26058,7 +26058,7 @@ theorem expectationErrorResidualStar_sampleGram_tendstoInMeasure_of_observed_iid
   have hGram : TwoSLSGramScoreCLTConditions μ Z X e :=
     h2.toGramScoreCLTConditions
   let hMom :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   let B : ℕ → Ω → Matrix k k ℝ := fun m ω =>
     twoSLSBread
       (sampleQXZ (stackRegressors Z m ω) (stackRegressors X m ω))
@@ -26105,7 +26105,7 @@ theorem expectationErrorResidualStar_sampleGram_tendstoInMeasure_of_observed_iid
   have hQZX := hLS.population_projection
   have hQXZ := twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
     (μ := μ) (Z := Z) (X := X) (A := A)
-    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram hQZX
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram hQZX
   have hBreadPop : twoSLSBread
       (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
@@ -26127,7 +26127,7 @@ theorem expectationErrorResidualStar_sampleGram_tendstoInMeasure_of_observed_iid
     (continuous_fst.sub continuous_snd)
   have hPop : popGram μ X = Aᵀ * popGram μ Z * A + popGram μ u :=
     popGram_firstStage_eq_fitted_add_residual (μ := μ) A
-      hGram.toTwoSLSAssumption12_1GramConditions.instrument_moments.int_outer
+      hGram.toTwoSLSGramInstrumentMomentRankConditions.instrument_moments.int_outer
       hXGramPkg.int_outer h.z_u_integrable (h.x_model 0) h.z_u_orthogonal
   have htarget : popGram μ X - Aᵀ * popGram μ Z * A = popGram μ u := by
     rw [hPop]
@@ -26213,7 +26213,7 @@ theorem expectationError_block_singularProb_tendsto_zero_of_observed_iid
   have hGram : TwoSLSGramScoreCLTConditions μ Z X e :=
     h2.toGramScoreCLTConditions
   let hMom :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   let QZZ : Matrix l l ℝ :=
     twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
   have hZrank : Tendsto
@@ -26434,7 +26434,7 @@ theorem expectationErrorBetaHatStar_fixedInfluence_remainder_of_observed_iid
   have hGram : TwoSLSGramScoreCLTConditions μ Z X e :=
     h2.toGramScoreCLTConditions
   let hMom :=
-    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   let L : Matrix k l ℝ := (Aᵀ * popGram μ Z * A)⁻¹ * Aᵀ
   let score : ℕ → Ω → l → ℝ := fun m ω =>
     Real.sqrt (m : ℝ) •
@@ -26445,7 +26445,7 @@ theorem expectationErrorBetaHatStar_fixedInfluence_remainder_of_observed_iid
   have hQZX := hLS.population_projection
   have hQXZ := twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
     (μ := μ) (Z := Z) (X := X) (A := A)
-    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram hQZX
+    hGram.toTwoSLSGramInstrumentMomentRankConditions.combined_gram hQZX
   have hlin : TendstoInMeasure μ lin atTop (fun _ => L) := by
     have hbase := twoSLSLinearizationMatrix_tendstoInMeasure_of_sample_moments hMom
     rw [hQXZ, hQZX, h.combinedQZZ_eq_popGram,

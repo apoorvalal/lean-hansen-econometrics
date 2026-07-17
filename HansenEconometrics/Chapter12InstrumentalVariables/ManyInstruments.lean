@@ -4733,7 +4733,7 @@ the estimator faces are proved from normalized moment convergence by
 `olsBetaStar_tendstoInMeasure_of_moment_limits`,
 `twoSLSBetaStar_tendstoInMeasure_of_normalized_moment_limits`, and
 `limlBetaStar_tendstoInMeasure_beta_of_normalized_moments`. -/
-structure ManyInstrumentsTheorem1219Conditions
+structure ManyInstrumentsEstimatorMomentAssemblyConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
     (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
@@ -4781,7 +4781,7 @@ reduced-form OLS and projected-2SLS assembly packages.
 This keeps the final theorem surface from assuming the OLS and 2SLS
 moment-limit packages directly: they are derived from the signal/error/cross
 component limits that mirror Hansen's many-instrument decomposition. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -4803,7 +4803,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies
     (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
     (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha where
   alpha_nonneg := halpha_nonneg
   alpha_lt_one := halpha_lt_one
@@ -4830,7 +4830,7 @@ limit `μ̂ -> α/(1-α)`.
 
 This wrapper removes the need to assume the LIML zero-score moment package
 separately once the OLS and 2SLS moment limits have been proved. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -4854,9 +4854,9 @@ theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tends
     (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
     (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
       (fun _ => alpha / (1 - alpha))) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -4872,8 +4872,8 @@ theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tends
 OLS and projected-2SLS assemblies plus the named LIML eigenvalue limit package.
 
 This is the certificate-shaped variant of
-`ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto`. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto`. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -4895,9 +4895,9 @@ theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit
     (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
     (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -4917,7 +4917,7 @@ This is the theorem-facing bridge from the sample eigenvalue adjustment
 `μ̂_n - (ℓ_n/n)/(1-ℓ_n/n) = o_p(1)` and Hansen's `ℓ_n/n -> α` to the LIML
 cancellation package used for consistency. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_sample_eigenvalue_problem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -4940,9 +4940,9 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_sample_eigenvalu
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -4951,11 +4951,11 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_sample_eigenvalu
       (ι := ι) (μ := μ) hratio halpha_lt_one)
 
 /-- Ratio-facing variant of
-`ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies`.
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies`.
 
 The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
 assumption `ℓ_n/n -> α`. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_of_card_ratio
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_of_card_ratio
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -4976,9 +4976,9 @@ theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_of_card_
     (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
     (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -4986,12 +4986,12 @@ theorem ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_of_card_
     halpha_lt_one hratio hstruct hpos hOLS h2SLS hLIML
 
 /-- Ratio-facing variant of
-`ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto`.
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto`.
 
 The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
 assumption `ℓ_n/n -> α`. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto_of_card_ratio
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto_of_card_ratio
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5014,9 +5014,9 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto_of_ca
     (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
     (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
       (fun _ => alpha / (1 - alpha))) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5024,12 +5024,12 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto_of_ca
     halpha_lt_one hratio hstruct hpos hOLS h2SLS hmu_meas hmu_tendsto
 
 /-- Ratio-facing variant of
-`ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions`.
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions`.
 
 The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
 assumption `ℓ_n/n -> α`. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions_of_card_ratio
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions_of_card_ratio
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5050,9 +5050,9 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditi
     (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
     (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5061,12 +5061,12 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditi
 
 set_option linter.style.longLine false in
 /-- Ratio-facing variant of
-`ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_sample_eigenvalue_problem`.
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem`.
 
 The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
 assumption `ℓ_n/n -> α`. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_sample_eigenvalue_problem_of_card_ratio
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem_of_card_ratio
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5088,9 +5088,9 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_sample_eigenvalu
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_sample_eigenvalue_problem
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5102,9 +5102,9 @@ OLS components and the lower-level projection-trace consequences for the 2SLS
 projected-error moments.
 
 This composes `ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components`
-with `ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies`, so
+with `ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies`, so
 callers can stay at Hansen's signal/error/projection-trace layer. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5145,7 +5145,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies
       μ Z e u2 Sigma22 Sigma2e alpha)
     (h2SLS_nonsing : IsUnit (H + alpha • Sigma22).det)
     (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
@@ -5157,7 +5157,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies
       hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
       hprojected_signal_score_tendsto_zero htrace h2SLS_nonsing
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5169,7 +5169,7 @@ nonsingularity discharged from positive semidefiniteness of `Σ₂₂`.
 This is the Hansen-facing route when the remaining projection-trace fields have
 already been derived from homoskedasticity/fourth-moment assumptions: the caller
 does not also need to prove `det (H + αΣ₂₂)` is a unit by hand. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies_posSemidef
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5210,9 +5210,9 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies_posS
     (htrace : ManyInstrumentsProjectedTraceMomentConditions
       μ Z e u2 Sigma22 Sigma2e alpha)
     (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5232,7 +5232,7 @@ This is the assembly-level route to Theorem 12.19 once the OLS reduced-form
 package and the projected-error trace package are available.  It derives both
 the projected 2SLS moment package and the LIML zero-score package, so callers
 do not need to assume either one directly. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5275,7 +5275,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies_posS
     (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
     (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
       (fun _ => alpha / (1 - alpha))) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
@@ -5287,7 +5287,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies_posS
       hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
       hprojected_signal_score_tendsto_zero htrace hpos hSigma22 halpha_nonneg
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5303,7 +5303,7 @@ signal-score limits from the OLS reduced-form limits using `P_Z ZΓ = ZΓ` on th
 eventual-a.e. nonsingular instrument branch.  The remaining projected 2SLS
 substance is therefore concentrated in the trace-remainder package. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5337,7 +5337,7 @@ ManyInstrumentsTheorem1219Conditions.of_ols_projection_trace_components_posSemid
     (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
     (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
       (fun _ => alpha / (1 - alpha))) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
@@ -5348,7 +5348,7 @@ ManyInstrumentsTheorem1219Conditions.of_ols_projection_trace_components_posSemid
       hprojected_signal_score_meas htrace
       hnonsing hH hSigma22 halpha_nonneg
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5365,7 +5365,7 @@ are derived from the trace ratio plus the two projection remainders; projected
 signal moments are derived from `P_Z ZΓ = ZΓ` on the eventual-a.e. nonsingular
 instrument branch. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5395,7 +5395,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders
       Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
     (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
       μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e :=
@@ -5407,7 +5407,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
       hratio hnonsing hRF hproj
   exact
-    ManyInstrumentsTheorem1219Conditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5423,7 +5423,7 @@ This wrapper derives `μ̂_n ->p α/(1-α)` from
 `ManyInstrumentsLIMLSampleEigenvalueProblemConditions` before applying the
 existing many-instrument LIML cancellation route. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_sample_eigenvalue_problem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_sample_eigenvalue_problem
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5453,9 +5453,9 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_sample_eigenvalue_prob
       Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5474,7 +5474,7 @@ nonsingular instruments and accepts `ManyInstrumentsLIMLEigenvalueLimitCondition
 directly.  The three displayed Theorem 12.19 probability limits are still the
 same limits proved by `manyInstruments_estimators_minus_beta_theorem12_19`. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5517,7 +5517,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_remaind
             sampleCrossMoment (u2 m ω) (e m ω))
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
     ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_ae_nonsingular_remainders
@@ -5529,7 +5529,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_remaind
       Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)) :=
     Filter.Eventually.of_forall hnonsing
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5548,7 +5548,7 @@ Compared with `of_reduced_form_wlln_projection_remainders`, this version no
 longer asks for projected signal Gram, cross-Gram, or score measurability: they
 are inherited from the corresponding unprojected fields in `hRF`. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5571,7 +5571,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders_
       Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
     (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
       μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e :=
@@ -5593,7 +5593,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders_
       hOLS htrace hnonsing hRF.signal_limit_posDef
       hRF.reduced_error_limit_posSemidef halpha_nonneg
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5610,7 +5610,7 @@ measurability/convergence is derived from nonsingularity and the instrument
 ratio, and the only remaining projected-error inputs are the two homoskedastic
 trace-remainder WLLNs plus projected-error measurability. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -5646,7 +5646,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_project
             sampleCrossMoment (u2 m ω) (e m ω))
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
     ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_ae_nonsingular_remainders
@@ -5655,7 +5655,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_project
       hprojected_error_gram_trace_remainder_tendsto_zero
       hprojected_error_cross_trace_remainder_tendsto_zero
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5663,7 +5663,7 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_project
       (show ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
           μ limlMuHat alpha from hmu)
 
-namespace ManyInstrumentsTheorem1219Conditions
+namespace ManyInstrumentsEstimatorMomentAssemblyConditions
 
 open ManyInstrumentsHomoskedasticProjectionRemainderConditions
 
@@ -5704,7 +5704,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainde
       μ Z e u2)
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
       μ Z e u2 :=
@@ -5712,7 +5712,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainde
       (μ := μ) (Z := Z) (e := e) (u2 := u2)
       hnonsing hZ_meas hu2_meas he_meas hentry
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -5761,7 +5761,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_scalar_wlln_sample_eigenvalue
     (hmu :
       ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
         (ι := ι) μ limlMuHat gap_row) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -5809,7 +5809,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_canonical_row_average_sample_eigenva
     (hmu :
       ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
         (ι := ι) μ limlMuHat gap_row) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -5856,7 +5856,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_canonical_row_average_rayleigh_adjus
     (hrayleigh :
       ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
         (ι := ι) μ Z X Y limlMuHat gap_row) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_canonical_row_average_sample_eigenvalue
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -5906,7 +5906,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_row_wlln_sample_eigenvalue
     (hmu :
       ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
         (ι := ι) μ limlMuHat gap_row) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -5956,7 +5956,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_row_wlln_rayleigh_adjustment_gap
     (hrayleigh :
       ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
         (ι := ι) μ Z X Y limlMuHat gap_row) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_canonical_row_average_rayleigh_adjustment_gap
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -6004,7 +6004,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_projected_error_rayleigh_joint_row_w
     (hjoint :
       ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
         (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_row_wlln_rayleigh_adjustment_gap
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -6066,7 +6066,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_raw_projected_error_rayleigh_joint_r
     (hrow_indep : iIndepFun row μ)
     (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
     (hrow_mean_zero : μ[row 0] = 0) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_projected_error_rayleigh_joint_row_wlln
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -6133,7 +6133,7 @@ theorem of_reduced_form_wlln_ae_nonsingular_raw_projected_error_rayleigh_joint_r
     (hrow_indep : iIndepFun row μ)
     (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
     (hrow_mean_zero : μ[row 0] = 0) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_raw_projected_error_rayleigh_joint_row_wlln
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -6144,18 +6144,18 @@ theorem of_reduced_form_wlln_ae_nonsingular_raw_projected_error_rayleigh_joint_r
     hrayleigh hgram_remainder_eq_avg hcross_remainder_eq_avg
     hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident hrow_mean_zero
 
-end ManyInstrumentsTheorem1219Conditions
+end ManyInstrumentsEstimatorMomentAssemblyConditions
 
 /-- Theorem-facing constructor from stacked row WLLNs, the two homoskedastic
 projection remainders, and Hansen's LIML eigenvalue adjustment limit.
 
 This composes `ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln`
-with `ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders`.
+with `ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders`.
 Thus the unprojected reduced-form error Gram and error-score WLLNs are derived
 from ordinary Chapter 7 iid-row WLLNs, rather than being supplied as fields of
 the 12.19 condition package. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_projection_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_projection_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6232,7 +6232,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_projection_remainders
       Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
     (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
       μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
   let hRF : ManyInstrumentsReducedFormWLLNConditions
@@ -6246,7 +6246,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_projection_remainders
       hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
       hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := fun m ω => stackErrors e m ω)
       (u2 := fun m ω => stackRegressors u2 m ω)
@@ -6266,7 +6266,7 @@ unprojected reduced-form WLLN package on the a.e. nonsingular instrument branch.
 The only projected-error inputs that remain are the two substantive
 homoskedastic trace-remainder WLLNs and their measurability fields. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_ae_nonsingular_projection_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_ae_nonsingular_projection_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6353,7 +6353,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_ae_nonsingular_projec
             sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
   let hRF : ManyInstrumentsReducedFormWLLNConditions
@@ -6367,7 +6367,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_ae_nonsingular_projec
       hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
       hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := fun m ω => stackErrors e m ω)
       (u2 := fun m ω => stackRegressors u2 m ω)
@@ -6390,7 +6390,7 @@ ordinary reduced-form WLLNs from Chapter 7, derives projected signal components
 from `P_Z ZΓ = ZΓ`, and leaves only the two homoskedastic projection-remainder
 WLLNs plus the sample LIML eigenvalue limit as substantive 12.19 inputs. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6458,7 +6458,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_re
             sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
   let hRF : ManyInstrumentsReducedFormWLLNConditions
@@ -6471,7 +6471,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_re
       hident_outer hSigma22 hint_cross hindep_cross hident_cross hSigma2e
       hH hSigma22_psd
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := fun m ω => stackErrors e m ω)
       (u2 := fun m ω => stackRegressors u2 m ω)
@@ -6490,7 +6490,7 @@ This composes the primitive transformed-instrument WLLN route with
 It does not prove the remaining raw many-instrument eigenvalue/Rayleigh
 argument; the substantive LIML input is still the adjustment-gap WLLN. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6559,10 +6559,10 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sa
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_remainders
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
     (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -6580,7 +6580,7 @@ set_option linter.style.longLine false in
 projected-error measurability derived from finite-sample measurability.
 
 Compared with
-`ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue`,
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue`,
 this wrapper no longer asks for measurability of
 `u₂'P_Z*u₂/n` or `u₂'P_Z*e/n` directly.  It derives those fields from
 measurability of `Z m`, row measurability of the stacked reduced-form error
@@ -6588,7 +6588,7 @@ process `u₂`, and row measurability of `e`; the two homoskedastic
 trace-remainder WLLNs and the sample LIML eigenvalue adjustment gap remain as
 the substantive stochastic inputs. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6652,7 +6652,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sa
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
   let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
@@ -6664,7 +6664,7 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sa
       hprojected_error_gram_trace_remainder_tendsto_zero
       hprojected_error_cross_trace_remainder_tendsto_zero
   exact
-    ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -6681,13 +6681,13 @@ set_option linter.style.longLine false in
 projected-error trace remainders supplied entrywise.
 
 Compared with
-`ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders`,
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders`,
 this wrapper reduces the remaining homoskedastic projection input to scalar
 WLLNs for each Gram entry and score coordinate.  Finite-sample projected-error
 measurability and the full matrix/vector remainder package are then derived by
 `ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_stacked_entrywise_measurable_ae_nonsingular_remainders`. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6742,10 +6742,10 @@ ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sa
           (fun m ω => stackRegressors u2 m ω))
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
     (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -6765,7 +6765,7 @@ This is the current tightest route when `ZΓ` has been identified with a fixed
 the projected-error trace remainders and sample LIML eigenvalue adjustment gap
 remain explicit inputs. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_compressed_signal_wlln_ae_nonsingular_sample_eigenvalue
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_compressed_signal_wlln_ae_nonsingular_sample_eigenvalue
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6834,10 +6834,10 @@ ManyInstrumentsTheorem1219Conditions.of_compressed_signal_wlln_ae_nonsingular_sa
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
     (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -6859,7 +6859,7 @@ fields for the ordinary reduced-form error WLLNs.  It still leaves the
 integrability and mean identities, the two homoskedastic trace-remainder WLLNs,
 and the sample LIML eigenvalue adjustment gap as explicit stochastic inputs. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_measurable_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_measurable_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -6926,7 +6926,7 @@ ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sam
       atTop (fun _ => (0 : k → ℝ)))
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
   let hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
@@ -6974,7 +6974,7 @@ ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sam
     simpa [Function.comp] using
       (hjoint_ident i).comp measurable_manyInstrumentReducedErrorScore_joint
   exact
-    ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -6994,7 +6994,7 @@ ordinary reduced-form WLLNs and transformed-instrument WLLNs are derived from
 one iid row process `((ZΓ)_i,u₂_i,e_i)`, while the remaining homoskedastic
 projection step is reduced to scalar entrywise WLLN certificates. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -7052,10 +7052,10 @@ ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sam
           (fun m ω => stackRegressors u2 m ω))
     (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
       (ι := ι) μ limlMuHat) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma (fun m ω => stackErrors e m ω)
         (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_measurable_remainders
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_measurable_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
     (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
     (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
@@ -7076,7 +7076,7 @@ This is the most direct Hansen-facing assembly currently available for
 Theorem 12.19: after the substantive OLS WLLNs, projection-trace remainders,
 and LIML zero-score package are supplied, no separate determinant assumptions
 for `(H + Σ₂₂)` or `(H + αΣ₂₂)` remain. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_components_posSemidef
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_components_posSemidef
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -7146,7 +7146,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_components_posS
     (htrace : ManyInstrumentsProjectedTraceMomentConditions
       μ Z e u2 Sigma22 Sigma2e alpha)
     (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e :=
@@ -7159,7 +7159,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_components_posS
       hreduced_error_gram_tendsto hcross_gram_tendsto_zero
       hsignal_score_tendsto_zero hreduced_error_score_tendsto hH hSigma22
   exact
-    ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies_posSemidef
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -7176,7 +7176,7 @@ This is the most direct currently formalized route to the full Theorem 12.19
 condition package: it composes the reduced-form OLS component limits, the
 projection-trace 2SLS component limits, positivity-derived nonsingularity, and
 the existing LIML cancellation theorem. -/
-theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_components_posSemidef_mu_tendsto
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_components_posSemidef_mu_tendsto
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -7248,7 +7248,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_components_posS
     (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
     (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
       (fun _ => alpha / (1 - alpha))) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
   let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H Sigma22 Sigma2e :=
@@ -7270,7 +7270,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_components_posS
       hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
       hprojected_signal_score_tendsto_zero htrace hH hSigma22 halpha_nonneg
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_tendsto
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -7282,7 +7282,7 @@ theorem ManyInstrumentsTheorem1219Conditions.of_projection_trace_components_posS
 Bekker-style many-instrument arguments naturally prove the centered displayed
 limits.  This package avoids requiring separate uncentered estimator-limit
 fields when the centered faces are already available. -/
-structure ManyInstrumentsTheorem1219CenteredConditions
+structure ManyInstrumentsCenteredEstimatorLimitConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
     (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
@@ -7312,7 +7312,7 @@ theorem manyInstruments_estimators_theorem12_19
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
@@ -7340,7 +7340,7 @@ theorem manyInstruments_estimators_theorem12_19
 
 section ManyInstrumentsTheorem1219EntrywiseSampleEigenvalueEndpoint
 
-open ManyInstrumentsTheorem1219Conditions
+open ManyInstrumentsEstimatorMomentAssemblyConditions
 
 /-- Hansen Theorem 12.19 directly from reduced-form WLLNs, a.e. nonsingular
 instruments, entrywise projected-error trace remainders, and the sample LIML
@@ -7605,7 +7605,7 @@ manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_ra
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_canonical_row_average_rayleigh_adjustment_gap
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_canonical_row_average_rayleigh_adjustment_gap
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -8041,7 +8041,7 @@ manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjust
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_row_wlln_rayleigh_adjustment_gap
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_row_wlln_rayleigh_adjustment_gap
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
       (cross_row := cross_row) (gap_row := gap_row) (β := β)
@@ -8493,7 +8493,7 @@ theorem manyInstruments_estimators_minus_beta_theorem12_19_of_centered
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219CenteredConditions
+    (h : ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
@@ -8514,7 +8514,7 @@ theorem manyInstruments_estimators_theorem12_19_of_centered
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219CenteredConditions
+    (h : ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha)
     (hOLS_meas : ∀ m, AEStronglyMeasurable
       (fun ω => olsBetaStar (X m ω) (Y m ω) - β) μ)
@@ -8578,7 +8578,7 @@ theorem manyInstruments_olsBetaStar_minus_beta_tendstoInMeasure
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hmeas : ∀ m, AEStronglyMeasurable (fun ω => olsBetaStar (X m ω) (Y m ω)) μ) :
     TendstoInMeasure μ
@@ -8611,7 +8611,7 @@ theorem manyInstruments_twoSLSBetaStar_minus_beta_tendstoInMeasure
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hmeas : ∀ m, AEStronglyMeasurable
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ) :
@@ -8645,7 +8645,7 @@ theorem manyInstruments_limlBetaStar_minus_beta_tendstoInMeasure
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hmeas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
@@ -8667,7 +8667,7 @@ theorem manyInstruments_limlBetaStar_minus_beta_tendstoInMeasure
 /-- Build the centered Hansen Theorem 12.19 package from the stronger
 many-instrument condition package.  The centered faces are derived from
 moment convergence rather than assumed as primitive estimator limits. -/
-theorem ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+theorem ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -8677,7 +8677,7 @@ theorem ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hOLS_meas : ∀ m, AEStronglyMeasurable
       (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
@@ -8685,7 +8685,7 @@ theorem ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha where
   ols_centered := manyInstruments_olsBetaStar_minus_beta_tendstoInMeasure h hOLS_meas
   twoSLS_centered :=
@@ -8700,7 +8700,7 @@ This bridge derives the centered OLS, 2SLS, and LIML displayed limits from
 moment/projection components.  It asks only for estimator measurability, not
 for any centered estimator limit as an input. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
+ManyInstrumentsCenteredEstimatorLimitConditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -8749,13 +8749,13 @@ ManyInstrumentsTheorem1219CenteredConditions.of_projection_trace_assemblies_posS
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -8770,12 +8770,12 @@ ManyInstrumentsTheorem1219CenteredConditions.of_projection_trace_assemblies_posS
 projection-trace projected-error package.
 
 This is the centered analogue of
-`ManyInstrumentsTheorem1219Conditions.of_ols_projection_trace_components_posSemidef_mu_tendsto`:
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto`:
 projected signal limits are derived from the OLS reduced-form limits on the
 eventual-a.e. nonsingular instrument branch, and no centered estimator limit is
 assumed. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_ols_projection_trace_components_mu_tendsto
+ManyInstrumentsCenteredEstimatorLimitConditions.of_ols_projection_trace_components_mu_tendsto
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -8815,13 +8815,13 @@ ManyInstrumentsTheorem1219CenteredConditions.of_ols_projection_trace_components_
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -8834,7 +8834,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_ols_projection_trace_components_
 the two homoskedastic projection remainders, and the current LIML
 eigenvalue-limit package. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_reduced_form_wlln_projection_remainders
+ManyInstrumentsCenteredEstimatorLimitConditions.of_reduced_form_wlln_projection_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -8870,13 +8870,13 @@ ManyInstrumentsTheorem1219CenteredConditions.of_reduced_form_wlln_projection_rem
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -8890,11 +8890,11 @@ the two homoskedastic projection remainders, and the sample LIML eigenvalue
 problem.
 
 This is the centered analogue of
-`ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_sample_eigenvalue_problem`:
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_sample_eigenvalue_problem`:
 it first derives `μ̂_n ->p α/(1-α)` from the adjustment-gap WLLN and Hansen's
 instrument-count ratio, then reuses the existing centered theorem route. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_reduced_form_wlln_sample_eigenvalue_problem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_reduced_form_wlln_sample_eigenvalue_problem
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -8930,9 +8930,9 @@ ManyInstrumentsTheorem1219CenteredConditions.of_reduced_form_wlln_sample_eigenva
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_reduced_form_wlln_projection_remainders
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_reduced_form_wlln_projection_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -8947,7 +8947,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_reduced_form_wlln_sample_eigenva
 homoskedastic projection remainders, deriving projected signal components from
 the primitive reduced-form package on an a.e. nonsingular instrument branch. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_wlln_projection_remainders_ae_nonsingular
+ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_projection_remainders_ae_nonsingular
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -8976,13 +8976,13 @@ ManyInstrumentsTheorem1219CenteredConditions.of_wlln_projection_remainders_ae_no
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -8994,7 +8994,7 @@ homoskedastic projection-remainder fields, and the LIML eigenvalue certificate.
 Projected signal components and trace-ratio measurability are both derived from
 the a.e. nonsingular instrument branch. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_projection_remainders
+ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_projection_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -9036,13 +9036,13 @@ ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_projection_r
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -9060,7 +9060,7 @@ The eigenvalue input is the centered adjustment-gap WLLN for
 `μ̂_n - (ℓ_n/n)/(1-ℓ_n/n)`.  The conversion to `μ̂_n ->p α/(1-α)` is handled
 inside this wrapper. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_sample_eigenvalue
+ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_sample_eigenvalue
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -9103,9 +9103,9 @@ ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_sample_eigen
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_projection_remainders
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_projection_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
     (u2 := u2) (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -9120,7 +9120,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_sample_eigen
 /-- Centered Theorem 12.19 package from stacked row WLLNs, projection
 remainders, and Hansen's LIML eigenvalue adjustment limit. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_stacked_error_wlln_projection_remainders
+ManyInstrumentsCenteredEstimatorLimitConditions.of_stacked_error_wlln_projection_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -9203,15 +9203,15 @@ ManyInstrumentsTheorem1219CenteredConditions.of_stacked_error_wlln_projection_re
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
     (e := fun m ω => stackErrors e m ω)
     (u2 := fun m ω => stackRegressors u2 m ω)
     (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_projection_remainders
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -9229,11 +9229,11 @@ instrument Grams, raw projected-error trace remainders, and Hansen's LIML
 eigenvalue adjustment limit.
 
 This is the centered-statistic counterpart of
-`ManyInstrumentsTheorem1219Conditions.of_stacked_error_wlln_ae_nonsingular_projection_remainders`;
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_ae_nonsingular_projection_remainders`;
 it derives the reduced-form WLLN package from Chapter 7 iid-row WLLNs and then
 uses the a.e. nonsingular projected-signal bridge. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_remainders
+ManyInstrumentsCenteredEstimatorLimitConditions.of_stacked_wlln_ae_nonsingular_remainders
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -9326,7 +9326,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_rema
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha := by
   let hRF : ManyInstrumentsReducedFormWLLNConditions
       μ Z X Gamma (fun m ω => stackErrors e m ω)
@@ -9339,7 +9339,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_rema
       hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
       hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
   exact
-    ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_projection_remainders
+    ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_projection_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := fun m ω => stackErrors e m ω)
       (u2 := fun m ω => stackRegressors u2 m ω)
@@ -9355,7 +9355,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_rema
 instrument Grams, raw projected-error trace remainders, and the sample LIML
 eigenvalue problem. -/
 theorem
-ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_sample_eigenvalue
+ManyInstrumentsCenteredEstimatorLimitConditions.of_stacked_wlln_ae_nonsingular_sample_eigenvalue
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -9449,7 +9449,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_samp
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha := by
   let hRF : ManyInstrumentsReducedFormWLLNConditions
       μ Z X Gamma (fun m ω => stackErrors e m ω)
@@ -9462,7 +9462,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_samp
       hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
       hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
   exact
-    ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_sample_eigenvalue
+    ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_sample_eigenvalue
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := fun m ω => stackErrors e m ω)
       (u2 := fun m ω => stackRegressors u2 m ω)
@@ -9474,7 +9474,7 @@ ManyInstrumentsTheorem1219CenteredConditions.of_stacked_wlln_ae_nonsingular_samp
       hprojected_error_cross_trace_remainder_tendsto_zero hmu
       hOLS_meas h2SLS_meas hLIML_meas
 
-namespace ManyInstrumentsTheorem1219CenteredConditions
+namespace ManyInstrumentsCenteredEstimatorLimitConditions
 
 /-- Centered Theorem 12.19 package from primitive transformed-instrument WLLNs,
 stacked row WLLNs for reduced-form errors, a.e. nonsingular instruments,
@@ -9482,7 +9482,7 @@ homoskedastic projection-remainder fields, and the sample LIML eigenvalue
 adjustment-gap package.
 
 This is the estimator-limit counterpart of
-`ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue`.
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue`.
 It still leaves the primitive instrument WLLNs, projection remainders, and raw
 sample-eigenvalue adjustment gap as the substantive stochastic inputs. -/
 theorem
@@ -9561,15 +9561,15 @@ of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
     (e := fun m ω => stackErrors e m ω)
     (u2 := fun m ω => stackRegressors u2 m ω)
     (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -9586,7 +9586,7 @@ set_option linter.style.longLine false in
 with projected-error measurability derived from finite-sample measurability.
 
 This is the centered-statistic counterpart of
-`ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders`.
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders`.
 It leaves the same substantive inputs: primitive transformed-instrument WLLNs,
 ordinary reduced-form error WLLNs, the two homoskedastic trace-remainder WLLNs,
 and the sample LIML eigenvalue adjustment-gap package. -/
@@ -9661,15 +9661,15 @@ of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
-  ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
     (e := fun m ω => stackErrors e m ω)
     (u2 := fun m ω => stackRegressors u2 m ω)
     (limlMuHat := limlMuHat) (β := β)
     (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-    (ManyInstrumentsTheorem1219Conditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -9681,14 +9681,14 @@ of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
       hprojected_error_cross_trace_remainder_tendsto_zero hmu)
     hOLS_meas h2SLS_meas hLIML_meas
 
-end ManyInstrumentsTheorem1219CenteredConditions
+end ManyInstrumentsCenteredEstimatorLimitConditions
 
 section ManyInstrumentsTheorem1219CenteredEntrywiseSampleEigenvalueEndpoint
 
 open ManyInstrumentsHomoskedasticProjectionRemainderConditions
-open ManyInstrumentsTheorem1219CenteredConditions
+open ManyInstrumentsCenteredEstimatorLimitConditions
 
-namespace ManyInstrumentsTheorem1219CenteredConditions
+namespace ManyInstrumentsCenteredEstimatorLimitConditions
 
 /-- Centered Theorem 12.19 package from reduced-form WLLNs, a.e. nonsingular
 instruments, entrywise projected-error trace remainders, and the sample LIML
@@ -9732,7 +9732,7 @@ of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha := by
   let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
       μ Z e u2 :=
@@ -9740,7 +9740,7 @@ of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
       (μ := μ) (Z := Z) (e := e) (u2 := u2)
       hnonsing hZ_meas hu2_meas he_meas hentry
   exact
-    ManyInstrumentsTheorem1219CenteredConditions.of_wlln_ae_nonsingular_sample_eigenvalue
+    ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_sample_eigenvalue
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
@@ -9796,7 +9796,7 @@ of_reduced_form_wlln_ae_nonsingular_scalar_wlln_sample_eigenvalue
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -9850,7 +9850,7 @@ of_reduced_form_wlln_ae_nonsingular_canonical_row_average_sample_eigenvalue
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -9905,7 +9905,7 @@ of_reduced_form_wlln_ae_nonsingular_row_wlln_sample_eigenvalue
       (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
     (hLIML_meas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
-    ManyInstrumentsTheorem1219CenteredConditions
+    ManyInstrumentsCenteredEstimatorLimitConditions
       μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
   of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
     (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
@@ -9915,7 +9915,7 @@ of_reduced_form_wlln_ae_nonsingular_row_wlln_sample_eigenvalue
     hZ_meas hu2_meas he_meas hremainder.toEntryWLLNConditions
     hmu.toSampleEigenvalueProblemConditions hOLS_meas h2SLS_meas hLIML_meas
 
-end ManyInstrumentsTheorem1219CenteredConditions
+end ManyInstrumentsCenteredEstimatorLimitConditions
 
 /-- Hansen Theorem 12.19 in centered form directly from reduced-form WLLNs,
 a.e. nonsingular instruments, entrywise projected-error trace remainders, and
@@ -10223,13 +10223,13 @@ manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_entr
     (μ := μ) (Z := Z) (X := X) (Y := Y) (limlMuHat := limlMuHat)
     (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
     (alpha := alpha)
-    (ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+    (ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := fun m ω => stackErrors e m ω)
       (u2 := fun m ω => stackRegressors u2 m ω)
       (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-      (ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+      (ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
         (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
         (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
         (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
@@ -11440,13 +11440,13 @@ manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_scal
     (μ := μ) (Z := Z) (X := X) (Y := Y) (limlMuHat := limlMuHat)
     (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
     (alpha := alpha)
-    (ManyInstrumentsTheorem1219CenteredConditions.of_theorem_conditions
+    (ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
       (e := fun m ω => stackErrors e m ω)
       (u2 := fun m ω => stackRegressors u2 m ω)
       (limlMuHat := limlMuHat) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
-      (ManyInstrumentsTheorem1219Conditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+      (ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
         (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
         (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
         (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
@@ -11684,7 +11684,7 @@ theorem manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hmeas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
@@ -11710,7 +11710,7 @@ theorem manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure
     {limlMuHat kappaHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hmeas : ∀ m, AEStronglyMeasurable
       (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ)
@@ -11737,7 +11737,7 @@ theorem manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
@@ -11762,7 +11762,7 @@ theorem manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure
     {limlMuHat kappaHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
     TendstoInMeasure μ
@@ -13087,7 +13087,7 @@ theorem manyInstruments_estimators_minus_beta_theorem12_19
     {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hOLS_meas : ∀ m, AEStronglyMeasurable
       (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
@@ -13121,7 +13121,7 @@ theorem manyInstruments_estimators_theorem12_19_kappa
     {limlMuHat kappaHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
     TendstoInMeasure μ
@@ -13151,7 +13151,7 @@ theorem manyInstruments_estimators_minus_beta_theorem12_19_kappa
     {limlMuHat kappaHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     {alpha : ℝ}
-    (h : ManyInstrumentsTheorem1219Conditions
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
     (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1)
     (hOLS_meas : ∀ m, AEStronglyMeasurable
@@ -13961,7 +13961,7 @@ exactly as in (12.74), and derives this package through a fixed loading.
 
 In particular it contains neither estimator limits, projected-form WLLNs, nor
 an assumed LIML adjustment/eigenvalue gap. -/
-structure ManyInstrumentsTheorem1219RawModelConditions
+structure ManyInstrumentsTransformedErrorRawModelConditions
     [StandardBorelSpace Ω]
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
@@ -14003,7 +14003,7 @@ explicit (12.77), conditional row independence used in Hansen's calculation,
 and the instrument-rank condition used to identify `P_Z` with the Star
 projection.  It contains no estimator limit, projected-form WLLN, or assumed
 LIML eigenvalue limit. -/
-structure ManyInstrumentsTheorem1219HansenRawModelConditions
+structure ManyInstrumentsPrimitiveErrorRawModelConditions
     [StandardBorelSpace Ω]
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
@@ -14039,7 +14039,7 @@ structure ManyInstrumentsTheorem1219HansenRawModelConditions
 
 /-- Thin bridge from the literal Hansen `[u₁,u₂]` package to the existing
 internal `[e,u₂]` raw endpoint. -/
-theorem ManyInstrumentsTheorem1219HansenRawModelConditions.toRawModelConditions
+theorem ManyInstrumentsPrimitiveErrorRawModelConditions.toRawModelConditions
     [StandardBorelSpace Ω]
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
@@ -14051,9 +14051,9 @@ theorem ManyInstrumentsTheorem1219HansenRawModelConditions.toRawModelConditions
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B : ℝ}
-    (h : ManyInstrumentsTheorem1219HansenRawModelConditions
+    (h : ManyInstrumentsPrimitiveErrorRawModelConditions
       μ Z X Y Gamma u1 u2 β H Sigma alpha B) :
-    ManyInstrumentsTheorem1219RawModelConditions
+    ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma
         (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
         u2 β H (manyInstrumentsStructuralErrorCovariance β Sigma) alpha
@@ -14268,7 +14268,7 @@ omit [DecidableEq k] in
 /-- The raw model supplies projection-trace convergence and measurability;
 therefore the only additional input needed for the full projected-error WLLN
 is the honest conditional mean-square concentration bound. -/
-theorem ManyInstrumentsTheorem1219RawModelConditions.projected_full_error_tendsto
+theorem ManyInstrumentsTransformedErrorRawModelConditions.projected_full_error_tendsto
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
@@ -14279,7 +14279,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.projected_full_error_tendst
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z e u2 Sigma C) :
@@ -14299,7 +14299,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.projected_full_error_tendst
 omit [DecidableEq k] in
 /-- The `u₂u₂'` principal block of the full projected-error concentration is
 the projected-error Gram used in the 2SLS bread. -/
-theorem ManyInstrumentsTheorem1219RawModelConditions.projected_error_gram_tendsto
+theorem ManyInstrumentsTransformedErrorRawModelConditions.projected_error_gram_tendsto
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
@@ -14310,7 +14310,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.projected_error_gram_tendst
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z e u2 Sigma C) :
@@ -14335,7 +14335,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.projected_error_gram_tendst
 omit [DecidableEq k] in
 /-- The `u₂e` block of the full projected-error concentration is the projected
 error score used in the 2SLS numerator. -/
-theorem ManyInstrumentsTheorem1219RawModelConditions.projected_error_cross_tendsto
+theorem ManyInstrumentsTransformedErrorRawModelConditions.projected_error_cross_tendsto
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
@@ -14346,7 +14346,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.projected_error_cross_tends
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z e u2 Sigma C) :
@@ -14375,7 +14375,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.projected_error_cross_tends
 projected reduced-form error limits needed by the 2SLS assembly.  All signal
 terms are transported from the unprojected OLS assembly using `P_Z ZΓ = ZΓ` on
 the raw model's a.e. nonsingular branch. -/
-theorem ManyInstrumentsTheorem1219RawModelConditions.toTwoSLSMomentAssemblyConditions
+theorem ManyInstrumentsTransformedErrorRawModelConditions.toTwoSLSMomentAssemblyConditions
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
@@ -14386,7 +14386,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.toTwoSLSMomentAssemblyCondi
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
@@ -14835,106 +14835,6 @@ private theorem manyInstruments_structuralJointMoment_limit
             Matrix.smul_apply, hsymm]
 
 omit [MeasurableSpace Ω] in
-private theorem condExp_mul_eq_mul_condExp_of_condIndepFun
-    {mc mΩ : MeasurableSpace Ω} [@StandardBorelSpace Ω mΩ]
-    {μ : @Measure Ω mΩ} [IsProbabilityMeasure μ]
-    {f g : Ω → ℝ} (hm : mc ≤ mΩ)
-    (hfg : CondIndepFun (mΩ := mΩ) mc hm f g μ)
-    (hf : MemLp f 2 μ) (hg : MemLp g 2 μ) :
-    μ[fun ω => f ω * g ω | mc] =ᵐ[μ]
-      fun ω => μ[f | mc] ω * μ[g | mc] ω := by
-  let f' : Ω → ℝ := hf.1.mk f
-  let g' : Ω → ℝ := hg.1.mk g
-  have hf'_meas : Measurable f' := hf.1.measurable_mk
-  have hg'_meas : Measurable g' := hg.1.measurable_mk
-  have hff' : f =ᵐ[μ] f' := hf.1.ae_eq_mk
-  have hgg' : g =ᵐ[μ] g' := hg.1.ae_eq_mk
-  have hf'_Lp : MemLp f' 2 μ := (memLp_congr_ae hff').mp hf
-  have hg'_Lp : MemLp g' 2 μ := (memLp_congr_ae hgg').mp hg
-  have hff'_cond :
-      ∀ᵐ z ∂μ.trim hm, f =ᵐ[condExpKernel μ mc z] f' := by
-    apply @Measure.ae_ae_of_ae_comp Ω Ω mc mΩ
-      (μ.trim hm) (condExpKernel μ mc) (fun z => f z = f' z)
-    rw [condExpKernel_comp_trim hm]
-    exact hff'
-  have hgg'_cond :
-      ∀ᵐ z ∂μ.trim hm, g =ᵐ[condExpKernel μ mc z] g' := by
-    apply @Measure.ae_ae_of_ae_comp Ω Ω mc mΩ
-      (μ.trim hm) (condExpKernel μ mc) (fun z => g z = g' z)
-    rw [condExpKernel_comp_trim hm]
-    exact hgg'
-  have hfg' : CondIndepFun (mΩ := mΩ) mc hm f' g' μ :=
-    Kernel.IndepFun.congr' hfg hff'_cond hgg'_cond
-  have hmap :=
-    (condIndepFun_iff_map_prod_eq_prod_map_map hf'_meas hg'_meas).mp hfg'
-  have hkernel :
-      (fun z => ∫ y, f' y * g' y ∂condExpKernel μ mc z) =ᵐ[μ.trim hm]
-        fun z =>
-          (∫ y, f' y ∂condExpKernel μ mc z) *
-            ∫ y, g' y ∂condExpKernel μ mc z := by
-    filter_upwards [hmap] with z hz
-    have hpair : Measurable (fun y => (f' y, g' y)) :=
-      hf'_meas.prodMk hg'_meas
-    calc
-      (∫ y, f' y * g' y ∂condExpKernel μ mc z) =
-          ∫ x : ℝ × ℝ, x.1 * x.2 ∂((condExpKernel μ mc).map
-            (fun y => (f' y, g' y))) z := by
-              rw [Kernel.map_apply _ hpair]
-              rw [integral_map hpair.aemeasurable]
-              fun_prop
-      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
-          (((condExpKernel μ mc).map f' ×ₖ
-            (condExpKernel μ mc).map g') z) := by
-              rw [hz]
-      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
-          (((condExpKernel μ mc).map f') z).prod
-            (((condExpKernel μ mc).map g') z) := by
-              rw [Kernel.prod_apply]
-      _ = (∫ x, x ∂((condExpKernel μ mc).map f') z) *
-          ∫ y, y ∂((condExpKernel μ mc).map g') z :=
-            integral_prod_mul id id
-      _ = (∫ y, f' y ∂condExpKernel μ mc z) *
-          ∫ y, g' y ∂condExpKernel μ mc z := by
-            rw [Kernel.map_apply _ hf'_meas,
-              Kernel.map_apply _ hg'_meas]
-            rw [integral_map hf'_meas.aemeasurable (by fun_prop),
-              integral_map hg'_meas.aemeasurable (by fun_prop)]
-  have hf'_int : Integrable f' μ := hf'_Lp.integrable (by norm_num)
-  have hg'_int : Integrable g' μ := hg'_Lp.integrable (by norm_num)
-  have hf'g'_Lp : MemLp (fun ω => f' ω * g' ω) 1 μ := by
-    simpa only [Pi.mul_apply] using hg'_Lp.mul hf'_Lp
-  have hf'g'_int : Integrable (fun ω => f' ω * g' ω) μ :=
-    hf'g'_Lp.integrable le_rfl
-  have hfactor' :
-      μ[fun ω => f' ω * g' ω | mc] =ᵐ[μ]
-        fun ω => μ[f' | mc] ω * μ[g' | mc] ω := by
-    calc
-      μ[fun ω => f' ω * g' ω | mc] =ᵐ[μ]
-          (fun z => ∫ y, f' y * g' y ∂condExpKernel μ mc z) :=
-            condExp_ae_eq_integral_condExpKernel hm hf'g'_int
-      _ =ᵐ[μ] (fun z =>
-          (∫ y, f' y ∂condExpKernel μ mc z) *
-            ∫ y, g' y ∂condExpKernel μ mc z) :=
-              ae_eq_of_ae_eq_trim hkernel
-      _ =ᵐ[μ] (fun z => μ[f' | mc] z * μ[g' | mc] z) := by
-        filter_upwards [
-          (condExp_ae_eq_integral_condExpKernel hm hf'_int).symm,
-          (condExp_ae_eq_integral_condExpKernel hm hg'_int).symm
-        ] with z hfz hgz
-        rw [hfz, hgz]
-  have hprod :
-      (fun ω => f ω * g ω) =ᵐ[μ] fun ω => f' ω * g' ω := by
-    filter_upwards [hff', hgg'] with ω hfω hgω
-    rw [hfω, hgω]
-  calc
-    μ[fun ω => f ω * g ω | mc] =ᵐ[μ]
-        μ[fun ω => f' ω * g' ω | mc] := condExp_congr_ae hprod
-    _ =ᵐ[μ] (fun ω => μ[f' | mc] ω * μ[g' | mc] ω) := hfactor'
-    _ =ᵐ[μ] (fun ω => μ[f | mc] ω * μ[g | mc] ω) := by
-      filter_upwards [condExp_congr_ae hff', condExp_congr_ae hgg'] with ω hfω hgω
-      rw [hfω, hgω]
-
-omit [MeasurableSpace Ω] in
 private theorem iCondIndepFun_condIndepFun_finset_of_aestronglyMeasurable
     {mc mΩ : MeasurableSpace Ω} [@StandardBorelSpace Ω mΩ]
     {μ : @Measure Ω mΩ} [IsProbabilityMeasure μ]
@@ -15153,7 +15053,9 @@ private theorem manyInstruments_signalErrorCrossMoment_coord_tendsto_zero
               (fun ω => U m i ω c) (fun ω => U m j ω c) μ := by
             simpa [U, Function.comp_def] using hrow.comp hcoordMeas hcoordMeas
           have hfactor := condExp_mul_eq_mul_condExp_of_condIndepFun hZle hind
-            (hU2 i) (hU2 j)
+            ((hU2 i).integrable (by norm_num))
+            ((hU2 j).integrable (by norm_num))
+            ((hU2 i).integrable_mul (hU2 j))
           have hrawzero : condExpOn μ
               (fun ω => U m i ω c * U m j ω c) (Z m) =ᵐ[μ]
                 fun _ => (0 : ℝ) := by
@@ -15462,7 +15364,10 @@ private theorem manyInstruments_unprojectedFullError_entry_meanSquare
         (Q i) (Q j) μ := by
       simpa [Q, V, U, Function.comp_def] using hrow.comp hphi hphi
     have hfactor := condExp_mul_eq_mul_condExp_of_condIndepFun
-      (conditioningSpace_le (h.instrument_measurable m)) hQind (hQ2 i) (hQ2 j)
+      (conditioningSpace_le (h.instrument_measurable m)) hQind
+      ((hQ2 i).integrable (by norm_num))
+      ((hQ2 j).integrable (by norm_num))
+      ((hQ2 i).integrable_mul (hQ2 j))
     have hcondzero :
         condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) =ᵐ[μ] 0 := by
       calc
@@ -15666,7 +15571,7 @@ localized conditional WLLN above from conditional row independence, zero
 conditional means, and convergence of `n⁻¹Γ'Z'ZΓ`; neither limit is retained
 as an assumption.  The ordinary reduced-form error Gram and score are blocks
 of the full-error WLLN. -/
-theorem ManyInstrumentsTheorem1219RawModelConditions.toOLSMomentAssemblyConditions
+theorem ManyInstrumentsTransformedErrorRawModelConditions.toOLSMomentAssemblyConditions
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
@@ -15677,7 +15582,7 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.toOLSMomentAssemblyConditio
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B : ℝ}
-    (h : ManyInstrumentsTheorem1219RawModelConditions
+    (h : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B) :
     ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
@@ -16307,7 +16212,7 @@ theorem ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_mom
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
@@ -16595,7 +16500,7 @@ This replaces the legacy adjustment-gap WLLN input.  The OLS and projected
 2SLS assemblies remain separate because they also supply the two non-LIML
 faces of Hansen's theorem. -/
 theorem
-ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_normalizedPencil_selector
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_normalizedPencil_selector
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -16624,13 +16529,13 @@ ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_normalizedPencil
       μ Z X Y β H Sigma alpha)
     (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
       μ Z X Y limlMuHat β H Sigma alpha muSelector) :
-    ManyInstrumentsTheorem1219Conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions
       μ Z X Y Gamma e u2 limlMuHat β H
         (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha := by
   have hmu := manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector
     hpencil hselector hH.posSemidef hSigma halpha_lt_one
   exact
-    ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
       (manyInstruments_alpha_nonneg_of_card_ratio_tendsto hratio)
       halpha_lt_one hratio hstruct hH hOLS h2SLS hmu
 
@@ -16679,7 +16584,7 @@ theorem manyInstruments_estimators_theorem12_19_of_normalizedPencil_selector
       (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
       atTop (fun _ => β) :=
   manyInstruments_estimators_theorem12_19
-    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_normalizedPencil_selector
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_normalizedPencil_selector
       halpha_lt_one hratio hstruct hH hSigma hOLS h2SLS hpencil hselector)
 
 /-- Hansen Theorem 12.19 from the raw model, the remaining OLS/projected
@@ -16709,7 +16614,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_select
     {muSelector :
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
@@ -16755,7 +16660,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smalle
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
@@ -16783,7 +16688,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smalle
     hpencil hraw.signal_posDef.posSemidef hraw.error_covariance_posDef
       hraw.alpha_lt_one
   exact manyInstruments_estimators_theorem12_19
-    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
       (manyInstruments_alpha_nonneg_of_card_ratio_tendsto hraw.instrument_ratio)
       hraw.alpha_lt_one hraw.instrument_ratio hraw.structural hraw.signal_posDef
       hOLS h2SLS hmu)
@@ -16804,7 +16709,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z e u2 Sigma C) :
@@ -16822,7 +16727,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
       atTop (fun _ => β) :=
   manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smallestRoot
     hraw
-      (ManyInstrumentsTheorem1219RawModelConditions.toOLSMomentAssemblyConditions hraw)
+      (ManyInstrumentsTransformedErrorRawModelConditions.toOLSMomentAssemblyConditions hraw)
       hquad
 
 /-- Hansen Theorem 12.19 from the literal reduced-form errors `[u₁,u₂]` and
@@ -16848,7 +16753,7 @@ theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_
     {muSelector :
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
-    (hraw : ManyInstrumentsTheorem1219HansenRawModelConditions
+    (hraw : ManyInstrumentsPrimitiveErrorRawModelConditions
       μ Z X Y Gamma u1 u2 β H Sigma alpha B)
     (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma
@@ -16906,7 +16811,7 @@ theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219HansenRawModelConditions
+    (hraw : ManyInstrumentsPrimitiveErrorRawModelConditions
       μ Z X Y Gamma u1 u2 β H Sigma alpha B)
     (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
       μ Z X Gamma
@@ -16958,7 +16863,7 @@ theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot
     {β : k → ℝ} {H : Matrix k k ℝ}
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     {alpha B C : ℝ}
-    (hraw : ManyInstrumentsTheorem1219HansenRawModelConditions
+    (hraw : ManyInstrumentsPrimitiveErrorRawModelConditions
       μ Z X Y Gamma u1 u2 β H Sigma alpha B)
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)

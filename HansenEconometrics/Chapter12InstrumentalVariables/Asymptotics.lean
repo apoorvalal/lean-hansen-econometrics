@@ -1342,7 +1342,7 @@ do not re-assume separate limits for `Q̂_XZ`, `Q̂_ZZ`, and `Q̂_ZX`. The
 instrument orthogonality WLLN is supplied by Chapter 7's same package applied to
 `Z` and `e`; the converter below extracts the exact lower-level Chapter 12 proof
 package. -/
-structure TwoSLSAssumption12_1Conditions
+structure TwoSLSCombinedSampleMomentRankConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ) : Prop where
   combined_moments :
@@ -1356,7 +1356,7 @@ structure TwoSLSAssumption12_1Conditions
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))).det
 
-namespace TwoSLSAssumption12_1Conditions
+namespace TwoSLSCombinedSampleMomentRankConditions
 
 /-- Constructor for the Assumption 12.1 proof package from Hansen's population
 rank conditions.
@@ -1378,7 +1378,7 @@ theorem of_qzz_posDef_qzx_rank
     (hQZX :
       Function.Injective
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec) :
-    TwoSLSAssumption12_1Conditions μ Z X e where
+    TwoSLSCombinedSampleMomentRankConditions μ Z X e where
   combined_moments := combined_moments
   instrument_moments := instrument_moments
   qzz_nonsing := (Matrix.isUnit_iff_isUnit_det _).mp hQZZ.isUnit
@@ -1389,7 +1389,7 @@ theorem of_qzz_posDef_qzx_rank
 surface used by the lower-level Chapter 12 moment converter. -/
 theorem toCombinedSampleMomentConvergenceConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1Conditions μ Z X e) :
+    (h : TwoSLSCombinedSampleMomentRankConditions μ Z X e) :
     TwoSLSCombinedSampleMomentConvergenceConditions μ Z X e
       (popGram μ (twoSLSCombinedRegressors Z X)) where
   combined_meas := by
@@ -1433,14 +1433,14 @@ moment convergence package, with the population blocks extracted from the
 combined `[Z X]` population Gram. -/
 theorem toSampleMomentConvergenceConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1Conditions μ Z X e) :
+    (h : TwoSLSCombinedSampleMomentRankConditions μ Z X e) :
     TwoSLSSampleMomentConvergenceConditions μ Z X e
       (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))) :=
   h.toCombinedSampleMomentConvergenceConditions.toSampleMomentConvergenceConditions
 
-end TwoSLSAssumption12_1Conditions
+end TwoSLSCombinedSampleMomentRankConditions
 
 omit [Fintype k] [Fintype l] [DecidableEq k] [DecidableEq l] in
 private theorem twoSLSCombinedQZZ_transpose_eq_of_symm
@@ -1514,7 +1514,7 @@ theorem twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram
   twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
     (hCombined := SampleGramWLLNConditions.ofSampleMoment hCombined)
 
-namespace TwoSLSAssumption12_1Conditions
+namespace TwoSLSCombinedSampleMomentRankConditions
 
 /-- Constructor for the Assumption 12.1 proof package from Hansen's population
 rank conditions, deriving `Q_XZ = Q_ZX'` from the combined population Gram. -/
@@ -1528,7 +1528,7 @@ theorem of_qzz_posDef_qzx_rank_popGram
     (hQZX :
       Function.Injective
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec) :
-    TwoSLSAssumption12_1Conditions μ Z X e := by
+    TwoSLSCombinedSampleMomentRankConditions μ Z X e := by
   rcases combined_moments with ⟨u, hCombined⟩
   exact of_qzz_posDef_qzx_rank
     (combined_moments := ⟨u, hCombined⟩)
@@ -1537,7 +1537,7 @@ theorem of_qzz_posDef_qzx_rank_popGram
       (μ := μ) (Z := Z) (X := X) (hCombined := hCombined))
     (hQZZ := hQZZ) (hQZX := hQZX)
 
-end TwoSLSAssumption12_1Conditions
+end TwoSLSCombinedSampleMomentRankConditions
 
 /-- Hansen-facing Assumption 12.2 constructor surface.
 
@@ -1545,14 +1545,14 @@ This extends the Assumption 12.1 sample-moment constructor with Chapter 7's
 instrument-score CLT. The converter derives the lower-level formula-facing
 normality package, including the population `Q_ZZ` symmetry and
 `Q_ZX = Q_XZᵀ` facts from the combined population Gram. -/
-structure TwoSLSAssumption12_2Conditions
+structure TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
-    : Prop extends TwoSLSAssumption12_1Conditions μ Z X e where
+    : Prop extends TwoSLSCombinedSampleMomentRankConditions μ Z X e where
   score_clt : ScoreCLTConditions μ Z e
   omega_posDef : (scoreCovMat μ Z e).PosDef
 
-namespace TwoSLSAssumption12_2Conditions
+namespace TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions
 
 /-- Constructor for the Assumption 12.2 proof package from Hansen's population
 rank conditions and Chapter 7's instrument-score CLT, deriving
@@ -1569,26 +1569,26 @@ theorem of_qzz_posDef_qzx_rank_popGram
     (hQZX :
       Function.Injective
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec) :
-    TwoSLSAssumption12_2Conditions μ Z X e where
-  toTwoSLSAssumption12_1Conditions :=
-    TwoSLSAssumption12_1Conditions.of_qzz_posDef_qzx_rank_popGram
+    TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions μ Z X e where
+  toTwoSLSCombinedSampleMomentRankConditions :=
+    TwoSLSCombinedSampleMomentRankConditions.of_qzz_posDef_qzx_rank_popGram
       (combined_moments := combined_moments)
       (instrument_moments := instrument_moments)
       (hQZZ := hQZZ) (hQZX := hQZX)
   score_clt := score_clt
   omega_posDef := omega_posDef
 
-end TwoSLSAssumption12_2Conditions
+end TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions
 
 /-- Hansen-facing Assumption 12.1 surface using only the primitive sample-Gram
 WLLN for `[Z_i, X_i]`.
 
-Compared with `TwoSLSAssumption12_1Conditions`, this package no longer asks for
+Compared with `TwoSLSCombinedSampleMomentRankConditions`, this package no longer asks for
 a dummy regression error attached to the combined regressor.  It records exactly
 the combined second-moment WLLN, the instrument-error orthogonality WLLN, and
 Hansen's population rank conditions used to derive nonsingularity of the 2SLS
 bread. -/
-structure TwoSLSAssumption12_1GramConditions
+structure TwoSLSGramInstrumentMomentRankConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ) : Prop where
   combined_gram :
@@ -1600,13 +1600,13 @@ structure TwoSLSAssumption12_1GramConditions
     Function.Injective
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec
 
-namespace TwoSLSAssumption12_1GramConditions
+namespace TwoSLSGramInstrumentMomentRankConditions
 
 /-- The primitive Assumption 12.1 Gram package supplies the lower-level combined
 sample-moment convergence package used by the 2SLS CMT layer. -/
 theorem toCombinedSampleMomentConvergenceConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1GramConditions μ Z X e) :
+    (h : TwoSLSGramInstrumentMomentRankConditions μ Z X e) :
     TwoSLSCombinedSampleMomentConvergenceConditions μ Z X e
       (popGram μ (twoSLSCombinedRegressors Z X)) where
   combined_meas := by
@@ -1650,7 +1650,7 @@ theorem toCombinedSampleMomentConvergenceConditions
 sample-moment convergence package. -/
 theorem toSampleMomentConvergenceConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1GramConditions μ Z X e) :
+    (h : TwoSLSGramInstrumentMomentRankConditions μ Z X e) :
     TwoSLSSampleMomentConvergenceConditions μ Z X e
       (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
@@ -1661,13 +1661,13 @@ theorem toSampleMomentConvergenceConditions
 already have a full combined-regression Chapter 7 moment bundle. -/
 theorem ofAssumption12_1Conditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1Conditions μ Z X e)
+    (h : TwoSLSCombinedSampleMomentRankConditions μ Z X e)
     (hQZZ :
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))).PosDef)
     (hQZX :
       Function.Injective
         (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec) :
-    TwoSLSAssumption12_1GramConditions μ Z X e := by
+    TwoSLSGramInstrumentMomentRankConditions μ Z X e := by
   rcases h.combined_moments with ⟨u, hCombined⟩
   exact
     { combined_gram := SampleGramWLLNConditions.ofSampleMoment hCombined
@@ -1675,7 +1675,7 @@ theorem ofAssumption12_1Conditions
       qzz_posDef := hQZZ
       qzx_rank := hQZX }
 
-end TwoSLSAssumption12_1GramConditions
+end TwoSLSGramInstrumentMomentRankConditions
 
 /-- IID finite-second-moment sufficient condition package for Hansen
 Assumption 12.1.
@@ -1683,7 +1683,7 @@ Assumption 12.1.
 This is the primitive row-level surface for Theorem 12.1: iid combined
 instrument/regressor rows `[Z_i, X_i]`, iid instrument-error rows `(Z_i,e_i)`,
 finite second moments, orthogonality, and Hansen's population rank conditions. -/
-structure TwoSLSAssumption12_1IidConditions
+structure TwoSLSSplitIidSecondMomentRankConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ) : Prop where
   combined_aestronglyMeasurable :
@@ -1841,7 +1841,7 @@ theorem twoSLSCombinedRegressors_outer_integrable_of_rows
 This packages the iid hypothesis on the observed structural row
 `((Z_i, X_i), e_i)` and derives the older split iid fields for `[Z_i, X_i]` and
 `(Z_i,e_i)` by measurable projections. -/
-structure TwoSLSAssumption12_1JointIidConditions
+structure TwoSLSResidualJointIidSecondMomentRankConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ) : Prop where
   joint_aestronglyMeasurable :
@@ -1861,13 +1861,13 @@ structure TwoSLSAssumption12_1JointIidConditions
     Function.Injective
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec
 
-namespace TwoSLSAssumption12_1JointIidConditions
+namespace TwoSLSResidualJointIidSecondMomentRankConditions
 
 omit [DecidableEq k] [DecidableEq l] in
 /-- Row measurability for `Z` from the single joint-row measurability field. -/
 theorem z_aestronglyMeasurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1JointIidConditions μ Z X e) :
+    (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e) :
     ∀ i, AEStronglyMeasurable (Z i) μ :=
   fun i =>
     (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
@@ -1877,7 +1877,7 @@ omit [DecidableEq k] [DecidableEq l] in
 /-- Row measurability for `X` from the single joint-row measurability field. -/
 theorem x_aestronglyMeasurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1JointIidConditions μ Z X e) :
+    (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e) :
     ∀ i, AEStronglyMeasurable (X i) μ :=
   fun i =>
     (continuous_snd.comp continuous_fst).comp_aestronglyMeasurable
@@ -1887,7 +1887,7 @@ omit [DecidableEq k] [DecidableEq l] in
 /-- Row measurability for `e` from the single joint-row measurability field. -/
 theorem e_aestronglyMeasurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1JointIidConditions μ Z X e) :
+    (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e) :
     ∀ i, AEStronglyMeasurable (e i) μ :=
   fun i => continuous_snd.comp_aestronglyMeasurable
     (h.joint_aestronglyMeasurable i)
@@ -1897,8 +1897,8 @@ omit [DecidableEq k] [DecidableEq l] in
 split-row iid package used by the proof engine. -/
 theorem toIidConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1JointIidConditions μ Z X e) :
-    TwoSLSAssumption12_1IidConditions μ Z X e where
+    (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e) :
+    TwoSLSSplitIidSecondMomentRankConditions μ Z X e where
   combined_aestronglyMeasurable :=
     twoSLSCombinedRegressors_aestronglyMeasurable_of_rows
       (μ := μ) (Z := Z) (X := X)
@@ -1934,7 +1934,7 @@ theorem toIidConditions
   qzz_posDef := h.qzz_posDef
   qzx_rank := h.qzx_rank
 
-end TwoSLSAssumption12_1JointIidConditions
+end TwoSLSResidualJointIidSecondMomentRankConditions
 
 omit [DecidableEq k] [DecidableEq l] [IsProbabilityMeasure μ] in
 private def twoSLSObservedToResidualRow
@@ -1958,7 +1958,7 @@ The iid condition is stated on Hansen's observed row `((Z_i, X_i), Y_i)`.
 The structural equation converts this to the residual-row package used by the
 proof engine, while the displayed second moments imply the `[Z,X]` Gram moment
 and the `E[Z_i e_i]` integrability fields. -/
-structure TwoSLSAssumption12_1JointIidTextbookSecondConditions
+structure TwoSLSObservedIidSecondMomentRankConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e Y : ℕ → Ω → ℝ)
     (β0 : k → ℝ) : Prop where
@@ -1979,14 +1979,14 @@ structure TwoSLSAssumption12_1JointIidTextbookSecondConditions
     Function.Injective
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec
 
-namespace TwoSLSAssumption12_1JointIidTextbookSecondConditions
+namespace TwoSLSObservedIidSecondMomentRankConditions
 
 omit [DecidableEq k] [DecidableEq l] in
 /-- Row measurability for `Z` from the observed-row iid package. -/
 theorem z_aestronglyMeasurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0) :
     ∀ i, AEStronglyMeasurable (Z i) μ :=
   fun i =>
     (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
@@ -1997,7 +1997,7 @@ omit [DecidableEq k] [DecidableEq l] in
 theorem x_aestronglyMeasurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0) :
     ∀ i, AEStronglyMeasurable (X i) μ :=
   fun i =>
     (continuous_snd.comp continuous_fst).comp_aestronglyMeasurable
@@ -2008,7 +2008,7 @@ omit [DecidableEq k] [DecidableEq l] in
 theorem y_aestronglyMeasurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0) :
     ∀ i, AEStronglyMeasurable (Y i) μ :=
   fun i => continuous_snd.comp_aestronglyMeasurable
     (h.observed_aestronglyMeasurable i)
@@ -2019,7 +2019,7 @@ second moment through the linear model. -/
 private theorem error_memLp_two
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0) :
     MemLp (fun ω => e 0 ω) 2 μ :=
   error_memLp_two_of_response_regressor_second
     (μ := μ) (X := X) (e := e) (Y := Y) (β := β0)
@@ -2032,8 +2032,8 @@ package used by the existing 2SLS consistency proof. -/
 theorem toJointIidConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
-    TwoSLSAssumption12_1JointIidConditions μ Z X e := by
+    (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0) :
+    TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e := by
   have hrows :
       (fun i ω =>
         twoSLSObservedToResidualRow (l := l) β0 ((Z i ω, X i ω), Y i ω)) =
@@ -2090,16 +2090,16 @@ theorem toJointIidConditions
       (h.z_aestronglyMeasurable 0) h.error_memLp_two
       h.instrument_norm_sq_integrable
 
-end TwoSLSAssumption12_1JointIidTextbookSecondConditions
+end TwoSLSObservedIidSecondMomentRankConditions
 
-namespace TwoSLSAssumption12_1IidConditions
+namespace TwoSLSSplitIidSecondMomentRankConditions
 
 omit [DecidableEq k] in
 /-- Hansen's `Q_ZZ > 0` condition supplies the nonsingularity field required by
 Chapter 7's instrument-score moment package. -/
 theorem instrument_popGram_nonsing
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1IidConditions μ Z X e) :
+    (h : TwoSLSSplitIidSecondMomentRankConditions μ Z X e) :
     IsUnit (popGram μ Z).det := by
   have hZint : Integrable (fun ω => Matrix.vecMulVec (Z 0 ω) (Z 0 ω)) μ :=
     integrable_vecMulVec_of_integrable_norm_sq
@@ -2121,8 +2121,8 @@ omit [DecidableEq k] in
 Gram/WLLN package used by the 2SLS consistency theorem. -/
 theorem toGramConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1IidConditions μ Z X e) :
-    TwoSLSAssumption12_1GramConditions μ Z X e where
+    (h : TwoSLSSplitIidSecondMomentRankConditions μ Z X e) :
+    TwoSLSGramInstrumentMomentRankConditions μ Z X e where
   combined_gram :=
     SampleGramWLLNConditions.of_iid_finite_second
       (μ := μ) (X := twoSLSCombinedRegressors Z X)
@@ -2137,7 +2137,7 @@ theorem toGramConditions
   qzz_posDef := h.qzz_posDef
   qzx_rank := h.qzx_rank
 
-end TwoSLSAssumption12_1IidConditions
+end TwoSLSSplitIidSecondMomentRankConditions
 
 /-- Proof-facing Gram and score-CLT surface for 2SLS coefficient normality.
 
@@ -2146,15 +2146,15 @@ covariance and therefore a degenerate Gaussian coefficient limit. -/
 structure TwoSLSGramScoreCLTConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
-    : Prop extends TwoSLSAssumption12_1GramConditions μ Z X e where
+    : Prop extends TwoSLSGramInstrumentMomentRankConditions μ Z X e where
   score_clt : ScoreCLTConditions μ Z e
 
 /-- Hansen-facing Assumption 12.2 surface using the primitive sample-Gram WLLN
 for `[Z_i, X_i]`, the instrument-score moment WLLN, and the score CLT. -/
-structure TwoSLSAssumption12_2GramConditions
+structure TwoSLSGramScoreCLTPositiveCovarianceConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
-    : Prop extends TwoSLSAssumption12_1GramConditions μ Z X e where
+    : Prop extends TwoSLSGramInstrumentMomentRankConditions μ Z X e where
   score_clt : ScoreCLTConditions μ Z e
   omega_posDef : (scoreCovMat μ Z e).PosDef
 
@@ -2166,10 +2166,10 @@ instrument-error score outer product, which is the exact moment consumed by the
 Chapter 7 score CLT, together with the scalar squared-error moment needed for
 Hansen Theorem 12.3's homoskedastic covariance consistency. The package also
 records Hansen's `Ω > 0` condition. -/
-structure TwoSLSAssumption12_2IidFourthConditions
+structure TwoSLSSplitIidFourthMomentPositiveCovarianceConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
-    : Prop extends TwoSLSAssumption12_1IidConditions μ Z X e where
+    : Prop extends TwoSLSSplitIidSecondMomentRankConditions μ Z X e where
   error_sq_integrable : Integrable (fun ω => e 0 ω ^ 2) μ
   score_outer_integrable :
     Integrable (fun ω => Matrix.vecMulVec (e 0 ω • Z 0 ω) (e 0 ω • Z 0 ω)) μ
@@ -2177,43 +2177,43 @@ structure TwoSLSAssumption12_2IidFourthConditions
 
 /-- Hansen-facing single-row iid Assumption 12.2 surface with the finite
 fourth-moment objects used by the Chapter 12 proof engine. -/
-structure TwoSLSAssumption12_2JointIidFourthConditions
+structure TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
-    : Prop extends TwoSLSAssumption12_1JointIidConditions μ Z X e where
+    : Prop extends TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e where
   error_sq_integrable : Integrable (fun ω => e 0 ω ^ 2) μ
   score_outer_integrable :
     Integrable (fun ω => Matrix.vecMulVec (e 0 ω • Z 0 ω) (e 0 ω • Z 0 ω)) μ
   omega_posDef : (scoreCovMat μ Z e).PosDef
 
-namespace TwoSLSAssumption12_2JointIidFourthConditions
+namespace TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
 
 omit [DecidableEq k] [DecidableEq l] in
 /-- Convert the single-row iid Assumption 12.2 package into the existing
 split-row finite-fourth package used by the proof engine. -/
 theorem toIidFourthConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e) :
-    TwoSLSAssumption12_2IidFourthConditions μ Z X e where
-  toTwoSLSAssumption12_1IidConditions :=
-    h.toTwoSLSAssumption12_1JointIidConditions.toIidConditions
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e) :
+    TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e where
+  toTwoSLSSplitIidSecondMomentRankConditions :=
+    h.toTwoSLSResidualJointIidSecondMomentRankConditions.toIidConditions
   error_sq_integrable := h.error_sq_integrable
   score_outer_integrable := h.score_outer_integrable
   omega_posDef := h.omega_posDef
 
-end TwoSLSAssumption12_2JointIidFourthConditions
+end TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
 
-namespace TwoSLSAssumption12_2IidFourthConditions
+namespace TwoSLSSplitIidFourthMomentPositiveCovarianceConditions
 
 omit [DecidableEq k] in
 /-- The iid finite-fourth Assumption 12.2 package supplies the existing
 Gram/score-CLT package used by the 2SLS asymptotic-normality theorem. -/
 theorem toGramConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e) :
-    TwoSLSAssumption12_2GramConditions μ Z X e where
-  toTwoSLSAssumption12_1GramConditions :=
-    h.toTwoSLSAssumption12_1IidConditions.toGramConditions
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e) :
+    TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e where
+  toTwoSLSGramInstrumentMomentRankConditions :=
+    h.toTwoSLSSplitIidSecondMomentRankConditions.toGramConditions
   score_clt :=
     scoreCLTConditions_of_iid_score_outer
       (μ := μ) (X := Z) (e := e)
@@ -2221,7 +2221,7 @@ theorem toGramConditions
       h.instrument_joint_iIndep h.instrument_joint_identDistrib
       h.instrument_norm_sq_integrable h.instrument_cross_integrable
       h.score_outer_integrable
-      h.toTwoSLSAssumption12_1IidConditions.instrument_popGram_nonsing
+      h.toTwoSLSSplitIidSecondMomentRankConditions.instrument_popGram_nonsing
       h.orthogonality
   omega_posDef := h.omega_posDef
 
@@ -2230,7 +2230,7 @@ omit [DecidableEq k] in
 true-error score-covariance WLLN package for the instrument-error score. -/
 theorem toSampleHC0Assumption76
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e) :
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e) :
     SampleHC0Assumption76 μ Z e where
   toScoreCLTConditions := h.toGramConditions.score_clt
   indep_score_outer := by
@@ -2255,10 +2255,10 @@ squared-error WLLN package used by Hansen Theorem 12.3's homoskedastic
 covariance estimator. -/
 theorem toSampleVarianceAssumption74
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e) :
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e) :
     SampleVarianceAssumption74 μ Z e where
   toLeastSquaresConsistencyConditions :=
-    h.toTwoSLSAssumption12_1IidConditions.toGramConditions.instrument_moments
+    h.toTwoSLSSplitIidSecondMomentRankConditions.toGramConditions.instrument_moments
   indep_error_sq := by
     have hsquare : iIndepFun (fun i ω => e i ω ^ 2) μ := by
       simpa [Function.comp] using
@@ -2280,7 +2280,7 @@ omit [DecidableEq k] [DecidableEq l] in
 iid Assumption 12.2 package. -/
 theorem twoSLSOmegaIdeal_tendstoInMeasure_scoreCovMat
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e) :
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e) :
     TendstoInMeasure μ
       (fun n ω =>
         twoSLSOmegaIdeal
@@ -2307,7 +2307,7 @@ omit [DecidableEq k] [DecidableEq l] in
 primitive iid Assumption 12.2 package. -/
 theorem sampleErrorSecondMoment_tendstoInMeasure_errorVariance
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e) :
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e) :
     TendstoInMeasure μ
       (fun n ω => sampleErrorSecondMoment (fun i : Fin n => e i.val ω))
       atTop (fun _ => errorVariance μ e) := by
@@ -2316,7 +2316,7 @@ theorem sampleErrorSecondMoment_tendstoInMeasure_errorVariance
     sampleErrorSecondMoment_stack_tendstoInMeasure_errVariance
       (μ := μ) (X := Z) (e := e) h.toSampleVarianceAssumption74
 
-end TwoSLSAssumption12_2IidFourthConditions
+end TwoSLSSplitIidFourthMomentPositiveCovarianceConditions
 
 set_option maxHeartbeats 1200000 in
 -- The matrix-valued CMT proof composes several tendstoInMeasure products and inverses.
@@ -2927,7 +2927,7 @@ theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_sample_moments_model
 condition package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1Conditions μ Z X e)
+    (h : TwoSLSCombinedSampleMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -2944,7 +2944,7 @@ theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_model
 Hansen-facing Assumption 12.1 condition package. -/
 theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_assumption12_1_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1Conditions μ Z X e)
+    (h : TwoSLSCombinedSampleMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -2961,7 +2961,7 @@ theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_assumption12_1_model
 package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_gram_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1GramConditions μ Z X e)
+    (h : TwoSLSGramInstrumentMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -2978,7 +2978,7 @@ theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_gram_model
 primitive Assumption 12.1 Gram package. -/
 theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_assumption12_1_gram_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1GramConditions μ Z X e)
+    (h : TwoSLSGramInstrumentMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -2995,7 +2995,7 @@ theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_assumption12_1_gram_model
 12.1 package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1IidConditions μ Z X e)
+    (h : TwoSLSSplitIidSecondMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -3012,7 +3012,7 @@ theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_iid_model
 finite-second-moment Assumption 12.1 package. -/
 theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_assumption12_1_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1IidConditions μ Z X e)
+    (h : TwoSLSSplitIidSecondMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -3029,7 +3029,7 @@ theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_assumption12_1_iid_model
 package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_joint_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1JointIidConditions μ Z X e)
+    (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -3046,7 +3046,7 @@ theorem twoSLSBetaStar_tendstoInMeasure_beta_of_assumption12_1_joint_iid_model
 iid Assumption 12.1 package. -/
 theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_assumption12_1_joint_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_1JointIidConditions μ Z X e)
+    (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -3067,7 +3067,7 @@ single-row residual package obtained from the structural equation. -/
 theorem twoSLSBetaStar_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSBetaStar
@@ -3083,7 +3083,7 @@ observed-row iid finite-second-moment surface. -/
 theorem twoSLSBetaOrZero_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSBetaOrZero
@@ -3303,32 +3303,32 @@ theorem TwoSLSSampleMomentConvergenceConditions.toFormulaAsymptoticNormalConditi
         (QXZ := QXZ) (QZZ := QZZ) (Omega := scoreCovMat μ Z e)
         (QZX := QZX) hQZZ_symm hQZX] using hdesired
 
-namespace TwoSLSAssumption12_2Conditions
+namespace TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions
 
 /-- A Hansen Assumption 12.2 package supplies the formula-facing normality
 conditions for Theorem 12.2 by combining Chapter 7's instrument-score CLT with
 the Chapter 12 sample-moment CMT. -/
 theorem toFormulaAsymptoticNormalConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2Conditions μ Z X e) :
+    (h : TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions μ Z X e) :
     TwoSLSFormulaAsymptoticNormalConditions μ Z X e
       (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (scoreCovMat μ Z e)
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))) := by
-  rcases h.toTwoSLSAssumption12_1Conditions.combined_moments with ⟨u, hCombined⟩
+  rcases h.toTwoSLSCombinedSampleMomentRankConditions.combined_moments with ⟨u, hCombined⟩
   have hQsymm :
       (popGram μ (twoSLSCombinedRegressors Z X))ᵀ =
         popGram μ (twoSLSCombinedRegressors Z X) :=
     (popGram_isSymm (μ := μ) (X := twoSLSCombinedRegressors Z X)
       hCombined.int_outer).eq
   have hMom :=
-    h.toTwoSLSAssumption12_1Conditions.toSampleMomentConvergenceConditions
+    h.toTwoSLSCombinedSampleMomentRankConditions.toSampleMomentConvergenceConditions
   exact hMom.toFormulaAsymptoticNormalConditions h.score_clt
     (twoSLSCombinedQZZ_transpose_eq_of_symm _ hQsymm)
     (twoSLSCombinedQZX_eq_transpose_of_symm _ hQsymm)
 
-end TwoSLSAssumption12_2Conditions
+end TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions
 
 namespace TwoSLSGramScoreCLTConditions
 
@@ -3348,31 +3348,31 @@ theorem toFormulaAsymptoticNormalConditions
     (popGram_isSymm (μ := μ) (X := twoSLSCombinedRegressors Z X)
       h.combined_gram.int_outer).eq
   have hMom :=
-    h.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    h.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   exact hMom.toFormulaAsymptoticNormalConditions h.score_clt
     (twoSLSCombinedQZZ_transpose_eq_of_symm _ hQsymm)
     (twoSLSCombinedQZX_eq_transpose_of_symm _ hQsymm)
 
 end TwoSLSGramScoreCLTConditions
 
-namespace TwoSLSAssumption12_2GramConditions
+namespace TwoSLSGramScoreCLTPositiveCovarianceConditions
 
 omit [DecidableEq k] in
 /-- Forget only Hansen's positive-definiteness condition when a downstream
 coefficient theorem permits a degenerate Gaussian limit. -/
 theorem toGramScoreCLTConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2GramConditions μ Z X e) :
+    (h : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e) :
     TwoSLSGramScoreCLTConditions μ Z X e where
-  toTwoSLSAssumption12_1GramConditions :=
-    h.toTwoSLSAssumption12_1GramConditions
+  toTwoSLSGramInstrumentMomentRankConditions :=
+    h.toTwoSLSGramInstrumentMomentRankConditions
   score_clt := h.score_clt
 
 /-- The primitive Assumption 12.2 Gram package supplies the formula-facing
 normality conditions for Theorem 12.2. -/
 theorem toFormulaAsymptoticNormalConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2GramConditions μ Z X e) :
+    (h : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e) :
     TwoSLSFormulaAsymptoticNormalConditions μ Z X e
       (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
       (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
@@ -3384,12 +3384,12 @@ theorem toFormulaAsymptoticNormalConditions
     (popGram_isSymm (μ := μ) (X := twoSLSCombinedRegressors Z X)
       h.combined_gram.int_outer).eq
   have hMom :=
-    h.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    h.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   exact hMom.toFormulaAsymptoticNormalConditions h.score_clt
     (twoSLSCombinedQZZ_transpose_eq_of_symm _ hQsymm)
     (twoSLSCombinedQZX_eq_transpose_of_symm _ hQsymm)
 
-end TwoSLSAssumption12_2GramConditions
+end TwoSLSGramScoreCLTPositiveCovarianceConditions
 
 /-- Exact scaled finite-sample linearization premise for Hansen Theorem 12.2.
 
@@ -3827,7 +3827,7 @@ theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_scoreCLT_sample_moment
 Assumption 12.2 condition package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2Conditions μ Z X e)
+    (h : TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hmeas : ∀ t : ℕ, AEMeasurable
@@ -3852,14 +3852,14 @@ theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_model
   twoSLSBetaStar_tendstoInDistribution_of_sample_moments_model
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
     h.toFormulaAsymptoticNormalConditions
-    h.toTwoSLSAssumption12_1Conditions.toSampleMomentConvergenceConditions
+    h.toTwoSLSCombinedSampleMomentRankConditions.toSampleMomentConvergenceConditions
     β hmodel hmeas
 
 /-- Textbook-facing OrZero version of the Hansen Theorem 12.2 formula endpoint
 from the Hansen-facing Assumption 12.2 condition package. -/
 theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2Conditions μ Z X e)
+    (h : TwoSLSCombinedSampleMomentScoreCLTPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hmeas : ∀ t : ℕ, AEMeasurable
@@ -3924,14 +3924,14 @@ theorem twoSLSBetaStar_tendstoInDistribution_formula_of_gram_score_clt_model
   twoSLSBetaStar_tendstoInDistribution_of_sample_moments_model
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
     h.toFormulaAsymptoticNormalConditions
-    h.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    h.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
     β hmodel hmeas
 
 /-- Hansen Theorem 12.2 formula-facing endpoint from the primitive Assumption
 12.2 Gram package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_gram_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2GramConditions μ Z X e)
+    (h : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hmeas : ∀ t : ℕ, AEMeasurable
@@ -3956,14 +3956,14 @@ theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_gram_mode
   twoSLSBetaStar_tendstoInDistribution_of_sample_moments_model
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
     h.toFormulaAsymptoticNormalConditions
-    h.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    h.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
     β hmodel hmeas
 
 /-- Textbook-facing OrZero version of the Hansen Theorem 12.2 formula endpoint
 from the primitive Assumption 12.2 Gram package. -/
 theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_gram_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2GramConditions μ Z X e)
+    (h : TwoSLSGramScoreCLTPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hmeas : ∀ t : ℕ, AEMeasurable
@@ -4003,7 +4003,7 @@ theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_gram_mo
 Assumption 12.2 package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInDistribution
@@ -4035,7 +4035,7 @@ theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_iid_model
 finite-fourth Assumption 12.2 package. -/
 theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInDistribution
@@ -4067,7 +4067,7 @@ theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_iid_mod
 finite-fourth Assumption 12.2 package and the structural equation. -/
 theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInDistribution
@@ -4091,7 +4091,7 @@ theorem twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid
 iid finite-fourth Assumption 12.2 package. -/
 theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInDistribution
@@ -5143,7 +5143,7 @@ third/fourth empirical weights needed to make the feasible residual
 substitution negligible. -/
 theorem of_assumption12_2_iid_weight_wlln
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e) :
     TwoSLSCovarianceRemainderBoundedWeightConditions μ Z X e := by
   classical
@@ -5438,7 +5438,7 @@ Assumption 12.2 plus scalar WLLN conditions for the empirical third/fourth
 weights. -/
 theorem of_assumption12_2_iid_weight_wlln
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e) :
@@ -5600,12 +5600,12 @@ remainder limits.
 
 This constructor derives the sample IV moments, the ideal true-error robust
 middle WLLN, the scalar error-variance WLLN, and finite-sample measurability
-from `TwoSLSAssumption12_2IidFourthConditions`. The only remaining stochastic
+from `TwoSLSSplitIidFourthMomentPositiveCovarianceConditions`. The only remaining stochastic
 inputs are the four residual-substitution remainders packaged in
 `TwoSLSCovarianceRemainderConditions`. -/
 theorem of_assumption12_2_iid_remainders
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hr : TwoSLSCovarianceRemainderConditions μ Z X e Y β) :
@@ -5632,11 +5632,11 @@ theorem of_assumption12_2_iid_remainders
         (μ := μ) (Z := Z) (X := X) (Y := Y)
         h.z_aestronglyMeasurable h.x_aestronglyMeasurable hYmeas)
     β hmodel
-    (TwoSLSAssumption12_2IidFourthConditions.twoSLSOmegaIdeal_tendstoInMeasure_scoreCovMat
+    (TwoSLSSplitIidFourthMomentPositiveCovarianceConditions.twoSLSOmegaIdeal_tendstoInMeasure_scoreCovMat
       (μ := μ) (Z := Z) (X := X) (e := e) h)
     hr.omega_cross_tendsto
     hr.omega_quadratic_tendsto
-    (TwoSLSAssumption12_2IidFourthConditions.sampleErrorSecondMoment_tendstoInMeasure_errorVariance
+    (TwoSLSSplitIidFourthMomentPositiveCovarianceConditions.sampleErrorSecondMoment_tendstoInMeasure_errorVariance
       (μ := μ) (Z := Z) (X := X) (e := e) h)
     hr.sigma_cross_tendsto
     hr.sigma_quadratic_tendsto
@@ -5646,7 +5646,7 @@ Assumption 12.2 and scalar WLLN conditions for the empirical residual-
 substitution weights. -/
 theorem of_assumption12_2_iid_weight_wlln
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e) :
@@ -5687,15 +5687,15 @@ end TwoSLSCovarianceMomentConsistencyConditions
 /-- Single-row iid Assumption 12.2 plus the mixed moment integrability needed
 for Hansen Theorem 12.3's feasible residual substitution.
 
-The parent `TwoSLSAssumption12_2JointIidFourthConditions` supplies the primitive
+The parent `TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions` supplies the primitive
 Assumption 12.2 score and sample-moment surface. These extra fields are exactly
 the scalar products used to bound the robust-middle and homoskedastic
 residual-substitution remainders; independence and identical distribution of
 those products are derived from the parent joint-iid row fields. -/
-structure TwoSLSAssumption12_2JointIidMixedMomentConditions
+structure TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
-    : Prop extends TwoSLSAssumption12_2JointIidFourthConditions μ Z X e where
+    : Prop extends TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e where
   omega_cross_integrable : ∀ a b : l, ∀ j : k,
     Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ
   omega_quadratic_integrable : ∀ a b : l, ∀ j m : k,
@@ -5703,14 +5703,14 @@ structure TwoSLSAssumption12_2JointIidMixedMomentConditions
   sigma_cross_integrable : ∀ j : k,
     Integrable (fun ω => e 0 ω * X 0 ω j) μ
 
-namespace TwoSLSAssumption12_2JointIidMixedMomentConditions
+namespace TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
 
 omit [DecidableEq k] [DecidableEq l] in
 /-- The mixed-moment Assumption 12.2 package supplies the scalar WLLN package
 for the residual-substitution weights in Hansen Theorem 12.3. -/
 theorem toWeightWLLNConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e) :
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e) :
     TwoSLSCovarianceWeightWLLNConditions μ Z X e :=
   TwoSLSCovarianceWeightWLLNConditions.of_joint_iid
     (μ := μ) (Z := Z) (X := X) (e := e)
@@ -5721,7 +5721,7 @@ theorem toWeightWLLNConditions
 middle and scalar residual-variance consistency package. -/
 theorem toCovarianceMomentConsistencyConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TwoSLSCovarianceMomentConsistencyConditions
@@ -5733,16 +5733,16 @@ theorem toCovarianceMomentConsistencyConditions
       (errorVariance μ e) :=
   TwoSLSCovarianceMomentConsistencyConditions.of_assumption12_2_iid_weight_wlln
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
     β hmodel
-    (TwoSLSAssumption12_2JointIidMixedMomentConditions.toWeightWLLNConditions
+    (TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions.toWeightWLLNConditions
       (μ := μ) (Z := Z) (X := X) (e := e) h)
 
 /-- The mixed-moment Assumption 12.2 package supplies Hansen Theorem 12.3's
 formula-facing covariance consistency package. -/
 theorem toCovarianceFormulaConsistencyConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TwoSLSCovarianceFormulaConsistencyConditions
@@ -5752,10 +5752,10 @@ theorem toCovarianceFormulaConsistencyConditions
       (scoreCovMat μ Z e)
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
       (errorVariance μ e) :=
-  (TwoSLSAssumption12_2JointIidMixedMomentConditions.toCovarianceMomentConsistencyConditions
+  (TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions.toCovarianceMomentConsistencyConditions
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel).toFormulaConsistencyConditions
 
-end TwoSLSAssumption12_2JointIidMixedMomentConditions
+end TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions
 
 /-- Literal finite-fourth-moment iid surface for Hansen Assumption 12.2.
 
@@ -5764,11 +5764,11 @@ This package keeps Hansen's stated moments explicit:
 equation and the positive-definite instrument-score covariance `Ω`.  It
 derives the score and residual-substitution mixed moments consumed by the
 existing proof engine. -/
-structure TwoSLSAssumption12_2JointIidTextbookFourthConditions
+structure TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e Y : ℕ → Ω → ℝ)
     (β0 : k → ℝ)
-    : Prop extends TwoSLSAssumption12_1JointIidConditions μ Z X e where
+    : Prop extends TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e where
   /-- Linear structural equation. -/
   model : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω
   /-- Hansen's finite fourth moment for the scalar response. -/
@@ -5780,7 +5780,7 @@ structure TwoSLSAssumption12_2JointIidTextbookFourthConditions
   /-- Hansen's positive-definite `Ω = E[Z Z' e²]` condition. -/
   omega_posDef : (scoreCovMat μ Z e).PosDef
 
-namespace TwoSLSAssumption12_2JointIidTextbookFourthConditions
+namespace TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
 
 omit [DecidableEq k] [DecidableEq l] in
 /-- The structural equation and row measurability imply response
@@ -5788,7 +5788,7 @@ measurability. -/
 theorem y_aestronglyMeasurable
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     ∀ i, AEStronglyMeasurable (Y i) μ :=
   outcome_aestronglyMeasurable_of_linear_model
     (μ := μ) (X := X) (e := e) (Y := Y) β0
@@ -5800,7 +5800,7 @@ fourth moment through the linear model. -/
 private theorem error_memLp_four
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     MemLp (fun ω => e 0 ω) 4 μ :=
   error_memLp_four_of_response_regressor_fourth
     (μ := μ) (X := X) (e := e) (Y := Y) (β := β0)
@@ -5813,8 +5813,8 @@ mixed-moment package used by the covariance and smooth-function proof engine. -/
 theorem toJointIidMixedMomentConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
-    TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e := by
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
+    TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e := by
   have he4 : MemLp (fun ω => e 0 ω) 4 μ :=
     h.error_memLp_four
   have hX4 : ∀ j : k, MemLp (fun ω => X 0 ω j) 4 μ :=
@@ -5828,9 +5828,9 @@ theorem toJointIidMixedMomentConditions
         (μ := μ) (X := Z) (h.z_aestronglyMeasurable 0)
         h.instrument_norm_fourth_integrable a
   refine
-    { toTwoSLSAssumption12_2JointIidFourthConditions :=
-        { toTwoSLSAssumption12_1JointIidConditions :=
-            h.toTwoSLSAssumption12_1JointIidConditions
+    { toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions :=
+        { toTwoSLSResidualJointIidSecondMomentRankConditions :=
+            h.toTwoSLSResidualJointIidSecondMomentRankConditions
           error_sq_integrable :=
             error_sq_integrable_of_memLp_four (μ := μ) (e := e) he4
           score_outer_integrable :=
@@ -5850,7 +5850,7 @@ theorem toJointIidMixedMomentConditions
     exact sigma_cross_integrable_of_memLp_four
       (μ := μ) (X := X) (e := e) he4 hX4 j
 
-end TwoSLSAssumption12_2JointIidTextbookFourthConditions
+end TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions
 
 /-- Observed-row iid fourth-moment conditions for 2SLS coefficient normality
 with a possibly singular score covariance.
@@ -5888,7 +5888,7 @@ theorem toTextbookSecondConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
     (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
-    TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0 := by
+    TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0 := by
   have hZ0 : AEStronglyMeasurable (Z 0) μ :=
     (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
       (h.observed_aestronglyMeasurable 0)
@@ -5942,7 +5942,7 @@ theorem toGramScoreCLTConditions
     {β0 : k → ℝ}
     (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
     TwoSLSGramScoreCLTConditions μ Z X e := by
-  let hIid : TwoSLSAssumption12_1IidConditions μ Z X e :=
+  let hIid : TwoSLSSplitIidSecondMomentRankConditions μ Z X e :=
     h.toTextbookSecondConditions.toJointIidConditions.toIidConditions
   have hZ4 : ∀ a : l, MemLp (fun ω => Z 0 ω a) 4 μ :=
     fun a => coordinate_memLp_four_of_norm_fourth
@@ -5953,7 +5953,7 @@ theorem toGramScoreCLTConditions
     score_outer_integrable_of_memLp_four
       (μ := μ) (Z := Z) (e := e) h.error_memLp_four hZ4
   exact
-    { toTwoSLSAssumption12_1GramConditions := hIid.toGramConditions
+    { toTwoSLSGramInstrumentMomentRankConditions := hIid.toGramConditions
       score_clt :=
         scoreCLTConditions_of_iid_score_outer
           (μ := μ) (X := Z) (e := e)
@@ -5970,7 +5970,7 @@ theorem toSampleHC0Assumption76
     {β0 : k → ℝ}
     (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
     SampleHC0Assumption76 μ Z e := by
-  let hIid : TwoSLSAssumption12_1IidConditions μ Z X e :=
+  let hIid : TwoSLSSplitIidSecondMomentRankConditions μ Z X e :=
     h.toTextbookSecondConditions.toJointIidConditions.toIidConditions
   have hZ4 : ∀ a : l, MemLp (fun ω => Z 0 ω a) 4 μ :=
     fun a => coordinate_memLp_four_of_norm_fourth
@@ -6005,7 +6005,7 @@ theorem toCovarianceWeightWLLNConditions
     {β0 : k → ℝ}
     (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
     TwoSLSCovarianceWeightWLLNConditions μ Z X e := by
-  let hJoint : TwoSLSAssumption12_1JointIidConditions μ Z X e :=
+  let hJoint : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e :=
     h.toTextbookSecondConditions.toJointIidConditions
   have he4 : MemLp (fun ω => e 0 ω) 4 μ := h.error_memLp_four
   have hX4 : ∀ j : k, MemLp (fun ω => X 0 ω j) 4 μ := fun j =>
@@ -6034,7 +6034,7 @@ end TwoSLSObservedIidFourthMomentConditions
 The iid condition is stated on Hansen's observed row `((Z_i, X_i), Y_i)`.
 Fourth moments imply the finite-second fields needed by Assumption 12.1, and
 the structural equation converts the package to the residual-row proof engine. -/
-structure TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+structure TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e Y : ℕ → Ω → ℝ)
     (β0 : k → ℝ) : Prop where
@@ -6056,7 +6056,7 @@ structure TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec
   omega_posDef : (scoreCovMat μ Z e).PosDef
 
-namespace TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+namespace TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
 
 omit [DecidableEq k] [DecidableEq l] in
 /-- Convert the observed-row finite-fourth Assumption 12.2 package to the
@@ -6064,8 +6064,8 @@ observed-row finite-second Assumption 12.1 package. -/
 theorem toTextbookSecondConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
-    TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0 := by
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
+    TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0 := by
   have hZ0 : AEStronglyMeasurable (Z 0) μ :=
     (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
       (h.observed_aestronglyMeasurable 0)
@@ -6098,9 +6098,9 @@ residual-row fourth-moment proof engine. -/
 theorem toResidualTextbookFourthConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
-    TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0 :=
-  { toTwoSLSAssumption12_1JointIidConditions :=
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
+    TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0 :=
+  { toTwoSLSResidualJointIidSecondMomentRankConditions :=
       h.toTextbookSecondConditions.toJointIidConditions
     model := h.model
     response_fourth_integrable := h.response_fourth_integrable
@@ -6114,11 +6114,11 @@ mixed-moment package used by covariance and smooth-function proof engines. -/
 theorem toJointIidMixedMomentConditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
-    TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e :=
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
+    TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e :=
   h.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
 
-end TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+end TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
 
 /-- Formula-facing 2SLS coefficient CLT from observed-row fourth moments,
 without an unnecessary positive-definiteness assumption on the score
@@ -6178,7 +6178,7 @@ theorem twoSLSVHatStar_tendstoInMeasure_formula_of_observed_iid_fourth_moments
           (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))) := by
   classical
   let hGram := h.toGramScoreCLTConditions
-  let hMom := hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+  let hMom := hGram.toTwoSLSGramInstrumentMomentRankConditions.toSampleMomentConvergenceConditions
   have hZ : ∀ i, AEStronglyMeasurable (Z i) μ := fun i =>
     (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
       (h.observed_aestronglyMeasurable i)
@@ -6236,11 +6236,11 @@ finite-fourth-moment version of Assumption 12.2.
 
 This wrapper exposes the textbook-shaped assumptions directly. The structural
 equation and the finite score-CLT package are derived internally from
-`TwoSLSAssumption12_2JointIidTextbookFourthConditions`. -/
+`TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions`. -/
 theorem twoSLSBetaStar_tendstoInDistribution_formula_of_textbook12_2_joint_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
         Real.sqrt (t : ℝ) •
@@ -6256,7 +6256,7 @@ theorem twoSLSBetaStar_tendstoInDistribution_formula_of_textbook12_2_joint_iid_f
           (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) :=
   twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    h.toJointIidMixedMomentConditions.toTwoSLSAssumption12_2JointIidFourthConditions
+    h.toJointIidMixedMomentConditions.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
     β0 h.model
 
 /-- Textbook-facing OrZero version of Hansen Theorem 12.2 from the literal
@@ -6264,7 +6264,7 @@ finite-fourth-moment version of Assumption 12.2. -/
 theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_textbook12_2_joint_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
         Real.sqrt (t : ℝ) •
@@ -6280,7 +6280,7 @@ theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_textbook12_2_joint_iid
           (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) :=
   twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    h.toJointIidMixedMomentConditions.toTwoSLSAssumption12_2JointIidFourthConditions
+    h.toJointIidMixedMomentConditions.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions
     β0 h.model
 
 /-- Hansen Theorem 12.2 formula-facing endpoint from the literal observed-row
@@ -6288,7 +6288,7 @@ finite-fourth-moment version of Assumption 12.2. -/
 theorem twoSLSBetaStar_tendstoInDistribution_formula_of_textbook12_2_observed_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
         Real.sqrt (t : ℝ) •
@@ -6311,7 +6311,7 @@ observed-row finite-fourth-moment version of Assumption 12.2. -/
 theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_textbook12_2_observed_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
         Real.sqrt (t : ℝ) •
@@ -6338,15 +6338,15 @@ This exposes the proof step used by the covariance endpoint without assuming
 either final covariance consistency conclusion. -/
 theorem of_assumption12_2_joint_iid_mixed_moment_conditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TwoSLSCovarianceRemainderConditions μ Z X e Y β :=
   of_assumption12_2_iid_weight_wlln
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+    h.toTwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions.toIidFourthConditions
     β hmodel
-    (TwoSLSAssumption12_2JointIidMixedMomentConditions.toWeightWLLNConditions
+    (TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions.toWeightWLLNConditions
       (μ := μ) (Z := Z) (X := X) (e := e) h)
 
 /-- Package form of the exact Hansen Theorem 12.3 residual-substitution
@@ -6354,11 +6354,11 @@ remainders from the literal finite-fourth-moment version of Assumption 12.2. -/
 theorem of_textbook12_2_joint_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TwoSLSCovarianceRemainderConditions μ Z X e Y β0 :=
   of_assumption12_2_joint_iid_mixed_moment_conditions
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    (TwoSLSAssumption12_2JointIidTextbookFourthConditions.toJointIidMixedMomentConditions
+    (TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions.toJointIidMixedMomentConditions
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h)
     β0 h.model
 
@@ -6425,7 +6425,7 @@ The robust limit is Hansen's displayed sandwich with
 `σ² = E[e_i²] = errorVariance μ e`. -/
 theorem twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_iid_remainders
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hr : TwoSLSCovarianceRemainderConditions μ Z X e Y β) :
@@ -6468,7 +6468,7 @@ manual four-remainder premise in
 with enforceable WLLN assumptions for the exact third/fourth scalar summands. -/
 theorem twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_iid_weight_wlln
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e) :
@@ -6512,7 +6512,7 @@ The additional integrability hypotheses are exactly Hansen's mixed
 third/fourth moment summands used in the feasible residual substitution. -/
 theorem twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_joint_iid_moments
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hjoint : iIndepFun (fun i ω => ((Z i ω, X i ω), e i ω)) μ)
@@ -6562,12 +6562,12 @@ Assumption 12.2 package plus mixed third/fourth moment conditions for the
 empirical residual-substitution weights.
 
 This is the preferred theorem-shaped route when the primitive hypothesis is
-`TwoSLSAssumption12_2JointIidFourthConditions`: the iid and identical
+`TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions`: the iid and identical
 distribution inputs are read directly from that package, leaving only the mixed
 integrability premises that are not implied by its score-outer moment fields. -/
 theorem twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_joint_iid_mixed_moments
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -6616,7 +6616,7 @@ weight WLLNs. -/
 theorem
     twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_joint_iid_mixed_moment_conditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
@@ -6645,7 +6645,7 @@ theorem
             (errorVariance μ e)) :=
   twoSLSCovariances_tendstoInMeasure_formula_of_middle
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    (TwoSLSAssumption12_2JointIidMixedMomentConditions.toCovarianceMomentConsistencyConditions
+    (TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions.toCovarianceMomentConsistencyConditions
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel)
 
 /-- Hansen Theorem 12.3 formula-facing endpoint from the literal finite-fourth
@@ -6653,11 +6653,11 @@ moment version of Assumption 12.2.
 
 This wrapper exposes the textbook-shaped assumptions directly. The
 mixed-moment and residual-substitution inputs are derived internally by
-`TwoSLSAssumption12_2JointIidTextbookFourthConditions.toJointIidMixedMomentConditions`. -/
+`TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions.toJointIidMixedMomentConditions`. -/
 theorem twoSLSCovariances_tendstoInMeasure_formula_of_textbook12_2_joint_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInMeasure μ
         (fun n ω =>
           twoSLSVHatStar
@@ -6684,7 +6684,7 @@ theorem twoSLSCovariances_tendstoInMeasure_formula_of_textbook12_2_joint_iid_fou
             (errorVariance μ e)) :=
   twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_joint_iid_mixed_moment_conditions
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    (TwoSLSAssumption12_2JointIidTextbookFourthConditions.toJointIidMixedMomentConditions
+    (TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions.toJointIidMixedMomentConditions
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h)
     β0 h.model
 
@@ -6693,7 +6693,7 @@ finite-fourth-moment version of Assumption 12.2. -/
 theorem twoSLSCovariances_tendstoInMeasure_formula_of_textbook12_2_observed_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TendstoInMeasure μ
         (fun n ω =>
           twoSLSVHatStar
@@ -6728,7 +6728,7 @@ namespace TwoSLSCovarianceFormulaConsistencyConditions
 iid Assumption 12.2 plus explicit residual-substitution remainders. -/
 theorem of_assumption12_2_iid_remainders
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hr : TwoSLSCovarianceRemainderConditions μ Z X e Y β) :
@@ -6749,7 +6749,7 @@ iid Assumption 12.2 plus scalar WLLN conditions for residual-substitution
 weights. -/
 theorem of_assumption12_2_iid_weight_wlln
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (h : TwoSLSSplitIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e) :
@@ -6770,7 +6770,7 @@ single-row iid Assumption 12.2 package plus mixed third/fourth moment
 integrability for the exact residual-substitution weights. -/
 theorem of_assumption12_2_joint_iid_moments
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidFourthConditions μ Z X e)
+    (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
@@ -6798,7 +6798,7 @@ theorem of_assumption12_2_joint_iid_moments
 single-row iid Assumption 12.2 mixed-moment package. -/
 theorem of_assumption12_2_joint_iid_mixed_moment_conditions
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TwoSLSCovarianceFormulaConsistencyConditions
@@ -6808,7 +6808,7 @@ theorem of_assumption12_2_joint_iid_mixed_moment_conditions
       (scoreCovMat μ Z e)
       (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
       (errorVariance μ e) :=
-  TwoSLSAssumption12_2JointIidMixedMomentConditions.toCovarianceFormulaConsistencyConditions
+  TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions.toCovarianceFormulaConsistencyConditions
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel
 
 /-- Package form of the Hansen Theorem 12.3 covariance endpoint from the
@@ -6816,7 +6816,7 @@ literal finite-fourth-moment version of Assumption 12.2. -/
 theorem of_textbook12_2_joint_iid_fourth
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
-    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0) :
     TwoSLSCovarianceFormulaConsistencyConditions
       μ Z X Y
       (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
