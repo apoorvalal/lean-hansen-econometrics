@@ -3,6 +3,8 @@ import HansenEconometrics.AsymptoticUtils.StochasticOrder
 import HansenEconometrics.Chapter6Asymptotics
 import HansenEconometrics.Chapter12InstrumentalVariables.Asymptotics
 import HansenEconometrics.Chapter12InstrumentalVariables.LIML
+import Mathlib.Analysis.Normed.Module.FiniteDimension
+import Mathlib.Topology.Order.Compact
 
 /-!
 # Chapter 12 — weak instruments
@@ -14968,6 +14970,31 @@ noncomputable def weakIVRawSigma22
     (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : Matrix k k ℝ :=
   Sigma.submatrix Sum.inr Sum.inr
 
+omit [Fintype k] [DecidableEq k] in
+/-- Positive definiteness of the full reduced-form covariance passes to its
+endogenous-error principal block. -/
+theorem weakIVRawSigma22_posDef
+    [Finite k]
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hSigma : Sigma.PosDef) :
+    (weakIVRawSigma22 Sigma).PosDef := by
+  letI := Fintype.ofFinite k
+  classical
+  apply Matrix.PosDef.of_dotProduct_mulVec_pos
+    (hSigma.1.submatrix Sum.inr)
+  intro x hx
+  let y : Sum Unit k → ℝ := fun b => match b with
+    | Sum.inl _ => 0
+    | Sum.inr j => x j
+  have hy : y ≠ 0 := by
+    intro hy
+    apply hx
+    funext j
+    have hj := congrFun hy (Sum.inr j)
+    simpa [y] using hj
+  have hpos := hSigma.dotProduct_mulVec_pos hy
+  simpa [weakIVRawSigma22, y, Matrix.mulVec, dotProduct] using hpos
+
 /-- Structural covariance `Sigma_2e = Sigma_21 - Sigma_22 beta` extracted
 from the full reduced-form error covariance. -/
 noncomputable def weakIVRawSigma2e
@@ -15370,12 +15397,260 @@ theorem weakIV_rawGaussianBlocks_tendstoInDistribution
   simpa [Function.comp_def] using
     (weakIV_rawReducedFormScore_tendstoInDistribution_gaussian h).continuous_comp hcont
 
+/-! ### Smallest generalized-Rayleigh selector -/
+
+section GeneralizedRootSelector
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
+
+private noncomputable def weakIVLIMLQuadraticForm
+    (B : Matrix ι ι ℝ) (x : ι → ℝ) : ℝ :=
+  x ⬝ᵥ (B *ᵥ x)
+
+private noncomputable def weakIVLIMLSphereMinimum
+    (B : Matrix ι ι ℝ) : ℝ :=
+  sInf (weakIVLIMLQuadraticForm B '' Metric.sphere (0 : ι → ℝ) 1)
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLQuadraticForm_continuous :
+    Continuous (Function.uncurry (weakIVLIMLQuadraticForm (ι := ι))) := by
+  unfold weakIVLIMLQuadraticForm Function.uncurry
+  fun_prop
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLSphereMinimum_continuous :
+    Continuous (weakIVLIMLSphereMinimum (ι := ι)) := by
+  letI := FiniteDimensional.proper_real (ι → ℝ)
+  exact isCompact_sphere (0 : ι → ℝ) 1 |>.continuous_sInf
+    weakIVLIMLQuadraticForm_continuous
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLSphereMinimum_le
+    (B : Matrix ι ι ℝ) {x : ι → ℝ}
+    (hx : x ∈ Metric.sphere (0 : ι → ℝ) 1) :
+    weakIVLIMLSphereMinimum B ≤ weakIVLIMLQuadraticForm B x := by
+  letI := FiniteDimensional.proper_real (ι → ℝ)
+  apply csInf_le
+  · exact (isCompact_sphere (0 : ι → ℝ) 1).image_of_continuousOn
+      ((weakIVLIMLQuadraticForm_continuous (ι := ι)).comp
+        (continuous_const.prodMk continuous_id)).continuousOn |>.bddBelow
+  · exact ⟨x, hx, rfl⟩
+
+/-- Pencils whose denominator quadratic form is strictly positive in every
+nonzero direction. This is open in the full matrix-pair space; no ambient
+symmetry restriction is needed because a real quadratic form depends only on
+the symmetric part of its matrix. -/
+def weakIVLIMLPositiveDenominatorSet : Set
+    (Matrix ι ι ℝ × Matrix ι ι ℝ) :=
+  {p | 0 < weakIVLIMLSphereMinimum p.2}
+
+/-- The only discontinuity set needed by the smallest generalized-root
+selector: pencils whose denominator is not strictly positive. -/
+def weakIVLIMLSelectorBadSet : Set
+    (Matrix ι ι ℝ × Matrix ι ι ℝ) :=
+  (weakIVLIMLPositiveDenominatorSet (ι := ι))ᶜ
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLPositiveDenominatorSet_isOpen :
+    IsOpen (weakIVLIMLPositiveDenominatorSet (ι := ι)) := by
+  exact isOpen_Ioi.preimage
+    ((weakIVLIMLSphereMinimum_continuous (ι := ι)).comp continuous_snd)
+
+omit [DecidableEq ι] [Nonempty ι] in
+theorem weakIVLIMLSelectorBadSet_measurable :
+    MeasurableSet (weakIVLIMLSelectorBadSet (ι := ι)) :=
+  weakIVLIMLPositiveDenominatorSet_isOpen.measurableSet.compl
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLQuadraticForm_pos
+    {p : Matrix ι ι ℝ × Matrix ι ι ℝ}
+    (hp : p ∈ weakIVLIMLPositiveDenominatorSet) {x : ι → ℝ}
+    (hx : x ∈ Metric.sphere (0 : ι → ℝ) 1) :
+    0 < weakIVLIMLQuadraticForm p.2 x :=
+  hp.trans_le (weakIVLIMLSphereMinimum_le p.2 hx)
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLGeneralizedRayleighQuotient_smul
+    (p : Matrix ι ι ℝ × Matrix ι ι ℝ) (x : ι → ℝ)
+    {c : ℝ} (hc : c ≠ 0) :
+    limlRayleighQuotient p.1 p.2 (c • x) =
+      limlRayleighQuotient p.1 p.2 x := by
+  have hquad (B : Matrix ι ι ℝ) :
+      weakIVLIMLQuadraticForm B (c • x) =
+        (c * c) * weakIVLIMLQuadraticForm B x := by
+    unfold weakIVLIMLQuadraticForm
+    simp only [Matrix.mulVec_smul, dotProduct_smul, smul_dotProduct]
+    simp only [Algebra.smul_def, Algebra.algebraMap_self_apply]
+    ring
+  unfold limlRayleighQuotient
+  change weakIVLIMLQuadraticForm p.1 (c • x) /
+      weakIVLIMLQuadraticForm p.2 (c • x) = _
+  rw [hquad, hquad, mul_div_mul_left _ _ (mul_ne_zero hc hc)]
+  simp [weakIVLIMLQuadraticForm]
+
+private noncomputable def weakIVLIMLSmallestRootOnPositiveDenominator
+    (p : weakIVLIMLPositiveDenominatorSet (ι := ι)) : ℝ :=
+  sInf (Set.range fun x : Metric.sphere (0 : ι → ℝ) 1 =>
+    limlRayleighQuotient p.1.1 p.1.2 x.1)
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLSmallestRootOnPositiveDenominator_continuous :
+    Continuous (weakIVLIMLSmallestRootOnPositiveDenominator (ι := ι)) := by
+  let sphere := Metric.sphere (0 : ι → ℝ) 1
+  letI := FiniteDimensional.proper_real (ι → ℝ)
+  letI : CompactSpace sphere := isCompact_iff_compactSpace.mp
+    (isCompact_sphere (0 : ι → ℝ) 1)
+  have hf : Continuous (Function.uncurry
+      (fun (p : weakIVLIMLPositiveDenominatorSet (ι := ι)) (x : sphere) =>
+        limlRayleighQuotient p.1.1 p.1.2 x.1)) := by
+    rw [continuous_iff_continuousAt]
+    intro q
+    apply ContinuousAt.div
+    · exact (weakIVLIMLQuadraticForm_continuous (ι := ι)).continuousAt.comp
+        (((continuous_fst.comp (continuous_subtype_val.comp continuous_fst)).prodMk
+          (continuous_subtype_val.comp continuous_snd)).continuousAt)
+    · exact (weakIVLIMLQuadraticForm_continuous (ι := ι)).continuousAt.comp
+        (((continuous_snd.comp (continuous_subtype_val.comp continuous_fst)).prodMk
+          (continuous_subtype_val.comp continuous_snd)).continuousAt)
+    · exact ne_of_gt (weakIVLIMLQuadraticForm_pos q.1.2 q.2.2)
+  have h := (isCompact_univ : IsCompact (Set.univ : Set sphere)).continuous_sInf
+    (show Continuous ↿(fun
+        (p : weakIVLIMLPositiveDenominatorSet (ι := ι)) (x : sphere) =>
+      limlRayleighQuotient p.1.1 p.1.2 x.1) from hf)
+  convert h using 1
+  funext p
+  simp only [weakIVLIMLSmallestRootOnPositiveDenominator,
+    Set.image_univ, sphere]
+
+/-- A concrete total smallest generalized-Rayleigh root. On a pencil with a
+strictly positive denominator it is the attained minimum on the unit sphere;
+on the complementary singular/indefinite set it is totalized to zero. -/
+noncomputable def weakIVLIMLSmallestGeneralizedRoot
+    (p : Matrix ι ι ℝ × Matrix ι ι ℝ) : ℝ := by
+  classical
+  exact if hp : p ∈ weakIVLIMLPositiveDenominatorSet then
+    weakIVLIMLSmallestRootOnPositiveDenominator ⟨p, hp⟩ else 0
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLSmallestGeneralizedRoot_continuousOn :
+    ContinuousOn (weakIVLIMLSmallestGeneralizedRoot (ι := ι))
+      weakIVLIMLPositiveDenominatorSet := by
+  rw [continuousOn_iff_continuous_restrict]
+  have h := weakIVLIMLSmallestRootOnPositiveDenominator_continuous (ι := ι)
+  convert h using 1
+  funext p
+  simp [Set.restrict, weakIVLIMLSmallestGeneralizedRoot, p.2]
+
+omit [DecidableEq ι] [Nonempty ι] in
+theorem weakIVLIMLSmallestGeneralizedRoot_continuousAt
+    {p : Matrix ι ι ℝ × Matrix ι ι ℝ}
+    (hp : p ∉ weakIVLIMLSelectorBadSet) :
+    ContinuousAt (weakIVLIMLSmallestGeneralizedRoot (ι := ι)) p := by
+  have hgood : p ∈ weakIVLIMLPositiveDenominatorSet := by
+    simpa [weakIVLIMLSelectorBadSet] using hp
+  exact (weakIVLIMLSmallestGeneralizedRoot_continuousOn p hgood).continuousAt
+    (weakIVLIMLPositiveDenominatorSet_isOpen.mem_nhds hgood)
+
+omit [DecidableEq ι] [Nonempty ι] in
+theorem weakIVLIMLSmallestGeneralizedRoot_measurable :
+    Measurable (weakIVLIMLSmallestGeneralizedRoot (ι := ι)) := by
+  classical
+  have hzero : ContinuousOn
+      (fun _ : Matrix ι ι ℝ × Matrix ι ι ℝ => (0 : ℝ))
+      (weakIVLIMLPositiveDenominatorSet (ι := ι))ᶜ :=
+    continuous_const.continuousOn
+  have h := (weakIVLIMLSmallestGeneralizedRoot_continuousOn
+    (ι := ι)).measurable_piecewise hzero
+      weakIVLIMLPositiveDenominatorSet_isOpen.measurableSet
+  convert h using 1
+  funext p
+  by_cases hp : p ∈ weakIVLIMLPositiveDenominatorSet
+  · simp [Set.piecewise, weakIVLIMLSmallestGeneralizedRoot, hp]
+  · simp [Set.piecewise, weakIVLIMLSmallestGeneralizedRoot, hp]
+
+omit [DecidableEq ι] in
+private theorem weakIVLIMLPositiveDenominatorSet_of_posDef
+    {p : Matrix ι ι ℝ × Matrix ι ι ℝ} (hp : p.2.PosDef) :
+    p ∈ weakIVLIMLPositiveDenominatorSet := by
+  letI := FiniteDimensional.proper_real (ι → ℝ)
+  have hcont : ContinuousOn (weakIVLIMLQuadraticForm p.2)
+      (Metric.sphere (0 : ι → ℝ) 1) :=
+    ((weakIVLIMLQuadraticForm_continuous (ι := ι)).comp
+      ((continuous_const : Continuous (fun _ : ι → ℝ => p.2)).prodMk
+        continuous_id)).continuousOn
+  obtain ⟨x, hx, hmin, _⟩ :=
+    (isCompact_sphere (0 : ι → ℝ) 1).exists_sInf_image_eq_and_le
+      (NormedSpace.sphere_nonempty.mpr zero_le_one) hcont
+  change 0 < sInf
+    (weakIVLIMLQuadraticForm p.2 '' Metric.sphere (0 : ι → ℝ) 1)
+  rw [hmin]
+  simpa [weakIVLIMLQuadraticForm] using hp.dotProduct_mulVec_pos
+    (ne_zero_of_mem_sphere one_ne_zero ⟨x, hx⟩)
+
+omit [DecidableEq ι] [Nonempty ι] in
+private theorem weakIVLIMLSmallestGeneralizedRoot_eq_sInf
+    {p : Matrix ι ι ℝ × Matrix ι ι ℝ}
+    (hp : p ∈ weakIVLIMLPositiveDenominatorSet) :
+    weakIVLIMLSmallestGeneralizedRoot p =
+      sInf (limlRayleighQuotient p.1 p.2 ''
+        Metric.sphere (0 : ι → ℝ) 1) := by
+  rw [weakIVLIMLSmallestGeneralizedRoot]
+  simp only [dif_pos hp, weakIVLIMLSmallestRootOnPositiveDenominator]
+  congr 1
+  ext y
+  constructor
+  · rintro ⟨x, rfl⟩
+    exact ⟨x.1, x.2, rfl⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨⟨x, hx⟩, rfl⟩
+
+omit [DecidableEq ι] in
+/-- On every pencil with a strictly positive denominator, the concrete
+selector is exactly Hansen's `mu*`: it attains the generalized Rayleigh
+quotient and is a lower bound over every admissible vector. -/
+theorem weakIVLIMLSmallestGeneralizedRoot_rayleighMinimizer
+    {p : Matrix ι ι ℝ × Matrix ι ι ℝ}
+    (hp : p ∈ weakIVLIMLPositiveDenominatorSet) :
+    LIMLRayleighMinimizer p.1 p.2
+      (weakIVLIMLSmallestGeneralizedRoot p) := by
+  letI := FiniteDimensional.proper_real (ι → ℝ)
+  let sphere := Metric.sphere (0 : ι → ℝ) 1
+  have hquotient : ContinuousOn (limlRayleighQuotient p.1 p.2) sphere := by
+    intro x hx
+    apply ContinuousAt.continuousWithinAt
+    apply ContinuousAt.div
+    · exact ((weakIVLIMLQuadraticForm_continuous (ι := ι)).comp
+        (continuous_const.prodMk continuous_id)).continuousAt
+    · exact ((weakIVLIMLQuadraticForm_continuous (ι := ι)).comp
+        (continuous_const.prodMk continuous_id)).continuousAt
+    · exact ne_of_gt (weakIVLIMLQuadraticForm_pos hp
+        (by simpa [sphere] using hx))
+  obtain ⟨x, hx, hvalue, hlower⟩ :=
+    (isCompact_sphere (0 : ι → ℝ) 1).exists_sInf_image_eq_and_le
+      (NormedSpace.sphere_nonempty.mpr zero_le_one) hquotient
+  refine ⟨?_, ?_⟩
+  · refine ⟨x, ?_, ?_⟩
+    · simpa [limlRayleighAdmissible, weakIVLIMLQuadraticForm] using
+        weakIVLIMLQuadraticForm_pos hp (by simpa [sphere] using hx)
+    · rw [weakIVLIMLSmallestGeneralizedRoot_eq_sInf hp, hvalue]
+  · intro y hy
+    have hy0 : y ≠ 0 := hy.ne_zero
+    let c : ℝ := ‖y‖⁻¹
+    have hc : c ≠ 0 := by simp [c, hy0]
+    have hcy : c • y ∈ sphere := by
+      simp [sphere, c, norm_smul, hy0]
+    rw [weakIVLIMLSmallestGeneralizedRoot_eq_sInf hp, hvalue]
+    have hle := hlower (c • y) hcy
+    rw [weakIVLIMLGeneralizedRayleighQuotient_smul p y hc] at hle
+    exact hle
+
+end GeneralizedRootSelector
+
 /-! ### Corrected triangular spectral boundary
 
-The repo does not currently provide a concrete measurable smallest
-generalized-root selector with a proved continuity set.  The certificate below
-isolates exactly that spectral fact and binds it to the *actual* triangular
-sample pair.  It does not contain an estimator limit.
+The concrete selector above closes the former spectral gap. The remaining
+certificate binds that selector, or a compatible alternative, to the actual
+triangular sample pair without storing an estimator limit.
 -/
 
 /-- Matrix realization of the Gaussian vector supplied by the raw CLT. -/
@@ -15396,6 +15671,36 @@ noncomputable def weakIVRawLIMLGeneralizedEigenvalueLimitPair
     (fun z => weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
     (fun z => weakIVRawGaussianStructuralScore (weakIVRawGaussianMatrix z) beta)
     beta (popGram μ u) z
+
+/-- Canonical scaled finite-sample LIML adjustment for the literal triangular
+model: the totalized smallest generalized-Rayleigh root of the actual sample
+pencil. -/
+noncomputable def weakIVLocalLIMLSmallestRoot
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ) (m : ℕ) (omega : Ω) : ℝ :=
+  weakIVLIMLSmallestGeneralizedRoot
+    (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega)
+
+/-- Hansen's limiting `mu*` as the concrete smallest generalized-Rayleigh
+root of the full reduced-form Gaussian pencil. -/
+noncomputable def weakIVRawLIMLSmallestRoot
+    (μ : Measure Ω) (Z : ℕ → Ω → l → ℝ)
+    (u : ℕ → Ω → Sum Unit k → ℝ) (C : Matrix l k ℝ) (beta : k → ℝ)
+    (z : EuclideanSpace ℝ (l × Sum Unit k)) : ℝ :=
+  weakIVLIMLSmallestGeneralizedRoot
+    (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z)
+
+omit [DecidableEq k] in
+private theorem weakIVRawLIMLGeneralizedEigenvalueLimitPair_positiveDenominator
+    (μ : Measure Ω) (Z : ℕ → Ω → l → ℝ)
+    (u : ℕ → Ω → Sum Unit k → ℝ) (C : Matrix l k ℝ) (beta : k → ℝ)
+    (hSigma : (popGram μ u).PosDef)
+    (z : EuclideanSpace ℝ (l × Sum Unit k)) :
+    weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z ∈
+      weakIVLIMLPositiveDenominatorSet := by
+  apply weakIVLIMLPositiveDenominatorSet_of_posDef
+  simpa [weakIVRawLIMLGeneralizedEigenvalueLimitPair,
+    weakIVLIMLGeneralizedEigenvalueLimitPrimitive] using hSigma
 
 private abbrev WeakIVRawLIMLPencilMomentState (k l : Type*) :=
   Matrix l (Sum Unit k) ℝ ×
@@ -16316,9 +16621,11 @@ theorem weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution
     (Z := weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta)
     hbranch_target hdiff hpencil_meas
 
-/-- Narrow certificate for the unresolved smallest generalized-root selector
-in the literal triangular model.  The bad set permits eigenvalue collisions or
-singular denominators, but must be null under the raw Gaussian limit law. -/
+/-- Selector certificate for the literal triangular model. The finite-sample
+minimum is required on regular pencils only: at `m = 0` the denominator is
+zero, so Hansen's admissible Rayleigh domain is empty and an unconditional
+minimum certificate would be inconsistent. The limiting minimum remains exact
+and the bad set must be null under the raw Gaussian limit law. -/
 structure WeakIVTheorem1218TriangularSelectorCertificate
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
@@ -16340,8 +16647,9 @@ structure WeakIVTheorem1218TriangularSelectorCertificate
   sample_selector_eq : ∀ m omega,
     limlMuHat m omega =
       muSelector (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega)
-  finite_sample_rayleigh_minimizer : ∀ m omega,
+  finite_sample_rayleigh_minimizer_of_regular : ∀ m omega,
     let p := weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega
+    p ∉ selectorBad →
     LIMLRayleighMinimizer p.1 p.2 (limlMuHat m omega)
   limit_rayleigh_minimizer : ∀ z,
     let p := weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z
@@ -16351,10 +16659,9 @@ structure WeakIVTheorem1218TriangularSelectorCertificate
 
 The pencil field records the generalized-eigenvalue CMT and is derived from raw
 moments by `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments`. The
-selector certificate identifies both the finite-sample and limiting generalized
-roots as Rayleigh minima. Estimator nondegeneracy assumptions are deliberately
-absent until a future endpoint actually passes from these raw moments to
-totalized OLS/2SLS/LIML estimators. -/
+selector certificate identifies every regular finite-sample root and every
+limiting root as a Rayleigh minimum. Estimator nondegeneracy assumptions are
+kept at the theorem endpoint that invokes the inverse maps. -/
 structure WeakIVTheorem1218TriangularAssemblyConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
@@ -16402,6 +16709,62 @@ theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
     weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution
       C beta raw_moments hQZZ
   selector := selector
+
+/-- Build the triangular assembly directly from raw moments using the concrete
+smallest generalized-Rayleigh root. Positive definiteness of the full
+reduced-form error covariance is the nondegeneracy condition that makes
+Hansen's limiting Rayleigh problem well posed. -/
+theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    {C : Matrix l k ℝ} {beta : k → ℝ}
+    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (hQZZ : IsUnit (popGram μ Z).det)
+    (hSigma : (popGram μ u).PosDef) :
+    WeakIVTheorem1218TriangularAssemblyConditions
+      μ Z u C beta
+      (weakIVLocalLIMLSmallestRoot Z u C beta)
+      weakIVLIMLSmallestGeneralizedRoot
+      weakIVLIMLSelectorBadSet := by
+  have hpencil :=
+    weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution
+      C beta raw_moments hQZZ
+  apply WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
+    raw_moments hQZZ
+  refine
+    { selector_meas := weakIVLIMLSmallestGeneralizedRoot_measurable
+      selector_bad_measurable := weakIVLIMLSelectorBadSet_measurable
+      selector_bad_null := ?_
+      selector_continuous_off := fun p hp =>
+        weakIVLIMLSmallestGeneralizedRoot_continuousAt hp
+      sample_selector_eq := fun _ _ => rfl
+      finite_sample_rayleigh_minimizer_of_regular := ?_
+      limit_rayleigh_minimizer := ?_ }
+  · rw [Measure.map_apply_of_aemeasurable hpencil.aemeasurable_limit
+      weakIVLIMLSelectorBadSet_measurable]
+    have hpre :
+        (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta) ⁻¹'
+            (weakIVLIMLSelectorBadSet (ι := Sum Unit k)) =
+          (∅ : Set (EuclideanSpace ℝ (l × Sum Unit k))) := by
+      ext z
+      simp only [Set.mem_preimage, Set.mem_empty_iff_false, iff_false,
+        weakIVLIMLSelectorBadSet, Set.mem_compl_iff]
+      simpa only [not_not] using
+        (weakIVRawLIMLGeneralizedEigenvalueLimitPair_positiveDenominator
+          μ Z u C beta hSigma z)
+    rw [hpre, measure_empty]
+  · intro m omega
+    dsimp only
+    intro hp
+    have hgood :
+        weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega ∈
+          weakIVLIMLPositiveDenominatorSet := by
+      simpa [weakIVLIMLSelectorBadSet] using hp
+    simpa [weakIVLocalLIMLSmallestRoot] using
+      (weakIVLIMLSmallestGeneralizedRoot_rayleighMinimizer hgood)
+  · intro z
+    apply weakIVLIMLSmallestGeneralizedRoot_rayleighMinimizer
+    exact weakIVRawLIMLGeneralizedEigenvalueLimitPair_positiveDenominator
+      μ Z u C beta hSigma z
 
 omit [DecidableEq k] in
 private theorem weakIVTriangularEstimatorMomentAssemblyMap_measurable
@@ -16801,9 +17164,9 @@ theorem weakIV_triangular_estimators_minus_beta_tendstoInDistribution
       weakIV2SLSBias_eq_limitBread_inv_mul_score,
       weakIVLIMLBias_eq_limitBread_inv_mul_score]
 
-/-- Hansen Theorem 12.18 at the literal triangular-array boundary, conditional
-only on the unresolved generalized-root selector and the mathematically
-necessary limiting-bread nondegeneracy assumptions.
+/-- Hansen Theorem 12.18 at the literal triangular-array boundary for any
+certified generalized-root selector and the mathematically necessary
+limiting-bread nondegeneracy assumptions.
 
 Unlike the historical fixed-prefix endpoints, every estimator here is the
 actual estimator computed from
@@ -16905,6 +17268,77 @@ theorem weakIV_theorem12_18_triangular_estimators
   · simpa [Function.comp_def] using h2SLS
   · simpa [Function.comp_def] using hLIML
 
+/-- Hansen Theorem 12.18 directly from raw iid moments and the concrete
+smallest generalized-Rayleigh root. No selector convergence, estimator
+convergence, or Rayleigh minimizer is assumed. The remaining premises are the
+population rank conditions needed by the totalized inverse maps. -/
+theorem weakIV_theorem12_18_triangular_estimators_of_raw_moments
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    {C : Matrix l k ℝ} {beta : k → ℝ}
+    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (hQZZ : IsUnit (popGram μ Z).det)
+    (hSigma : (popGram μ u).PosDef)
+    (h2SLSBread :
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
+        {z | ¬ IsUnit
+          (weakIV2SLSLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))).det} = 0)
+    (hLIMLBread :
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
+        {z | ¬ IsUnit
+          (weakIVLIMLLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (weakIVRawLIMLSmallestRoot μ Z u C beta z)
+            (weakIVRawSigma22 (popGram μ u))).det} = 0) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocalOLSBetaStar Z u C beta m omega - beta)
+      atTop
+      (fun _ => weakIVOLSBias (weakIVRawSigma22 (popGram μ u))
+        (weakIVRawSigma2e (popGram μ u) beta)) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocal2SLSBetaStar Z u C beta m omega - beta)
+      atTop
+      (fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+        weakIV2SLSBias (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (weakIVRawGaussianStructuralScore
+            (weakIVRawGaussianMatrix z) beta))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocalLIMLBetaStar Z u C beta
+          (weakIVLocalLIMLSmallestRoot Z u C beta) m omega - beta)
+      atTop
+      (fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+        weakIVLIMLBias (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (weakIVRawGaussianStructuralScore
+            (weakIVRawGaussianMatrix z) beta)
+          (weakIVRawLIMLSmallestRoot μ Z u C beta z)
+          (weakIVRawSigma22 (popGram μ u))
+          (weakIVRawSigma2e (popGram μ u) beta))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) ∧
+    (∀ z,
+      let p := weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z
+      LIMLRayleighMinimizer p.1 p.2
+        (weakIVRawLIMLSmallestRoot μ Z u C beta z)) := by
+  have hassembly :=
+    WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot
+      (C := C) (beta := beta) raw_moments hQZZ hSigma
+  have hSigma22 : IsUnit (weakIVRawSigma22 (popGram μ u)).det :=
+    isUnit_iff_ne_zero.mpr (weakIVRawSigma22_posDef hSigma).det_pos.ne'
+  simpa [weakIVRawLIMLSmallestRoot] using
+    (weakIV_theorem12_18_triangular_estimators
+      hassembly hSigma22 h2SLSBread hLIMLBread)
+
 /-- Raw-support endpoint at the literal triangular boundary.  It exposes the
 joint Gram/score assembly and scaled generalized root used by
 `weakIV_theorem12_18_triangular_estimators`. -/
@@ -16953,6 +17387,27 @@ theorem weakIV_theorem12_18_triangular_raw_assembly
   intro m
   exact ae_of_all μ (fun omega => by
     simpa [Function.comp_def] using (h.selector.sample_selector_eq m omega).symm)
+
+/-- The scaled finite-sample LIML root converges to Hansen's concrete `mu*`
+directly from the raw iid moment assumptions. -/
+theorem weakIVLocalLIMLSmallestRoot_tendstoInDistribution
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    {C : Matrix l k ℝ} {beta : k → ℝ}
+    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (hQZZ : IsUnit (popGram μ Z).det)
+    (hSigma : (popGram μ u).PosDef) :
+    TendstoInDistribution
+      (weakIVLocalLIMLSmallestRoot Z u C beta)
+      atTop
+      (weakIVRawLIMLSmallestRoot μ Z u C beta)
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) := by
+  have hassembly :=
+    WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot
+      (C := C) (beta := beta) raw_moments hQZZ hSigma
+  have hroot := (weakIV_theorem12_18_triangular_raw_assembly hassembly).2.1
+  simpa [weakIVRawLIMLSmallestRoot] using hroot
 
 end Asymptotics
 

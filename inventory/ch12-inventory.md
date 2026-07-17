@@ -628,7 +628,14 @@ canonical crosswalk above.
   literal sample pencil.
   `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments` therefore
   constructs the assembly from those primitive conditions plus the selector
-  certificate, without assuming estimator convergence.
+  certificate, without assuming estimator convergence. The concrete
+  `weakIVLIMLSmallestGeneralizedRoot` is measurable, continuous off the
+  measurable non-positive-denominator set, and is proved to attain Hansen's
+  generalized Rayleigh minimum. Consequently
+  `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot`
+  constructs the selector certificate directly from raw moments, population
+  instrument nonsingularity, and positive definiteness of the full reduced-form
+  error covariance.
   `weakIV_triangular_actual_moments_tendstoInDistribution` reconstructs from
   the exact pencil the actual triangular OLS, root-scaled 2SLS, and weak-scaled
   LIML bread/score pairs and proves their joint limit. The shared Star
@@ -639,18 +646,16 @@ canonical crosswalk above.
   probability limit, the 2SLS and LIML distributional limits, and the limiting
   full-pencil Rayleigh-minimizer certificate. Thus the older fixed-prefix versus
   triangular-array obstruction and the estimator-totalization gap are closed.
-  The endpoint makes explicit three nondegeneracy conditions omitted by the
-  excerpt's bare phrase "Under (12.71)": nonsingular `Sigma22`, almost-sure
-  nonsingularity of the random 2SLS limiting bread, and almost-sure
-  nonsingularity of the random LIML limiting bread. Population instrument-Gram
-  nonsingularity is also required by
-  `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments` to derive the
-  exact pencil CMT. The remaining raw obstruction is spectral: Mathlib has
-  ordered eigenvalues for one Hermitian matrix but no ready measurable,
-  a.s.-continuous smallest generalized-root selector for the random matrix
-  pencil. `WeakIVTheorem1218TriangularSelectorCertificate` isolates precisely
-  that missing fact, including finite-sample and limiting Rayleigh
-  minimization. Earlier circular estimator-limit packages, X-only Rayleigh
+  The corrected direct endpoint
+  `weakIV_theorem12_18_triangular_estimators_of_raw_moments` now removes every
+  selector or estimator-convergence premise and uses the concrete root in both
+  the finite sample and limit. It retains nondegeneracy conditions omitted by
+  the excerpt's bare phrase "Under (12.71)": positive definite full error
+  covariance, population instrument-Gram nonsingularity, and almost-sure
+  nonsingularity of the random 2SLS and LIML limiting breads. These are exactly
+  the conditions needed by the displayed inverse formulas. The separate theorem
+  `weakIVLocalLIMLSmallestRoot_tendstoInDistribution` proves convergence of the
+  scaled sample root to Hansen's concrete `mu*`. Earlier circular estimator-limit packages, X-only Rayleigh
   routes, and nonpositive-Rayleigh sufficient-condition endpoints are
   historical compatibility declarations under `WeakIVCompatibility`, not
   canonical Theorem 12.18 support.
