@@ -265,6 +265,45 @@ private theorem instrumentProjectionStar_idempotent
     simp
 
 omit [Fintype k] [DecidableEq k] in
+private theorem instrumentProjectionStar_sum_sq_eq_trace
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) :
+    (∑ i, ∑ j, instrumentProjectionStar Z i j ^ 2) =
+      Matrix.trace (instrumentProjectionStar Z) := by
+  let P := instrumentProjectionStar Z
+  have hsymm : ∀ i j, P j i = P i j := by
+    intro i j
+    have h := congrFun (congrFun (instrumentProjectionStar_transpose Z) i) j
+    simpa [P] using h
+  calc
+    (∑ i, ∑ j, instrumentProjectionStar Z i j ^ 2) =
+        ∑ i, (P * P) i i := by
+      apply Finset.sum_congr rfl
+      intro i _
+      simp only [P, Matrix.mul_apply]
+      apply Finset.sum_congr rfl
+      intro j _
+      change P i j ^ 2 = P i j * P j i
+      rw [hsymm]
+      ring
+    _ = ∑ i, P i i := by rw [instrumentProjectionStar_idempotent Z]
+    _ = Matrix.trace (instrumentProjectionStar Z) := rfl
+
+omit [Fintype k] [DecidableEq k] in
+private theorem instrumentProjectionStar_sum_sq_le_card
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) :
+    (∑ i, ∑ j, instrumentProjectionStar Z i j ^ 2) ≤
+      (Fintype.card n : ℝ) := by
+  rw [instrumentProjectionStar_sum_sq_eq_trace]
+  have hHermitian : (instrumentProjectionStar Z).IsHermitian := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      instrumentProjectionStar_transpose Z
+  rw [← rank_eq_natCast_trace_of_isHermitian_idempotent hHermitian
+    (instrumentProjectionStar_idempotent Z)]
+  exact_mod_cast Matrix.rank_le_card_width (instrumentProjectionStar Z)
+
+omit [Fintype k] [DecidableEq k] in
 /-- On the nonsingular instrument branch, projecting the first-stage signal
 `ZΓ` leaves its sample Gram unchanged. -/
 theorem manyInstrumentProjectedSignalGram_eq_signalGram_of_nonsingular
@@ -14894,6 +14933,25 @@ private theorem condExp_mul_eq_mul_condExp_of_condIndepFun
     _ =ᵐ[μ] (fun ω => μ[f | mc] ω * μ[g | mc] ω) := by
       filter_upwards [condExp_congr_ae hff', condExp_congr_ae hgg'] with ω hfω hgω
       rw [hfω, hgω]
+
+omit [MeasurableSpace Ω] in
+private theorem iCondIndepFun_condIndepFun_finset_of_aestronglyMeasurable
+    {mc mΩ : MeasurableSpace Ω} [@StandardBorelSpace Ω mΩ]
+    {μ : @Measure Ω mΩ} [IsProbabilityMeasure μ]
+    {I E : Type*} [TopologicalSpace E] [TopologicalSpace.PseudoMetrizableSpace E]
+    [MeasurableSpace E] [BorelSpace E]
+    {U : I → Ω → E} (hmc : mc ≤ mΩ)
+    (hind : iCondIndepFun mc hmc U μ)
+    (hU : ∀ i, AEStronglyMeasurable (U i) μ)
+    (S T : Finset I) (hST : Disjoint S T) :
+    CondIndepFun mc hmc
+      (fun ω (i : S) => U i ω) (fun ω (i : T) => U i ω) μ := by
+  unfold ProbabilityTheory.iCondIndepFun at hind
+  unfold ProbabilityTheory.CondIndepFun
+  apply ProbabilityTheory.Kernel.iIndepFun.indepFun_finset₀ S T hST hind
+  intro i
+  rw [condExpKernel_comp_trim hmc]
+  exact (hU i).aemeasurable
 
 private theorem integral_sq_sum_le_card_mul_of_centered_uncorrelated
     {I : Type*} [Fintype I]
