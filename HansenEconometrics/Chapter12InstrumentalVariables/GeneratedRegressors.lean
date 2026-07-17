@@ -20353,6 +20353,91 @@ theorem
       (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (β := β ξ)
       (σ2 := σ2) hσ2 hq hdf (fun e : EuclideanSpace ℝ n => e) hId
 
+/-- **Hansen Theorem 12.15**, canonical totalized conditional-normal endpoint.
+
+Under `ε | D ~ N(0, σ² Iₙ)` and almost-sure full rank of the augmented
+control-function design, the totalized covariance-based statistic has the
+conditional `F(r,n-k₁-2r)` law.  A lower-tail calibrated critical value
+therefore gives exact strict-upper-tail rejection probability `alpha`.
+
+The restricted-design rank follows from augmented-design rank, and
+fixed-design measurability follows by taking sections of the jointly
+measurable statistic map. -/
+theorem
+    controlFunctionEndogeneityFTestOrZero_theorem12_15_conditionalNormal_lowerTail
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n (Fin r) ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ (Fin r) → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist r
+        (Fintype.card n - Fintype.card k₁ - 2 * r)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card k₁ + 2 * r < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvFull : ∀ᵐ ξ ∂μ.map D,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+        (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityHomoskedasticFStatOrZero
+        (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp p.2)) :
+    condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityHomoskedasticFStatOrZero
+            (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist r (Fintype.card n - Fintype.card k₁ - 2 * r)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityHomoskedasticFStatOrZero
+            (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have hInvRestricted : ∀ᵐ ξ ∂μ.map D,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := by
+    filter_upwards [hInvFull] with ξ hFull
+    exact leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+      (Matrix.fromCols (X₁ ξ) (X₂ ξ))
+      (controlFunctionResidualStar (Z ξ) (X₂ ξ)) hFull
+  have hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityHomoskedasticFStatOrZero
+        (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e) := by
+    intro ξ
+    simpa using hT.comp
+      (measurable_const.prodMk measurable_id :
+        Measurable fun e : EuclideanSpace ℝ n => (ξ, e))
+  have hLaw :=
+    controlFunctionEndogeneityHomoskedasticFStatOrZero_condDistrib_eq_const_of_conditionalNormal_ae
+      (μ := μ) D ε X₁ X₂ Z β hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvFull hT hT_fixed
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - 2 * r := by omega
+  have htail :
+      (classicalFDist r
+        (Fintype.card n - Fintype.card k₁ - 2 * r)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq hν hcrit
+  refine ⟨hLaw, ?_⟩
+  filter_upwards [hLaw] with ξ hLawξ
+  rw [hLawξ]
+  simpa [Kernel.const_apply] using htail
+
 end HomoskedasticRightBlockF
 
 /-- Legacy generic-index compatibility statistic for the generated block test.
@@ -25356,6 +25441,45 @@ noncomputable def expectationErrorRawJointRootScore
   fun b => (Real.sqrt (m : ℝ))⁻¹ *
     ∑ i ∈ Finset.range m, expectationErrorRawJointScoreRow Z u e νe i ω b
 
+omit [Fintype k] [Fintype l] [MeasurableSpace Ω]
+  [DecidableEq k] [DecidableEq l] in
+private theorem expectationErrorRawJointRootScore_inl
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → k → ℝ)
+    (e νe : ℕ → Ω → ℝ) (m : ℕ) (ω : Ω) :
+    (fun a => expectationErrorRawJointRootScore Z u e νe m ω (Sum.inl a)) =
+      Real.sqrt (m : ℝ) •
+        sampleCrossMoment (stackRegressors Z m ω) (stackErrors e m ω) := by
+  ext a
+  simpa [expectationErrorRawJointRootScore,
+    expectationErrorRawJointScoreRow, Pi.smul_apply] using
+    congrFun (sqrt_smul_sampleCrossMoment_stack_eq_inv_sqrt_sum Z e m ω).symm a
+
+omit [Fintype k] [Fintype l] [MeasurableSpace Ω]
+  [DecidableEq k] [DecidableEq l] in
+private theorem expectationErrorRawJointRootScore_inr
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → k → ℝ)
+    (e νe : ℕ → Ω → ℝ) (m : ℕ) (ω : Ω) :
+    (fun j => expectationErrorRawJointRootScore Z u e νe m ω (Sum.inr j)) =
+      Real.sqrt (m : ℝ) •
+        sampleCrossMoment (stackRegressors u m ω) (stackErrors νe m ω) := by
+  ext j
+  simpa [expectationErrorRawJointRootScore,
+    expectationErrorRawJointScoreRow, Pi.smul_apply] using
+    congrFun (sqrt_smul_sampleCrossMoment_stack_eq_inv_sqrt_sum u νe m ω).symm j
+
+private theorem
+    twoSLSPopulationLinearizationMatrix_eq_expectationErrorInfluence
+    (A : Matrix l k ℝ) (Q : Matrix l l ℝ) (hQ : IsUnit Q.det) :
+    twoSLSPopulationLinearizationMatrix (Aᵀ * Q) Q (Q * A) =
+      (Aᵀ * Q * A)⁻¹ * Aᵀ := by
+  unfold twoSLSPopulationLinearizationMatrix twoSLSBread
+  rw [Matrix.mul_assoc (Aᵀ * Q) Q⁻¹ (Q * A),
+    ← Matrix.mul_assoc Q⁻¹ Q A,
+    Matrix.nonsing_inv_mul Q hQ, Matrix.one_mul,
+    Matrix.mul_assoc (Aᵀ * Q * A)⁻¹ (Aᵀ * Q) Q⁻¹,
+    Matrix.mul_assoc Aᵀ Q Q⁻¹,
+    Matrix.mul_nonsing_inv Q hQ, Matrix.mul_one]
+
 omit [DecidableEq k] [DecidableEq l] in
 /-- The literal response and regressor fourth moments imply an `L4` bound for
 the corrected structural error `e = Y - X'beta`. -/
@@ -26143,6 +26267,610 @@ theorem expectationError_block_singularProb_tendsto_zero_of_observed_iid
       h.expectationErrorResidualStar_sampleGram_tendstoInMeasure_of_observed_iid
       ((Matrix.isUnit_iff_isUnit_det _).mp h.residual_popGram_posDef.isUnit)
   exact ⟨hZrank, hWrank, hUrank⟩
+
+set_option maxHeartbeats 1200000 in
+private theorem
+    expectationErrorBetaHatStar_sub_twoSLSBetaStar_tendstoInMeasure_zero
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaHatStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - β) -
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - β))
+      atTop (fun _ => 0) := by
+  classical
+  let diff : ℕ → Ω → k → ℝ := fun m ω =>
+    Real.sqrt (m : ℝ) •
+        (expectationErrorBetaHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω) - β) -
+      Real.sqrt (m : ℝ) •
+        (twoSLSBetaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω) - β)
+  let Zbad : ℕ → Set Ω := fun m => {ω |
+    ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)}
+  let Wbad : ℕ → Set Ω := fun m => {ω |
+    ¬ IsUnit
+      (((expectationErrorFittedStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorFittedStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)).det)}
+  let Ubad : ℕ → Set Ω := fun m => {ω |
+    ¬ IsUnit
+      (((expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)).det)}
+  rcases h.expectationError_block_singularProb_tendsto_zero_of_observed_iid with
+    ⟨hZrank, hWrank, hUrank⟩
+  have hbad : Tendsto (fun m => μ ((Zbad m ∪ Wbad m) ∪ Ubad m))
+      atTop (𝓝 0) := by
+    have hsum : Tendsto
+        (fun m => (μ (Zbad m) + μ (Wbad m)) + μ (Ubad m))
+        atTop (𝓝 0) := by
+      simpa [Zbad, Wbad, Ubad, zero_add] using (hZrank.add hWrank).add hUrank
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hsum (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => by
+      calc
+        μ ((Zbad m ∪ Wbad m) ∪ Ubad m) ≤
+            μ (Zbad m ∪ Wbad m) + μ (Ubad m) := measure_union_le _ _
+        _ ≤ (μ (Zbad m) + μ (Wbad m)) + μ (Ubad m) := by
+          simpa [add_comm, add_left_comm, add_assoc] using
+            add_le_add_right (measure_union_le (μ := μ) (Zbad m) (Wbad m))
+              (μ (Ubad m))
+  have hne : Tendsto
+      (fun m => μ {ω | (0 : k → ℝ) ≠ diff m ω}) atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hbad (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => measure_mono (by
+      intro ω hneq
+      simp only [Set.mem_setOf_eq] at hneq ⊢
+      by_cases hZbad : ω ∈ Zbad m
+      · exact Or.inl (Or.inl hZbad)
+      by_cases hWbad : ω ∈ Wbad m
+      · exact Or.inl (Or.inr hWbad)
+      by_cases hUbad : ω ∈ Ubad m
+      · exact Or.inr hUbad
+      exfalso
+      have hZunit : IsUnit (((stackRegressors Z m ω)ᵀ *
+          stackRegressors Z m ω).det) := by simpa [Zbad] using hZbad
+      have hWunit : IsUnit
+          (((expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+            expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)).det) := by
+        simpa [Wbad] using hWbad
+      have hUunit : IsUnit
+          (((expectationErrorResidualStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+            expectationErrorResidualStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)).det) := by
+        simpa [Ubad] using hUbad
+      have hDunit : IsUnit
+          (((expectationErrorDesignStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+            expectationErrorDesignStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)).det) :=
+        expectationErrorDesignStar_gram_det_isUnit_of_block_ranks
+          (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
+          hZunit hWunit hUunit
+      letI : Invertible ((stackRegressors Z m ω)ᵀ *
+          stackRegressors Z m ω) := Matrix.invertibleOfIsUnitDet _ hZunit
+      letI : Invertible
+          ((expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+            expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)) :=
+        Matrix.invertibleOfIsUnitDet _ hWunit
+      letI : Invertible
+          ((expectationErrorDesignStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+            expectationErrorDesignStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)) :=
+        Matrix.invertibleOfIsUnitDet _ hDunit
+      have hactual :=
+        expectationErrorBetaHatStar_eq_generatedRegressorBetaStar_of_nonsingular
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω)
+      have hgenerated :=
+        generatedRegressorLSBetaStar_eq_twoSLSBetaStar_of_projection_identities
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω)
+          (instrumentProjectionStar_idempotent_of_nonsingular
+            (Z := stackRegressors Z m ω))
+          (instrumentProjectionStar_transpose_of_nonsingular
+            (Z := stackRegressors Z m ω))
+      have hzero : diff m ω = 0 := by
+        dsimp [diff]
+        rw [hactual, hgenerated]
+        simp
+      exact hneq hzero.symm)
+  have hzero : TendstoInMeasure μ
+      (fun (_ : ℕ) (_ : Ω) => (0 : k → ℝ)) atTop (fun _ => 0) :=
+    tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ fun _ => tendsto_const_nhds)
+  simpa [diff] using
+    expectationError_tendstoInMeasure_congr_of_measure_ne_tendsto_zero hzero hne
+
+set_option maxHeartbeats 2400000 in
+/-- Corrected Hansen Theorem 12.12 upper-block fixed-influence representation.
+
+The actual expectation-error beta estimator equals the fixed population
+influence `(A'QZZ A)⁻¹ A'` applied to the joint score's `Ze` block, up to
+`oₚ(1)`.  The proof reuses the Chapter 12 2SLS sample linearization and derives
+all sample-rank failures from the observed-iid package. -/
+theorem expectationErrorBetaHatStar_fixedInfluence_remainder_of_observed_iid
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+            (expectationErrorBetaHatStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - β) -
+          ((Aᵀ * popGram μ Z * A)⁻¹ * Aᵀ) *ᵥ
+            (fun a => expectationErrorRawJointRootScore Z u
+              (expectationErrorStructuralError X Y β) νe m ω (Sum.inl a)))
+      atTop (fun _ => 0) := by
+  classical
+  let e : ℕ → Ω → ℝ := expectationErrorStructuralError X Y β
+  let hLS := h.toGeneratedRegressorLSObservedIidRegularityConditions
+  have h2 : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β := by
+    simpa [e] using hLS.toTwoSLSObservedIidFourthMomentConditions
+  have hGram : TwoSLSGramScoreCLTConditions μ Z X e :=
+    h2.toGramScoreCLTConditions
+  let hMom :=
+    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+  let L : Matrix k l ℝ := (Aᵀ * popGram μ Z * A)⁻¹ * Aᵀ
+  let score : ℕ → Ω → l → ℝ := fun m ω =>
+    Real.sqrt (m : ℝ) •
+      sampleCrossMoment (stackRegressors Z m ω) (stackErrors e m ω)
+  let lin : ℕ → Ω → Matrix k l ℝ := fun m ω =>
+    twoSLSLinearizationMatrix
+      (stackRegressors Z m ω) (stackRegressors X m ω)
+  have hQZX := hLS.population_projection
+  have hQXZ := twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
+    (μ := μ) (Z := Z) (X := X) (A := A)
+    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram hQZX
+  have hlin : TendstoInMeasure μ lin atTop (fun _ => L) := by
+    have hbase := twoSLSLinearizationMatrix_tendstoInMeasure_of_sample_moments hMom
+    rw [hQXZ, hQZX, h.combinedQZZ_eq_popGram,
+      twoSLSPopulationLinearizationMatrix_eq_expectationErrorInfluence
+        A (popGram μ Z)
+          ((Matrix.isUnit_iff_isUnit_det _).mp h.instrument_popGram_posDef.isUnit)] at hbase
+    simpa [lin, L, stackRegressors] using hbase
+  have hscore_bdd : ∀ a, BoundedInProbability μ (fun m ω => score m ω a) := by
+    intro a
+    simpa [score, stackRegressors, stackErrors] using
+      scoreCoordinate_sampleCrossMoment_boundedInProbability
+        (μ := μ) (X := Z) (e := e)
+        hGram.score_clt.toSampleCLTAssumption72 a
+  have hgap : TendstoInMeasure μ
+      (fun m ω => (lin m ω - L) *ᵥ score m ω)
+      atTop (fun _ => 0) :=
+    matrix_sub_const_mulVec_tight_tendstoInMeasure_zero hlin hscore_bdd
+  have h2rem :=
+    twoSLSBetaStar_sqrt_linearization_tendstoInMeasure_zero_of_sample_moments_model
+      hMom β h2.model
+  have h2rem' : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+            (twoSLSBetaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - β) -
+          lin m ω *ᵥ score m ω)
+      atTop (fun _ => 0) := by
+    simpa [lin, score, stackRegressors, stackOutcomes, stackErrors] using h2rem
+  have heq :=
+    h.expectationErrorBetaHatStar_sub_twoSLSBetaStar_tendstoInMeasure_zero
+  have hsample : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+            (expectationErrorBetaHatStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - β) -
+          lin m ω *ᵥ score m ω)
+      atTop (fun _ => 0) := by
+    have hsum := TendstoInMeasure.add_zero_vector heq h2rem'
+    refine hsum.congr_left (fun m => ae_of_all μ fun ω => ?_)
+    ext j
+    simp [Pi.add_apply, Pi.sub_apply, Pi.smul_apply]
+  have hfinal := TendstoInMeasure.add_zero_vector hsample hgap
+  refine hfinal.congr_left (fun m => ae_of_all μ fun ω => ?_)
+  change
+    Real.sqrt (m : ℝ) •
+          (expectationErrorBetaHatStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - β) -
+        lin m ω *ᵥ score m ω + (lin m ω - L) *ᵥ score m ω =
+      Real.sqrt (m : ℝ) •
+          (expectationErrorBetaHatStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - β) -
+        L *ᵥ (fun a => expectationErrorRawJointRootScore Z u e νe m ω (Sum.inl a))
+  have hraw :
+      (fun a => expectationErrorRawJointRootScore Z u e νe m ω (Sum.inl a)) =
+        score m ω := by
+    simpa [score] using expectationErrorRawJointRootScore_inl Z u e νe m ω
+  rw [hraw]
+  ext j
+  simp [Pi.add_apply, Pi.sub_apply, Pi.smul_apply,
+    Matrix.sub_mulVec]
+
+set_option maxHeartbeats 1200000 in
+private theorem
+    expectationErrorAlphaHatStar_sampleInfluence_remainder_of_observed_iid
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+            (expectationErrorAlphaHatStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - α) -
+          (sampleGram
+            (expectationErrorResidualStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)))⁻¹ *ᵥ
+            (Real.sqrt (m : ℝ) • sampleCrossMoment
+              (expectationErrorResidualStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackErrors νe m ω)))
+      atTop (fun _ => 0) := by
+  classical
+  let rem : ℕ → Ω → k → ℝ := fun m ω =>
+    Real.sqrt (m : ℝ) •
+        (expectationErrorAlphaHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω) - α) -
+      (sampleGram
+        (expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)))⁻¹ *ᵥ
+        (Real.sqrt (m : ℝ) • sampleCrossMoment
+          (expectationErrorResidualStar
+            (stackRegressors Z m ω) (stackRegressors X m ω))
+          (stackErrors νe m ω))
+  let Zbad : ℕ → Set Ω := fun m => {ω |
+    ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)}
+  let Wbad : ℕ → Set Ω := fun m => {ω |
+    ¬ IsUnit
+      (((expectationErrorFittedStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorFittedStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)).det)}
+  let Ubad : ℕ → Set Ω := fun m => {ω |
+    ¬ IsUnit
+      (((expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)).det)}
+  rcases h.expectationError_block_singularProb_tendsto_zero_of_observed_iid with
+    ⟨hZrank, hWrank, hUrank⟩
+  have hbad : Tendsto (fun m => μ ((Zbad m ∪ Wbad m) ∪ Ubad m))
+      atTop (𝓝 0) := by
+    have hsum : Tendsto
+        (fun m => (μ (Zbad m) + μ (Wbad m)) + μ (Ubad m))
+        atTop (𝓝 0) := by
+      simpa [Zbad, Wbad, Ubad, zero_add] using (hZrank.add hWrank).add hUrank
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hsum (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => by
+      calc
+        μ ((Zbad m ∪ Wbad m) ∪ Ubad m) ≤
+            μ (Zbad m ∪ Wbad m) + μ (Ubad m) := measure_union_le _ _
+        _ ≤ (μ (Zbad m) + μ (Wbad m)) + μ (Ubad m) := by
+          simpa [add_comm, add_left_comm, add_assoc] using
+            add_le_add_right (measure_union_le (μ := μ) (Zbad m) (Wbad m))
+              (μ (Ubad m))
+  have hXstack : ∀ m,
+      (fun ω => stackRegressors X m ω) =ᵐ[μ]
+        fun ω => stackRegressors Z m ω * A + stackRegressors u m ω := by
+    intro m
+    filter_upwards [ae_all_iff.2 (fun i : Fin m => h.x_model i.val)] with ω hω
+    ext i j
+    have hij := congrFun (hω i) j
+    simpa [stackRegressors, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+      mul_comm] using hij
+  have hYstack : ∀ m,
+      (fun ω => stackOutcomes Y m ω) =ᵐ[μ]
+        fun ω =>
+          (stackRegressors Z m ω * A) *ᵥ β +
+            stackRegressors u m ω *ᵥ α + stackErrors νe m ω := by
+    intro m
+    filter_upwards [ae_all_iff.2 (fun i : Fin m => h.y_model i.val)] with ω hω
+    ext i
+    simpa [stackRegressors, stackOutcomes, stackErrors, Matrix.mul_apply,
+      Matrix.mulVec, dotProduct, mul_comm] using hω i
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbad
+    (Eventually.of_forall fun _ => zero_le _) ?_
+  filter_upwards [eventually_gt_atTop 0] with m hm
+  refine measure_mono_ae ?_
+  filter_upwards [hXstack m, hYstack m] with ω hXmodel hYmodel
+  intro hlarge
+  change ε ≤ edist (rem m ω) 0 at hlarge
+  by_cases hZbad : ω ∈ Zbad m
+  · exact Or.inl (Or.inl hZbad)
+  by_cases hWbad : ω ∈ Wbad m
+  · exact Or.inl (Or.inr hWbad)
+  by_cases hUbad : ω ∈ Ubad m
+  · exact Or.inr hUbad
+  exfalso
+  have hZunit : IsUnit (((stackRegressors Z m ω)ᵀ *
+      stackRegressors Z m ω).det) := by simpa [Zbad] using hZbad
+  have hWunit : IsUnit
+      (((expectationErrorFittedStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorFittedStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)).det) := by
+    simpa [Wbad] using hWbad
+  have hUunit : IsUnit
+      (((expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)).det) := by
+    simpa [Ubad] using hUbad
+  have hDunit : IsUnit
+      (((expectationErrorDesignStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorDesignStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)).det) :=
+    expectationErrorDesignStar_gram_det_isUnit_of_block_ranks
+      (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
+      hZunit hWunit hUunit
+  letI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+  letI : Invertible ((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) :=
+    Matrix.invertibleOfIsUnitDet _ hZunit
+  letI : Invertible
+      ((expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)) :=
+    Matrix.invertibleOfIsUnitDet _ hUunit
+  letI : Invertible
+      ((expectationErrorDesignStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))ᵀ *
+        expectationErrorDesignStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)) :=
+    Matrix.invertibleOfIsUnitDet _ hDunit
+  have hrepr :=
+    expectationErrorAlphaHatStar_sub_eq_residual_score_of_firstStage_model
+      (stackRegressors Z m ω) (stackRegressors X m ω)
+      (stackRegressors u m ω) (stackOutcomes Y m ω)
+      (stackErrors νe m ω) A β α hXmodel hYmodel
+  have hzero : rem m ω = 0 := by
+    dsimp [rem]
+    rw [hrepr, Matrix.mulVec_smul]
+    simp
+  rw [hzero, edist_self] at hlarge
+  exact (not_le_of_gt hε) hlarge
+
+set_option maxHeartbeats 2400000 in
+/-- Corrected Hansen Theorem 12.12 lower-block fixed-influence representation.
+
+The actual alpha estimator equals `E[uu']⁻¹` applied to the joint score's
+`u nu` block, up to `oₚ(1)`.  The residualized score replacement and the
+residual-Gram WLLN are both derived from the literal observed-iid conditions. -/
+theorem expectationErrorAlphaHatStar_fixedInfluence_remainder_of_observed_iid
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+            (expectationErrorAlphaHatStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - α) -
+          (popGram μ u)⁻¹ *ᵥ
+            (fun j => expectationErrorRawJointRootScore Z u
+              (expectationErrorStructuralError X Y β) νe m ω (Sum.inr j)))
+      atTop (fun _ => 0) := by
+  classical
+  let e : ℕ → Ω → ℝ := expectationErrorStructuralError X Y β
+  let UGram : ℕ → Ω → Matrix k k ℝ := fun m ω =>
+    sampleGram (expectationErrorResidualStar
+      (stackRegressors Z m ω) (stackRegressors X m ω))
+  let Uinv : ℕ → Ω → Matrix k k ℝ := fun m ω => (UGram m ω)⁻¹
+  let feasibleScore : ℕ → Ω → k → ℝ := fun m ω =>
+    Real.sqrt (m : ℝ) • sampleCrossMoment
+      (expectationErrorResidualStar
+        (stackRegressors Z m ω) (stackRegressors X m ω))
+      (stackErrors νe m ω)
+  let oracleScore : ℕ → Ω → k → ℝ := fun m ω =>
+    Real.sqrt (m : ℝ) •
+      sampleCrossMoment (stackRegressors u m ω) (stackErrors νe m ω)
+  let M : Matrix k k ℝ := (popGram μ u)⁻¹
+  have hUGramMeas : ∀ m, AEStronglyMeasurable (UGram m) μ := by
+    intro m
+    simpa [UGram] using sampleGram_from_matrix_aestronglyMeasurable (μ := μ) (by
+      simpa [stackRegressors] using
+        expectationErrorResidualStar_aestronglyMeasurable_of_rows
+          (μ := μ) (N := m) (Z := Z) (X := X)
+          h.z_aestronglyMeasurable h.x_aestronglyMeasurable)
+  have hUGram : TendstoInMeasure μ UGram atTop (fun _ => popGram μ u) := by
+    simpa [UGram] using
+      h.expectationErrorResidualStar_sampleGram_tendstoInMeasure_of_observed_iid
+  have hUinvMeas : ∀ m, AEStronglyMeasurable (Uinv m) μ := fun m => by
+    simpa [Uinv] using aestronglyMeasurable_matrix_inv (hUGramMeas m)
+  have hUinv : TendstoInMeasure μ Uinv atTop (fun _ => M) := by
+    simpa [Uinv, M] using tendstoInMeasure_matrix_inv
+      (μ := μ) hUGramMeas hUGram
+      (fun _ => (Matrix.isUnit_iff_isUnit_det _).mp h.residual_popGram_posDef.isUnit)
+  let hScore := h.toResidualInnovationScoreCLTConditions.toSampleCLTAssumption72
+  have hOracleMeas : ∀ m, AEStronglyMeasurable (oracleScore m) μ := fun m => by
+    simpa [oracleScore] using
+      (sampleCrossMoment_stack_aestronglyMeasurable
+        hScore.toSampleMomentAssumption71 m).const_smul (Real.sqrt (m : ℝ))
+  have hFeasibleMeas : ∀ m, AEStronglyMeasurable (feasibleScore m) μ := by
+    intro m
+    have hUmat : AEStronglyMeasurable
+        (fun ω => expectationErrorResidualStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)) μ := by
+      simpa [stackRegressors] using
+        expectationErrorResidualStar_aestronglyMeasurable_of_rows
+          (μ := μ) (N := m) (Z := Z) (X := X)
+          h.z_aestronglyMeasurable h.x_aestronglyMeasurable
+    have hNu : AEStronglyMeasurable (fun ω => stackErrors νe m ω) μ := by
+      rw [aestronglyMeasurable_iff_aemeasurable, aemeasurable_pi_iff]
+      intro i
+      simpa [stackErrors] using (h.nu_aestronglyMeasurable i.val).aemeasurable
+    have hcross : AEStronglyMeasurable
+        (fun ω => sampleCrossMoment
+          (expectationErrorResidualStar
+            (stackRegressors Z m ω) (stackRegressors X m ω))
+          (stackErrors νe m ω)) μ := by
+      simpa [sampleCrossMoment] using
+        (((Continuous.matrix_mulVec continuous_fst continuous_snd)
+        |>.comp_aestronglyMeasurable
+          ((continuous_id.matrix_transpose.comp_aestronglyMeasurable hUmat).prodMk hNu))
+        |>.const_smul ((Fintype.card (Fin m) : ℝ)⁻¹))
+    simpa [feasibleScore] using hcross.const_smul (Real.sqrt (m : ℝ))
+  have hreplace : TendstoInMeasure μ
+      (fun m ω => feasibleScore m ω - oracleScore m ω)
+      atTop (fun _ => 0) := by
+    simpa [feasibleScore, oracleScore] using
+      h.expectationErrorResidualStar_innovationScore_replacement_of_observed_iid
+  have hreplaceProduct : TendstoInMeasure μ
+      (fun m ω => Uinv m ω *ᵥ (feasibleScore m ω - oracleScore m ω))
+      atTop (fun _ => 0) := by
+    have hmul := tendstoInMeasure_mulVec
+      hUinvMeas (fun m => (hFeasibleMeas m).sub (hOracleMeas m)) hUinv hreplace
+    simpa [M] using hmul
+  have hOracleBdd : ∀ j,
+      BoundedInProbability μ (fun m ω => oracleScore m ω j) := fun j => by
+    simpa [oracleScore] using
+      scoreCoordinate_sampleCrossMoment_boundedInProbability
+        (μ := μ) (X := u) (e := νe) hScore j
+  have hInvGap : TendstoInMeasure μ
+      (fun m ω => (Uinv m ω - M) *ᵥ oracleScore m ω)
+      atTop (fun _ => 0) :=
+    matrix_sub_const_mulVec_tight_tendstoInMeasure_zero hUinv hOracleBdd
+  have hsample :=
+    h.expectationErrorAlphaHatStar_sampleInfluence_remainder_of_observed_iid
+  have hsum := TendstoInMeasure.add_zero_vector hsample
+    (TendstoInMeasure.add_zero_vector hreplaceProduct hInvGap)
+  refine hsum.congr_left (fun m => ae_of_all μ fun ω => ?_)
+  have hraw :
+      (fun j => expectationErrorRawJointRootScore Z u e νe m ω (Sum.inr j)) =
+        oracleScore m ω := by
+    simpa [oracleScore] using expectationErrorRawJointRootScore_inr Z u e νe m ω
+  change
+    Real.sqrt (m : ℝ) •
+          (expectationErrorAlphaHatStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - α) -
+        Uinv m ω *ᵥ feasibleScore m ω +
+      (Uinv m ω *ᵥ (feasibleScore m ω - oracleScore m ω) +
+        (Uinv m ω - M) *ᵥ oracleScore m ω) =
+      Real.sqrt (m : ℝ) •
+          (expectationErrorAlphaHatStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - α) -
+        M *ᵥ (fun j => expectationErrorRawJointRootScore Z u e νe m ω (Sum.inr j))
+  rw [hraw]
+  ext j
+  simp [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, Matrix.sub_mulVec,
+    Matrix.mulVec_sub]
+
+set_option maxHeartbeats 1200000 in
+/-- Corrected Hansen Theorem 12.12 joint fixed-influence representation.
+
+The actual stacked expectation-error estimator has the fixed block influence
+map applied to the raw `(Ze, u nu)` score, up to `oₚ(1)`. -/
+theorem expectationErrorBetaAlphaStar_fixedInfluence_remainder_of_observed_iid
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+            (expectationErrorBetaAlphaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - Sum.elim β α) -
+          expectationErrorInfluenceMatrix A (popGram μ Z) (popGram μ u) *ᵥ
+            expectationErrorRawJointRootScore Z u
+              (expectationErrorStructuralError X Y β) νe m ω)
+      atTop (fun _ => 0) := by
+  classical
+  refine tendstoInMeasure_pi (fun s => ?_)
+  cases s with
+  | inl j =>
+      have hbeta := TendstoInMeasure.pi_apply
+        h.expectationErrorBetaHatStar_fixedInfluence_remainder_of_observed_iid j
+      simpa [expectationErrorInfluenceMatrix, Matrix.fromBlocks_mulVec,
+        expectationErrorBetaHatStar_apply, Pi.sub_apply, Pi.smul_apply] using hbeta
+  | inr j =>
+      have halpha := TendstoInMeasure.pi_apply
+        h.expectationErrorAlphaHatStar_fixedInfluence_remainder_of_observed_iid j
+      simpa [expectationErrorInfluenceMatrix, Matrix.fromBlocks_mulVec,
+        expectationErrorAlphaHatStar_apply, Pi.sub_apply, Pi.smul_apply] using halpha
+
+set_option maxHeartbeats 1200000 in
+/-- **Corrected Hansen Theorem 12.12**, full joint actual-estimator CLT from
+literal observed-iid fourth moments and population rank conditions. -/
+theorem expectationErrorBetaAlphaStar_tendstoInDistribution_theorem12_12_of_observed_iid
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - Sum.elim β α))
+      atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (expectationErrorAsymptoticVariance A (popGram μ Z) (popGram μ u)
+          (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+          (expectationErrorOmegaUZeNu μ u Z
+            (expectationErrorStructuralError X Y β) νe)
+          (scoreCovMat μ u νe))) := by
+  have hactual : ∀ (m : ℕ), AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) - Sum.elim β α)) μ := by
+    intro m
+    exact (((expectationErrorBetaAlphaStar_aestronglyMeasurable_of_rows
+      (μ := μ) (N := m) (Z := Z) (X := X) (Y := Y)
+      h.z_aestronglyMeasurable h.x_aestronglyMeasurable h.y_aestronglyMeasurable).sub
+        aestronglyMeasurable_const).const_smul (Real.sqrt (m : ℝ))).aemeasurable
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun (m : ℕ) ω =>
+      expectationErrorInfluenceMatrix A (popGram μ Z) (popGram μ u) *ᵥ
+        expectationErrorRawJointRootScore Z u
+          (expectationErrorStructuralError X Y β) νe m ω)
+    (Y := fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (expectationErrorBetaAlphaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω) - Sum.elim β α))
+    (Z := fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp)
+    h.rawJointInfluence_tendstoInDistribution_theorem12_12
+    h.expectationErrorBetaAlphaStar_fixedInfluence_remainder_of_observed_iid hactual
 
 set_option maxHeartbeats 1200000 in
 /-- Corrected Hansen Theorem 12.12 beta-block CLT from literal observed-iid
