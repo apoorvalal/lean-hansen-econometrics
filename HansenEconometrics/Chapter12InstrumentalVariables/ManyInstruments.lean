@@ -3,6 +3,7 @@ import HansenEconometrics.Chapter11MultivariateRegression.ReducedRank
 import HansenEconometrics.Chapter7Asymptotics.Consistency
 import HansenEconometrics.Chapter12InstrumentalVariables.Asymptotics
 import HansenEconometrics.Chapter12InstrumentalVariables.LIML
+import Mathlib.MeasureTheory.Integral.Prod
 import Mathlib.Probability.Independence.Conditional
 
 /-!
@@ -13966,6 +13967,718 @@ theorem ManyInstrumentsTheorem1219RawModelConditions.toTwoSLSMomentAssemblyCondi
     · exact manyInstruments_alpha_nonneg_of_card_ratio_tendsto
         hraw.instrument_ratio
 
+/-- Reconstruct the normalized joint `[Y,X]` moment from the regressor Gram,
+regressor/error score, and structural-error second moment under `Y = Xβ + e`.
+
+Writing `B = [β,I]` and `c = [1,0]`, this is
+`B'AB + B'sc' + cs'B + qcc'`.  The map is useful for both the ordinary and
+projected moments and keeps the normalized-pencil proof at the same moment
+layer already used by the OLS and 2SLS faces of Theorem 12.19. -/
+noncomputable def manyInstrumentsStructuralJointMoment
+    (β : k → ℝ) (A : Matrix k k ℝ) (s : k → ℝ) (q : ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ
+  | Sum.inl _, Sum.inl _ =>
+      β ⬝ᵥ (A *ᵥ β) + β ⬝ᵥ s + β ⬝ᵥ s + q
+  | Sum.inl _, Sum.inr b => β ⬝ᵥ (fun a => A a b) + s b
+  | Sum.inr a, Sum.inl _ => (A *ᵥ β) a + s a
+  | Sum.inr a, Sum.inr b => A a b
+
+private theorem manyInstruments_sumSwap2
+    {a b : Type*} [Fintype a] [Fintype b] (f : a → b → ℝ) :
+    (∑ i, ∑ j, f i j) = ∑ j, ∑ i, f i j := Finset.sum_comm
+
+private theorem manyInstruments_sumSwap3
+    {a b c : Type*} [Fintype a] [Fintype b] [Fintype c]
+    (f : a → b → c → ℝ) :
+    (∑ i, ∑ j, ∑ h, f i j h) = ∑ j, ∑ h, ∑ i, f i j h := by
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro j _
+  rw [Finset.sum_comm]
+
+private theorem manyInstruments_sumRotate3
+    {a b c : Type*} [Fintype a] [Fintype b] [Fintype c]
+    (f : a → b → c → ℝ) :
+    (∑ i, ∑ j, ∑ h, f i j h) = ∑ h, ∑ i, ∑ j, f i j h := by
+  calc
+    (∑ i, ∑ j, ∑ h, f i j h) = ∑ i, ∑ h, ∑ j, f i j h := by
+      apply Finset.sum_congr rfl
+      intro i _
+      rw [Finset.sum_comm]
+    _ = ∑ h, ∑ i, ∑ j, f i j h := Finset.sum_comm
+
+private theorem manyInstruments_sumPerm4
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    (f : a → b → c → d → ℝ) :
+    (∑ i, ∑ j, ∑ h, ∑ l, f i j h l) =
+      ∑ l, ∑ j, ∑ i, ∑ h, f i j h l := by
+  calc
+    (∑ i, ∑ j, ∑ h, ∑ l, f i j h l) =
+        ∑ i, ∑ j, ∑ l, ∑ h, f i j h l := by
+      apply Finset.sum_congr rfl
+      intro i _
+      apply Finset.sum_congr rfl
+      intro j _
+      rw [Finset.sum_comm]
+    _ = ∑ i, ∑ l, ∑ j, ∑ h, f i j h l := by
+      apply Finset.sum_congr rfl
+      intro i _
+      rw [Finset.sum_comm]
+    _ = ∑ l, ∑ i, ∑ j, ∑ h, f i j h l := Finset.sum_comm
+    _ = ∑ l, ∑ j, ∑ i, ∑ h, f i j h l := by
+      apply Finset.sum_congr rfl
+      intro l _
+      rw [Finset.sum_comm]
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_normalizedRayleighNumerator_eq_structuralJointMoment
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y e : n → ℝ)
+    (u2 : Matrix n k ℝ) (β : k → ℝ)
+    (hY : Y = X *ᵥ β + e) :
+    (Fintype.card n : ℝ)⁻¹ •
+        manyInstrumentsLIMLSampleRayleighNumerator Z X Y =
+      manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar Z X 0)
+        (limlNormalizedMomentVectorStar Z X e 0)
+        (manyInstrumentsProjectedFullErrorMoment Z e u2
+          (Sum.inl ()) (Sum.inl ())) := by
+  subst Y
+  have hP : ∀ i j, instrumentProjectionStar Z i j =
+      instrumentProjectionStar Z j i := by
+    intro i j
+    have hij := congrFun (congrFun (instrumentProjectionStar_transpose Z) j) i
+    simpa using hij
+  ext a b
+  cases a with
+  | inl ua =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            manyInstrumentsProjectedFullErrorMoment,
+            manyInstrumentsReducedFormErrorData,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlNormalizedMomentVectorStar, limlMomentVectorStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+            Matrix.smul_apply, hP, mul_add, add_mul,
+            Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_mul]
+          rw [manyInstruments_sumPerm4
+            (fun (i : n) (a : k) (j : n) (b : k) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (X j b * β b * instrumentProjectionStar Z i j *
+                  (X i a * β a)))]
+          rw [manyInstruments_sumSwap3
+            (fun (i : n) (a : k) (j : n) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (e j * instrumentProjectionStar Z i j * (X i a * β a)))]
+          rw [manyInstruments_sumRotate3
+            (fun (i j : n) (a : k) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (X j a * β a * instrumentProjectionStar Z i j * e i))]
+          have hquad (a b : k) (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (X j a * β a * instrumentProjectionStar Z i j *
+                    (X i b * β b)) =
+                β a * ((Fintype.card n : ℝ)⁻¹ *
+                  (X j a * instrumentProjectionStar Z i j * X i b) * β b) := by
+            ring
+          have hcrossSymm (a : k) (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (e j * instrumentProjectionStar Z i j * (X i a * β a)) =
+                β a * ((Fintype.card n : ℝ)⁻¹ *
+                  (X i a * instrumentProjectionStar Z j i * e j)) := by
+            rw [hP]
+            ring
+          have hcross (a : k) (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (X j a * β a * instrumentProjectionStar Z i j * e i) =
+                β a * ((Fintype.card n : ℝ)⁻¹ *
+                  (X j a * instrumentProjectionStar Z i j * e i)) := by
+            ring
+          simp_rw [hquad, hcrossSymm, hcross]
+          ring
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlNormalizedMomentVectorStar, limlMomentVectorStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+            Matrix.smul_apply, hP, mul_add, add_mul,
+            Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_mul]
+          rw [manyInstruments_sumRotate3
+            (fun (i j : n) (a : k) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (X j a * β a * instrumentProjectionStar Z i j * X i b))]
+          rw [manyInstruments_sumSwap2
+            (fun (i j : n) => (Fintype.card n : ℝ)⁻¹ *
+              (e j * instrumentProjectionStar Z i j * X i b))]
+          have hcross (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (e j * instrumentProjectionStar Z i j * X i b) =
+                (Fintype.card n : ℝ)⁻¹ *
+                  (X i b * instrumentProjectionStar Z j i * e j) := by
+            rw [hP]
+            ring
+          simp_rw [hcross]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+  | inr a =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlNormalizedMomentVectorStar, limlMomentVectorStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+            Matrix.smul_apply, hP, mul_add,
+            Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_mul]
+          rw [manyInstruments_sumSwap2
+            (fun (i : n) (b : k) =>
+              ∑ j : n, (Fintype.card n : ℝ)⁻¹ *
+                (X j a * instrumentProjectionStar Z i j * (X i b * β b)))]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.smul_apply]
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_sampleGram_rayleighData_eq_structuralJointMoment
+    {n : Type*} [Fintype n] [DecidableEq n]
+    (X : Matrix n k ℝ) (Y e : n → ℝ) (u2 : Matrix n k ℝ)
+    (β : k → ℝ) (hY : Y = X *ᵥ β + e) :
+    sampleGram (manyInstrumentsLIMLSampleRayleighData X Y) =
+      manyInstrumentsStructuralJointMoment β (sampleGram X)
+        (sampleCrossMoment X e)
+        (sampleGram (manyInstrumentsReducedFormErrorData e u2)
+          (Sum.inl ()) (Sum.inl ())) := by
+  subst Y
+  ext a b
+  cases a with
+  | inl ua =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment,
+            manyInstrumentsReducedFormErrorData, sampleGram, sampleCrossMoment,
+            Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.smul_apply,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [manyInstruments_sumSwap3
+            (fun i a b => (Fintype.card n : ℝ)⁻¹ *
+              (X i b * β b * (X i a * β a)))]
+          rw [manyInstruments_sumSwap2
+            (fun i a => (Fintype.card n : ℝ)⁻¹ *
+              (e i * (X i a * β a)))]
+          rw [manyInstruments_sumSwap2
+            (fun i a => (Fintype.card n : ℝ)⁻¹ *
+              (X i a * β a * e i))]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+          ring
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment,
+            sampleGram, sampleCrossMoment,
+            Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.smul_apply,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [Finset.sum_comm]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+  | inr a =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment,
+            sampleGram, sampleCrossMoment,
+            Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.smul_apply,
+            mul_add, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [Finset.sum_comm]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment, sampleGram,
+            Matrix.mul_apply, Matrix.smul_apply]
+
+omit [Fintype k] [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_normalizedRayleighDenominator_eq_total_sub_numerator
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+    (Fintype.card n : ℝ)⁻¹ •
+        manyInstrumentsLIMLSampleRayleighDenominator Z X Y =
+      sampleGram (manyInstrumentsLIMLSampleRayleighData X Y) -
+        (Fintype.card n : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighNumerator Z X Y := by
+  simp [manyInstrumentsLIMLSampleRayleighDenominator,
+    manyInstrumentsLIMLSampleRayleighNumerator,
+    manyInstrumentsLIMLSampleRayleighData, sampleGram, Matrix.mul_sub,
+    Matrix.sub_mul, Matrix.mul_assoc, smul_sub]
+
+omit [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_structuralJointMoment_limit
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (r : ℝ)
+    (hSigma : Sigma.PosDef) :
+    manyInstrumentsStructuralJointMoment β
+        (H + r • manyInstrumentsSigma22 Sigma)
+        (r • manyInstrumentsSigma2e Sigma)
+        (r * Sigma (Sum.inl ()) (Sum.inl ())) =
+      (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+        r • manyInstrumentsJointReducedFormCovariance β Sigma := by
+  have hsymm : ∀ a b, Sigma a b = Sigma b a := by
+    intro a b
+    have hab := congrFun (congrFun hSigma.isHermitian.eq b) a
+    simpa [Matrix.conjTranspose_apply] using hab
+  ext a b
+  cases a with
+  | inl ua =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsSigma2e, manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            Matrix.mulVec, dotProduct, Matrix.smul_apply, hsymm,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [manyInstruments_sumSwap2
+            (fun x i => β x * (H x i * β i))]
+          simp only [mul_comm, mul_left_comm]
+          ring
+      | inr b =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsSigma2e, manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            dotProduct, Matrix.smul_apply, hsymm,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          simp only [mul_left_comm]
+          ring
+  | inr a =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsSigma2e, manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            Matrix.mulVec, dotProduct, Matrix.smul_apply, hsymm,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum]
+          simp only [mul_comm, mul_left_comm]
+          ring
+      | inr b =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            Matrix.smul_apply, hsymm]
+
+omit [MeasurableSpace Ω] in
+private theorem condExp_mul_eq_mul_condExp_of_condIndepFun
+    {mc mΩ : MeasurableSpace Ω} [@StandardBorelSpace Ω mΩ]
+    {μ : @Measure Ω mΩ} [IsProbabilityMeasure μ]
+    {f g : Ω → ℝ} (hm : mc ≤ mΩ)
+    (hfg : CondIndepFun (mΩ := mΩ) mc hm f g μ)
+    (hf : MemLp f 2 μ) (hg : MemLp g 2 μ) :
+    μ[fun ω => f ω * g ω | mc] =ᵐ[μ]
+      fun ω => μ[f | mc] ω * μ[g | mc] ω := by
+  let f' : Ω → ℝ := hf.1.mk f
+  let g' : Ω → ℝ := hg.1.mk g
+  have hf'_meas : Measurable f' := hf.1.measurable_mk
+  have hg'_meas : Measurable g' := hg.1.measurable_mk
+  have hff' : f =ᵐ[μ] f' := hf.1.ae_eq_mk
+  have hgg' : g =ᵐ[μ] g' := hg.1.ae_eq_mk
+  have hf'_Lp : MemLp f' 2 μ := (memLp_congr_ae hff').mp hf
+  have hg'_Lp : MemLp g' 2 μ := (memLp_congr_ae hgg').mp hg
+  have hff'_cond :
+      ∀ᵐ z ∂μ.trim hm, f =ᵐ[condExpKernel μ mc z] f' := by
+    apply @Measure.ae_ae_of_ae_comp Ω Ω mc mΩ
+      (μ.trim hm) (condExpKernel μ mc) (fun z => f z = f' z)
+    rw [condExpKernel_comp_trim hm]
+    exact hff'
+  have hgg'_cond :
+      ∀ᵐ z ∂μ.trim hm, g =ᵐ[condExpKernel μ mc z] g' := by
+    apply @Measure.ae_ae_of_ae_comp Ω Ω mc mΩ
+      (μ.trim hm) (condExpKernel μ mc) (fun z => g z = g' z)
+    rw [condExpKernel_comp_trim hm]
+    exact hgg'
+  have hfg' : CondIndepFun (mΩ := mΩ) mc hm f' g' μ :=
+    Kernel.IndepFun.congr' hfg hff'_cond hgg'_cond
+  have hmap :=
+    (condIndepFun_iff_map_prod_eq_prod_map_map hf'_meas hg'_meas).mp hfg'
+  have hkernel :
+      (fun z => ∫ y, f' y * g' y ∂condExpKernel μ mc z) =ᵐ[μ.trim hm]
+        fun z =>
+          (∫ y, f' y ∂condExpKernel μ mc z) *
+            ∫ y, g' y ∂condExpKernel μ mc z := by
+    filter_upwards [hmap] with z hz
+    have hpair : Measurable (fun y => (f' y, g' y)) :=
+      hf'_meas.prodMk hg'_meas
+    calc
+      (∫ y, f' y * g' y ∂condExpKernel μ mc z) =
+          ∫ x : ℝ × ℝ, x.1 * x.2 ∂((condExpKernel μ mc).map
+            (fun y => (f' y, g' y))) z := by
+              rw [Kernel.map_apply _ hpair]
+              rw [integral_map hpair.aemeasurable]
+              fun_prop
+      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
+          (((condExpKernel μ mc).map f' ×ₖ
+            (condExpKernel μ mc).map g') z) := by
+              rw [hz]
+      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
+          (((condExpKernel μ mc).map f') z).prod
+            (((condExpKernel μ mc).map g') z) := by
+              rw [Kernel.prod_apply]
+      _ = (∫ x, x ∂((condExpKernel μ mc).map f') z) *
+          ∫ y, y ∂((condExpKernel μ mc).map g') z :=
+            integral_prod_mul id id
+      _ = (∫ y, f' y ∂condExpKernel μ mc z) *
+          ∫ y, g' y ∂condExpKernel μ mc z := by
+            rw [Kernel.map_apply _ hf'_meas,
+              Kernel.map_apply _ hg'_meas]
+            rw [integral_map hf'_meas.aemeasurable (by fun_prop),
+              integral_map hg'_meas.aemeasurable (by fun_prop)]
+  have hf'_int : Integrable f' μ := hf'_Lp.integrable (by norm_num)
+  have hg'_int : Integrable g' μ := hg'_Lp.integrable (by norm_num)
+  have hf'g'_Lp : MemLp (fun ω => f' ω * g' ω) 1 μ := by
+    simpa only [Pi.mul_apply] using hg'_Lp.mul hf'_Lp
+  have hf'g'_int : Integrable (fun ω => f' ω * g' ω) μ :=
+    hf'g'_Lp.integrable le_rfl
+  have hfactor' :
+      μ[fun ω => f' ω * g' ω | mc] =ᵐ[μ]
+        fun ω => μ[f' | mc] ω * μ[g' | mc] ω := by
+    calc
+      μ[fun ω => f' ω * g' ω | mc] =ᵐ[μ]
+          (fun z => ∫ y, f' y * g' y ∂condExpKernel μ mc z) :=
+            condExp_ae_eq_integral_condExpKernel hm hf'g'_int
+      _ =ᵐ[μ] (fun z =>
+          (∫ y, f' y ∂condExpKernel μ mc z) *
+            ∫ y, g' y ∂condExpKernel μ mc z) :=
+              ae_eq_of_ae_eq_trim hkernel
+      _ =ᵐ[μ] (fun z => μ[f' | mc] z * μ[g' | mc] z) := by
+        filter_upwards [
+          (condExp_ae_eq_integral_condExpKernel hm hf'_int).symm,
+          (condExp_ae_eq_integral_condExpKernel hm hg'_int).symm
+        ] with z hfz hgz
+        rw [hfz, hgz]
+  have hprod :
+      (fun ω => f ω * g ω) =ᵐ[μ] fun ω => f' ω * g' ω := by
+    filter_upwards [hff', hgg'] with ω hfω hgω
+    rw [hfω, hgω]
+  calc
+    μ[fun ω => f ω * g ω | mc] =ᵐ[μ]
+        μ[fun ω => f' ω * g' ω | mc] := condExp_congr_ae hprod
+    _ =ᵐ[μ] (fun ω => μ[f' | mc] ω * μ[g' | mc] ω) := hfactor'
+    _ =ᵐ[μ] (fun ω => μ[f | mc] ω * μ[g | mc] ω) := by
+      filter_upwards [condExp_congr_ae hff', condExp_congr_ae hgg'] with ω hfω hgω
+      rw [hfω, hgω]
+
+private theorem integral_sq_sum_le_card_mul_of_centered_uncorrelated
+    {I : Type*} [Fintype I] [DecidableEq I]
+    {Q : I → Ω → ℝ} {B : ℝ}
+    (hQ : ∀ i, MemLp (Q i) 2 μ)
+    (hmean : ∀ i, ∫ ω, Q i ω ∂μ = 0)
+    (hcross : ∀ i j, i ≠ j → ∫ ω, Q i ω * Q j ω ∂μ = 0)
+    (hvar : ∀ i, Var[Q i; μ] ≤ B) :
+    Integrable (fun ω => (∑ i, Q i ω) ^ 2) μ ∧
+      (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) ≤ (Fintype.card I : ℝ) * B := by
+  have hsumLp : MemLp (fun ω => ∑ i, Q i ω) 2 μ :=
+    memLp_finset_sum Finset.univ (fun i _ => hQ i)
+  have hsumMean : ∫ ω, ∑ i, Q i ω ∂μ = 0 := by
+    rw [integral_finset_sum Finset.univ]
+    · simp [hmean]
+    · intro i _
+      exact (hQ i).integrable (by norm_num)
+  have hsumSqInt : Integrable (fun ω => (∑ i, Q i ω) ^ 2) μ := by
+    simpa only [Pi.mul_apply, pow_two] using hsumLp.integrable_mul hsumLp
+  refine ⟨hsumSqInt, ?_⟩
+  calc
+    (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) = Var[fun ω => ∑ i, Q i ω; μ] :=
+      (variance_of_integral_eq_zero hsumLp.aemeasurable hsumMean).symm
+    _ = ∑ i, ∑ j, cov[Q i, Q j; μ] := variance_fun_sum hQ
+    _ = ∑ i, Var[Q i; μ] := by
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      rw [← covariance_self (hQ i).aemeasurable]
+      apply Finset.sum_eq_single i
+      · intro j _ hji
+        rw [covariance_eq_sub (hQ i) (hQ j), hmean i, hmean j]
+        simpa only [Pi.mul_apply, mul_zero, sub_zero] using hcross i j hji.symm
+      · simp
+    _ ≤ ∑ _i : I, B := Finset.sum_le_sum fun i _ => hvar i
+    _ = (Fintype.card I : ℝ) * B := by simp
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_unprojectedFullError_entry_meanSquare
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      μ Z e u2 Sigma B)
+    (m : ℕ) (hm : 0 < m) (a b : Sum Unit k) :
+    Integrable
+        (fun ω => ‖(sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+            (2 : ℝ)) μ ∧
+      (∫ ω, ‖(sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+            (2 : ℝ) ∂μ) ≤ B / (m : ℝ) := by
+  let U : Fin m → Ω → Sum Unit k → ℝ := fun i ω =>
+    manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i
+  let V : Fin m → Ω → ℝ := fun i ω => U i ω a * U i ω b
+  let Q : Fin m → Ω → ℝ := fun i ω => V i ω - Sigma a b
+  have hU4 (i : Fin m) (c : Sum Unit k) :
+      MemLp (fun ω => U i ω c) 4 μ := by
+    simpa [U] using (h.error_row_memLp_four m i).eval c
+  have hV2 (i : Fin m) : MemLp (V i) 2 μ := by
+    simpa [V] using mul_memLp_two_of_memLp_four (hU4 i a) (hU4 i b)
+  have hVint (i : Fin m) : Integrable (V i) μ :=
+    (hV2 i).integrable (by norm_num)
+  have hQ2 (i : Fin m) : MemLp (Q i) 2 μ := by
+    simpa [Q] using (hV2 i).sub (memLp_const (Sigma a b))
+  have hOuterInt (i : Fin m) : Integrable
+      (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) μ :=
+    vecMulVec_integrable_of_coordinate_memLp_four (fun c => hU4 i c)
+  have hVcond (i : Fin m) :
+      condExpOn μ (V i) (Z m) =ᵐ[μ] fun _ => Sigma a b := by
+    have hcoord :
+        (fun ω => condExpOn μ
+          (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) (Z m) ω a b) =ᵐ[μ]
+          condExpOn μ (V i) (Z m) := by
+      simpa [condExpOn, Matrix.vecMulVec_apply, V] using
+        condExp_apply_apply
+          (m := conditioningSpace (Z m)) (μ := μ)
+          (f := fun ω => Matrix.vecMulVec (U i ω) (U i ω))
+          (hOuterInt i) a b
+    have hmatrix :
+        (fun ω => condExpOn μ
+          (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) (Z m) ω a b) =ᵐ[μ]
+          fun _ => Sigma a b := by
+      filter_upwards [h.conditional_second_moment m i] with ω hω
+      exact congrFun (congrFun hω a) b
+    exact hcoord.symm.trans hmatrix
+  have hVmean (i : Fin m) : ∫ ω, V i ω ∂μ = Sigma a b := by
+    calc
+      (∫ ω, V i ω ∂μ) = ∫ ω, condExpOn μ (V i) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using
+          (integral_condExp
+            (m := conditioningSpace (Z m)) (μ := μ) (f := V i)
+            (conditioningSpace_le (h.instrument_measurable m)))
+      _ = ∫ _ω, Sigma a b ∂μ := integral_congr_ae (hVcond i)
+      _ = Sigma a b := by simp
+  have hQmean (i : Fin m) : ∫ ω, Q i ω ∂μ = 0 := by
+    rw [show (fun ω => Q i ω) = fun ω => V i ω - Sigma a b by rfl]
+    rw [integral_sub (hVint i) (integrable_const (Sigma a b)), hVmean i]
+    simp
+  have hQcond (i : Fin m) : condExpOn μ (Q i) (Z m) =ᵐ[μ] 0 := by
+    calc
+      condExpOn μ (Q i) (Z m) =ᵐ[μ]
+          condExpOn μ (V i) (Z m) -
+            condExpOn μ (fun _ => Sigma a b) (Z m) := by
+        simpa [condExpOn, Q] using
+          condExp_sub (hVint i) (integrable_const (Sigma a b))
+            (conditioningSpace (Z m))
+      _ =ᵐ[μ] (fun _ => Sigma a b) - (fun _ => Sigma a b) := by
+        have hconst :
+            condExpOn μ (fun _ : Ω => Sigma a b) (Z m) = fun _ => Sigma a b := by
+          simpa [condExpOn] using
+            (condExp_const (μ := μ)
+              (conditioningSpace_le (h.instrument_measurable m)) (Sigma a b))
+        exact (hVcond i).sub (ae_of_all μ fun ω => congrFun hconst ω)
+      _ =ᵐ[μ] 0 := by simp
+  have hQcross (i j : Fin m) (hij : i ≠ j) :
+      ∫ ω, Q i ω * Q j ω ∂μ = 0 := by
+    have hrow := (h.rows_conditionally_independent m).condIndepFun hij
+    have hphi : Measurable
+        (fun x : Sum Unit k → ℝ => x a * x b - Sigma a b) := by
+      fun_prop
+    have hQind : CondIndepFun
+        (conditioningSpace (Z m))
+        (conditioningSpace_le (h.instrument_measurable m))
+        (Q i) (Q j) μ := by
+      simpa [Q, V, U, Function.comp_def] using hrow.comp hphi hphi
+    have hfactor := condExp_mul_eq_mul_condExp_of_condIndepFun
+      (conditioningSpace_le (h.instrument_measurable m)) hQind (hQ2 i) (hQ2 j)
+    have hcondzero :
+        condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) =ᵐ[μ] 0 := by
+      calc
+        condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) =ᵐ[μ]
+            fun ω => condExpOn μ (Q i) (Z m) ω *
+              condExpOn μ (Q j) (Z m) ω := by
+          simpa [condExpOn] using hfactor
+        _ =ᵐ[μ] 0 := by
+          filter_upwards [hQcond i, hQcond j] with ω hi hj
+          simp [hi, hj]
+    calc
+      (∫ ω, Q i ω * Q j ω ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using
+          (integral_condExp
+            (m := conditioningSpace (Z m)) (μ := μ)
+            (f := fun ω => Q i ω * Q j ω)
+            (conditioningSpace_le (h.instrument_measurable m)))
+      _ = 0 := by rw [integral_congr_ae hcondzero]; simp
+  have hNorm4Int (i : Fin m) : Integrable (fun ω => ‖U i ω‖ ^ 4) μ := by
+    simpa [U] using (h.error_row_memLp_four m i).integrable_norm_pow'
+  have hNorm4Bound (i : Fin m) : ∫ ω, ‖U i ω‖ ^ 4 ∂μ ≤ B := by
+    calc
+      (∫ ω, ‖U i ω‖ ^ 4 ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => ‖U i ω‖ ^ 4) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using
+          (integral_condExp
+            (m := conditioningSpace (Z m)) (μ := μ)
+            (f := fun ω => ‖U i ω‖ ^ 4)
+            (conditioningSpace_le (h.instrument_measurable m)))
+      _ ≤ ∫ _ω, B ∂μ := by
+        apply integral_mono_ae integrable_condExp (integrable_const B)
+        simpa [U] using h.conditional_fourth_bound m i
+      _ = B := by simp
+  have hVSqBound (i : Fin m) : ∫ ω, (V i ω) ^ 2 ∂μ ≤ B := by
+    have hpoint : ∀ ω, (V i ω) ^ 2 ≤ ‖U i ω‖ ^ 4 := by
+      intro ω
+      have ha : |U i ω a| ≤ ‖U i ω‖ := by
+        simpa [Real.norm_eq_abs] using norm_le_pi_norm (U i ω) a
+      have hb : |U i ω b| ≤ ‖U i ω‖ := by
+        simpa [Real.norm_eq_abs] using norm_le_pi_norm (U i ω) b
+      calc
+        (V i ω) ^ 2 = |U i ω a| ^ 2 * |U i ω b| ^ 2 := by
+          change (U i ω a * U i ω b) ^ 2 = _
+          rw [mul_pow, sq_abs, sq_abs]
+        _ ≤ ‖U i ω‖ ^ 2 * ‖U i ω‖ ^ 2 := by gcongr
+        _ = ‖U i ω‖ ^ 4 := by ring
+    calc
+      (∫ ω, (V i ω) ^ 2 ∂μ) ≤ ∫ ω, ‖U i ω‖ ^ 4 ∂μ :=
+        integral_mono_ae (hV2 i).integrable_sq (hNorm4Int i) (ae_of_all μ hpoint)
+      _ ≤ B := hNorm4Bound i
+  have hQVarBound (i : Fin m) : Var[Q i; μ] ≤ B := by
+    calc
+      Var[Q i; μ] = Var[V i; μ] := by
+        simpa [Q] using variance_sub_const (hV2 i).1 (Sigma a b)
+      _ = (∫ ω, (V i ω) ^ 2 ∂μ) - (Sigma a b) ^ 2 := by
+        rw [variance_eq_sub (hV2 i), hVmean i]
+        simp only [Pi.pow_apply]
+      _ ≤ ∫ ω, (V i ω) ^ 2 ∂μ := sub_le_self _ (sq_nonneg _)
+      _ ≤ B := hVSqBound i
+  have hsum := integral_sq_sum_le_card_mul_of_centered_uncorrelated
+    hQ2 hQmean hQcross hQVarBound
+  have hsumBound : (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) ≤ (m : ℝ) * B := by
+    simpa using hsum.2
+  have hsumLp : MemLp (fun ω => ∑ i, Q i ω) 2 μ :=
+    memLp_finset_sum Finset.univ (fun i _ => hQ2 i)
+  have hm0 : (m : ℝ) ≠ 0 := by exact_mod_cast ne_of_gt hm
+  have hrepr (ω : Ω) :
+      (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b =
+        (m : ℝ)⁻¹ * ∑ i, Q i ω := by
+    rw [sampleGram_eq_average_vecMulVec]
+    have houter :
+        (∑ i : Fin m, Matrix.vecMulVec
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)) a b =
+          ∑ i : Fin m,
+            manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i a *
+              manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i b := by
+      simp [Matrix.sum_apply, Matrix.vecMulVec_apply]
+    simp only [Matrix.sub_apply, Matrix.smul_apply]
+    rw [houter]
+    simp [Q, V, U, Finset.sum_sub_distrib]
+    field_simp
+  have hentryLp : MemLp
+      (fun ω => (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b) 2 μ := by
+    exact (memLp_congr_ae (ae_of_all μ hrepr)).mpr
+      (hsumLp.const_mul (m : ℝ)⁻¹)
+  refine ⟨?_, ?_⟩
+  · exact hentryLp.integrable_norm_rpow (by norm_num) (by norm_num)
+  · calc
+      (∫ ω, ‖(sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+            (2 : ℝ) ∂μ) =
+          ∫ ω, ((m : ℝ)⁻¹ * ∑ i, Q i ω) ^ 2 ∂μ := by
+        apply integral_congr_ae
+        exact ae_of_all μ fun ω => by
+          change ‖(sampleGram
+            (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+              (2 : ℝ) = _
+          rw [hrepr]
+          simpa [Real.norm_eq_abs] using (sq_abs ((m : ℝ)⁻¹ * ∑ i, Q i ω))
+      _ = (m : ℝ)⁻¹ ^ 2 * ∫ ω, (∑ i, Q i ω) ^ 2 ∂μ := by
+        simp_rw [mul_pow]
+        rw [integral_const_mul]
+      _ ≤ (m : ℝ)⁻¹ ^ 2 * ((m : ℝ) * B) :=
+        mul_le_mul_of_nonneg_left hsumBound (sq_nonneg _)
+      _ = B / (m : ℝ) := by field_simp
+
+/-- Honest unprojected full-error WLLN used in the many-instrument LIML
+denominator.  It is the matrix form of the ordinary WLLN for the structural
+error row `[e,u₂]`; unlike the projected quadratic-form package, it is an
+unweighted sample average. -/
+structure ManyInstrumentsUnprojectedFullErrorMomentConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : Prop where
+  full_error_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))) μ
+  full_error_tendsto : TendstoInMeasure μ
+    (fun m ω => sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))
+    atTop (fun _ => Sigma)
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+/-- The raw conditional-homoskedastic fourth-moment model implies the ordinary
+unprojected WLLN for the full structural-error row.  The proof centers each
+row-product entry, uses conditional independence to eliminate cross-row
+covariances, and obtains the sharp `B / n` mean-square bound. -/
+theorem
+ManyInstrumentsConditionalHomoskedasticFourthMomentModel.toUnprojectedFullErrorMomentConditions
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      μ Z e u2 Sigma B) :
+    ManyInstrumentsUnprojectedFullErrorMomentConditions μ e u2 Sigma := by
+  have hfullMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))) μ := by
+    intro m
+    have hrows : MemLp
+        (fun ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) 4 μ :=
+      MemLp.of_eval fun i => h.error_row_memLp_four m i
+    have hsampleGramContinuous : Continuous
+        (fun X : Matrix (Fin m) (Sum Unit k) ℝ => sampleGram X) := by
+      unfold sampleGram
+      fun_prop
+    exact hsampleGramContinuous.comp_aestronglyMeasurable hrows.1
+  refine ⟨hfullMeas, ?_⟩
+  apply TendstoInMeasure.of_sub_tendsto_zero_matrix
+  · refine tendstoInMeasure_pi (fun a => ?_)
+    refine tendstoInMeasure_pi (fun b => ?_)
+    apply manyInstruments_tendstoInMeasure_zero_of_integral_sq_le_inv
+    · intro m
+      by_cases hm : 0 < m
+      · exact (manyInstruments_unprojectedFullError_entry_meanSquare
+          h m hm a b).1
+      · have hm0 : m = 0 := Nat.eq_zero_of_not_pos hm
+        subst m
+        simp [sampleGram]
+    · filter_upwards [eventually_gt_atTop (0 : ℕ)] with m hm
+      exact (manyInstruments_unprojectedFullError_entry_meanSquare
+        h m hm a b).2
+  · exact tendstoInMeasure_of_tendsto_ae
+      (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ fun _ => tendsto_const_nhds)
+
 /-- Joint convergence of the two normalized sample-pencil matrices.  This is
 the honest spectral input to the LIML CMT; it does not assume an eigenvalue
 gap or the LIML adjustment limit. -/
@@ -13982,6 +14695,548 @@ structure ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
     (manyInstrumentsLIMLNormalizedSamplePencil Z X Y) atTop
     (fun _ => (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
       manyInstrumentsLIMLLimitDenominator β Sigma alpha))
+
+section NormalizedPencilAssembly
+
+attribute [-instance] manyInstrumentsMatrixBorelMeasurableSpaceInst
+  manyInstrumentsMatrixBorelSpaceInst
+
+private noncomputable def manyInstrumentsOutcomeMomentCoord
+    (M : Matrix (Sum Unit k) (Sum Unit k) ℝ) : ℝ :=
+  M (Sum.inl ()) (Sum.inl ())
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentsOutcomeMomentCoord_continuous : Continuous
+    (manyInstrumentsOutcomeMomentCoord (k := k)) := by
+  exact (continuous_apply (Sum.inl ())).comp (continuous_apply (Sum.inl ()))
+
+omit [DecidableEq k] in
+private theorem manyInstrumentsStructuralJointMoment_continuous (β : k → ℝ) :
+    Continuous
+      (fun p : Matrix k k ℝ × ((k → ℝ) × ℝ) =>
+        manyInstrumentsStructuralJointMoment β p.1 p.2.1 p.2.2) := by
+  apply continuous_pi
+  intro a
+  apply continuous_pi
+  intro b
+  cases a <;> cases b <;>
+    simp [manyInstrumentsStructuralJointMoment] <;> fun_prop
+
+set_option maxHeartbeats 3000000 in
+omit [DecidableEq k] in
+private theorem manyInstrumentsStructuralJointMoment_tendsto
+    (β : k → ℝ)
+    (A : ℕ → Ω → Matrix k k ℝ) (s : ℕ → Ω → (k → ℝ))
+    (q : ℕ → Ω → ℝ) (A0 : Matrix k k ℝ) (s0 : k → ℝ) (q0 : ℝ)
+    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
+    (hs_meas : ∀ m, AEStronglyMeasurable (s m) μ)
+    (hq_meas : ∀ m, AEStronglyMeasurable (q m) μ)
+    (hA : TendstoInMeasure μ A atTop (fun _ => A0))
+    (hs : TendstoInMeasure μ s atTop (fun _ => s0))
+    (hq : TendstoInMeasure μ q atTop (fun _ => q0)) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (A m ω) (s m ω) (q m ω)) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β A0 s0 q0) := by
+  have hinputs_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (A m ω, (s m ω, q m ω))) μ := fun m =>
+    (hA_meas m).prodMk ((hs_meas m).prodMk (hq_meas m))
+  have hinputs : TendstoInMeasure μ
+      (fun m ω => (A m ω, (s m ω, q m ω))) atTop
+      (fun _ => (A0, (s0, q0))) :=
+    tendstoInMeasure_prodMk hA (tendstoInMeasure_prodMk hs hq)
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  have hcoord_cont : Continuous
+      (fun p : Matrix k k ℝ × ((k → ℝ) × ℝ) =>
+        manyInstrumentsStructuralJointMoment β p.1 p.2.1 p.2.2 a b) := by
+    cases a <;> cases b <;>
+      simp [manyInstrumentsStructuralJointMoment] <;> fun_prop
+  exact tendstoInMeasure_continuous_comp hinputs_meas hinputs hcoord_cont
+
+omit [DecidableEq k] [IsProbabilityMeasure μ] in
+private theorem manyInstrumentsStructuralJointMoment_aestronglyMeasurable
+    (β : k → ℝ)
+    (A : ℕ → Ω → Matrix k k ℝ) (s : ℕ → Ω → (k → ℝ))
+    (q : ℕ → Ω → ℝ)
+    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
+    (hs_meas : ∀ m, AEStronglyMeasurable (s m) μ)
+    (hq_meas : ∀ m, AEStronglyMeasurable (q m) μ) :
+    ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsStructuralJointMoment β
+        (A m ω) (s m ω) (q m ω)) μ := by
+  intro m
+  change AEStronglyMeasurable
+    (fun ω a b => manyInstrumentsStructuralJointMoment β
+      (A m ω) (s m ω) (q m ω) a b) μ
+  rw [aestronglyMeasurable_iff_aemeasurable, aemeasurable_pi_iff]
+  intro a
+  rw [aemeasurable_pi_iff]
+  intro b
+  have hAcoord (i j : k) : AEStronglyMeasurable
+      (fun ω => A m ω i j) μ :=
+    (continuous_apply j).comp_aestronglyMeasurable
+      ((continuous_apply i).comp_aestronglyMeasurable (hA_meas m))
+  have hscoord (i : k) : AEStronglyMeasurable (fun ω => s m ω i) μ :=
+    (continuous_apply i).comp_aestronglyMeasurable (hs_meas m)
+  have hAvec (i : k) : AEStronglyMeasurable
+      (fun ω => (A m ω *ᵥ β) i) μ := by
+    have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+        (fun j _ => (hAcoord i j).mul
+          (aestronglyMeasurable_const : AEStronglyMeasurable
+            (fun _ : Ω => β j) μ))
+    change AEStronglyMeasurable (fun ω => ∑ j, A m ω i j * β j) μ
+    convert hsum using 1
+    ext ω
+    simp only [Finset.sum_apply, Pi.mul_apply]
+  have hbetaAvec : AEStronglyMeasurable
+      (fun ω => β ⬝ᵥ (A m ω *ᵥ β)) μ := by
+    have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+        (fun i _ => (aestronglyMeasurable_const : AEStronglyMeasurable
+          (fun _ : Ω => β i) μ).mul (hAvec i))
+    change AEStronglyMeasurable (fun ω => ∑ i, β i * (A m ω *ᵥ β) i) μ
+    convert hsum using 1
+    ext ω
+    simp only [Finset.sum_apply, Pi.mul_apply]
+  have hbetas : AEStronglyMeasurable (fun ω => β ⬝ᵥ s m ω) μ := by
+    have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+        (fun i _ => (aestronglyMeasurable_const : AEStronglyMeasurable
+          (fun _ : Ω => β i) μ).mul (hscoord i))
+    change AEStronglyMeasurable (fun ω => ∑ i, β i * s m ω i) μ
+    convert hsum using 1
+    ext ω
+    simp only [Finset.sum_apply, Pi.mul_apply]
+  cases a with
+  | inl _ =>
+      cases b with
+      | inl _ =>
+          exact (hbetaAvec.add hbetas |>.add hbetas |>.add (hq_meas m)).aemeasurable
+      | inr j =>
+          have hbetaCol : AEStronglyMeasurable
+              (fun ω => β ⬝ᵥ (fun i => A m ω i j)) μ := by
+            have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+                (fun i _ => (aestronglyMeasurable_const : AEStronglyMeasurable
+                  (fun _ : Ω => β i) μ).mul (hAcoord i j))
+            change AEStronglyMeasurable (fun ω => ∑ i, β i * A m ω i j) μ
+            convert hsum using 1
+            ext ω
+            simp only [Finset.sum_apply, Pi.mul_apply]
+          exact (hbetaCol.add (hscoord j)).aemeasurable
+  | inr i =>
+      cases b with
+      | inl _ => exact ((hAvec i).add (hscoord i)).aemeasurable
+      | inr j => exact (hAcoord i j).aemeasurable
+
+set_option maxHeartbeats 3000000 in
+private theorem manyInstruments_totalStructuralJointMoment_tendsto
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hOLS : ManyInstrumentsOLSMomentLimitConditions μ X e
+      (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma))
+    (hunprojected : ManyInstrumentsUnprojectedFullErrorMomentConditions
+      μ e u2 Sigma) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)
+        (Sigma (Sum.inl ()) (Sum.inl ()))) := by
+  have hcoord_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hunprojected.full_error_meas m)
+  have hcoord_tendsto_new : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))) atTop
+      (fun _ => Sigma (Sum.inl ()) (Sum.inl ())) := by
+    simpa [manyInstrumentsOutcomeMomentCoord] using
+      tendstoInMeasure_continuous_comp hunprojected.full_error_meas
+        hunprojected.full_error_tendsto
+        manyInstrumentsOutcomeMomentCoord_continuous
+  exact manyInstrumentsStructuralJointMoment_tendsto (μ := μ) β
+    (fun m ω => sampleGram (X m ω))
+    (fun m ω => sampleCrossMoment (X m ω) (e m ω))
+    (fun m ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))
+    (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)
+    (Sigma (Sum.inl ()) (Sum.inl ())) hOLS.gram_meas hOLS.score_meas
+    hcoord_meas_new hOLS.gram_tendsto hOLS.score_tendsto hcoord_tendsto_new
+
+set_option maxHeartbeats 3000000 in
+private theorem manyInstruments_projectedStructuralJointMoment_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hProjected : ManyInstrumentsLIMLMomentLimitConditions μ Z X e
+      (fun _ _ => 0) (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma))
+    (hfull_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) μ)
+    (hfull_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) atTop
+      (fun _ => alpha • Sigma)) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma)
+        (alpha * Sigma (Sum.inl ()) (Sum.inl ()))) := by
+  have hcoord_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hfull_meas m)
+  have hcoord_tendsto_new : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω))) atTop
+      (fun _ => alpha * Sigma (Sum.inl ()) (Sum.inl ())) := by
+    have hraw := tendstoInMeasure_continuous_comp hfull_meas hfull_tendsto
+      manyInstrumentsOutcomeMomentCoord_continuous
+    simpa [manyInstrumentsOutcomeMomentCoord, Matrix.smul_apply] using hraw
+  exact manyInstrumentsStructuralJointMoment_tendsto (μ := μ) β
+    (fun m ω => limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+    (fun m ω => limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+    (fun m ω => manyInstrumentsOutcomeMomentCoord
+      (manyInstrumentsProjectedFullErrorMoment (Z m ω) (e m ω) (u2 m ω)))
+    (H + alpha • manyInstrumentsSigma22 Sigma)
+    (alpha • manyInstrumentsSigma2e Sigma)
+    (alpha * Sigma (Sum.inl ()) (Sum.inl ())) hProjected.moment_meas
+    hProjected.score_meas hcoord_meas_new hProjected.moment_tendsto
+    hProjected.score_tendsto hcoord_tendsto_new
+
+set_option maxHeartbeats 900000 in
+omit [IsProbabilityMeasure μ] in
+private theorem manyInstruments_totalStructuralJointMoment_identify_limit
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hSigma : Sigma.PosDef)
+    (h : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)
+        (Sigma (Sum.inl ()) (Sum.inl ())))) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+        manyInstrumentsJointReducedFormCovariance β Sigma) := by
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl)
+    (ae_of_all μ fun _ => ?_) h
+  simpa using manyInstruments_structuralJointMoment_limit β H Sigma 1 hSigma
+
+set_option maxHeartbeats 900000 in
+omit [IsProbabilityMeasure μ] in
+private theorem manyInstruments_projectedStructuralJointMoment_identify_limit
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hSigma : Sigma.PosDef)
+    (h : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma)
+        (alpha * Sigma (Sum.inl ()) (Sum.inl ())))) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha) := by
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl)
+    (ae_of_all μ fun _ => ?_) h
+  exact manyInstruments_structuralJointMoment_limit β H Sigma alpha hSigma
+
+set_option maxHeartbeats 900000 in
+private theorem manyInstruments_normalizedPencil_of_joint_limits
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hstruct : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω)
+    (htotal_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) μ)
+    (htotal_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+        manyInstrumentsJointReducedFormCovariance β Sigma))
+    (hprojected_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) μ)
+    (hprojected_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha)) :
+    ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha := by
+  let totalJoint : ℕ → Ω → Matrix (Sum Unit k) (Sum Unit k) ℝ := fun m ω =>
+    manyInstrumentsStructuralJointMoment β
+    (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+    (manyInstrumentsOutcomeMomentCoord (sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))
+  let projectedJoint : ℕ → Ω → Matrix (Sum Unit k) (Sum Unit k) ℝ := fun m ω =>
+    manyInstrumentsStructuralJointMoment β
+    (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+    (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+    (manyInstrumentsOutcomeMomentCoord (manyInstrumentsProjectedFullErrorMoment
+      (Z m ω) (e m ω) (u2 m ω)))
+  have hdenom_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => totalJoint m ω - projectedJoint m ω) μ := by
+    intro m
+    have htotal : AEStronglyMeasurable (totalJoint m) μ := by
+      simpa [totalJoint] using htotal_meas m
+    have hprojected : AEStronglyMeasurable (projectedJoint m) μ := by
+      simpa [projectedJoint] using hprojected_meas m
+    exact htotal.sub hprojected
+  have hdenom_tendsto : TendstoInMeasure μ
+      (fun m ω => totalJoint m ω - projectedJoint m ω) atTop
+      (fun _ => manyInstrumentsLIMLLimitDenominator β Sigma alpha) := by
+    have hpair_meas : ∀ m, AEStronglyMeasurable
+        (fun ω => (totalJoint m ω, projectedJoint m ω)) μ := by
+      intro m
+      have htotal : AEStronglyMeasurable (totalJoint m) μ := by
+        simpa [totalJoint] using htotal_meas m
+      have hprojected : AEStronglyMeasurable (projectedJoint m) μ := by
+        simpa [projectedJoint] using hprojected_meas m
+      exact htotal.prodMk hprojected
+    have htotal_tendsto' : TendstoInMeasure μ totalJoint atTop
+        (fun _ => (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+            manyInstrumentsJointReducedFormCovariance β Sigma) := by
+      simpa [totalJoint] using htotal_tendsto
+    have hprojected_tendsto' : TendstoInMeasure μ projectedJoint atTop
+        (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha) := by
+      simpa [projectedJoint] using hprojected_tendsto
+    have hpair_tendsto := tendstoInMeasure_prodMk
+      htotal_tendsto' hprojected_tendsto'
+    have hsub_cont : Continuous
+        (fun p : Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ => p.1 - p.2) := by fun_prop
+    have hsub := tendstoInMeasure_continuous_comp hpair_meas hpair_tendsto hsub_cont
+    refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl)
+      (ae_of_all μ fun _ => ?_) hsub
+    ext a b
+    simp [manyInstrumentsLIMLLimitNumerator,
+      manyInstrumentsLIMLLimitDenominator, Matrix.smul_apply]
+    ring
+  refine
+    { pencil_meas := ?_
+      pencil_tendsto := ?_ }
+  · intro m
+    have hprojected : AEStronglyMeasurable (projectedJoint m) μ := by
+      simpa [projectedJoint] using hprojected_meas m
+    have hpair := hprojected.prodMk (hdenom_meas m)
+    refine hpair.congr (ae_of_all μ fun ω => ?_)
+    simp only [manyInstrumentsLIMLNormalizedSamplePencil]
+    rw [hstruct m ω]
+    have hnum : (m : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighNumerator
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) = projectedJoint m ω := by
+      simpa [projectedJoint, manyInstrumentsOutcomeMomentCoord] using
+        manyInstruments_normalizedRayleighNumerator_eq_structuralJointMoment
+          (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+            (e m ω) (u2 m ω) β rfl
+    have htotal : sampleGram (manyInstrumentsLIMLSampleRayleighData
+          (X m ω) (X m ω *ᵥ β + e m ω)) = totalJoint m ω := by
+      simpa [totalJoint, manyInstrumentsOutcomeMomentCoord] using
+        manyInstruments_sampleGram_rayleighData_eq_structuralJointMoment
+          (X m ω) (X m ω *ᵥ β + e m ω) (e m ω) (u2 m ω) β rfl
+    have hden : (m : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighDenominator
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) =
+        sampleGram (manyInstrumentsLIMLSampleRayleighData
+          (X m ω) (X m ω *ᵥ β + e m ω)) -
+          (m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighNumerator
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) := by
+      simpa using manyInstruments_normalizedRayleighDenominator_eq_total_sub_numerator
+        (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+    apply Prod.ext
+    · exact hnum.symm
+    · rw [← htotal, ← hnum]
+      exact hden.symm
+  · have hprojected_tendsto' : TendstoInMeasure μ projectedJoint atTop
+        (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha) := by
+      simpa [projectedJoint] using hprojected_tendsto
+    have hpair_tendsto := tendstoInMeasure_prodMk
+      hprojected_tendsto' hdenom_tendsto
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hpair_tendsto
+    exact ae_of_all μ fun ω => by
+      simp only [manyInstrumentsLIMLNormalizedSamplePencil]
+      rw [hstruct m ω]
+      have hnum : (m : ℝ)⁻¹ •
+            manyInstrumentsLIMLSampleRayleighNumerator
+              (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) = projectedJoint m ω := by
+        simpa [projectedJoint, manyInstrumentsOutcomeMomentCoord] using
+          manyInstruments_normalizedRayleighNumerator_eq_structuralJointMoment
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+              (e m ω) (u2 m ω) β rfl
+      have htotal : sampleGram (manyInstrumentsLIMLSampleRayleighData
+            (X m ω) (X m ω *ᵥ β + e m ω)) = totalJoint m ω := by
+        simpa [totalJoint, manyInstrumentsOutcomeMomentCoord] using
+          manyInstruments_sampleGram_rayleighData_eq_structuralJointMoment
+            (X m ω) (X m ω *ᵥ β + e m ω) (e m ω) (u2 m ω) β rfl
+      have hden : (m : ℝ)⁻¹ •
+            manyInstrumentsLIMLSampleRayleighDenominator
+              (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) =
+          sampleGram (manyInstrumentsLIMLSampleRayleighData
+            (X m ω) (X m ω *ᵥ β + e m ω)) -
+            (m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighNumerator
+              (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) := by
+        simpa using manyInstruments_normalizedRayleighDenominator_eq_total_sub_numerator
+          (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+      apply Prod.ext
+      · exact hnum.symm
+      · rw [← htotal, ← hnum]
+        exact hden.symm
+
+set_option maxHeartbeats 900000 in
+/-- Derive the normalized many-instrument LIML pencil from the raw model and
+the same OLS and projected-error moments used by the OLS and 2SLS faces of
+Theorem 12.19.  The ordinary unprojected full-error WLLN is derived internally
+from conditional independence and the bounded conditional fourth moment. -/
+theorem ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha := by
+  let hunprojected : ManyInstrumentsUnprojectedFullErrorMomentConditions
+      μ e u2 Sigma := hraw.errors.toUnprojectedFullErrorMomentConditions
+  let h2SLSNew : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) alpha :=
+    hraw.toTwoSLSMomentAssemblyConditions hOLS hquad
+  let hOLSNew : ManyInstrumentsOLSMomentLimitConditions μ X e
+      (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) :=
+    ManyInstrumentsOLSMomentLimitConditions.of_reduced_form_components hOLS
+  let hProjectedNew : ManyInstrumentsLIMLMomentLimitConditions μ Z X e
+      (fun _ _ => 0) (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma) :=
+    ManyInstrumentsLIMLMomentLimitConditions.of_projected_reduced_form_components
+      h2SLSNew
+  have htrace_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ := fun m =>
+    manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (hraw.instrument_gram_nonsingular m)
+  have hprojected_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) μ :=
+    hquad.projected_meas htrace_meas_new
+  have hprojected_tendsto_new : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) atTop
+      (fun _ => alpha • Sigma) :=
+    hraw.projected_full_error_tendsto hquad
+  have htotal_coord_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hunprojected.full_error_meas m)
+  have htotal_meas_new :=
+    manyInstrumentsStructuralJointMoment_aestronglyMeasurable (μ := μ) β
+      (fun m ω => sampleGram (X m ω))
+      (fun m ω => sampleCrossMoment (X m ω) (e m ω))
+      (fun m ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))
+      hOLSNew.gram_meas hOLSNew.score_meas htotal_coord_meas
+  have htotal_tendsto_raw :=
+    manyInstruments_totalStructuralJointMoment_tendsto (β := β)
+      hOLSNew hunprojected
+  have htotal_tendsto_new :=
+    manyInstruments_totalStructuralJointMoment_identify_limit
+      hraw.error_covariance_posDef htotal_tendsto_raw
+  have hprojected_coord_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hprojected_meas_new m)
+  have hjoint_meas_new :=
+    manyInstrumentsStructuralJointMoment_aestronglyMeasurable (μ := μ) β
+      (fun m ω => limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+      (fun m ω => limlNormalizedMomentVectorStar
+        (Z m ω) (X m ω) (e m ω) 0)
+      (fun m ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω)))
+      hProjectedNew.moment_meas hProjectedNew.score_meas hprojected_coord_meas
+  have hjoint_tendsto_raw :=
+    manyInstruments_projectedStructuralJointMoment_tendsto (β := β) hProjectedNew
+      hprojected_meas_new hprojected_tendsto_new
+  have hjoint_tendsto_new :=
+    manyInstruments_projectedStructuralJointMoment_identify_limit
+      hraw.error_covariance_posDef hjoint_tendsto_raw
+  exact manyInstruments_normalizedPencil_of_joint_limits hraw.structural
+    htotal_meas_new htotal_tendsto_new hjoint_meas_new hjoint_tendsto_new
 
 /-- Locally continuous generalized-eigenvalue selector certificate, matching the
 weak-IV selector/CMT architecture but applied to the many-instrument
@@ -14151,7 +15406,7 @@ theorem manyInstruments_estimators_theorem12_19_of_normalizedPencil_selector
     (ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_normalizedPencil_selector
       halpha_lt_one hratio hstruct hH hSigma hOLS h2SLS hpencil hselector)
 
-/-- Hansen Theorem 12.19 from the raw model, the two remaining analytic
+/-- Hansen Theorem 12.19 from the raw model, the remaining OLS/projected
 concentration certificates, and a locally continuous generalized-root selector.
 
 The raw package contains model (12.73), conditional assumptions (12.74)--(12.75),
@@ -14161,8 +15416,8 @@ assembly is the fixed-dimensional WLLN output for the unprojected error and
 signal-error moments.  The mean-square package is Hansen's conditional
 quadratic-form calculation leading to (12.81), and is used here to derive the
 projected 2SLS error moments rather than assume their probability limits.  The
-normalized-pencil package and local selector record the remaining spectral CMT
-boundary; no estimator probability limit is an input. -/
+normalized pencil is derived from these inputs and the raw model's ordinary
+full-error WLLN; the local selector is the remaining spectral CMT boundary. -/
 theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_selector
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
@@ -14185,8 +15440,6 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_select
         (manyInstrumentsSigma2e Sigma))
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z e u2 Sigma C)
-    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
-      μ Z X Y β H Sigma alpha)
     (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
       μ Z X Y limlMuHat β H Sigma alpha muSelector) :
     TendstoInMeasure μ
@@ -14200,10 +15453,16 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_select
     TendstoInMeasure μ
       (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
       atTop (fun _ => β) := by
+  let hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha :=
+    ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments
+      hraw hOLS hquad
   apply manyInstruments_estimators_theorem12_19_of_normalizedPencil_selector
     hraw.alpha_lt_one hraw.instrument_ratio hraw.structural hraw.signal_posDef
       hraw.error_covariance_posDef hOLS
       (hraw.toTwoSLSMomentAssemblyConditions hOLS hquad) hpencil hselector
+
+end NormalizedPencilAssembly
 
 /- The following compatibility packages encode projected quadratic forms or
 an eigenvalue adjustment as iid additive rows.  Projection and generalized
