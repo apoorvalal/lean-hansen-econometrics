@@ -613,7 +613,7 @@ canonical crosswalk above.
   The assembly uses the exact finite-sample generalized-eigenvalue pair and the full
   reduced-form Rayleigh minimizer. The new literal triangular-array layer
   `weakIVLocalRegressorRow`, `weakIVLocalOutcomeRow`, and
-  `WeakIVTheorem1218RawJointMomentConditions` proves the raw reduced-form matrix
+  `WeakIVRawJointMomentConditions` proves the raw reduced-form matrix
   CLT, joint Gram/covariance WLLNs, and the exact `(Ξ₂, ξe)` Gaussian block
   limit in `weakIV_rawReducedFormScore_tendstoInDistribution_gaussian`,
   `weakIV_rawJointMoments_tendstoInDistribution`, and
@@ -626,13 +626,13 @@ canonical crosswalk above.
   moments and population instrument nonsingularity, using the vanishing
   sample-singularity event to bridge the nonsingular assembly map to the
   literal sample pencil.
-  `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments` therefore
+  `WeakIVTriangularAssemblyConditions.of_raw_moments` therefore
   constructs the assembly from those primitive conditions plus the selector
   certificate, without assuming estimator convergence. The concrete
   `weakIVLIMLSmallestGeneralizedRoot` is measurable, continuous off the
   measurable non-positive-denominator set, and is proved to attain Hansen's
   generalized Rayleigh minimum. Consequently
-  `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot`
+  `WeakIVTriangularAssemblyConditions.of_raw_moments_smallestRoot`
   constructs the selector certificate directly from raw moments, population
   instrument nonsingularity, and positive definiteness of the full reduced-form
   error covariance.

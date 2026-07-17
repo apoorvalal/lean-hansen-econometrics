@@ -14973,7 +14973,7 @@ noncomputable def weakIVRawSigma22
 omit [Fintype k] [DecidableEq k] in
 /-- Positive definiteness of the full reduced-form covariance passes to its
 endogenous-error principal block. -/
-theorem weakIVRawSigma22_posDef
+private theorem weakIVRawSigma22_posDef
     [Finite k]
     {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
     (hSigma : Sigma.PosDef) :
@@ -15143,7 +15143,7 @@ used in Hansen's derivation of Theorem 12.18.
 `score_mean_zero` is the reduced-form orthogonality condition.  These are the
 moment assumptions hidden by the excerpt's phrase "by the central limit
 theorem"; no convergence conclusion is stored in this package. -/
-structure WeakIVTheorem1218RawJointMomentConditions
+structure WeakIVRawJointMomentConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ) : Prop where
   row_aestronglyMeasurable : ∀ i,
@@ -15157,26 +15157,26 @@ structure WeakIVTheorem1218RawJointMomentConditions
   score_memLp_two : MemLp (weakIVRawReducedFormScoreRow Z u 0) 2 μ
   score_mean_zero : meanVec μ (weakIVRawReducedFormScoreRow Z u 0) = 0
 
-namespace WeakIVTheorem1218RawJointMomentConditions
+namespace WeakIVRawJointMomentConditions
 
 omit [DecidableEq k] [DecidableEq l] in
 private theorem instrument_measurable
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) (i : ℕ) :
+    (h : WeakIVRawJointMomentConditions μ Z u) (i : ℕ) :
     AEStronglyMeasurable (Z i) μ :=
   continuous_fst.comp_aestronglyMeasurable (h.row_aestronglyMeasurable i)
 
 omit [DecidableEq k] [DecidableEq l] in
 private theorem error_measurable
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) (i : ℕ) :
+    (h : WeakIVRawJointMomentConditions μ Z u) (i : ℕ) :
     AEStronglyMeasurable (u i) μ :=
   continuous_snd.comp_aestronglyMeasurable (h.row_aestronglyMeasurable i)
 
 omit [DecidableEq k] [DecidableEq l] in
 private theorem score_iIndep
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) :
+    (h : WeakIVRawJointMomentConditions μ Z u) :
     iIndepFun (weakIVRawReducedFormScoreRow Z u) μ := by
   simpa [weakIVRawReducedFormScoreRow, Function.comp_def] using
     h.row_iIndep.comp
@@ -15186,7 +15186,7 @@ private theorem score_iIndep
 omit [DecidableEq k] [DecidableEq l] in
 private theorem score_identDistrib
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) (i : ℕ) :
+    (h : WeakIVRawJointMomentConditions μ Z u) (i : ℕ) :
     IdentDistrib (weakIVRawReducedFormScoreRow Z u i)
       (weakIVRawReducedFormScoreRow Z u 0) μ μ := by
   simpa [weakIVRawReducedFormScoreRow, Function.comp_def] using
@@ -15196,7 +15196,7 @@ private theorem score_identDistrib
 omit [DecidableEq k] [DecidableEq l] in
 private theorem instrument_gram_conditions
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) :
+    (h : WeakIVRawJointMomentConditions μ Z u) :
     SampleGramWLLNConditions μ Z := by
   apply SampleGramWLLNConditions.of_iid_finite_second
   · exact h.instrument_measurable
@@ -15209,7 +15209,7 @@ private theorem instrument_gram_conditions
 omit [DecidableEq k] [DecidableEq l] in
 private theorem error_gram_conditions
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) :
+    (h : WeakIVRawJointMomentConditions μ Z u) :
     SampleGramWLLNConditions μ u := by
   apply SampleGramWLLNConditions.of_iid_finite_second
   · exact h.error_measurable
@@ -15219,14 +15219,14 @@ private theorem error_gram_conditions
     simpa [Function.comp_def] using (h.row_identDistrib i).comp measurable_snd
   · exact h.error_norm_sq_integrable
 
-end WeakIVTheorem1218RawJointMomentConditions
+end WeakIVRawJointMomentConditions
 
 /-- The raw iid model proves Hansen's full reduced-form matrix CLT.  The limit
 law is exactly the multivariate Gaussian with covariance
 `Cov (vec (Z_i u_i'))`; it is not an assumption of this theorem. -/
 theorem weakIV_rawReducedFormScore_tendstoInDistribution_gaussian
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) :
+    (h : WeakIVRawJointMomentConditions μ Z u) :
     TendstoInDistribution
       (fun (m : ℕ) (omega : Ω) => weakIVRawRootReducedFormScore Z u m omega)
       atTop
@@ -15258,7 +15258,7 @@ Besides the Gaussian reduced-form score, this proves convergence of the
 instrument Gram and reduced-form-error covariance from the same iid rows. -/
 theorem weakIV_rawJointMoments_tendstoInDistribution
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) :
+    (h : WeakIVRawJointMomentConditions μ Z u) :
     TendstoInDistribution
       (fun (m : ℕ) (omega : Ω) =>
         (weakIVRawRootReducedFormScore Z u m omega,
@@ -15301,7 +15301,7 @@ projections of `popGram mu u`; they are not independent assumptions. -/
 theorem weakIV_rawRootOLSAssembly_tendstoInDistribution
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
     (C : Matrix l k ℝ) (beta : k → ℝ)
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) :
+    (h : WeakIVRawJointMomentConditions μ Z u) :
     TendstoInDistribution
       (fun (m : ℕ) (omega : Ω) =>
         weakIVRawRootOLSAssemblyMap C beta
@@ -15327,7 +15327,7 @@ Thus instrument rank is derived, not retained in the triangular assembly
 package as a separate sample-level assumption. -/
 theorem weakIV_rawInstrumentGram_singular_tendsto_zero
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (h : WeakIVRawJointMomentConditions μ Z u)
     (hQZZ : IsUnit (popGram μ Z).det) :
     Tendsto
       (fun m => μ {omega | ¬ IsUnit
@@ -15376,7 +15376,7 @@ theorem weakIV_rawInstrumentGram_singular_tendsto_zero
 `(Xi_2, xi_e)` object used in all three faces of Theorem 12.18. -/
 theorem weakIV_rawGaussianBlocks_tendstoInDistribution
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
-    (beta : k → ℝ) (h : WeakIVTheorem1218RawJointMomentConditions μ Z u) :
+    (beta : k → ℝ) (h : WeakIVRawJointMomentConditions μ Z u) :
     TendstoInDistribution
       (fun (m : ℕ) (omega : Ω) =>
         (weakIVRawGaussianFirstStage (weakIVRawRootReducedFormScore Z u m omega),
@@ -16494,7 +16494,7 @@ Gram.  No eigenvalue selector or estimator convergence is assumed. -/
 theorem weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
     (C : Matrix l k ℝ) (beta : k → ℝ)
-    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (h : WeakIVRawJointMomentConditions μ Z u)
     (hQZZ : IsUnit (popGram μ Z).det) :
     TendstoInDistribution
       (fun (m : ℕ) (omega : Ω) =>
@@ -16626,7 +16626,7 @@ minimum is required on regular pencils only: at `m = 0` the denominator is
 zero, so Hansen's admissible Rayleigh domain is empty and an unconditional
 minimum certificate would be inconsistent. The limiting minimum remains exact
 and the bad set must be null under the raw Gaussian limit law. -/
-structure WeakIVTheorem1218TriangularSelectorCertificate
+structure WeakIVTriangularSelectorCertificate
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
     (C : Matrix l k ℝ) (beta : k → ℝ)
@@ -16658,11 +16658,11 @@ structure WeakIVTheorem1218TriangularSelectorCertificate
 /-- Non-circular corrected assembly package at the current raw boundary.
 
 The pencil field records the generalized-eigenvalue CMT and is derived from raw
-moments by `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments`. The
+moments by `WeakIVTriangularAssemblyConditions.of_raw_moments`. The
 selector certificate identifies every regular finite-sample root and every
 limiting root as a Rayleigh minimum. Estimator nondegeneracy assumptions are
 kept at the theorem endpoint that invokes the inverse maps. -/
-structure WeakIVTheorem1218TriangularAssemblyConditions
+structure WeakIVTriangularAssemblyConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
     (C : Matrix l k ℝ) (beta : k → ℝ)
@@ -16673,7 +16673,7 @@ structure WeakIVTheorem1218TriangularAssemblyConditions
     (selectorBad : Set
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ)) : Prop where
-  raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u
+  raw_moments : WeakIVRawJointMomentConditions μ Z u
   pencil_tendsto : TendstoInDistribution
     (fun (m : ℕ) (omega : Ω) =>
       weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega)
@@ -16682,13 +16682,13 @@ structure WeakIVTheorem1218TriangularAssemblyConditions
     (fun _ => μ)
     (multivariateGaussian 0
       (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
-  selector : WeakIVTheorem1218TriangularSelectorCertificate
+  selector : WeakIVTriangularSelectorCertificate
     μ Z u C beta limlMuHat muSelector selectorBad
 
 /-- Build the triangular raw assembly from primitive moments, population
 instrument nonsingularity, and the spectral selector certificate. In
 particular, no estimator convergence is assumed. -/
-theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
+theorem WeakIVTriangularAssemblyConditions.of_raw_moments
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
     {C : Matrix l k ℝ} {beta : k → ℝ}
     {limlMuHat : ℕ → Ω → ℝ}
@@ -16698,11 +16698,11 @@ theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
     {selectorBad : Set
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ)}
-    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (raw_moments : WeakIVRawJointMomentConditions μ Z u)
     (hQZZ : IsUnit (popGram μ Z).det)
-    (selector : WeakIVTheorem1218TriangularSelectorCertificate
+    (selector : WeakIVTriangularSelectorCertificate
       μ Z u C beta limlMuHat muSelector selectorBad) :
-    WeakIVTheorem1218TriangularAssemblyConditions
+    WeakIVTriangularAssemblyConditions
       μ Z u C beta limlMuHat muSelector selectorBad where
   raw_moments := raw_moments
   pencil_tendsto :=
@@ -16714,13 +16714,13 @@ theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
 smallest generalized-Rayleigh root. Positive definiteness of the full
 reduced-form error covariance is the nondegeneracy condition that makes
 Hansen's limiting Rayleigh problem well posed. -/
-theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot
+theorem WeakIVTriangularAssemblyConditions.of_raw_moments_smallestRoot
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
     {C : Matrix l k ℝ} {beta : k → ℝ}
-    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (raw_moments : WeakIVRawJointMomentConditions μ Z u)
     (hQZZ : IsUnit (popGram μ Z).det)
     (hSigma : (popGram μ u).PosDef) :
-    WeakIVTheorem1218TriangularAssemblyConditions
+    WeakIVTriangularAssemblyConditions
       μ Z u C beta
       (weakIVLocalLIMLSmallestRoot Z u C beta)
       weakIVLIMLSmallestGeneralizedRoot
@@ -16728,7 +16728,7 @@ theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoo
   have hpencil :=
     weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution
       C beta raw_moments hQZZ
-  apply WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
+  apply WeakIVTriangularAssemblyConditions.of_raw_moments
     raw_moments hQZZ
   refine
     { selector_meas := weakIVLIMLSmallestGeneralizedRoot_measurable
@@ -16892,7 +16892,7 @@ theorem weakIV_triangular_actual_moments_tendstoInDistribution
     {selectorBad : Set
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ)}
-    (h : WeakIVTheorem1218TriangularAssemblyConditions
+    (h : WeakIVTriangularAssemblyConditions
       μ Z u C beta limlMuHat muSelector selectorBad) :
     TendstoInDistribution
       (fun (m : ℕ) (omega : Ω) =>
@@ -17003,7 +17003,7 @@ theorem weakIV_triangular_estimators_minus_beta_tendstoInDistribution
     {selectorBad : Set
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ)}
-    (h : WeakIVTheorem1218TriangularAssemblyConditions
+    (h : WeakIVTriangularAssemblyConditions
       μ Z u C beta limlMuHat muSelector selectorBad)
     (hSigma22 : IsUnit (weakIVRawSigma22 (popGram μ u)).det)
     (h2SLSBread :
@@ -17182,7 +17182,7 @@ theorem weakIV_theorem12_18_triangular_estimators
     {selectorBad : Set
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ)}
-    (h : WeakIVTheorem1218TriangularAssemblyConditions
+    (h : WeakIVTriangularAssemblyConditions
       μ Z u C beta limlMuHat muSelector selectorBad)
     (hSigma22 : IsUnit (weakIVRawSigma22 (popGram μ u)).det)
     (h2SLSBread :
@@ -17275,7 +17275,7 @@ population rank conditions needed by the totalized inverse maps. -/
 theorem weakIV_theorem12_18_triangular_estimators_of_raw_moments
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
     {C : Matrix l k ℝ} {beta : k → ℝ}
-    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (raw_moments : WeakIVRawJointMomentConditions μ Z u)
     (hQZZ : IsUnit (popGram μ Z).det)
     (hSigma : (popGram μ u).PosDef)
     (h2SLSBread :
@@ -17331,7 +17331,7 @@ theorem weakIV_theorem12_18_triangular_estimators_of_raw_moments
       LIMLRayleighMinimizer p.1 p.2
         (weakIVRawLIMLSmallestRoot μ Z u C beta z)) := by
   have hassembly :=
-    WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot
+    WeakIVTriangularAssemblyConditions.of_raw_moments_smallestRoot
       (C := C) (beta := beta) raw_moments hQZZ hSigma
   have hSigma22 : IsUnit (weakIVRawSigma22 (popGram μ u)).det :=
     isUnit_iff_ne_zero.mpr (weakIVRawSigma22_posDef hSigma).det_pos.ne'
@@ -17352,7 +17352,7 @@ theorem weakIV_theorem12_18_triangular_raw_assembly
     {selectorBad : Set
       (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
         Matrix (Sum Unit k) (Sum Unit k) ℝ)}
-    (h : WeakIVTheorem1218TriangularAssemblyConditions
+    (h : WeakIVTriangularAssemblyConditions
       μ Z u C beta limlMuHat muSelector selectorBad) :
     TendstoInDistribution
       (fun (m : ℕ) (omega : Ω) =>
@@ -17393,7 +17393,7 @@ directly from the raw iid moment assumptions. -/
 theorem weakIVLocalLIMLSmallestRoot_tendstoInDistribution
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
     {C : Matrix l k ℝ} {beta : k → ℝ}
-    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (raw_moments : WeakIVRawJointMomentConditions μ Z u)
     (hQZZ : IsUnit (popGram μ Z).det)
     (hSigma : (popGram μ u).PosDef) :
     TendstoInDistribution
@@ -17404,7 +17404,7 @@ theorem weakIVLocalLIMLSmallestRoot_tendstoInDistribution
       (multivariateGaussian 0
         (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) := by
   have hassembly :=
-    WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments_smallestRoot
+    WeakIVTriangularAssemblyConditions.of_raw_moments_smallestRoot
       (C := C) (beta := beta) raw_moments hQZZ hSigma
   have hroot := (weakIV_theorem12_18_triangular_raw_assembly hassembly).2.1
   simpa [weakIVRawLIMLSmallestRoot] using hroot
