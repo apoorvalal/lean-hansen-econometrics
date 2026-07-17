@@ -13290,7 +13290,7 @@ theorem manyInstrumentsJointReducedFormCovariance_posDef
       (manyInstrumentsReducedFormErrorLoading_mulVec_injective β)
 
 @[simp]
-theorem manyInstrumentsStructuralErrorLoading_mul_reducedFormErrorLoading
+private theorem manyInstrumentsStructuralErrorLoading_mul_reducedFormErrorLoading
     (β : k → ℝ) :
     manyInstrumentsStructuralErrorLoading β *
         manyInstrumentsReducedFormErrorLoading β = 1 := by
