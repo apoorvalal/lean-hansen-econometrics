@@ -2016,7 +2016,7 @@ theorem y_aestronglyMeasurable
 omit [DecidableEq k] [DecidableEq l] in
 /-- Hansen's response and regressor second moments imply a structural-error
 second moment through the linear model. -/
-theorem error_memLp_two
+private theorem error_memLp_two
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
     (h : TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0) :
@@ -5797,7 +5797,7 @@ theorem y_aestronglyMeasurable
 omit [DecidableEq k] [DecidableEq l] in
 /-- Hansen's response and regressor fourth moments imply a structural-error
 fourth moment through the linear model. -/
-theorem error_memLp_four
+private theorem error_memLp_four
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
     (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
@@ -5918,7 +5918,7 @@ theorem toTextbookSecondConditions
 omit [DecidableEq k] [DecidableEq l] in
 /-- The displayed response and regressor fourth moments imply a fourth moment
 for the structural error. -/
-theorem error_memLp_four
+private theorem error_memLp_four
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ}
     (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
