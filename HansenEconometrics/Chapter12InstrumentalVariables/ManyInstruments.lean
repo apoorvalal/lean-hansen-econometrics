@@ -13157,6 +13157,85 @@ noncomputable def manyInstrumentsReducedFormErrorData
     (e : n → ℝ) (u2 : Matrix n k ℝ) : Matrix n (Sum Unit k) ℝ :=
   Matrix.fromCols (fun i (_ : Unit) => e i) u2
 
+/-- Hansen's primitive reduced-form error row `[u₁,u₂]` in (12.74).
+
+The separate name prevents the first coordinate from being confused with the
+structural error `e = u₁ - β'u₂` used by the internal proof engine. -/
+noncomputable def manyInstrumentsHansenReducedFormErrorData
+    {n : Type*} [Fintype n]
+    (u1 : n → ℝ) (u2 : Matrix n k ℝ) : Matrix n (Sum Unit k) ℝ :=
+  Matrix.fromCols (fun i (_ : Unit) => u1 i) u2
+
+/-- Hansen's structural error `e = u₁ - β'u₂` from the reduced form (12.73). -/
+noncomputable def manyInstrumentsStructuralError
+    {n : Type*} [Fintype n]
+    (u1 : n → ℝ) (u2 : Matrix n k ℝ) (β : k → ℝ) : n → ℝ :=
+  fun i => u1 i - dotProduct (u2 i) β
+
+/-- Loading that maps Hansen's primitive row `[u₁,u₂]` to the internal
+structural-error row `[u₁ - β'u₂,u₂]`. -/
+noncomputable def manyInstrumentsStructuralErrorLoading
+    (β : k → ℝ) : Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  fun i j => match i, j with
+    | Sum.inl _, Sum.inl _ => 1
+    | Sum.inl _, Sum.inr _ => 0
+    | Sum.inr a, Sum.inl _ => -β a
+    | Sum.inr a, Sum.inr b => if a = b then 1 else 0
+
+/-- The internal covariance of `[e,u₂]`, derived by congruence from Hansen's
+primitive covariance `Σ = Var([u₁,u₂] | Z)` in (12.74). -/
+noncomputable def manyInstrumentsStructuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (manyInstrumentsStructuralErrorLoading β)ᵀ * Sigma *
+    manyInstrumentsStructuralErrorLoading β
+
+@[simp]
+theorem manyInstrumentsHansenReducedFormErrorData_mul_structuralErrorLoading
+    {n : Type*} [Fintype n]
+    (u1 : n → ℝ) (u2 : Matrix n k ℝ) (β : k → ℝ) :
+    manyInstrumentsHansenReducedFormErrorData u1 u2 *
+        manyInstrumentsStructuralErrorLoading β =
+      manyInstrumentsReducedFormErrorData
+        (manyInstrumentsStructuralError u1 u2 β) u2 := by
+  classical
+  ext i j
+  cases j with
+  | inl u =>
+      simp [manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData, manyInstrumentsStructuralError,
+        manyInstrumentsStructuralErrorLoading, Matrix.mul_apply, dotProduct]
+      ring
+  | inr a =>
+      simp [manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData,
+        manyInstrumentsStructuralErrorLoading, Matrix.mul_apply]
+
+private theorem manyInstrumentsStructuralErrorLoading_mulVec_injective
+    (β : k → ℝ) :
+    Function.Injective (manyInstrumentsStructuralErrorLoading β).mulVec := by
+  intro x y hxy
+  funext j
+  cases j with
+  | inl u =>
+      simpa [manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct]
+        using congrFun hxy (Sum.inl u)
+  | inr a =>
+      have h0 := congrFun hxy (Sum.inl ())
+      have ha := congrFun hxy (Sum.inr a)
+      simp [manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct] at h0 ha
+      linear_combination ha + β a * h0
+
+/-- Positive definiteness of Hansen's primitive covariance is preserved by
+the invertible loading into the internal `[e,u₂]` coordinates. -/
+theorem manyInstrumentsStructuralErrorCovariance_posDef
+    (β : k → ℝ) {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hSigma : Sigma.PosDef) :
+    (manyInstrumentsStructuralErrorCovariance β Sigma).PosDef := by
+  simpa [manyInstrumentsStructuralErrorCovariance, Matrix.conjTranspose]
+    using hSigma.conjTranspose_mul_mul_same
+      (manyInstrumentsStructuralErrorLoading_mulVec_injective β)
+
 /-- Loading from the structural-error row `[e,u₂]` to the reduced-form error
 row `[e + u₂'β,u₂]` of the joint data `[Y,X]`.
 
@@ -13210,6 +13289,41 @@ theorem manyInstrumentsJointReducedFormCovariance_posDef
     using hSigma.conjTranspose_mul_mul_same
       (manyInstrumentsReducedFormErrorLoading_mulVec_injective β)
 
+@[simp]
+theorem manyInstrumentsStructuralErrorLoading_mul_reducedFormErrorLoading
+    (β : k → ℝ) :
+    manyInstrumentsStructuralErrorLoading β *
+        manyInstrumentsReducedFormErrorLoading β = 1 := by
+  classical
+  ext i j
+  cases i <;> cases j <;>
+    simp [manyInstrumentsStructuralErrorLoading,
+      manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+      Matrix.one_apply, eq_comm]
+
+/-- Transforming Hansen's covariance from `[u₁,u₂]` to `[e,u₂]` and then
+back to the joint reduced-form coordinates recovers exactly the covariance
+`Σ` printed in (12.74). -/
+@[simp]
+theorem manyInstrumentsJointReducedFormCovariance_structuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    manyInstrumentsJointReducedFormCovariance β
+        (manyInstrumentsStructuralErrorCovariance β Sigma) = Sigma := by
+  rw [manyInstrumentsJointReducedFormCovariance,
+    manyInstrumentsStructuralErrorCovariance]
+  calc
+    (manyInstrumentsReducedFormErrorLoading β)ᵀ *
+          ((manyInstrumentsStructuralErrorLoading β)ᵀ * Sigma *
+            manyInstrumentsStructuralErrorLoading β) *
+          manyInstrumentsReducedFormErrorLoading β =
+        (manyInstrumentsStructuralErrorLoading β *
+          manyInstrumentsReducedFormErrorLoading β)ᵀ * Sigma *
+          (manyInstrumentsStructuralErrorLoading β *
+            manyInstrumentsReducedFormErrorLoading β) := by
+      rw [Matrix.transpose_mul]
+      noncomm_ring
+    _ = Sigma := by simp
+
 /-- The `u₂u₂'` block of Hansen's full reduced-form error covariance. -/
 def manyInstrumentsSigma22
     (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : Matrix k k ℝ :=
@@ -13219,6 +13333,37 @@ def manyInstrumentsSigma22
 def manyInstrumentsSigma2e
     (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : k → ℝ :=
   fun a => Sigma (Sum.inr a) (Sum.inl ())
+
+/-- Hansen's covariance `Σ₂e = Σ₂₁ - Σ₂₂β`, where `Σ` is the primitive
+covariance of `[u₁,u₂]` in (12.74) and `e = u₁ - β'u₂`. -/
+noncomputable def manyInstrumentsHansenSigma2e
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : k → ℝ :=
+  manyInstrumentsSigma2e Sigma - manyInstrumentsSigma22 Sigma *ᵥ β
+
+@[simp]
+theorem manyInstrumentsSigma22_structuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    manyInstrumentsSigma22
+        (manyInstrumentsStructuralErrorCovariance β Sigma) =
+      manyInstrumentsSigma22 Sigma := by
+  classical
+  ext a b
+  simp [manyInstrumentsSigma22, manyInstrumentsStructuralErrorCovariance,
+    manyInstrumentsStructuralErrorLoading, Matrix.mul_apply]
+
+@[simp]
+theorem manyInstrumentsSigma2e_structuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    manyInstrumentsSigma2e
+        (manyInstrumentsStructuralErrorCovariance β Sigma) =
+      manyInstrumentsHansenSigma2e β Sigma := by
+  classical
+  ext a
+  simp [manyInstrumentsSigma2e, manyInstrumentsHansenSigma2e,
+    manyInstrumentsSigma22, manyInstrumentsStructuralErrorCovariance,
+    manyInstrumentsStructuralErrorLoading, Matrix.mul_apply, Matrix.mulVec,
+    dotProduct]
+  ring
 
 /-- Normalized full reduced-error projected moment `n⁻¹u'P_Zu`.
 
@@ -13458,12 +13603,150 @@ local instance manyInstrumentsAnyMatrixBorelSpace
     BorelSpace (Matrix r c ℝ) :=
   matrixBorelSpace r c
 
-/-- Literal conditional-homoskedastic, conditionally independent,
-bounded-fourth-moment reduced-form error model for Hansen (12.74)--(12.75).
+private noncomputable def manyInstrumentsStructuralErrorMap
+    (β : k → ℝ) :
+    (Sum Unit k → ℝ) →L[ℝ] (Sum Unit k → ℝ) :=
+  (Matrix.toLin' (manyInstrumentsStructuralErrorLoading β)ᵀ).toContinuousLinearMap
+
+@[simp] private theorem manyInstrumentsStructuralErrorMap_apply
+    {n : Type*} [Fintype n] (u1 : n → ℝ) (u2 : Matrix n k ℝ)
+    (β : k → ℝ) (i : n) :
+    manyInstrumentsStructuralErrorMap β
+        (manyInstrumentsHansenReducedFormErrorData u1 u2 i) =
+      manyInstrumentsReducedFormErrorData
+        (manyInstrumentsStructuralError u1 u2 β) u2 i := by
+  classical
+  ext j
+  cases j with
+  | inl u =>
+      simp [manyInstrumentsStructuralErrorMap, Matrix.toLin'_apply,
+        manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData, manyInstrumentsStructuralError,
+        manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct,
+        mul_comm]
+      ring
+  | inr a =>
+      simp [manyInstrumentsStructuralErrorMap, Matrix.toLin'_apply,
+        manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData,
+        manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct]
+
+private noncomputable def manyInstrumentsMatrixLeftRightMap
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    (A : Matrix a b ℝ) (B : Matrix c d ℝ) :
+    Matrix b c ℝ →L[ℝ] Matrix a d ℝ :=
+  ({ toFun := fun M => A * M * B
+     map_add' := by
+       intro M N
+       ext i j
+       simp [Matrix.mul_apply, Finset.sum_add_distrib, add_mul, mul_add]
+     map_smul' := by
+       intro r M
+       ext i j
+       simp [Matrix.mul_apply, Finset.mul_sum, mul_comm, mul_left_comm] } :
+      Matrix b c ℝ →ₗ[ℝ] Matrix a d ℝ).toContinuousLinearMap
+
+@[simp] private theorem manyInstrumentsMatrixLeftRightMap_apply
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    (A : Matrix a b ℝ) (B : Matrix c d ℝ) (M : Matrix b c ℝ) :
+    manyInstrumentsMatrixLeftRightMap A B M = A * M * B :=
+  rfl
+
+private theorem condExpOn_manyInstruments_matrix_mul_left_right
+    {ζ a b c d : Type*} [MeasurableSpace ζ]
+    [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    {μ : Measure Ω} {Z : Ω → ζ} (A : Matrix a b ℝ) (B : Matrix c d ℝ)
+    {F : Ω → Matrix b c ℝ} {M : Matrix b c ℝ}
+    (hF : Integrable F μ)
+    (hcond : condExpOn μ F Z =ᵐ[μ] fun _ => M) :
+    condExpOn μ (fun ω => A * F ω * B) Z =ᵐ[μ] fun _ => A * M * B := by
+  let T : Matrix b c ℝ →L[ℝ] Matrix a d ℝ :=
+    manyInstrumentsMatrixLeftRightMap A B
+  have hcomm :
+      T ∘ condExpOn μ F Z =ᵐ[μ] condExpOn μ (T ∘ F) Z := by
+    simpa [condExpOn] using
+      (T.comp_condExp_comm (μ := μ) (m := conditioningSpace Z) hF)
+  have hconst :
+      T ∘ condExpOn μ F Z =ᵐ[μ] fun _ => A * M * B := by
+    filter_upwards [hcond] with ω hω
+    change A * condExpOn μ F Z ω * B = A * M * B
+    exact congrArg (fun N => A * N * B) hω
+  have htarget : condExpOn μ (T ∘ F) Z =ᵐ[μ] fun _ => A * M * B :=
+    hcomm.symm.trans hconst
+  simpa [T, Function.comp_def] using htarget
+
+private theorem manyInstruments_vecMulVec_structuralErrorMap
+    (β : k → ℝ) (x : Sum Unit k → ℝ) :
+    Matrix.vecMulVec (manyInstrumentsStructuralErrorMap β x)
+        (manyInstrumentsStructuralErrorMap β x) =
+      (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        Matrix.vecMulVec x x * manyInstrumentsStructuralErrorLoading β := by
+  change Matrix.vecMulVec
+      ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x)
+      ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x) = _
+  calc
+    Matrix.vecMulVec
+        ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x)
+        ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x) =
+      (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        Matrix.vecMulVec x
+          ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x) := by
+            rw [Matrix.mul_vecMulVec]
+    _ = (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        (Matrix.vecMulVec x x *
+          ((manyInstrumentsStructuralErrorLoading β)ᵀ)ᵀ) := by
+            rw [Matrix.vecMulVec_mul, Matrix.vecMul_transpose]
+    _ = (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        Matrix.vecMulVec x x * manyInstrumentsStructuralErrorLoading β := by
+            simp [Matrix.mul_assoc]
+
+/-- Hansen-facing conditional error model for (12.74)--(12.75).
+
+Its primitive row is exactly `[u₁,u₂]`, its conditional covariance is exactly
+Hansen's `Σ`, and the structural error is derived later as `e = u₁ - β'u₂`.
+No transformed conditional moment is included as an assumption. -/
+structure ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (u1 : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (B : ℝ) : Prop where
+  instrument_measurable : ∀ m, Measurable (Z m)
+  error_row_memLp_four : ∀ m (i : Fin m), MemLp
+    (fun ω => manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i) 4 μ
+  rows_conditionally_independent : ∀ m,
+    iCondIndepFun (conditioningSpace (Z m))
+      (conditioningSpace_le (instrument_measurable m))
+      (fun i ω => manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i) μ
+  conditional_mean_zero : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i)
+      (Z m) =ᵐ[μ] 0
+  conditional_second_moment : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => Matrix.vecMulVec
+        (manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i)
+        (manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i))
+      (Z m) =ᵐ[μ] fun _ => Sigma
+  fourth_bound_nonneg : 0 ≤ B
+  conditional_fourth_bound : ∀ m (i : Fin m),
+    ∀ᵐ ω ∂μ, condExpOn μ
+      (fun ω' => ‖manyInstrumentsHansenReducedFormErrorData
+        (u1 m ω') (u2 m ω') i‖ ^ 4) (Z m) ω ≤ B
+
+/-- Fourth-moment bound after the fixed loading from Hansen's `[u₁,u₂]` row
+to the internal `[e,u₂]` row. -/
+noncomputable def manyInstrumentsStructuralFourthMomentBound
+    (β : k → ℝ) (B : ℝ) : ℝ :=
+  ‖manyInstrumentsStructuralErrorMap β‖ ^ 4 * B
+
+/-- Internal conditional-homoskedastic, conditionally independent,
+bounded-fourth-moment model for the transformed row `[e,u₂]`.
 
 No projected quadratic-form convergence and no LIML eigenvalue convergence is
-a field.  This is therefore a genuine raw model package rather than a renamed
-conclusion. -/
+a field.  The Hansen-facing package above uses the primitive row `[u₁,u₂]` and
+derives this proof-engine model through the structural-error loading. -/
 structure ManyInstrumentsConditionalHomoskedasticFourthMomentModel
     [StandardBorelSpace Ω]
     (μ : Measure Ω) [IsProbabilityMeasure μ]
@@ -13494,17 +13777,137 @@ structure ManyInstrumentsConditionalHomoskedasticFourthMomentModel
       (fun ω' => ‖manyInstrumentsReducedFormErrorData
         (e m ω') (u2 m ω') i‖ ^ 4) (Z m) ω ≤ B
 
-/-- Non-circular raw model package for Hansen Theorem 12.19.
+omit [∀ m, DecidableEq (ι m)] in
+/-- Hansen's primitive conditional model implies the internal `[e,u₂]` model
+by the fixed loading `e = u₁ - β'u₂`.  The covariance and fourth-moment bound
+are conclusions of the transformation, not additional assumptions. -/
+theorem ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel.toStructuralErrorModel
+    [StandardBorelSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel
+      (ι := ι) μ Z u1 u2 Sigma B)
+    (β : k → ℝ) :
+    ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      (ι := ι) μ Z
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 (manyInstrumentsStructuralErrorCovariance β Sigma)
+        (manyInstrumentsStructuralFourthMomentBound β B) where
+  instrument_measurable := h.instrument_measurable
+  error_row_memLp_four := by
+    intro m i
+    let T := manyInstrumentsStructuralErrorMap β
+    have hmap := (h.error_row_memLp_four m i).continuousLinearMap_comp T
+    simpa [T, Function.comp_def] using hmap
+  rows_conditionally_independent := by
+    intro m
+    let T := manyInstrumentsStructuralErrorMap β
+    have hcomp := (h.rows_conditionally_independent m).comp
+      (fun _ => T) (fun _ => T.continuous.measurable)
+    simpa [T, Function.comp_def] using hcomp
+  conditional_mean_zero := by
+    intro m i
+    let U : Ω → Sum Unit k → ℝ := fun ω =>
+      manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i
+    let T := manyInstrumentsStructuralErrorMap β
+    have hUint : Integrable U μ :=
+      (h.error_row_memLp_four m i).integrable (by norm_num)
+    have hcomm :
+        T ∘ condExpOn μ U (Z m) =ᵐ[μ] condExpOn μ (T ∘ U) (Z m) := by
+      simpa [condExpOn] using
+        (T.comp_condExp_comm (μ := μ) (m := conditioningSpace (Z m)) hUint)
+    have hzero : T ∘ condExpOn μ U (Z m) =ᵐ[μ] 0 := by
+      filter_upwards [h.conditional_mean_zero m i] with ω hω
+      change T (condExpOn μ U (Z m) ω) = 0
+      rw [show condExpOn μ U (Z m) ω = 0 by simpa [U] using hω]
+      exact map_zero T
+    have htarget := hcomm.symm.trans hzero
+    simpa [T, U, Function.comp_def] using htarget
+  conditional_second_moment := by
+    intro m i
+    let U : Ω → Sum Unit k → ℝ := fun ω =>
+      manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i
+    have hU4 (c : Sum Unit k) : MemLp (fun ω => U ω c) 4 μ := by
+      simpa [U] using (h.error_row_memLp_four m i).eval c
+    have hOuter : Integrable (fun ω => Matrix.vecMulVec (U ω) (U ω)) μ :=
+      vecMulVec_integrable_of_coordinate_memLp_four hU4
+    have htransform := condExpOn_manyInstruments_matrix_mul_left_right
+      (μ := μ) (Z := Z m)
+      (manyInstrumentsStructuralErrorLoading β)ᵀ
+      (manyInstrumentsStructuralErrorLoading β) hOuter
+      (h.conditional_second_moment m i)
+    have hpoint :
+        (fun ω => Matrix.vecMulVec
+          (manyInstrumentsStructuralErrorMap β (U ω))
+          (manyInstrumentsStructuralErrorMap β (U ω))) =
+        fun ω => (manyInstrumentsStructuralErrorLoading β)ᵀ *
+          Matrix.vecMulVec (U ω) (U ω) *
+            manyInstrumentsStructuralErrorLoading β := by
+      funext ω
+      exact manyInstruments_vecMulVec_structuralErrorMap β (U ω)
+    rw [← hpoint] at htransform
+    simpa [U, manyInstrumentsStructuralErrorCovariance] using htransform
+  fourth_bound_nonneg := by
+    exact mul_nonneg (pow_nonneg (norm_nonneg _) _) h.fourth_bound_nonneg
+  conditional_fourth_bound := by
+    intro m i
+    let U : Ω → Sum Unit k → ℝ := fun ω =>
+      manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i
+    let T := manyInstrumentsStructuralErrorMap β
+    let c : ℝ := ‖T‖ ^ 4
+    have hU4 : MemLp U 4 μ := by
+      simpa [U] using h.error_row_memLp_four m i
+    have hTU4 : MemLp (T ∘ U) 4 μ := hU4.continuousLinearMap_comp T
+    have hUInt : Integrable (fun ω => ‖U ω‖ ^ 4) μ :=
+      hU4.integrable_norm_pow'
+    have hTUInt : Integrable (fun ω => ‖T (U ω)‖ ^ 4) μ := by
+      simpa [Function.comp_def] using hTU4.integrable_norm_pow'
+    have hscaledInt : Integrable (fun ω => c * ‖U ω‖ ^ 4) μ :=
+      hUInt.const_mul c
+    have hpoint : ∀ ω, ‖T (U ω)‖ ^ 4 ≤ c * ‖U ω‖ ^ 4 := by
+      intro ω
+      calc
+        ‖T (U ω)‖ ^ 4 ≤ (‖T‖ * ‖U ω‖) ^ 4 := by
+          gcongr
+          exact T.le_opNorm (U ω)
+        _ = c * ‖U ω‖ ^ 4 := by simp [c, mul_pow]
+    have hmono :
+        condExpOn μ (fun ω => ‖T (U ω)‖ ^ 4) (Z m) ≤ᵐ[μ]
+          condExpOn μ (fun ω => c * ‖U ω‖ ^ 4) (Z m) := by
+      simpa [condExpOn] using condExp_mono hTUInt hscaledInt
+        (ae_of_all μ hpoint)
+    have hscale :
+        condExpOn μ (fun ω => c * ‖U ω‖ ^ 4) (Z m) =ᵐ[μ]
+          fun ω => c * condExpOn μ (fun ω => ‖U ω‖ ^ 4) (Z m) ω := by
+      simpa [condExpOn, Pi.smul_apply, smul_eq_mul] using
+        (condExp_smul (μ := μ) (m := conditioningSpace (Z m))
+          c (fun ω => ‖U ω‖ ^ 4))
+    filter_upwards [hmono, hscale, h.conditional_fourth_bound m i] with ω hle hscaleω hbound
+    calc
+      condExpOn μ
+          (fun ω' => ‖manyInstrumentsReducedFormErrorData
+            (manyInstrumentsStructuralError (u1 m ω') (u2 m ω') β)
+            (u2 m ω') i‖ ^ 4) (Z m) ω =
+          condExpOn μ (fun ω' => ‖T (U ω')‖ ^ 4) (Z m) ω := by
+            congr 2
+            funext ω'
+            rw [show T (U ω') = manyInstrumentsReducedFormErrorData
+              (manyInstrumentsStructuralError (u1 m ω') (u2 m ω') β)
+              (u2 m ω') i by simp [T, U]]
+      _ ≤ condExpOn μ (fun ω' => c * ‖U ω'‖ ^ 4) (Z m) ω := hle
+      _ = c * condExpOn μ (fun ω' => ‖U ω'‖ ^ 4) (Z m) ω := hscaleω
+      _ ≤ c * B := mul_le_mul_of_nonneg_left hbound (pow_nonneg (norm_nonneg _) _)
+      _ = manyInstrumentsStructuralFourthMomentBound β B := by
+        rfl
 
-It contains model (12.73), assumptions (12.74)--(12.76), and the signal-Gram
-limit (12.77).  The displayed statement of Theorem 12.19 omits (12.77), but the
-preceding proof uses it for (12.78), for identification of `H`, and in every
-displayed estimator limit.  The package therefore states (12.77) explicitly.
-It also states the conditional row independence used in Hansen's variance
-calculation, the instrument-rank condition needed to interpret `P_Z`, and
-`Sigma.PosDef`.  Hansen's displayed covariance condition only identifies
-`Sigma`; positive definiteness is an additional nondegeneracy assumption of
-this corrected endpoint, used by the existing LIML limit assembly.
+/-- Internal non-circular raw model package for Hansen Theorem 12.19.
+
+Its error coordinates are the transformed proof coordinates `[e,u₂]`.  The
+Hansen-facing package below instead takes primitive errors `[u₁,u₂]`, with `Σ`
+exactly as in (12.74), and derives this package through a fixed loading.
 
 In particular it contains neither estimator limits, projected-form WLLNs, nor
 an assumed LIML adjustment/eigenvalue gap. -/
@@ -13533,11 +13936,89 @@ structure ManyInstrumentsTheorem1219RawModelConditions
     (fun m ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
     atTop (fun _ => H)
   signal_posDef : H.PosDef
+  /-- Corrected LIML nondegeneracy assumption.  Hansen (12.74) identifies the
+  covariance but does not explicitly state positive definiteness. -/
   error_covariance_posDef : Sigma.PosDef
   instrument_gram_nonsingular : ∀ m, ∀ᵐ ω ∂μ,
     Nonempty (Invertible ((Z m ω)ᵀ * Z m ω))
   errors : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
     (ι := ι) μ Z e u2 Sigma B
+
+/-- Hansen-facing raw condition package for Theorem 12.19.
+
+The primitive errors are exactly `[u₁,u₂]`; `Σ` is exactly their conditional
+covariance in Hansen (12.74); and `e = u₁ - β'u₂` is derived rather than
+silently substituted into the covariance assumption.  The package also makes
+explicit (12.77), conditional row independence used in Hansen's calculation,
+and the instrument-rank condition used to identify `P_Z` with the Star
+projection.  It contains no estimator limit, projected-form WLLN, or assumed
+LIML eigenvalue limit. -/
+structure ManyInstrumentsTheorem1219HansenRawModelConditions
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (u1 : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (alpha B : ℝ) : Prop where
+  reduced_form : ∀ m ω,
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  structural : ∀ m ω, Y m ω = X m ω *ᵥ β +
+    manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β
+  instrument_ratio : Tendsto
+    (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+    atTop (𝓝 alpha)
+  alpha_lt_one : alpha < 1
+  signal_gram_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ
+  signal_gram_tendsto : TendstoInMeasure μ
+    (fun m ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  signal_posDef : H.PosDef
+  /-- Corrected LIML nondegeneracy assumption.  Hansen's (12.74) specifies
+  `Σ = Var([u₁,u₂] | Z)` but does not explicitly require `Σ.PosDef`. -/
+  error_covariance_posDef : Sigma.PosDef
+  instrument_gram_nonsingular : ∀ m, ∀ᵐ ω ∂μ,
+    Nonempty (Invertible ((Z m ω)ᵀ * Z m ω))
+  errors : ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel
+    (ι := ι) μ Z u1 u2 Sigma B
+
+/-- Thin bridge from the literal Hansen `[u₁,u₂]` package to the existing
+internal `[e,u₂]` raw endpoint. -/
+theorem ManyInstrumentsTheorem1219HansenRawModelConditions.toRawModelConditions
+    [StandardBorelSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B : ℝ}
+    (h : ManyInstrumentsTheorem1219HansenRawModelConditions
+      μ Z X Y Gamma u1 u2 β H Sigma alpha B) :
+    ManyInstrumentsTheorem1219RawModelConditions
+      μ Z X Y Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 β H (manyInstrumentsStructuralErrorCovariance β Sigma) alpha
+        (manyInstrumentsStructuralFourthMomentBound β B) where
+  reduced_form := h.reduced_form
+  structural := h.structural
+  instrument_ratio := h.instrument_ratio
+  alpha_lt_one := h.alpha_lt_one
+  signal_gram_measurable := h.signal_gram_measurable
+  signal_gram_tendsto := h.signal_gram_tendsto
+  signal_posDef := h.signal_posDef
+  error_covariance_posDef :=
+    manyInstrumentsStructuralErrorCovariance_posDef β h.error_covariance_posDef
+  instrument_gram_nonsingular := h.instrument_gram_nonsingular
+  errors := h.errors.toStructuralErrorModel β
 
 /-- Honest concentration input for Hansen's projected quadratic form.
 
@@ -15461,6 +15942,70 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_select
     hraw.alpha_lt_one hraw.instrument_ratio hraw.structural hraw.signal_posDef
       hraw.error_covariance_posDef hOLS
       (hraw.toTwoSLSMomentAssemblyConditions hOLS hquad) hpencil hselector
+
+/-- Hansen Theorem 12.19 from the literal reduced-form errors `[u₁,u₂]` and
+covariance `Σ` of (12.74).
+
+The structural error is defined as `e = u₁ - β'u₂`.  Consequently the OLS and
+2SLS biases use Hansen's exact `Σ₂e = Σ₂₁ - Σ₂₂β`, while the three conclusions
+are otherwise identical to the existing raw-model endpoint.  The projected
+quadratic and selector certificates are stated in the derived `[e,u₂]`
+coordinates used by the internal proof engine. -/
+theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_selector
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (hraw : ManyInstrumentsTheorem1219HansenRawModelConditions
+      μ Z X Y Gamma u1 u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 H (manyInstrumentsSigma22 Sigma)
+          (manyInstrumentsHansenSigma2e β Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 (manyInstrumentsStructuralErrorCovariance β Sigma) C)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H
+        (manyInstrumentsStructuralErrorCovariance β Sigma) alpha muSelector) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) := by
+  have hOLS' : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 H
+          (manyInstrumentsSigma22
+            (manyInstrumentsStructuralErrorCovariance β Sigma))
+          (manyInstrumentsSigma2e
+            (manyInstrumentsStructuralErrorCovariance β Sigma)) := by
+    rw [manyInstrumentsSigma22_structuralErrorCovariance,
+      manyInstrumentsSigma2e_structuralErrorCovariance]
+    exact hOLS
+  simpa only [manyInstrumentsSigma22_structuralErrorCovariance,
+    manyInstrumentsSigma2e_structuralErrorCovariance] using
+    (manyInstruments_estimators_theorem12_19_of_rawModel_concentration_selector
+      (hraw := hraw.toRawModelConditions) (hOLS := hOLS')
+      (hquad := hquad) (hselector := hselector))
 
 end NormalizedPencilAssembly
 

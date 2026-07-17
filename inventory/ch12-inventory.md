@@ -654,16 +654,23 @@ canonical crosswalk above.
   routes, and nonpositive-Rayleigh sufficient-condition endpoints are
   historical compatibility declarations under `WeakIVCompatibility`, not
   canonical Theorem 12.18 support.
-- **Theorem 12.19.** The non-circular model surface is
-  `ManyInstrumentsTheorem1219RawModelConditions`. Honest projected-form and
+- **Theorem 12.19.** The Hansen-facing non-circular model surface is
+  `ManyInstrumentsTheorem1219HansenRawModelConditions`. Its primitive error row
+  is exactly `[u1,u2]`, `Sigma` is exactly the conditional covariance in
+  (12.74), and the structural error `e = u1 - beta'u2` is derived through
+  `ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel.toStructuralErrorModel`.
+  The bridge `.toRawModelConditions` supplies the existing internal `[e,u2]`
+  proof engine, while `manyInstrumentsSigma2e_structuralErrorCovariance` proves
+  the exact displayed identity `Sigma2e = Sigma21 - Sigma22 beta`. Honest projected-form and
   spectral support is separated into
   `ManyInstrumentsProjectionQuadraticMeanSquareConditions`,
   `ManyInstrumentsLIMLNormalizedPencilConvergenceConditions`,
   `ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate`, and
   `manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector`. The endpoint
-  `manyInstruments_estimators_theorem12_19_of_rawModel_concentration_selector`
+  `manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_selector`
   now derives the complete 2SLS assembly, normalized LIML pencil, and all three
-  estimator limits from the raw model plus the reduced-form OLS moment assembly,
+  estimator limits with Hansen's displayed OLS and 2SLS biases from that raw
+  model plus the reduced-form OLS moment assembly,
   projected mean-square concentration, and a locally continuous generalized-root
   selector. The raw model itself now implies the ordinary full-error WLLN through
   `ManyInstrumentsConditionalHomoskedasticFourthMomentModel.toUnprojectedFullErrorMomentConditions`:
@@ -675,11 +682,11 @@ canonical crosswalk above.
   convergence is no longer an endpoint assumption. The corrected raw package additionally requires
   `Sigma.PosDef`; Hansen's covariance display identifies `Sigma` but does not
   state this nondegeneracy condition, while the current LIML limit assembly
-  consumes it. The LIML pencil now uses
-  `manyInstrumentsJointReducedFormCovariance beta Sigma`, obtained by the
-  explicit loading from the raw structural-error row `[e,u2]` to the
-  reduced-form row `[e+u2' beta,u2]`; positivity is transported by
-  `manyInstrumentsJointReducedFormCovariance_posDef`. It also records (12.77) explicitly: Hansen's
+  consumes it. The internal LIML pencil uses the covariance obtained by
+  transforming `[u1,u2]` first to `[e,u2]` and then back to
+  `[e+u2' beta,u2]`; the round-trip theorem
+  `manyInstrumentsJointReducedFormCovariance_structuralErrorCovariance` proves
+  that this is exactly Hansen's primitive `Sigma`. It also records (12.77) explicitly: Hansen's
   displayed theorem omits that signal-Gram limit, but the proof uses it in
   (12.78), to identify `H`, and in every estimator limit. Remaining raw work is
   to derive the signal-weighted reduced-form WLLNs in the OLS assembly, prove the
