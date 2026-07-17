@@ -12,6 +12,11 @@ LIML eigenvalue primitive is the finite-sample generalized Rayleigh pair
 `([Y X]'P_Z[Y X], n^{-1}[Y X]'M_Z[Y X])`; the corresponding limit pair uses
 Hansen's full reduced-form Gaussian matrix and covariance `Σ`.
 
+The literal triangular-array endpoint is
+`weakIV_theorem12_18_triangular_estimators`. It derives all three actual Star
+estimator limits from raw iid moments, the generalized-pencil selector
+certificate, and explicit limiting-bread nondegeneracy assumptions.
+
 Older assembly and structural-block Rayleigh interfaces are retained under
 `WeakIVCompatibility`.  They are proof support only and are not canonical
 statements of Hansen's LIML eigenvalue problem.
@@ -14970,6 +14975,69 @@ noncomputable def weakIVRawSigma2e
   fun i => Sigma (Sum.inr i) (Sum.inl ()) -
     (weakIVRawSigma22 Sigma *ᵥ beta) i
 
+/-- Structural bread/score blocks extracted from a quadratic form in the
+reduced-form columns `[Y X]`. -/
+private noncomputable def weakIVRawStructuralMomentPair
+    (beta : k → ℝ) (A : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    Matrix k k ℝ × (k → ℝ) :=
+  (weakIVRawSigma22 A, weakIVRawSigma2e A beta)
+
+omit [DecidableEq k] in
+private theorem weakIVRawStructuralMomentPair_continuous
+    (beta : k → ℝ) : Continuous (weakIVRawStructuralMomentPair beta) := by
+  unfold weakIVRawStructuralMomentPair weakIVRawSigma2e weakIVRawSigma22
+  fun_prop
+
+private noncomputable def weakIVStructuralReducedFormMatrix
+    (X : Matrix n k ℝ) (e : n → ℝ) (beta : k → ℝ) :
+    Matrix n (Sum Unit k) ℝ
+  | i, Sum.inl _ => (X *ᵥ beta + e) i
+  | i, Sum.inr j => X i j
+
+omit [DecidableEq k] in
+private theorem weakIVRawStructuralMomentPair_reducedForm
+    {n : Type*} [Fintype n]
+    (X : Matrix n k ℝ) (e : n → ℝ) (beta : k → ℝ)
+    (W : Matrix n n ℝ) :
+    weakIVRawStructuralMomentPair beta
+        ((weakIVStructuralReducedFormMatrix X e beta)ᵀ * W *
+          weakIVStructuralReducedFormMatrix X e beta) =
+      (Xᵀ * W * X, (Xᵀ * W) *ᵥ e) := by
+  classical
+  apply Prod.ext
+  · ext i j
+    rfl
+  · ext i
+    change (((Xᵀ * W) *ᵥ (X *ᵥ beta + e)) i -
+      ((Xᵀ * W * X) *ᵥ beta) i) = ((Xᵀ * W) *ᵥ e) i
+    rw [Matrix.mulVec_add, Matrix.mulVec_mulVec]
+    simp
+
+omit [DecidableEq k] [DecidableEq l] [MeasurableSpace Ω] in
+private theorem weakIVRawStructuralMomentPair_localReducedForm
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ) (m : ℕ) (omega : Ω)
+    (W : Matrix (Fin m) (Fin m) ℝ) :
+    weakIVRawStructuralMomentPair beta
+        ((weakIVLocalReducedFormSampleMatrix Z u C beta m omega)ᵀ * W *
+          weakIVLocalReducedFormSampleMatrix Z u C beta m omega) =
+      ((weakIVLocalDesign Z u C m omega)ᵀ * W *
+          weakIVLocalDesign Z u C m omega,
+        ((weakIVLocalDesign Z u C m omega)ᵀ * W) *ᵥ
+          weakIVLocalStructuralError u beta m omega) := by
+  have hR : weakIVLocalReducedFormSampleMatrix Z u C beta m omega =
+      weakIVStructuralReducedFormMatrix
+        (weakIVLocalDesign Z u C m omega)
+        (weakIVLocalStructuralError u beta m omega) beta := by
+    ext i b
+    cases b with
+    | inl b => cases b; rfl
+    | inr j => rfl
+  rw [hR]
+  exact weakIVRawStructuralMomentPair_reducedForm
+    (weakIVLocalDesign Z u C m omega)
+    (weakIVLocalStructuralError u beta m omega) beta W
+
 /-- Continuous raw-moment assembly for every Gram/score block used by the OLS
 and root-scaled 2SLS faces of Theorem 12.18. -/
 noncomputable def weakIVRawRootOLSAssemblyMap
@@ -15339,6 +15407,344 @@ private abbrev WeakIVRawLIMLPencilState (k l : Type*) :=
 private abbrev WeakIVRawLIMLPencil (k : Type*) :=
   Matrix (Sum Unit k) (Sum Unit k) ℝ ×
     Matrix (Sum Unit k) (Sum Unit k) ℝ
+
+/-- Continuous-map assembly of the actual OLS, 2SLS, and LIML structural
+moment pairs from the generalized pencil and inverse sample size. -/
+private noncomputable def weakIVTriangularEstimatorMomentAssemblyMap
+    (beta : k → ℝ)
+    (muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ)
+    (p : WeakIVRawLIMLPencil k × ℝ) :
+    ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+      (Matrix k k ℝ × (k → ℝ)) :=
+  let N := p.1.1
+  let D := p.1.2
+  let r := p.2
+  let mu := muSelector p.1
+  ((weakIVRawStructuralMomentPair beta (D + r • N),
+      weakIVRawStructuralMomentPair beta N),
+    weakIVRawStructuralMomentPair beta (N - mu • D))
+
+/-- Centered Star estimator represented as a totalized function of structural
+bread and score.  At a nonsingular bread it simplifies to `B⁻¹S`; at a
+singular bread it retains the actual Star value `-beta`. -/
+private noncomputable def weakIVCenteredStarEstimatorMap
+    (beta : k → ℝ) (p : Matrix k k ℝ × (k → ℝ)) : k → ℝ :=
+  p.1⁻¹ *ᵥ (p.1 *ᵥ beta + p.2) - beta
+
+/-- Apply the same Star totalization to the OLS, 2SLS, and LIML moment pairs. -/
+private noncomputable def weakIVTriangularEstimatorTotalizationMap
+    (beta : k → ℝ)
+    (p : ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+      (Matrix k k ℝ × (k → ℝ))) :
+    ((k → ℝ) × (k → ℝ)) × (k → ℝ) :=
+  ((weakIVCenteredStarEstimatorMap beta p.1.1,
+      weakIVCenteredStarEstimatorMap beta p.1.2),
+    weakIVCenteredStarEstimatorMap beta p.2)
+
+private theorem weakIVCenteredStarEstimatorMap_eq_inverse_score_of_nonsingular
+    (beta : k → ℝ) (p : Matrix k k ℝ × (k → ℝ))
+    (hp : IsUnit p.1.det) :
+    weakIVCenteredStarEstimatorMap beta p = p.1⁻¹ *ᵥ p.2 := by
+  rw [weakIVCenteredStarEstimatorMap, Matrix.mulVec_add,
+    Matrix.mulVec_mulVec, Matrix.nonsing_inv_mul _ hp]
+  ext i
+  simp [Pi.add_apply, Pi.sub_apply]
+
+private theorem weakIVCenteredStarEstimatorMap_ols
+    (X : Matrix (Fin m) k ℝ) (e : Fin m → ℝ) (beta : k → ℝ) :
+    weakIVCenteredStarEstimatorMap beta
+        (sampleGram X, sampleCrossMoment X e) =
+      olsBetaStar X (X *ᵥ beta + e) - beta := by
+  by_cases hm : m = 0
+  · subst m
+    simp [weakIVCenteredStarEstimatorMap, sampleGram, sampleCrossMoment,
+      olsBetaStar]
+  · haveI : Nonempty (Fin m) := ⟨⟨0, Nat.pos_of_ne_zero hm⟩⟩
+    rw [olsBetaStar_eq_sampleGramInv_sampleCrossMoment,
+      sampleCrossMoment_linear_model]
+    rfl
+
+private theorem weakIVCenteredStarEstimatorMap_twoSLS
+    (Z : Matrix (Fin m) l ℝ) (X : Matrix (Fin m) k ℝ)
+    (e : Fin m → ℝ) (beta : k → ℝ) :
+    weakIVCenteredStarEstimatorMap beta
+        (twoSLSMomentMatrixStar Z X, twoSLSMomentVectorStar Z X e) =
+      twoSLSBetaStar Z X (X *ᵥ beta + e) - beta := by
+  rw [weakIVCenteredStarEstimatorMap, twoSLSBetaStar,
+    twoSLSMomentVectorStar_linear_model]
+
+private theorem weakIVCenteredStarEstimatorMap_liml
+    (Z : Matrix (Fin m) l ℝ) (X : Matrix (Fin m) k ℝ)
+    (e : Fin m → ℝ) (beta : k → ℝ) (muHat : ℝ) :
+    weakIVCenteredStarEstimatorMap beta
+        (limlMomentMatrixStar Z X muHat,
+          limlMomentVectorStar Z X e muHat) =
+      limlBetaStar Z X (X *ᵥ beta + e) muHat - beta := by
+  rw [weakIVCenteredStarEstimatorMap, limlBetaStar,
+    limlMomentVectorStar_linear_model]
+
+omit [MeasurableSpace Ω] in
+private theorem weakIVTriangularEstimatorTotalizationMap_sample
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ) (m : ℕ) (omega : Ω) :
+    weakIVTriangularEstimatorTotalizationMap beta
+        (((sampleGram (weakIVLocalDesign Z u C m omega),
+            sampleCrossMoment (weakIVLocalDesign Z u C m omega)
+              (weakIVLocalStructuralError u beta m omega)),
+          (twoSLSMomentMatrixStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega),
+            twoSLSMomentVectorStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega)
+              (weakIVLocalStructuralError u beta m omega))),
+          (limlMomentMatrixStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega)
+              (weakIVLIMLFiniteSampleMu limlMuHat m omega),
+            limlMomentVectorStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega)
+              (weakIVLocalStructuralError u beta m omega)
+              (weakIVLIMLFiniteSampleMu limlMuHat m omega))) =
+      ((weakIVLocalOLSBetaStar Z u C beta m omega - beta,
+          weakIVLocal2SLSBetaStar Z u C beta m omega - beta),
+        weakIVLocalLIMLBetaStar Z u C beta limlMuHat m omega - beta) := by
+  rw [weakIVTriangularEstimatorTotalizationMap,
+    weakIVCenteredStarEstimatorMap_ols,
+    weakIVCenteredStarEstimatorMap_twoSLS,
+    weakIVCenteredStarEstimatorMap_liml]
+  rw [← weakIVLocalOutcome_eq_design_mulVec_add_error Z u C beta m omega]
+  rfl
+
+omit [DecidableEq k] in
+private theorem weakIVRawStructuralMomentPair_reducedFormLimit
+    (QZZ : Matrix l l ℝ) (C Xi2 : Matrix l k ℝ)
+    (xie : l → ℝ) (beta : k → ℝ) :
+    weakIVRawStructuralMomentPair beta
+        (weakIVReducedFormRayleighMatrix QZZ C Xi2 xie beta) =
+      (weakIV2SLSLimitBread QZZ C Xi2,
+        weakIV2SLSLimitScore QZZ C Xi2 xie) := by
+  let X := weakIVFirstStageLimit QZZ C Xi2
+  have hR : weakIVReducedFormLimit QZZ C Xi2 xie beta =
+      weakIVStructuralReducedFormMatrix X xie beta := by
+    ext i b
+    cases b with
+    | inl b => cases b; rfl
+    | inr j => rfl
+  rw [weakIVReducedFormRayleighMatrix, limlRayleighMatrix, hR]
+  simpa [X, weakIV2SLSLimitBread, weakIV2SLSLimitScore] using
+    (weakIVRawStructuralMomentPair_reducedForm X xie beta QZZ⁻¹)
+
+omit [DecidableEq k] in
+private theorem weakIVRawStructuralMomentPair_sub_smul
+    (beta : k → ℝ) (A B : Matrix (Sum Unit k) (Sum Unit k) ℝ) (c : ℝ) :
+    weakIVRawStructuralMomentPair beta (A - c • B) =
+      ((weakIVRawStructuralMomentPair beta A).1 -
+          c • (weakIVRawStructuralMomentPair beta B).1,
+        (weakIVRawStructuralMomentPair beta A).2 -
+          c • (weakIVRawStructuralMomentPair beta B).2) := by
+  classical
+  apply Prod.ext
+  · ext i j
+    simp [weakIVRawStructuralMomentPair, weakIVRawSigma22]
+  · ext i
+    have hsub : (A - c • B).submatrix Sum.inr Sum.inr =
+        A.submatrix Sum.inr Sum.inr - c • B.submatrix Sum.inr Sum.inr := by
+      ext a b
+      simp
+    simp only [weakIVRawStructuralMomentPair, weakIVRawSigma2e,
+      weakIVRawSigma22]
+    rw [hsub, Matrix.sub_mulVec, Matrix.smul_mulVec]
+    change
+      (A (Sum.inr i) (Sum.inl ()) - c * B (Sum.inr i) (Sum.inl ())) -
+          ((A.submatrix Sum.inr Sum.inr *ᵥ beta) i -
+            c * (B.submatrix Sum.inr Sum.inr *ᵥ beta) i) =
+        (A (Sum.inr i) (Sum.inl ()) -
+            (A.submatrix Sum.inr Sum.inr *ᵥ beta) i) -
+          c * (B (Sum.inr i) (Sum.inl ()) -
+            (B.submatrix Sum.inr Sum.inr *ᵥ beta) i)
+    ring
+
+omit [DecidableEq k] in
+private theorem weakIVTriangularEstimatorMomentAssemblyMap_limit
+    (μ : Measure Ω) (Z : ℕ → Ω → l → ℝ)
+    (u : ℕ → Ω → Sum Unit k → ℝ) (C : Matrix l k ℝ) (beta : k → ℝ)
+    (muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ)
+    (z : EuclideanSpace ℝ (l × Sum Unit k)) :
+    weakIVTriangularEstimatorMomentAssemblyMap beta muSelector
+        (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z, 0) =
+      (((weakIVRawSigma22 (popGram μ u),
+          weakIVRawSigma2e (popGram μ u) beta),
+        (weakIV2SLSLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z)),
+          weakIV2SLSLimitScore (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (weakIVRawGaussianStructuralScore
+              (weakIVRawGaussianMatrix z) beta))),
+        (weakIVLIMLLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (muSelector
+              (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+            (weakIVRawSigma22 (popGram μ u)),
+          weakIVLIMLLimitScore (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (weakIVRawGaussianStructuralScore
+              (weakIVRawGaussianMatrix z) beta)
+            (muSelector
+              (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+            (weakIVRawSigma2e (popGram μ u) beta))) := by
+  rw [weakIVTriangularEstimatorMomentAssemblyMap]
+  simp only [zero_smul, add_zero]
+  have hroot := weakIVRawStructuralMomentPair_reducedFormLimit
+    (popGram μ Z) C
+    (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+    (weakIVRawGaussianStructuralScore (weakIVRawGaussianMatrix z) beta) beta
+  have hliml := weakIVRawStructuralMomentPair_sub_smul beta
+    (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z).1
+    (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z).2
+    (muSelector (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+  simp only [weakIVRawLIMLGeneralizedEigenvalueLimitPair,
+    weakIVLIMLGeneralizedEigenvalueLimitPrimitive] at hroot hliml ⊢
+  have hSigma : weakIVRawStructuralMomentPair beta (popGram μ u) =
+      (weakIVRawSigma22 (popGram μ u),
+        weakIVRawSigma2e (popGram μ u) beta) := rfl
+  rw [hroot, hSigma] at hliml
+  have hLIML :
+      weakIVRawStructuralMomentPair beta
+          (weakIVReducedFormRayleighMatrix (popGram μ Z) C
+              (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+              (weakIVRawGaussianStructuralScore
+                (weakIVRawGaussianMatrix z) beta) beta -
+            muSelector
+                (weakIVReducedFormRayleighMatrix (popGram μ Z) C
+                    (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+                    (weakIVRawGaussianStructuralScore
+                      (weakIVRawGaussianMatrix z) beta) beta,
+                  popGram μ u) • popGram μ u) =
+        (weakIVLIMLLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (muSelector
+              (weakIVReducedFormRayleighMatrix (popGram μ Z) C
+                  (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+                  (weakIVRawGaussianStructuralScore
+                    (weakIVRawGaussianMatrix z) beta) beta,
+                popGram μ u))
+            (weakIVRawSigma22 (popGram μ u)),
+          weakIVLIMLLimitScore (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (weakIVRawGaussianStructuralScore
+              (weakIVRawGaussianMatrix z) beta)
+            (muSelector
+              (weakIVReducedFormRayleighMatrix (popGram μ Z) C
+                  (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+                  (weakIVRawGaussianStructuralScore
+                    (weakIVRawGaussianMatrix z) beta) beta,
+                popGram μ u))
+            (weakIVRawSigma2e (popGram μ u) beta)) := by
+    simpa [weakIVLIMLLimitBread, weakIVLIMLLimitScore] using hliml
+  rw [hSigma, hroot, hLIML]
+
+omit [DecidableEq k] [MeasurableSpace Ω] in
+private theorem weakIVTriangularEstimatorMomentAssemblyMap_sample
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ)
+    (hselector : ∀ m omega,
+      limlMuHat m omega =
+        muSelector (weakIVLocalLIMLGeneralizedEigenvaluePair
+          Z u C beta m omega))
+    (m : ℕ) (omega : Ω) :
+    weakIVTriangularEstimatorMomentAssemblyMap beta muSelector
+        (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega,
+          (m : ℝ)⁻¹) =
+      (((sampleGram (weakIVLocalDesign Z u C m omega),
+          sampleCrossMoment (weakIVLocalDesign Z u C m omega)
+            (weakIVLocalStructuralError u beta m omega)),
+        (twoSLSMomentMatrixStar (stackRegressors Z m omega)
+            (weakIVLocalDesign Z u C m omega),
+          twoSLSMomentVectorStar (stackRegressors Z m omega)
+            (weakIVLocalDesign Z u C m omega)
+            (weakIVLocalStructuralError u beta m omega))),
+        (limlMomentMatrixStar (stackRegressors Z m omega)
+            (weakIVLocalDesign Z u C m omega)
+            (weakIVLIMLFiniteSampleMu limlMuHat m omega),
+          limlMomentVectorStar (stackRegressors Z m omega)
+            (weakIVLocalDesign Z u C m omega)
+            (weakIVLocalStructuralError u beta m omega)
+            (weakIVLIMLFiniteSampleMu limlMuHat m omega))) := by
+  classical
+  let Zm := stackRegressors Z m omega
+  let Xm := weakIVLocalDesign Z u C m omega
+  let em := weakIVLocalStructuralError u beta m omega
+  let Rm := weakIVLocalReducedFormSampleMatrix Z u C beta m omega
+  let P := instrumentProjectionStar Zm
+  let r : ℝ := (m : ℝ)⁻¹
+  have hN :
+      (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega).1 =
+        Rmᵀ * P * Rm := by
+    rfl
+  have hD :
+      (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega).2 =
+        Rmᵀ * (r • (1 - P)) * Rm := by
+    simp [weakIVLocalLIMLGeneralizedEigenvaluePair,
+      weakIVLocalLIMLResidualCovariance, Rm, Zm, P, r,
+      Matrix.mul_assoc, Matrix.mul_smul, Matrix.smul_mul]
+  have hOLS :
+      (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega).2 +
+          r • (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega).1 =
+        Rmᵀ * (r • (1 : Matrix (Fin m) (Fin m) ℝ)) * Rm := by
+    rw [hN, hD]
+    calc
+      Rmᵀ * (r • (1 - P)) * Rm + r • (Rmᵀ * P * Rm) =
+          r • (Rmᵀ * (1 - P) * Rm) + r • (Rmᵀ * P * Rm) := by
+            rw [Matrix.mul_smul, Matrix.smul_mul]
+      _ = r • (Rmᵀ * (1 - P) * Rm + Rmᵀ * P * Rm) := by rw [smul_add]
+      _ = r • (Rmᵀ * Rm) := by
+        congr 1
+        rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_one]
+        abel
+      _ = Rmᵀ * (r • (1 : Matrix (Fin m) (Fin m) ℝ)) * Rm := by
+        rw [Matrix.mul_smul, Matrix.smul_mul]
+        simp
+  have hLIML :
+      (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega).1 -
+          limlMuHat m omega •
+            (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega).2 =
+        Rmᵀ * limlWeightMatrixStar Zm
+          (weakIVLIMLFiniteSampleMu limlMuHat m omega) * Rm := by
+    rw [hN, hD]
+    calc
+      Rmᵀ * P * Rm - limlMuHat m omega •
+          (Rmᵀ * (r • (1 - P)) * Rm) =
+        Rmᵀ * (P - limlMuHat m omega • (r • (1 - P))) * Rm := by
+          rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_smul, Matrix.smul_mul]
+          simp [Matrix.mul_smul, Matrix.smul_mul]
+      _ = Rmᵀ * limlWeightMatrixStar Zm
+          (weakIVLIMLFiniteSampleMu limlMuHat m omega) * Rm := by
+        congr 2
+        ext i j
+        simp [limlWeightMatrixStar, weakIVLIMLFiniteSampleMu, r, P]
+        ring
+  rw [weakIVTriangularEstimatorMomentAssemblyMap, ← hselector m omega]
+  simp only
+  rw [hOLS, hLIML, hN]
+  have hOLSBlock := weakIVRawStructuralMomentPair_localReducedForm
+    Z u C beta m omega (r • (1 : Matrix (Fin m) (Fin m) ℝ))
+  have h2SLSBlock := weakIVRawStructuralMomentPair_localReducedForm
+    Z u C beta m omega P
+  have hLIMLBlock := weakIVRawStructuralMomentPair_localReducedForm
+    Z u C beta m omega
+      (limlWeightMatrixStar Zm (weakIVLIMLFiniteSampleMu limlMuHat m omega))
+  rw [hOLSBlock, h2SLSBlock, hLIMLBlock]
+  simp [Zm, P, r, sampleGram, sampleCrossMoment,
+    twoSLSMomentMatrixStar, twoSLSMomentVectorStar,
+    limlMomentMatrixStar, limlMomentVectorStar,
+    Matrix.mul_smul, Matrix.smul_mul, Matrix.smul_mulVec]
 
 /-- The deterministic reduced-form loading `[C beta, C]` used to assemble the
 literal triangular sample from its raw error matrix. -/
@@ -15997,10 +16403,511 @@ theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
       C beta raw_moments hQZZ
   selector := selector
 
-/-- Current honest endpoint at the literal triangular boundary.  It derives
-all raw Gram/score blocks and the scaled LIML generalized root.  The canonical
-three-estimator statement remains intentionally absent until the triangular
-finite-sample totalization argument is connected to these blocks. -/
+omit [DecidableEq k] in
+private theorem weakIVTriangularEstimatorMomentAssemblyMap_measurable
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    (hselector : Measurable muSelector) (beta : k → ℝ) :
+    Measurable
+      (weakIVTriangularEstimatorMomentAssemblyMap beta muSelector) := by
+  have hOLS : Measurable
+      (fun p : WeakIVRawLIMLPencil k × ℝ => p.1.2 + p.2 • p.1.1) := by
+    fun_prop
+  have h2SLS : Measurable
+      (fun p : WeakIVRawLIMLPencil k × ℝ => p.1.1) := measurable_fst.comp measurable_fst
+  have hLIML : Measurable
+      (fun p : WeakIVRawLIMLPencil k × ℝ =>
+        p.1.1 - muSelector p.1 • p.1.2) := by
+    fun_prop
+  simpa [weakIVTriangularEstimatorMomentAssemblyMap] using
+    (((weakIVRawStructuralMomentPair_continuous beta).measurable.comp hOLS).prodMk
+      ((weakIVRawStructuralMomentPair_continuous beta).measurable.comp h2SLS)).prodMk
+    ((weakIVRawStructuralMomentPair_continuous beta).measurable.comp hLIML)
+
+omit [DecidableEq k] in
+private theorem weakIVTriangularEstimatorMomentAssemblyMap_continuousAt
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    (beta : k → ℝ) (p : WeakIVRawLIMLPencil k × ℝ)
+    (hselector : ContinuousAt muSelector p.1) :
+    ContinuousAt
+      (weakIVTriangularEstimatorMomentAssemblyMap beta muSelector) p := by
+  have hOLS : ContinuousAt
+      (fun q : WeakIVRawLIMLPencil k × ℝ => q.1.2 + q.2 • q.1.1) p := by
+    fun_prop
+  have h2SLS : ContinuousAt
+      (fun q : WeakIVRawLIMLPencil k × ℝ => q.1.1) p :=
+    continuousAt_fst.comp continuousAt_fst
+  have hLIML : ContinuousAt
+      (fun q : WeakIVRawLIMLPencil k × ℝ =>
+        q.1.1 - muSelector q.1 • q.1.2) p := by
+    fun_prop
+  simpa [weakIVTriangularEstimatorMomentAssemblyMap] using
+    (((weakIVRawStructuralMomentPair_continuous beta).continuousAt.comp hOLS).prodMk
+      ((weakIVRawStructuralMomentPair_continuous beta).continuousAt.comp h2SLS)).prodMk
+    ((weakIVRawStructuralMomentPair_continuous beta).continuousAt.comp hLIML)
+
+private theorem weakIVCenteredStarEstimatorMap_measurable
+    (beta : k → ℝ) : Measurable (weakIVCenteredStarEstimatorMap beta) := by
+  let f : Matrix k k ℝ × (k → ℝ) → Matrix k k ℝ × (k → ℝ) :=
+    fun p => (p.1, p.1 *ᵥ beta + p.2)
+  have hf : Measurable f := by
+    dsimp [f]
+    fun_prop
+  have hraw := weakIV_twoSLS_inverse_score_map_measurable.comp hf
+  simpa [weakIVCenteredStarEstimatorMap, f] using hraw.sub measurable_const
+
+private theorem weakIVCenteredStarEstimatorMap_continuousAt_of_nonsingular
+    (beta : k → ℝ) (p : Matrix k k ℝ × (k → ℝ))
+    (hp : IsUnit p.1.det) :
+    ContinuousAt (weakIVCenteredStarEstimatorMap beta) p := by
+  let f : Matrix k k ℝ × (k → ℝ) → Matrix k k ℝ × (k → ℝ) :=
+    fun q => (q.1, q.1 *ᵥ beta + q.2)
+  have hf : ContinuousAt f p := by
+    dsimp [f]
+    fun_prop
+  have hraw :=
+    (weakIV_twoSLS_inverse_score_continuousAt_of_nonsingular
+      (k := k) (f p) hp).comp hf
+  simpa [weakIVCenteredStarEstimatorMap, f] using hraw.sub continuousAt_const
+
+private theorem weakIVTriangularEstimatorTotalizationMap_measurable
+    (beta : k → ℝ) :
+    Measurable (weakIVTriangularEstimatorTotalizationMap beta) := by
+  unfold weakIVTriangularEstimatorTotalizationMap
+  exact
+    (((weakIVCenteredStarEstimatorMap_measurable beta).comp
+        (measurable_fst.comp measurable_fst)).prodMk
+      ((weakIVCenteredStarEstimatorMap_measurable beta).comp
+        (measurable_snd.comp measurable_fst))).prodMk
+    ((weakIVCenteredStarEstimatorMap_measurable beta).comp measurable_snd)
+
+private theorem
+    weakIVTriangularEstimatorTotalizationMap_continuousAt_of_nonsingular
+    (beta : k → ℝ)
+    (p : ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+      (Matrix k k ℝ × (k → ℝ)))
+    (hOLS : IsUnit p.1.1.1.det) (h2SLS : IsUnit p.1.2.1.det)
+    (hLIML : IsUnit p.2.1.det) :
+    ContinuousAt (weakIVTriangularEstimatorTotalizationMap beta) p := by
+  unfold weakIVTriangularEstimatorTotalizationMap
+  have hpOLS : ContinuousAt
+      (fun q : ((Matrix k k ℝ × (k → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) × (Matrix k k ℝ × (k → ℝ)) => q.1.1) p := by
+    fun_prop
+  have hp2SLS : ContinuousAt
+      (fun q : ((Matrix k k ℝ × (k → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) × (Matrix k k ℝ × (k → ℝ)) => q.1.2) p := by
+    fun_prop
+  have hpLIML : ContinuousAt
+      (fun q : ((Matrix k k ℝ × (k → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) × (Matrix k k ℝ × (k → ℝ)) => q.2) p := by
+    fun_prop
+  have h1 := (weakIVCenteredStarEstimatorMap_continuousAt_of_nonsingular
+    beta p.1.1 hOLS).comp continuousAt_fst |>.comp continuousAt_fst
+  have h2 := (weakIVCenteredStarEstimatorMap_continuousAt_of_nonsingular
+    beta p.1.2 h2SLS).comp continuousAt_snd |>.comp continuousAt_fst
+  have h3 := (weakIVCenteredStarEstimatorMap_continuousAt_of_nonsingular
+    beta p.2 hLIML).comp continuousAt_snd
+  exact (h1.prodMk h2).prodMk h3
+
+/-- The raw triangular model and generalized-pencil CMT jointly derive the
+actual OLS, root-scaled 2SLS, and weak-scaled LIML bread/score limits.
+
+The sample objects in this statement are the literal moment matrices used by
+`weakIVLocalOLSBetaStar`, `weakIVLocal2SLSBetaStar`, and
+`weakIVLocalLIMLBetaStar`; no estimator convergence is assumed. -/
+theorem weakIV_triangular_actual_moments_tendstoInDistribution
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    {C : Matrix l k ℝ} {beta : k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    {selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)}
+    (h : WeakIVTheorem1218TriangularAssemblyConditions
+      μ Z u C beta limlMuHat muSelector selectorBad) :
+    TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        (((sampleGram (weakIVLocalDesign Z u C m omega),
+            sampleCrossMoment (weakIVLocalDesign Z u C m omega)
+              (weakIVLocalStructuralError u beta m omega)),
+          (twoSLSMomentMatrixStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega),
+            twoSLSMomentVectorStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega)
+              (weakIVLocalStructuralError u beta m omega))),
+          (limlMomentMatrixStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega)
+              (weakIVLIMLFiniteSampleMu limlMuHat m omega),
+            limlMomentVectorStar (stackRegressors Z m omega)
+              (weakIVLocalDesign Z u C m omega)
+              (weakIVLocalStructuralError u beta m omega)
+              (weakIVLIMLFiniteSampleMu limlMuHat m omega))))
+      atTop
+      (fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+        (((weakIVRawSigma22 (popGram μ u),
+            weakIVRawSigma2e (popGram μ u) beta),
+          (weakIV2SLSLimitBread (popGram μ Z) C
+              (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z)),
+            weakIV2SLSLimitScore (popGram μ Z) C
+              (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+              (weakIVRawGaussianStructuralScore
+                (weakIVRawGaussianMatrix z) beta))),
+          (weakIVLIMLLimitBread (popGram μ Z) C
+              (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+              (muSelector
+                (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+              (weakIVRawSigma22 (popGram μ u)),
+            weakIVLIMLLimitScore (popGram μ Z) C
+              (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+              (weakIVRawGaussianStructuralScore
+                (weakIVRawGaussianMatrix z) beta)
+              (muSelector
+                (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+              (weakIVRawSigma2e (popGram μ u) beta))))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) := by
+  let gaussianLaw := multivariateGaussian 0
+    (covMat μ (weakIVRawReducedFormScoreRow Z u 0))
+  have hr : TendstoInMeasure μ
+      (fun (m : ℕ) (_ : Ω) => (m : ℝ)⁻¹) atTop (fun _ => (0 : ℝ)) :=
+    tendstoInMeasure_const_real (μ := μ)
+      (tendsto_inv_atTop_zero.comp tendsto_natCast_atTop_atTop)
+  have hstate : TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        (weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega,
+          (m : ℝ)⁻¹))
+      atTop
+      (fun z =>
+        (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z, 0))
+      (fun _ => μ) gaussianLaw := by
+    simpa [gaussianLaw] using h.pencil_tendsto.prodMk_of_tendstoInMeasure_const
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega)
+      (fun (m : ℕ) (_ : Ω) => (m : ℝ)⁻¹)
+      (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta)
+      hr (fun _ => measurable_const.aemeasurable)
+  let D : Set (WeakIVRawLIMLPencil k × ℝ) := {p | p.1 ∈ selectorBad}
+  have hD_meas : MeasurableSet D := by
+    exact measurable_fst h.selector.selector_bad_measurable
+  have hD_null :
+      (gaussianLaw.map (fun z =>
+        (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z, 0))) D = 0 := by
+    rw [Measure.map_apply_of_aemeasurable hstate.aemeasurable_limit hD_meas]
+    have hbad := h.selector.selector_bad_null
+    rw [Measure.map_apply_of_aemeasurable
+      h.pencil_tendsto.aemeasurable_limit
+      h.selector.selector_bad_measurable] at hbad
+    simpa [D] using hbad
+  have hcont : ∀ p : WeakIVRawLIMLPencil k × ℝ, p ∉ D →
+      ContinuousAt
+        (weakIVTriangularEstimatorMomentAssemblyMap beta muSelector) p := by
+    intro p hp
+    exact weakIVTriangularEstimatorMomentAssemblyMap_continuousAt beta p
+      (h.selector.selector_continuous_off p.1 (by simpa [D] using hp))
+  have hmap := tendstoInDistribution_ae_continuous_comp hstate
+    (weakIVTriangularEstimatorMomentAssemblyMap_measurable
+      h.selector.selector_meas beta)
+    hD_null hcont
+  refine TendstoInDistribution.congr ?_ ?_ hmap
+  · intro m
+    exact ae_of_all μ fun omega =>
+      (weakIVTriangularEstimatorMomentAssemblyMap_sample
+        Z u C beta limlMuHat muSelector h.selector.sample_selector_eq m omega)
+  · exact ae_of_all gaussianLaw fun z =>
+      (weakIVTriangularEstimatorMomentAssemblyMap_limit
+        μ Z u C beta muSelector z)
+
+/-- Joint totalization CMT for the three actual triangular-array Star
+estimators in Hansen Theorem 12.18.
+
+The assumptions after the raw assembly are exactly the omitted nondegeneracy
+conditions needed by the inverse maps: nonsingular `Sigma22`, and almost-sure
+nonsingularity of the random 2SLS and LIML limiting breads. -/
+theorem weakIV_triangular_estimators_minus_beta_tendstoInDistribution
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    {C : Matrix l k ℝ} {beta : k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    {selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)}
+    (h : WeakIVTheorem1218TriangularAssemblyConditions
+      μ Z u C beta limlMuHat muSelector selectorBad)
+    (hSigma22 : IsUnit (weakIVRawSigma22 (popGram μ u)).det)
+    (h2SLSBread :
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
+        {z | ¬ IsUnit
+          (weakIV2SLSLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))).det} = 0)
+    (hLIMLBread :
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
+        {z | ¬ IsUnit
+          (weakIVLIMLLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (muSelector
+              (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+            (weakIVRawSigma22 (popGram μ u))).det} = 0) :
+    TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        ((weakIVLocalOLSBetaStar Z u C beta m omega - beta,
+            weakIVLocal2SLSBetaStar Z u C beta m omega - beta),
+          weakIVLocalLIMLBetaStar Z u C beta limlMuHat m omega - beta))
+      atTop
+      (fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+        ((weakIVOLSBias (weakIVRawSigma22 (popGram μ u))
+            (weakIVRawSigma2e (popGram μ u) beta),
+          weakIV2SLSBias (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (weakIVRawGaussianStructuralScore
+              (weakIVRawGaussianMatrix z) beta)),
+          weakIVLIMLBias (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (weakIVRawGaussianStructuralScore
+              (weakIVRawGaussianMatrix z) beta)
+            (muSelector
+              (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+            (weakIVRawSigma22 (popGram μ u))
+            (weakIVRawSigma2e (popGram μ u) beta)))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) := by
+  let gaussianLaw := multivariateGaussian 0
+    (covMat μ (weakIVRawReducedFormScoreRow Z u 0))
+  let limitMoments := fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+    (((weakIVRawSigma22 (popGram μ u),
+        weakIVRawSigma2e (popGram μ u) beta),
+      (weakIV2SLSLimitBread (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z)),
+        weakIV2SLSLimitScore (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (weakIVRawGaussianStructuralScore
+            (weakIVRawGaussianMatrix z) beta))),
+      (weakIVLIMLLimitBread (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (muSelector
+            (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+          (weakIVRawSigma22 (popGram μ u)),
+        weakIVLIMLLimitScore (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (weakIVRawGaussianStructuralScore
+            (weakIVRawGaussianMatrix z) beta)
+          (muSelector
+            (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+          (weakIVRawSigma2e (popGram μ u) beta)))
+  have hmoments := weakIV_triangular_actual_moments_tendstoInDistribution h
+  let DOLS : Set
+      (((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix k k ℝ × (k → ℝ))) := {p | ¬ IsUnit p.1.1.1.det}
+  let D2SLS : Set
+      (((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix k k ℝ × (k → ℝ))) := {p | ¬ IsUnit p.1.2.1.det}
+  let DLIML : Set
+      (((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix k k ℝ × (k → ℝ))) := {p | ¬ IsUnit p.2.1.det}
+  let D := (DOLS ∪ D2SLS) ∪ DLIML
+  have hDOLS_meas : MeasurableSet DOLS := by
+    change MeasurableSet
+      ((fun p :
+          ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix k k ℝ × (k → ℝ)) => p.1.1) ⁻¹'
+        {p : Matrix k k ℝ × (k → ℝ) | ¬ IsUnit p.1.det})
+    exact (measurable_fst.comp measurable_fst)
+      (weakIV_twoSLS_singular_pair_measurable (k := k))
+  have hD2SLS_meas : MeasurableSet D2SLS := by
+    change MeasurableSet
+      ((fun p :
+          ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix k k ℝ × (k → ℝ)) => p.1.2) ⁻¹'
+        {p : Matrix k k ℝ × (k → ℝ) | ¬ IsUnit p.1.det})
+    exact (measurable_snd.comp measurable_fst)
+      (weakIV_twoSLS_singular_pair_measurable (k := k))
+  have hDLIML_meas : MeasurableSet DLIML := by
+    change MeasurableSet
+      ((fun p :
+          ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix k k ℝ × (k → ℝ)) => p.2) ⁻¹'
+        {p : Matrix k k ℝ × (k → ℝ) | ¬ IsUnit p.1.det})
+    exact measurable_snd
+      (weakIV_twoSLS_singular_pair_measurable (k := k))
+  have hD_meas : MeasurableSet D :=
+    (hDOLS_meas.union hD2SLS_meas).union hDLIML_meas
+  have hDOLS_null : (gaussianLaw.map limitMoments) DOLS = 0 := by
+    rw [Measure.map_apply_of_aemeasurable hmoments.aemeasurable_limit hDOLS_meas]
+    have hempty : limitMoments ⁻¹' DOLS = ∅ := by
+      ext z
+      simp only [Set.mem_preimage, DOLS, Set.mem_setOf_eq, limitMoments,
+        Set.mem_empty_iff_false, iff_false]
+      exact fun hnot => hnot hSigma22
+    rw [hempty, measure_empty]
+  have hD2SLS_null : (gaussianLaw.map limitMoments) D2SLS = 0 := by
+    rw [Measure.map_apply_of_aemeasurable hmoments.aemeasurable_limit hD2SLS_meas]
+    simpa [gaussianLaw, limitMoments, D2SLS] using h2SLSBread
+  have hDLIML_null : (gaussianLaw.map limitMoments) DLIML = 0 := by
+    rw [Measure.map_apply_of_aemeasurable hmoments.aemeasurable_limit hDLIML_meas]
+    simpa [gaussianLaw, limitMoments, DLIML] using hLIMLBread
+  have hD_null : (gaussianLaw.map limitMoments) D = 0 := by
+    simpa [D] using
+      measure_union_null (measure_union_null hDOLS_null hD2SLS_null) hDLIML_null
+  have hcont : ∀ p, p ∉ D →
+      ContinuousAt (weakIVTriangularEstimatorTotalizationMap beta) p := by
+    intro p hp
+    have hpOLS : p ∉ DOLS := fun hpOLS => hp (Or.inl (Or.inl hpOLS))
+    have hp2SLS : p ∉ D2SLS := fun hp2SLS => hp (Or.inl (Or.inr hp2SLS))
+    have hpLIML : p ∉ DLIML := fun hpLIML => hp (Or.inr hpLIML)
+    exact
+      weakIVTriangularEstimatorTotalizationMap_continuousAt_of_nonsingular
+        beta p (by simpa [DOLS] using hpOLS) (by simpa [D2SLS] using hp2SLS)
+          (by simpa [DLIML] using hpLIML)
+  have hmap := tendstoInDistribution_ae_continuous_comp
+    (Z := limitMoments) hmoments
+    (weakIVTriangularEstimatorTotalizationMap_measurable beta)
+    hD_null hcont
+  refine TendstoInDistribution.congr ?_ ?_ hmap
+  · intro m
+    exact ae_of_all μ fun omega =>
+      (weakIVTriangularEstimatorTotalizationMap_sample
+        Z u C beta limlMuHat m omega)
+  · have h2ae : ∀ᵐ z ∂gaussianLaw, IsUnit
+        (weakIV2SLSLimitBread (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))).det := by
+      simpa [gaussianLaw, ae_iff] using h2SLSBread
+    have hLae : ∀ᵐ z ∂gaussianLaw, IsUnit
+        (weakIVLIMLLimitBread (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (muSelector
+            (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+          (weakIVRawSigma22 (popGram μ u))).det := by
+      simpa [gaussianLaw, ae_iff] using hLIMLBread
+    filter_upwards [h2ae, hLae] with z h2 hL
+    rw [weakIVTriangularEstimatorTotalizationMap]
+    rw [weakIVCenteredStarEstimatorMap_eq_inverse_score_of_nonsingular
+      beta _ hSigma22]
+    rw [weakIVCenteredStarEstimatorMap_eq_inverse_score_of_nonsingular
+      beta _ h2]
+    rw [weakIVCenteredStarEstimatorMap_eq_inverse_score_of_nonsingular
+      beta _ hL]
+    simp [limitMoments, weakIVOLSBias,
+      weakIV2SLSBias_eq_limitBread_inv_mul_score,
+      weakIVLIMLBias_eq_limitBread_inv_mul_score]
+
+/-- Hansen Theorem 12.18 at the literal triangular-array boundary, conditional
+only on the unresolved generalized-root selector and the mathematically
+necessary limiting-bread nondegeneracy assumptions.
+
+Unlike the historical fixed-prefix endpoints, every estimator here is the
+actual estimator computed from
+`X_{m,i} = m^{-1/2} C' Z_i + u_{2i}`.  The raw iid moment package derives all
+CLT/WLLN and sample-rank inputs; no estimator convergence is assumed. -/
+theorem weakIV_theorem12_18_triangular_estimators
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    {C : Matrix l k ℝ} {beta : k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    {selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)}
+    (h : WeakIVTheorem1218TriangularAssemblyConditions
+      μ Z u C beta limlMuHat muSelector selectorBad)
+    (hSigma22 : IsUnit (weakIVRawSigma22 (popGram μ u)).det)
+    (h2SLSBread :
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
+        {z | ¬ IsUnit
+          (weakIV2SLSLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))).det} = 0)
+    (hLIMLBread :
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
+        {z | ¬ IsUnit
+          (weakIVLIMLLimitBread (popGram μ Z) C
+            (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+            (muSelector
+              (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+            (weakIVRawSigma22 (popGram μ u))).det} = 0) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocalOLSBetaStar Z u C beta m omega - beta)
+      atTop
+      (fun _ => weakIVOLSBias (weakIVRawSigma22 (popGram μ u))
+        (weakIVRawSigma2e (popGram μ u) beta)) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocal2SLSBetaStar Z u C beta m omega - beta)
+      atTop
+      (fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+        weakIV2SLSBias (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (weakIVRawGaussianStructuralScore
+            (weakIVRawGaussianMatrix z) beta))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocalLIMLBetaStar Z u C beta limlMuHat m omega - beta)
+      atTop
+      (fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+        weakIVLIMLBias (popGram μ Z) C
+          (weakIVRawGaussianFirstStage (weakIVRawGaussianMatrix z))
+          (weakIVRawGaussianStructuralScore
+            (weakIVRawGaussianMatrix z) beta)
+          (muSelector
+            (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z))
+          (weakIVRawSigma22 (popGram μ u))
+          (weakIVRawSigma2e (popGram μ u) beta))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) ∧
+    (∀ z,
+      let p := weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z
+      LIMLRayleighMinimizer p.1 p.2 (muSelector p)) := by
+  have hjoint := weakIV_triangular_estimators_minus_beta_tendstoInDistribution
+    h hSigma22 h2SLSBread hLIMLBread
+  have hOLSdist := hjoint.continuous_comp
+    (by fun_prop : Continuous
+      (fun p : ((k → ℝ) × (k → ℝ)) × (k → ℝ) => p.1.1))
+  have hOLSdist_const : TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocalOLSBetaStar Z u C beta m omega - beta)
+      atTop
+      (fun _ : EuclideanSpace ℝ (l × Sum Unit k) =>
+        weakIVOLSBias (weakIVRawSigma22 (popGram μ u))
+          (weakIVRawSigma2e (popGram μ u) beta))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) := by
+    simpa [Function.comp_def] using hOLSdist
+  have hOLS := weakIV_tendstoInMeasure_of_tendstoInDistribution_const
+    (μ := μ)
+    (ν := multivariateGaussian 0
+      (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
+    hOLSdist_const
+  have h2SLS := hjoint.continuous_comp
+    (by fun_prop : Continuous
+      (fun p : ((k → ℝ) × (k → ℝ)) × (k → ℝ) => p.1.2))
+  have hLIML := hjoint.continuous_comp
+    (by fun_prop : Continuous
+      (fun p : ((k → ℝ) × (k → ℝ)) × (k → ℝ) => p.2))
+  refine ⟨hOLS, ?_, ?_, h.selector.limit_rayleigh_minimizer⟩
+  · simpa [Function.comp_def] using h2SLS
+  · simpa [Function.comp_def] using hLIML
+
+/-- Raw-support endpoint at the literal triangular boundary.  It exposes the
+joint Gram/score assembly and scaled generalized root used by
+`weakIV_theorem12_18_triangular_estimators`. -/
 theorem weakIV_theorem12_18_triangular_raw_assembly
     {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
     {C : Matrix l k ℝ} {beta : k → ℝ}

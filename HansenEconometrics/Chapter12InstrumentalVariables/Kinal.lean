@@ -29,11 +29,14 @@ empty vector and again has every finite moment.  This second edge is recorded by
 
 The stronger public stochastic condition package records nondegenerate iid
 rows and rank support, and deliberately does not hide the desired iff as an
-assumption.  The strongest completed endpoint additionally consumes the
-standardized fitted-Gram law and normalized-coefficient Gaussian decomposition
-needed for the genuine inverse-Gram tail argument.  Deriving that decomposition
-from a fully specified nondegenerate reduced-form model remains separate from
-the literally printed, false hypothesis.
+assumption.  The strongest completed endpoint additionally consumes the direct
+central Wishart law of the actual FWL Gram and a vector-level Gaussian law and
+Gram independence for the normalized coefficient direction.  Mathlib then
+derives the coordinate Gaussian laws, and Chapter 11 derives the inverse-scale
+laws and coordinate independence.  The central Wishart restriction is genuine:
+a relevant Gaussian first stage is generally noncentral, and neither Mathlib nor
+Chapter 11 currently supplies the noncentral inverse-Gram tail theorem needed to
+derive Hansen's threshold from that broader model.
 -/
 
 open MeasureTheory ProbabilityTheory
@@ -8136,43 +8139,170 @@ theorem twoSLSKinalFWLBetaStar_apply_eq_shifted_normalizedDirection
   rw [mul_div_cancel_left₀ _ hsqrt_ne]
   ring
 
-/-- Correct stochastic support for the remaining Kinal calculation.
+/-- A centered Gaussian numerator with any strictly positive variance has the
+same inverse-chi-square moment threshold as a standard normal numerator.
+
+This is a law-transport consequence of Mathlib's Gaussian scaling identity and
+the existing Student-t ratio theorem; no new tail integral is needed. -/
+private theorem gaussianInverseChiSqMomentThresholdIff_zero_of_pos
+    {ν : ℕ} (hν : 0 < ν) {v : ℝ≥0} (hv : 0 < v) :
+    GaussianInverseChiSqMomentThresholdIff ν 0 v := by
+  letI : Fact (0 < ν) := ⟨hν⟩
+  let c : ℝ := Real.sqrt (v : ℝ)
+  let source : Measure (ℝ × ℝ) :=
+    (gaussianReal 0 1).prod (chiSquared ν)
+  let target : Measure (ℝ × ℝ) :=
+    (gaussianReal 0 v).prod (chiSquared ν)
+  let scalePair : ℝ × ℝ → ℝ × ℝ := fun z => (c * z.1, z.2)
+  let ratio : ℝ × ℝ → ℝ := fun z => z.1 / Real.sqrt z.2
+  have hc_pos : 0 < c := Real.sqrt_pos.2 (by exact_mod_cast hv)
+  have hVar : (⟨c ^ 2, sq_nonneg c⟩ : ℝ≥0) = v := by
+    apply NNReal.eq
+    simp [c, Real.sq_sqrt (show 0 ≤ (v : ℝ) by positivity)]
+  have hGaussMap :
+      (gaussianReal 0 1).map (fun z : ℝ => c * z) = gaussianReal 0 v := by
+    rw [gaussianReal_map_const_mul]
+    simp [hVar]
+  have hTargetMap : target = source.map scalePair := by
+    have hProd := Measure.map_prod_map
+      (gaussianReal 0 1) (chiSquared ν)
+      (show Measurable (fun z : ℝ => c * z) by fun_prop) measurable_id
+    rw [hGaussMap, Measure.map_id] at hProd
+    simpa [source, target, scalePair, Function.comp_def] using hProd
+  intro r
+  calc
+    MemLp ratio (r : ℝ≥0∞) target ↔
+        MemLp (ratio ∘ scalePair) (r : ℝ≥0∞) source := by
+      rw [hTargetMap]
+      exact memLp_map_measure_iff
+        (show AEStronglyMeasurable ratio (source.map scalePair) by
+          fun_prop)
+        (show AEMeasurable scalePair source by fun_prop)
+    _ ↔ MemLp ratio (r : ℝ≥0∞) source := by
+      have hfun : ratio ∘ scalePair = fun z => c * ratio z := by
+        funext z
+        simp [ratio, scalePair]
+        ring
+      rw [hfun]
+      constructor
+      · intro h
+        have h' := h.const_mul c⁻¹
+        simpa [hc_pos.ne', mul_assoc] using h'
+      · intro h
+        exact h.const_mul c
+    _ ↔ (r : ℝ) < (ν : ℝ) := by
+      simpa [ratio, source] using
+        memLp_standardNormal_div_sqrt_chiSquared_iff_lt hν r
+
+/-- Correct central-Gram Gaussian support for the remaining Kinal calculation.
 
 The package assumes neither the desired moment iff nor a coefficient
-decomposition.  It asks for the matrix-normal Gram representation and for the
-law/independence of the mathematically correct normalized coefficient error.
-The coefficient representation is derived algebraically above. -/
+decomposition.  Its Gram premise is the direct central Wishart law actually
+consumed by Chapter 11's inverse-Wishart theorem; this is weaker than requiring
+an explicit standardized matrix witness and an a.e. Gram equality.  One joint
+Gaussian statement and vector/Gram independence replace coordinatewise law and
+independence premises.  The coordinate facts and coefficient representation are
+derived below. -/
 structure TwoSLSKinalNormalizedCoefficientGaussianInputs
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
     (X₁ : Ω → Matrix n k₁ ℝ) (Y₂ : Ω → Matrix n k₂ ℝ)
     (Z₂ : Ω → Matrix n l₂ ℝ) (Y₁ : Ω → n → ℝ)
     (β₂ : k₂ → ℝ) (Sigma : Matrix k₂ k₂ ℝ)
-    (Rstd : Ω → Matrix l₂ k₂ ℝ) : Prop where
-  /-- Positive-definite scale of the standardized residualized first stage. -/
+    (directionVar : k₂ → ℝ≥0) : Prop where
+  /-- Positive-definite scale of the central residualized fitted Gram. -/
   sigma_posDef : Sigma.PosDef
-  /-- Standard matrix-normal representation used by Chapter 11's Wishart
-  cross-product theorem. -/
-  standardized_gram_law :
-    HasLaw Rstd
-      (iidMatrixGaussianLaw (n := l₂) (m := k₂) (0 : k₂ → ℝ) Sigma) μ
-  /-- The actual FWL Gram is the cross-product of the standardized matrix. -/
-  gram_eq :
-    (fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-      =ᵐ[μ]
-    fun ω => matrixCrossProduct (Rstd ω)
-  /-- Each normalized centered coefficient direction is standard Gaussian. -/
-  normalized_direction_law : ∀ j : k₂,
-    HasLaw
-      (fun ω => twoSLSKinalFWLNormalizedCoefficientDirectionStar
-        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j)
-      (gaussianReal 0 1) μ
-  /-- The normalized direction is independent of its inverse-scale statistic. -/
-  normalized_direction_inverse_scale_indep : ∀ j : k₂,
-    (fun ω => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+  /-- The actual residualized fitted-endogenous Gram has the central Wishart
+  law used by Chapter 11. -/
+  fitted_residual_gram_wishart_law :
+    TwoSLSKinalFittedResidualGramWishartLaw μ X₁ Y₂ Z₂ Sigma
+  /-- The full normalized centered coefficient direction is jointly Gaussian. -/
+  normalized_direction_gaussian :
+    HasGaussianLaw
+      (fun ω j => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j) μ
+  /-- Each normalized direction has mean zero. -/
+  normalized_direction_mean_zero : ∀ j : k₂,
+    ∫ ω, twoSLSKinalFWLNormalizedCoefficientDirectionStar
+      (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j ∂μ = 0
+  /-- Displayed variances of the normalized direction coordinates. -/
+  normalized_direction_var : ∀ j : k₂,
+    (Var[
+      fun ω => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j;
+      μ]).toNNReal = directionVar j
+  /-- Every normalized direction coordinate is nondegenerate. -/
+  normalized_direction_var_pos : ∀ j : k₂, 0 < directionVar j
+  /-- The full normalized direction vector is independent of the actual FWL
+  Gram.  Coordinate inverse-scale independence is derived by measurable
+  composition. -/
+  normalized_direction_gram_independent :
+    (fun ω j => twoSLSKinalFWLNormalizedCoefficientDirectionStar
       (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j)
       ⟂ᵢ[μ]
-    fun ω => twoSLSKinalFWLCoordinateInverseScaleStar
-      (X₁ ω) (Y₂ ω) (Z₂ ω) Sigma j
+    fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω)
+
+/-- Optional constructor from an explicit standardized Gaussian matrix.
+
+Chapter 11 turns the matrix law and a.e. cross-product identity into the direct
+Wishart law stored by the corrected package.  Mathlib transports independence
+of the normalized direction from the standardized matrix to its cross-product
+and then across the a.e. Gram identity.  The explicit matrix witness is thus a
+sufficient construction device, not part of the minimal endpoint. -/
+theorem
+    TwoSLSKinalNormalizedCoefficientGaussianInputs.of_iidMatrixGaussian_gram_ae_eq
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
+    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
+    {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
+    (directionVar : k₂ → ℝ≥0)
+    (Rstd : Ω → Matrix l₂ k₂ ℝ)
+    (hSigma : Sigma.PosDef)
+    (hRstd : HasLaw Rstd
+      (iidMatrixGaussianLaw (n := l₂) (m := k₂) (0 : k₂ → ℝ) Sigma) μ)
+    (hGram :
+      (fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω))
+        =ᵐ[μ]
+      fun ω => matrixCrossProduct (Rstd ω))
+    (hDirectionGaussian :
+      HasGaussianLaw
+        (fun ω j => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+          (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j) μ)
+    (hDirectionMeanZero : ∀ j : k₂,
+      ∫ ω, twoSLSKinalFWLNormalizedCoefficientDirectionStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j ∂μ = 0)
+    (hDirectionVar : ∀ j : k₂,
+      (Var[
+        fun ω => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+          (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j;
+        μ]).toNNReal = directionVar j)
+    (hDirectionVarPos : ∀ j : k₂, 0 < directionVar j)
+    (hDirectionRstdInd :
+      (fun ω j => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j)
+        ⟂ᵢ[μ]
+      Rstd) :
+    TwoSLSKinalNormalizedCoefficientGaussianInputs
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar := by
+  have hDirectionCrossInd :
+      (fun ω j => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j)
+        ⟂ᵢ[μ]
+      fun ω => matrixCrossProduct (Rstd ω) := by
+    simpa [Function.comp_def] using
+      IndepFun.comp (φ := id)
+        (ψ := fun R : Matrix l₂ k₂ ℝ => matrixCrossProduct R)
+        hDirectionRstdInd measurable_id measurable_matrixCrossProduct_kinal
+  exact
+    { sigma_posDef := hSigma
+      fitted_residual_gram_wishart_law :=
+        twoSLSKinalFittedResidualGramWishartLaw_of_iidMatrixGaussian_gram_ae_eq
+          X₁ Y₂ Z₂ Sigma Rstd hRstd hGram
+      normalized_direction_gaussian := hDirectionGaussian
+      normalized_direction_mean_zero := hDirectionMeanZero
+      normalized_direction_var := hDirectionVar
+      normalized_direction_var_pos := hDirectionVarPos
+      normalized_direction_gram_independent :=
+        IndepFun.congr hDirectionCrossInd Filter.EventuallyEq.rfl hGram.symm }
 
 /-- The corrected Gaussian inputs derive all coordinate inverse-scale
 chi-square laws by reusing Chapter 11's matrix-normal and inverse-Wishart
@@ -8182,21 +8312,115 @@ theorem TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScaleLaws
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
     {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
-    {Rstd : Ω → Matrix l₂ k₂ ℝ}
+    {directionVar : k₂ → ℝ≥0}
     (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
-      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma Rstd)
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar)
     (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁) :
     TwoSLSKinalFWLCoordinateInverseScaleLaws (n := n) (l₂ := l₂)
       μ X₁ Y₂ Z₂ Sigma := by
   classical
-  have hW : TwoSLSKinalFittedResidualGramWishartLaw μ X₁ Y₂ Z₂ Sigma :=
-    twoSLSKinalFittedResidualGramWishartLaw_of_iidMatrixGaussian_gram_ae_eq
-      X₁ Y₂ Z₂ Sigma Rstd h.standardized_gram_law h.gram_eq
   exact
     twoSLSKinalFWLCoordinateInverseScaleLaws_of_standardGramBridge
-      X₁ Y₂ Z₂ Sigma hW
+      X₁ Y₂ Z₂ Sigma h.fitted_residual_gram_wishart_law
       (TwoSLSKinalCoordinateInverseWishartStandardGramBridge.of_posDef_canonicalRest
         (l₂ := l₂) Sigma h.sigma_posDef hJoint.instrument_count)
+
+/-- The vector-level Gaussian premise and displayed moments identify every
+normalized coefficient direction as centered Gaussian with its named variance. -/
+theorem TwoSLSKinalNormalizedCoefficientGaussianInputs.normalizedDirectionLaw
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
+    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
+    {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
+    {directionVar : k₂ → ℝ≥0}
+    (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar)
+    (j : k₂) :
+    HasLaw
+      (fun ω => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j)
+      (gaussianReal 0 (directionVar j)) μ := by
+  let directionVec : Ω → k₂ → ℝ :=
+    fun ω j => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+      (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j
+  let directionCoord : Ω → ℝ := fun ω => directionVec ω j
+  have hCoordGaussian : HasGaussianLaw directionCoord μ := by
+    simpa [directionVec, directionCoord] using
+      h.normalized_direction_gaussian.eval j
+  have hGaussianMap :
+      μ.map directionCoord =
+        gaussianReal ((μ.map directionCoord)[id])
+          (Var[id; μ.map directionCoord]).toNNReal :=
+    IsGaussian.eq_gaussianReal (μ.map directionCoord)
+      hCoordGaussian.isGaussian_map
+  have hMeanMap :
+      (μ.map directionCoord)[id] = ∫ ω, directionCoord ω ∂μ := by
+    rw [integral_map hCoordGaussian.aemeasurable (by fun_prop)]
+    rfl
+  have hVarMap :
+      (Var[id; μ.map directionCoord]).toNNReal =
+        (Var[directionCoord; μ]).toNNReal := by
+    rw [variance_map (by fun_prop) hCoordGaussian.aemeasurable]
+    rfl
+  refine ⟨hCoordGaussian.aemeasurable, ?_⟩
+  calc
+    μ.map directionCoord =
+        gaussianReal ((μ.map directionCoord)[id])
+          (Var[id; μ.map directionCoord]).toNNReal := hGaussianMap
+    _ = gaussianReal 0 (directionVar j) := by
+      rw [hMeanMap, hVarMap]
+      simp [directionCoord, directionVec,
+        h.normalized_direction_mean_zero j,
+        h.normalized_direction_var j]
+
+/-- Vector/Gram independence implies independence of every normalized
+direction coordinate from its Chapter 11 inverse-scale statistic. -/
+theorem
+    TwoSLSKinalNormalizedCoefficientGaussianInputs.normalizedDirectionInverseScaleIndep
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
+    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
+    {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
+    {directionVar : k₂ → ℝ≥0}
+    (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar)
+    (j : k₂) :
+    (fun ω => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+      (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j)
+      ⟂ᵢ[μ]
+    fun ω => twoSLSKinalFWLCoordinateInverseScaleStar
+      (X₁ ω) (Y₂ ω) (Z₂ ω) Sigma j := by
+  let directionVec : Ω → k₂ → ℝ :=
+    fun ω j => twoSLSKinalFWLNormalizedCoefficientDirectionStar
+      (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j
+  let gram : Ω → Matrix k₂ k₂ ℝ :=
+    fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω)
+  let evalJ : (k₂ → ℝ) → ℝ := fun z => z j
+  let scaleJ : Matrix k₂ k₂ ℝ → ℝ :=
+    inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))
+  have hGramLaw : HasLaw gram (wishartLaw (n := l₂) Sigma) μ := by
+    simpa [gram, TwoSLSKinalFittedResidualGramWishartLaw,
+      TwoSLSKinalResidualGramWishartLaw, twoSLSKinalFWLGramStar] using
+      h.fitted_residual_gram_wishart_law
+  have hScaleAE :
+      AEMeasurable scaleJ (wishartLaw (n := l₂) Sigma) := by
+    have hId :
+        HasLaw (fun W : Matrix k₂ k₂ ℝ => W)
+          (wishartLaw (n := l₂) Sigma) (wishartLaw (n := l₂) Sigma) :=
+      HasLaw.id
+    exact
+      (inverseWishartScaledLinearForm_hasLaw_map
+        (W := fun W : Matrix k₂ k₂ ℝ => W)
+        (Wlaw := wishartLaw (n := l₂) Sigma)
+        (Sigma := Sigma) (α := Pi.single j (1 : ℝ)) hId).aemeasurable
+  have hScaleMapAE : AEMeasurable scaleJ (μ.map gram) := by
+    rw [hGramLaw.map_eq]
+    exact hScaleAE
+  have hInd := h.normalized_direction_gram_independent.comp₀
+    h.normalized_direction_gaussian.aemeasurable hGramLaw.aemeasurable
+    (measurable_pi_apply j).aemeasurable hScaleMapAE
+  simpa [directionVec, gram, evalJ, scaleJ, Function.comp_def,
+    twoSLSKinalFWLCoordinateInverseScaleStar] using hInd
 
 private theorem chiSquared_pos_ae (ν : ℕ) :
     ∀ᵐ q ∂chiSquared ν, 0 < q := by
@@ -8220,9 +8444,9 @@ theorem TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScalePosAE
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
     {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
-    {Rstd : Ω → Matrix l₂ k₂ ℝ}
+    {directionVar : k₂ → ℝ≥0}
     (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
-      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma Rstd)
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar)
     (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
     (j : k₂) :
     ∀ᵐ ω ∂μ,
@@ -8242,25 +8466,26 @@ theorem twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
     {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
-    {Rstd : Ω → Matrix l₂ k₂ ℝ}
+    {directionVar : k₂ → ℝ≥0}
     (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
     (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
-      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma Rstd)
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar)
     (j : k₂) :
     HasLaw
       (fun ω => twoSLSKinalFWLBetaStar
         (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) j)
-      (((gaussianReal 0 1).prod
+      (((gaussianReal 0 (directionVar j)).prod
         (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))).map
           (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)) μ := by
   classical
-  haveI : IsFiniteMeasure μ := (h.normalized_direction_law j).isFiniteMeasure
+  have hDirectionLaw := h.normalizedDirectionLaw j
+  haveI : IsFiniteMeasure μ := hDirectionLaw.isFiniteMeasure
   have hScale := twoSLSKinalFWLCoordinateInverseScaleStar_hasLaw
     (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Sigma := Sigma)
     (h.inverseScaleLaws hJoint) j
   have hMap :
       AEMeasurable (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
-        ((gaussianReal 0 1).prod
+        ((gaussianReal 0 (directionVar j)).prod
           (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) :=
     (twoSLSKinalShiftedGaussianInverseChiSqCoordMap_measurable β₂ j).aemeasurable
   have hModel := hasLaw_map_of_indepFun_pair
@@ -8269,8 +8494,8 @@ theorem twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
     (B := fun ω => twoSLSKinalFWLCoordinateInverseScaleStar
       (X₁ ω) (Y₂ ω) (Z₂ ω) Sigma j)
     (F := twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
-    (h.normalized_direction_law j) hScale
-    (h.normalized_direction_inverse_scale_indep j) hMap
+    hDirectionLaw hScale
+    (h.normalizedDirectionInverseScaleIndep j) hMap
   apply hModel.congr
   filter_upwards [h.inverseScalePosAE hJoint j] with ω hq
   exact
@@ -8279,25 +8504,25 @@ theorem twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
 
 omit [DecidableEq k₂] [DecidableEq l₂] in
 private theorem memLp_shiftedGaussianInverseChiSqCoordMap_iff
-    (β₂ : k₂ → ℝ) (j : k₂) (r : ℝ≥0) :
+    (β₂ : k₂ → ℝ) (v : ℝ≥0) (j : k₂) (r : ℝ≥0) :
     MemLp (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
         (r : ℝ≥0∞)
-        ((gaussianReal 0 1).prod
+        ((gaussianReal 0 v).prod
           (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) ↔
       MemLp (twoSLSKinalGaussianInverseChiSqCoordMap (k₂ := k₂) j)
         (r : ℝ≥0∞)
-        ((gaussianReal 0 1).prod
+        ((gaussianReal 0 v).prod
           (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) := by
-  let ν := (gaussianReal 0 1).prod
+  let ν := (gaussianReal 0 v).prod
     (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))
   letI hChiProb : IsProbabilityMeasure
       (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1)) :=
     isProbabilityMeasure_chiSquared (Nat.succ_pos _)
   let hGaussianProb :
-      IsProbabilityMeasure (gaussianReal 0 1) := inferInstance
+      IsProbabilityMeasure (gaussianReal 0 v) := inferInstance
   have hνprob : IsProbabilityMeasure ν := by
     exact @Measure.prod.instIsProbabilityMeasure
-      ℝ ℝ _ _ (gaussianReal 0 1)
+      ℝ ℝ _ _ (gaussianReal 0 v)
       (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))
       hGaussianProb hChiProb
   letI : IsFiniteMeasure ν :=
@@ -8333,17 +8558,19 @@ theorem
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
     {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
-    {Rstd : Ω → Matrix l₂ k₂ ℝ} [Nonempty k₂]
+    {directionVar : k₂ → ℝ≥0} [Nonempty k₂]
     (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
-      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma Rstd)
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar)
     (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁) :
     TwoSLSKinalFWLCoordinateMomentIff μ X₁ Y₂ Z₂ Y₁ := by
   classical
   have hTail :
       TwoSLSKinalGaussianInverseChiSqProductTailIff (l₂ := l₂)
-        (fun _ : k₂ => 0) (fun _ : k₂ => 1) :=
-    twoSLSKinalGaussianInverseChiSqProductTailIff_standard_of_studentTMomentIff
-      hJoint.instrument_count (studentTMomentThresholdIff_of_pos (by omega))
+        (fun _ : k₂ => 0) directionVar :=
+    twoSLSKinalGaussianInverseChiSqProductTailIff_of_coordinate_momentThresholds
+      hJoint.instrument_count (fun _ : k₂ => 0) directionVar
+      (fun j => gaussianInverseChiSqMomentThresholdIff_zero_of_pos
+        (by omega) (h.normalized_direction_var_pos j))
   intro r
   constructor
   · intro hCoord
@@ -8354,27 +8581,27 @@ theorem
         hJoint h j
     have hMap :
         AEMeasurable (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
-          ((gaussianReal 0 1).prod
+          ((gaussianReal 0 (directionVar j)).prod
             (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) :=
       (twoSLSKinalShiftedGaussianInverseChiSqCoordMap_measurable β₂ j).aemeasurable
     have hShift :
         MemLp (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
           (r : ℝ≥0∞)
-          ((gaussianReal 0 1).prod
+          ((gaussianReal 0 (directionVar j)).prod
             (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) :=
       (real_memLp_iff_memLp_map_of_hasLaw hLaw hMap).mp (hCoord j)
     exact (memLp_shiftedGaussianInverseChiSqCoordMap_iff
-      (l₂ := l₂) β₂ j r).mp hShift
+      (l₂ := l₂) β₂ (directionVar j) j r).mp hShift
   · intro hlt j
     have hBase := (hTail r).mpr hlt j
     have hShift := (memLp_shiftedGaussianInverseChiSqCoordMap_iff
-      (l₂ := l₂) β₂ j r).mpr hBase
+      (l₂ := l₂) β₂ (directionVar j) j r).mpr hBase
     have hLaw :=
       twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
         hJoint h j
     have hMap :
         AEMeasurable (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
-          ((gaussianReal 0 1).prod
+          ((gaussianReal 0 (directionVar j)).prod
             (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) :=
       (twoSLSKinalShiftedGaussianInverseChiSqCoordMap_measurable
         β₂ j).aemeasurable
@@ -8388,26 +8615,30 @@ theorem TwoSLSKinalNormalizedCoefficientGaussianInputs.toExactMomentIff
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
     {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
-    {Rstd : Ω → Matrix l₂ k₂ ℝ} [Nonempty k₂]
+    {directionVar : k₂ → ℝ≥0} [Nonempty k₂]
     (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
-      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma Rstd)
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar)
     (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁) :
     TwoSLSKinalExactMomentIff μ X₁ Y₂ Z₂ Y₁ :=
   twoSLSKinalExactMomentIff_of_fwl_coordinateMomentIff
     (twoSLSKinal_fwl_ae_eq_of_jointNormalConditions hJoint)
     (h.toFWLCoordinateMomentIff hJoint)
 
-/-- Displayed threshold form of the corrected normalized-coefficient support
-theorem. -/
-theorem twoSLSKinal_momentThreshold_of_normalizedCoefficientGaussianInputs
+/-- Corrected central-Wishart version of Hansen Theorem 12.7.
+
+The inputs contain no coefficient decomposition or moment conclusion.  The
+coordinate centered-Gaussian laws, inverse-scale laws, positivity, and
+coordinate independence used by the Student-t tail argument are all derived
+from the vector-level Gaussian/Gram premises. -/
+theorem twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
     {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
-    {Rstd : Ω → Matrix l₂ k₂ ℝ} [Nonempty k₂]
+    {directionVar : k₂ → ℝ≥0} [Nonempty k₂]
     (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
     (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
-      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma Rstd) :
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar) :
     ∀ r : ℝ≥0,
       MemLp (fun ω => twoSLSEndogenousBetaOrZero
           (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
