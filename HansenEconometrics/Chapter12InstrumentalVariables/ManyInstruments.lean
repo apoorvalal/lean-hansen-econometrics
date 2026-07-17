@@ -16477,6 +16477,59 @@ theorem manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector
     refine TendstoInMeasure.congr (fun m => (hselector.sample_selector_eq m).symm)
       (ae_of_all μ fun _ => hvalue) hraw
 
+/-- Normalized-pencil convergence identifies the concrete smallest generalized
+root without any finite-sample positive-denominator premise.
+
+The selector is total and measurable on all matrix pairs, while continuity is
+needed only at the positive-definite limiting denominator.  Thus exceptional
+finite samples are handled by the established zero totalization and do not
+need to be excluded asymptotically. -/
+theorem manyInstruments_limlMuHat_tendsto_of_normalizedPencil_smallestRoot
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hH : H.PosSemidef) (hSigma : Sigma.PosDef) (halpha : alpha < 1) :
+    ManyInstrumentsLIMLEigenvalueLimitConditions μ
+      (manyInstrumentsLIMLSmallestRoot Z X Y) alpha where
+  meas := by
+    intro m
+    exact (weakIVLIMLSmallestGeneralizedRoot_measurable.comp_aemeasurable
+      (hpencil.pencil_meas m).aemeasurable).aestronglyMeasurable
+  tendsto := by
+    have hlimitDenominator :
+        (manyInstrumentsLIMLLimitDenominator β Sigma alpha).PosDef := by
+      rw [manyInstrumentsLIMLLimitDenominator]
+      exact (manyInstrumentsJointReducedFormCovariance_posDef β hSigma).smul
+        (by linarith)
+    have hlimit :
+        (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+          manyInstrumentsLIMLLimitDenominator β Sigma alpha) ∈
+            weakIVLIMLPositiveDenominatorSet :=
+      manyInstruments_positiveDenominatorSet_of_posDef hlimitDenominator
+    have hbenchmark := manyInstrumentsLIMLLimit_rayleighMinimizer
+      β H Sigma alpha hH hSigma halpha
+    have hrootMin := weakIVLIMLSmallestGeneralizedRoot_rayleighMinimizer hlimit
+    have hvalue : weakIVLIMLSmallestGeneralizedRoot
+        (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+          manyInstrumentsLIMLLimitDenominator β Sigma alpha) =
+          alpha / (1 - alpha) :=
+      LIMLRayleighMinimizer.value_unique hrootMin hbenchmark
+    have hrootMeas : ∀ m, AEStronglyMeasurable
+        (fun ω => weakIVLIMLSmallestGeneralizedRoot
+          (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω)) μ := by
+      intro m
+      exact (weakIVLIMLSmallestGeneralizedRoot_measurable.comp_aemeasurable
+        (hpencil.pencil_meas m).aemeasurable).aestronglyMeasurable
+    have hraw := tendstoInMeasure_continuousAt_const_comp
+      hpencil.pencil_meas hrootMeas hpencil.pencil_tendsto
+        (weakIVLIMLSmallestGeneralizedRoot_continuousAt (by
+          simpa [weakIVLIMLSelectorBadSet] using hlimit))
+    simpa only [manyInstrumentsLIMLSmallestRoot, hvalue] using hraw
+
 /-- Assemble the canonical Theorem 12.19 condition package through normalized
 pencil convergence and generalized-eigenvalue CMT.
 
@@ -16631,9 +16684,8 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_select
 smallest generalized-Rayleigh root.
 
 Normalized-pencil convergence and selector convergence are conclusions.  The
-only spectral premise is finite-sample regularity of the denominator, which
-ensures that the displayed generalized Rayleigh problem is defined on the
-positive-denominator branch. -/
+smallest-root selector is total on every finite sample, and continuity is used
+only at the positive-definite limiting denominator. -/
 theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smallestRoot
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
@@ -16651,10 +16703,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smalle
       μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
         (manyInstrumentsSigma2e Sigma))
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
-      μ Z e u2 Sigma C)
-    (hsample : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
-      manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω ∈
-        weakIVLIMLPositiveDenominatorSet) :
+      μ Z e u2 Sigma C) :
     TendstoInMeasure μ
       (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
       (fun _ => β + manyInstrumentsOLSBias H
@@ -16671,31 +16720,21 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smalle
       μ Z X Y β H Sigma alpha :=
     ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments
       hraw hOLS hquad
-  have hlimitDenominator :
-      (manyInstrumentsLIMLLimitDenominator β Sigma alpha).PosDef := by
-    rw [manyInstrumentsLIMLLimitDenominator]
-    exact (manyInstrumentsJointReducedFormCovariance_posDef β
-      hraw.error_covariance_posDef).smul (by linarith [hraw.alpha_lt_one])
-  have hlimit :
-      (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
-        manyInstrumentsLIMLLimitDenominator β Sigma alpha) ∈
-          weakIVLIMLPositiveDenominatorSet :=
-    manyInstruments_positiveDenominatorSet_of_posDef hlimitDenominator
-  let hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
-      μ Z X Y (manyInstrumentsLIMLSmallestRoot Z X Y) β H Sigma alpha
-        weakIVLIMLSmallestGeneralizedRoot :=
-    ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate.of_smallestRoot
-      hpencil hsample hlimit
-  exact manyInstruments_estimators_theorem12_19_of_rawModel_concentration_selector
-    hraw hOLS hquad hselector
+  let h2SLS := hraw.toTwoSLSMomentAssemblyConditions hOLS hquad
+  let hmu := manyInstruments_limlMuHat_tendsto_of_normalizedPencil_smallestRoot
+    hpencil hraw.signal_posDef.posSemidef hraw.error_covariance_posDef
+      hraw.alpha_lt_one
+  exact manyInstruments_estimators_theorem12_19
+    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+      (manyInstruments_alpha_nonneg_of_card_ratio_tendsto hraw.instrument_ratio)
+      hraw.alpha_lt_one hraw.instrument_ratio hraw.structural hraw.signal_posDef
+      hOLS h2SLS hmu)
 
 /-- Raw-model Theorem 12.19 endpoint with the entire OLS assembly and concrete
 LIML selector derived internally.
 
 After the raw model, the only remaining stochastic certificate is Hansen's
-projected quadratic-form concentration (12.81); the only remaining
-finite-sample qualification is regularity of the generalized Rayleigh
-denominator. -/
+projected quadratic-form concentration (12.81). -/
 theorem manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
     [StandardBorelSpace Ω]
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
@@ -16710,10 +16749,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
     (hraw : ManyInstrumentsTheorem1219RawModelConditions
       μ Z X Y Gamma e u2 β H Sigma alpha B)
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
-      μ Z e u2 Sigma C)
-    (hsample : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
-      manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω ∈
-        weakIVLIMLPositiveDenominatorSet) :
+      μ Z e u2 Sigma C) :
     TendstoInMeasure μ
       (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
       (fun _ => β + manyInstrumentsOLSBias H
@@ -16729,7 +16765,7 @@ theorem manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
   manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smallestRoot
     hraw
       (ManyInstrumentsTheorem1219RawModelConditions.toOLSMomentAssemblyConditions hraw)
-      hquad hsample
+      hquad
 
 /-- Hansen Theorem 12.19 from the literal reduced-form errors `[u₁,u₂]` and
 covariance `Σ` of (12.74).
@@ -16821,10 +16857,7 @@ theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_
           (manyInstrumentsHansenSigma2e β Sigma))
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
-        u2 (manyInstrumentsStructuralErrorCovariance β Sigma) C)
-    (hsample : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
-      manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω ∈
-        weakIVLIMLPositiveDenominatorSet) :
+        u2 (manyInstrumentsStructuralErrorCovariance β Sigma) C) :
     TendstoInMeasure μ
       (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
       (fun _ => β + manyInstrumentsOLSBias H
@@ -16852,7 +16885,7 @@ theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_
     manyInstrumentsSigma2e_structuralErrorCovariance] using
     (manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smallestRoot
       (hraw := hraw.toRawModelConditions) (hOLS := hOLS')
-      (hquad := hquad) (hsample := hsample))
+      (hquad := hquad))
 
 /-- Tight Hansen-facing Theorem 12.19 endpoint after deriving the full OLS
 assembly and the concrete LIML selector from the primitive `[u₁,u₂]` model. -/
@@ -16871,10 +16904,7 @@ theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot
       μ Z X Y Gamma u1 u2 β H Sigma alpha B)
     (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
       μ Z (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
-        u2 (manyInstrumentsStructuralErrorCovariance β Sigma) C)
-    (hsample : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
-      manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω ∈
-        weakIVLIMLPositiveDenominatorSet) :
+        u2 (manyInstrumentsStructuralErrorCovariance β Sigma) C) :
     TendstoInMeasure μ
       (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
       (fun _ => β + manyInstrumentsOLSBias H
@@ -16891,7 +16921,7 @@ theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot
     manyInstrumentsSigma2e_structuralErrorCovariance] using
     (manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
       (hraw := hraw.toRawModelConditions) (hquad := hquad)
-      (hsample := hsample))
+      )
 
 end NormalizedPencilAssembly
 
