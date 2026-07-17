@@ -3,6 +3,7 @@ import Mathlib.Probability.CondVar
 import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
 import Mathlib.Probability.Independence.Conditional
+import Mathlib.Probability.Independence.Integration
 import Mathlib.Probability.Kernel.CondDistrib
 import HansenEconometrics.MultivariateNormal
 
@@ -120,7 +121,7 @@ variable {μ : @Measure Ω mΩ} [IsFiniteMeasure μ]
 /-- Conditional independence factors the conditional expectation of an integrable product.
 Unlike an `L²`-based formulation, this only requires integrability of the two factors and their
 product. -/
-theorem condExp_mul_eq_mul_condExp_of_condIndepFun
+private theorem condExp_mul_eq_mul_condExp_of_condIndepFun
     {f g : Ω → ℝ} (hm : mc ≤ mΩ)
     (hfg : CondIndepFun (mΩ := mΩ) mc hm f g μ)
     (hf : Integrable f μ) (hg : Integrable g μ)
@@ -159,30 +160,13 @@ theorem condExp_mul_eq_mul_condExp_of_condIndepFun
     filter_upwards [hmap] with z hz
     have hpair : Measurable (fun y => (f' y, g' y)) :=
       hf'_meas.prodMk hg'_meas
-    calc
-      (∫ y, f' y * g' y ∂condExpKernel μ mc z) =
-          ∫ x : ℝ × ℝ, x.1 * x.2 ∂((condExpKernel μ mc).map
-            (fun y => (f' y, g' y))) z := by
-              rw [Kernel.map_apply _ hpair]
-              rw [integral_map hpair.aemeasurable]
-              fun_prop
-      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
-          (((condExpKernel μ mc).map f' ×ₖ
-            (condExpKernel μ mc).map g') z) := by
-              rw [hz]
-      _ = ∫ x : ℝ × ℝ, x.1 * x.2 ∂
-          (((condExpKernel μ mc).map f') z).prod
-            (((condExpKernel μ mc).map g') z) := by
-              rw [Kernel.prod_apply]
-      _ = (∫ x, x ∂((condExpKernel μ mc).map f') z) *
-          ∫ y, y ∂((condExpKernel μ mc).map g') z :=
-            integral_prod_mul id id
-      _ = (∫ y, f' y ∂condExpKernel μ mc z) *
-          ∫ y, g' y ∂condExpKernel μ mc z := by
-            rw [Kernel.map_apply _ hf'_meas,
-              Kernel.map_apply _ hg'_meas]
-            rw [integral_map hf'_meas.aemeasurable (by fun_prop),
-              integral_map hg'_meas.aemeasurable (by fun_prop)]
+    have hind : IndepFun f' g' (condExpKernel μ mc z) := by
+      rw [indepFun_iff_map_prod_eq_prod_map_map
+        hf'_meas.aemeasurable hg'_meas.aemeasurable]
+      simpa only [Kernel.map_apply _ hpair, Kernel.map_apply _ hf'_meas,
+        Kernel.map_apply _ hg'_meas, Kernel.prod_apply] using hz
+    exact hind.integral_fun_mul_eq_mul_integral
+      hf'_meas.aestronglyMeasurable hg'_meas.aestronglyMeasurable
   have hprod :
       (fun ω => f ω * g ω) =ᵐ[μ] fun ω => f' ω * g' ω := by
     filter_upwards [hff', hgg'] with ω hfω hgω
@@ -847,6 +831,21 @@ theorem conditioningSpace_le
     (hX : Measurable X) :
     conditioningSpace X ≤ (inferInstance : MeasurableSpace Ω) :=
   hX.comap_le
+
+/-- Conditional independence given a random variable factors the conditional
+expectation of an integrable product. -/
+theorem condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+    [StandardBorelSpace Ω] [IsFiniteMeasure μ]
+    {Z : Ω → β} {f g : Ω → ℝ}
+    (hZ : Measurable Z)
+    (hfg : CondIndepFun (conditioningSpace Z) (conditioningSpace_le hZ) f g μ)
+    (hf : Integrable f μ) (hg : Integrable g μ)
+    (hfg_int : Integrable (fun ω => f ω * g ω) μ) :
+    condExpOn μ (fun ω => f ω * g ω) Z =ᵐ[μ]
+      fun ω => condExpOn μ f Z ω * condExpOn μ g Z ω := by
+  simpa [condExpOn] using
+    condExp_mul_eq_mul_condExp_of_condIndepFun
+      (conditioningSpace_le hZ) hfg hf hg hfg_int
 
 end ProbabilityOnRandomVars
 

@@ -15052,7 +15052,8 @@ private theorem manyInstruments_signalErrorCrossMoment_coord_tendsto_zero
           have hind : CondIndepFun (conditioningSpace (Z m)) hZle
               (fun ω => U m i ω c) (fun ω => U m j ω c) μ := by
             simpa [U, Function.comp_def] using hrow.comp hcoordMeas hcoordMeas
-          have hfactor := condExp_mul_eq_mul_condExp_of_condIndepFun hZle hind
+          have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+            (h.instrument_measurable m) hind
             ((hU2 i).integrable (by norm_num))
             ((hU2 j).integrable (by norm_num))
             ((hU2 i).integrable_mul (hU2 j))
@@ -15063,7 +15064,7 @@ private theorem manyInstruments_signalErrorCrossMoment_coord_tendsto_zero
               condExpOn μ (fun ω => U m i ω c * U m j ω c) (Z m) =ᵐ[μ]
                   fun ω => condExpOn μ (fun ω => U m i ω c) (Z m) ω *
                     condExpOn μ (fun ω => U m j ω c) (Z m) ω := by
-                simpa [condExpOn] using hfactor
+                exact hfactor
               _ =ᵐ[μ] fun _ => (0 : ℝ) := by
                 filter_upwards [hUcond i, hUcond j] with ω hi hj
                 simp [hi, hj]
@@ -15363,8 +15364,8 @@ private theorem manyInstruments_unprojectedFullError_entry_meanSquare
         (conditioningSpace_le (h.instrument_measurable m))
         (Q i) (Q j) μ := by
       simpa [Q, V, U, Function.comp_def] using hrow.comp hphi hphi
-    have hfactor := condExp_mul_eq_mul_condExp_of_condIndepFun
-      (conditioningSpace_le (h.instrument_measurable m)) hQind
+    have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+      (h.instrument_measurable m) hQind
       ((hQ2 i).integrable (by norm_num))
       ((hQ2 j).integrable (by norm_num))
       ((hQ2 i).integrable_mul (hQ2 j))
@@ -15374,7 +15375,7 @@ private theorem manyInstruments_unprojectedFullError_entry_meanSquare
         condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) =ᵐ[μ]
             fun ω => condExpOn μ (Q i) (Z m) ω *
               condExpOn μ (Q j) (Z m) ω := by
-          simpa [condExpOn] using hfactor
+          exact hfactor
         _ =ᵐ[μ] 0 := by
           filter_upwards [hQcond i, hQcond j] with ω hi hj
           simp [hi, hj]

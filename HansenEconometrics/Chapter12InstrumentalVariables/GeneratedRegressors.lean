@@ -27026,6 +27026,195 @@ theorem expectationErrorBetaHatStar_tendstoInDistribution_of_observed_iid
     (Z := fun z : EuclideanSpace ℝ k => z.ofLp)
     (by simpa [leading] using hleading) hrem hactual
 
+omit [DecidableEq k] [DecidableEq l] in
+@[reducible]
+private noncomputable def expectationErrorRawJointMatrixMeasurableSpace :
+    MeasurableSpace (Matrix (Sum l k) (Sum l k) ℝ) :=
+  matrixBorelMeasurableSpace (Sum l k) (Sum l k)
+
+attribute [local instance] expectationErrorRawJointMatrixMeasurableSpace
+
+omit [DecidableEq k] [DecidableEq l] in
+private theorem expectationErrorRawJointMatrixBorelSpace :
+    BorelSpace (Matrix (Sum l k) (Sum l k) ℝ) :=
+  matrixBorelSpace (Sum l k) (Sum l k)
+
+attribute [local instance] expectationErrorRawJointMatrixBorelSpace
+
+omit [DecidableEq k] [DecidableEq l] in
+private theorem expectationErrorRawJointOuter_measurable :
+    Measurable (fun s : Sum l k → ℝ => Matrix.vecMulVec s s) :=
+  (Continuous.matrix_vecMulVec continuous_id continuous_id).measurable
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- The empirical second moment of the full raw Theorem 12.12 score converges
+to its covariance matrix under the literal observed-iid fourth moments.
+
+This is the joint ideal-middle WLLN.  It retains the off-diagonal
+`E[u Z' e nu]` block and does not require the raw covariance to be
+nonsingular. -/
+theorem rawJointScore_outer_tendstoInMeasure_covMat
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => (m : ℝ)⁻¹ •
+        ∑ i ∈ Finset.range m,
+          Matrix.vecMulVec
+            (expectationErrorRawJointScoreRow Z u
+              (expectationErrorStructuralError X Y β) νe i ω)
+            (expectationErrorRawJointScoreRow Z u
+              (expectationErrorStructuralError X Y β) νe i ω))
+      atTop
+      (fun _ => covMat μ
+        (expectationErrorRawJointScoreRow Z u
+          (expectationErrorStructuralError X Y β) νe 0)) := by
+  classical
+  let S := expectationErrorRawJointScoreRow Z u
+    (expectationErrorStructuralError X Y β) νe
+  have hS2 : MemLp (S 0) 2 μ := by
+    simpa [S] using h.rawJointScore_memLp_two
+  have houterInt : Integrable
+      (fun ω => Matrix.vecMulVec (S 0 ω) (S 0 ω)) μ := by
+    refine Integrable.of_eval ?_
+    intro a
+    refine Integrable.of_eval ?_
+    intro b
+    simpa [Matrix.vecMulVec_apply] using
+      (hS2.eval a).integrable_mul (hS2.eval b)
+  rcases rawJointScore_iid h with ⟨hSindep, hSident⟩
+  have houterIndep : Pairwise ((· ⟂ᵢ[μ] ·) on
+      (fun i ω => Matrix.vecMulVec (S i ω) (S i ω))) := by
+    have hiid : iIndepFun
+        (fun i ω => Matrix.vecMulVec (S i ω) (S i ω)) μ :=
+      hSindep.comp
+        (fun _ s => Matrix.vecMulVec s s)
+        (fun _ => expectationErrorRawJointOuter_measurable)
+    exact fun i j hij => hiid.indepFun hij
+  have houterIdent : ∀ i, IdentDistrib
+      (fun ω => Matrix.vecMulVec (S i ω) (S i ω))
+      (fun ω => Matrix.vecMulVec (S 0 ω) (S 0 ω)) μ μ := by
+    intro i
+    exact (hSident i).comp expectationErrorRawJointOuter_measurable
+  have hmean : ∀ b, μ[fun ω => S 0 ω b] = 0 := by
+    intro b
+    have hb := congrFun h.rawJointScore_mean_zero b
+    rw [meanVec, integral_apply (hS2.integrable (by norm_num)) b] at hb
+    simpa [S] using hb
+  have hcov : covMat μ (S 0) =
+      μ[fun ω => Matrix.vecMulVec (S 0 ω) (S 0 ω)] := by
+    ext a b
+    rw [covMat, ProbabilityTheory.covariance_eq_sub
+      (hS2.eval a) (hS2.eval b), hmean a, hmean b]
+    simp only [zero_mul, sub_zero]
+    simpa [Matrix.vecMulVec_apply] using
+      (integral_apply_apply houterInt a b).symm
+  have hwlln := tendstoInMeasure_wlln
+    (μ := μ) (fun i ω => Matrix.vecMulVec (S i ω) (S i ω))
+    houterInt houterIndep houterIdent
+  rw [← hcov] at hwlln
+  simpa [S] using hwlln
+
+set_option maxHeartbeats 1200000 in
+-- The matrix-valued WLLN and block sandwich CMT need extra elaboration time.
+/-- The oracle joint sandwich built from the raw Theorem 12.12 scores is
+consistent for Hansen's exact displayed covariance matrix.
+
+Thus the raw observed-iid package supplies both the full ideal covariance
+middle, including its cross block, and the fixed-influence sandwich assembly.
+The remaining canonical-feasible step is only replacement of these oracle
+scores by the fitted and second-step residual scores. -/
+theorem rawJointOracleCovariance_tendstoInMeasure_theorem12_12
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        expectationErrorInfluenceMatrix A (popGram μ Z) (popGram μ u) *
+          ((m : ℝ)⁻¹ •
+            ∑ i ∈ Finset.range m,
+              Matrix.vecMulVec
+                (expectationErrorRawJointScoreRow Z u
+                  (expectationErrorStructuralError X Y β) νe i ω)
+                (expectationErrorRawJointScoreRow Z u
+                  (expectationErrorStructuralError X Y β) νe i ω)) *
+          (expectationErrorInfluenceMatrix A
+            (popGram μ Z) (popGram μ u))ᵀ)
+      atTop
+      (fun _ => expectationErrorAsymptoticVariance A
+        (popGram μ Z) (popGram μ u)
+        (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+        (expectationErrorOmegaUZeNu μ u Z
+          (expectationErrorStructuralError X Y β) νe)
+        (scoreCovMat μ u νe)) := by
+  classical
+  let S := expectationErrorRawJointScoreRow Z u
+    (expectationErrorStructuralError X Y β) νe
+  let M : ℕ → Ω → Matrix (Sum l k) (Sum l k) ℝ := fun m ω =>
+    (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m,
+      Matrix.vecMulVec (S i ω) (S i ω)
+  let R := expectationErrorInfluenceMatrix A (popGram μ Z) (popGram μ u)
+  have hM : TendstoInMeasure μ M atTop (fun _ => covMat μ (S 0)) := by
+    simpa [M, S] using h.rawJointScore_outer_tendstoInMeasure_covMat
+  have hS2 : MemLp (S 0) 2 μ := by
+    simpa [S] using h.rawJointScore_memLp_two
+  have houterInt : Integrable
+      (fun ω => Matrix.vecMulVec (S 0 ω) (S 0 ω)) μ := by
+    refine Integrable.of_eval ?_
+    intro a
+    refine Integrable.of_eval ?_
+    intro b
+    simpa [Matrix.vecMulVec_apply] using
+      (hS2.eval a).integrable_mul (hS2.eval b)
+  rcases rawJointScore_iid h with ⟨_, hSident⟩
+  have houterIdent : ∀ i, IdentDistrib
+      (fun ω => Matrix.vecMulVec (S i ω) (S i ω))
+      (fun ω => Matrix.vecMulVec (S 0 ω) (S 0 ω)) μ μ := by
+    intro i
+    exact (hSident i).comp expectationErrorRawJointOuter_measurable
+  have hMmeas : ∀ m, AEStronglyMeasurable (M m) μ := by
+    intro m
+    dsimp only [M]
+    exact (Finset.aestronglyMeasurable_fun_sum (Finset.range m)
+      (fun i _ => ((houterIdent i).integrable_iff.mpr houterInt)
+        |>.aestronglyMeasurable)).const_smul (m : ℝ)⁻¹
+  have hpush := tendstoInMeasure_continuous_comp hMmeas hM
+    (show Continuous (fun V : Matrix (Sum l k) (Sum l k) ℝ =>
+      R * V * Rᵀ) by fun_prop)
+  let hTop := h.toInstrumentInnovationScoreCLTConditions.toSampleCLTAssumption72
+  let hBot := h.toResidualInnovationScoreCLTConditions.toSampleCLTAssumption72
+  have hQZZ : (popGram μ Z).IsSymm :=
+    popGram_isSymm μ Z hTop.toSampleMomentAssumption71.int_outer
+  have hQuu : (popGram μ u).IsSymm :=
+    popGram_isSymm μ u hBot.toSampleMomentAssumption71.int_outer
+  have htarget : R * covMat μ (S 0) * Rᵀ =
+      expectationErrorAsymptoticVariance A
+        (popGram μ Z) (popGram μ u)
+        (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+        (expectationErrorOmegaUZeNu μ u Z
+          (expectationErrorStructuralError X Y β) νe)
+        (scoreCovMat μ u νe) := by
+    rw [show covMat μ (S 0) = Matrix.fromBlocks
+          (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+          (expectationErrorOmegaUZeNu μ u Z
+            (expectationErrorStructuralError X Y β) νe)ᵀ
+          (expectationErrorOmegaUZeNu μ u Z
+            (expectationErrorStructuralError X Y β) νe)
+          (scoreCovMat μ u νe) by
+        simpa [S] using h.rawJointScore_covMat_eq_fromBlocks]
+    simpa [R] using expectationErrorInfluenceMatrix_covariance_eq
+      A (popGram μ Z) (popGram μ u)
+      (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+      (expectationErrorOmegaUZeNu μ u Z
+        (expectationErrorStructuralError X Y β) νe)
+      (scoreCovMat μ u νe) hQZZ hQuu
+  rw [htarget] at hpush
+  simpa [M, R, S, Function.comp_def] using hpush
+
 end ExpectationErrorHansenObservedIidConditions
 
 end CorrectedTheorem12_12ObservedIid

@@ -558,9 +558,15 @@ canonical crosswalk above.
   exact full covariance, including the cross block, from the same observed-iid
   package. `expectationErrorBetaAlphaStar_tendstoInDistribution_theorem12_12_of_observed_iid`
   proves the actual joint estimator CLT by deriving both block influence
-  remainders and applying Slutsky. The remaining raw obligation is consistency
-  of the full feasible covariance estimator `expectationErrorVHatStar`; the
-  older assembly endpoint still assumes that conclusion. The source section
+  remainders and applying Slutsky. The ideal covariance side is now raw as
+  well: `rawJointScore_outer_tendstoInMeasure_covMat` proves the full joint
+  score outer-product WLLN, preserving the `E[uZ'eν]` cross block, and
+  `rawJointOracleCovariance_tendstoInMeasure_theorem12_12` proves convergence
+  of the exact fixed-influence oracle sandwich. The remaining raw obligation
+  is the feasible-substitution step replacing the oracle score, error, and
+  innovation by the fitted designs and residuals inside
+  `expectationErrorVHatStar`; the older assembly endpoint still assumes that
+  conclusion. The source section
   is also internally inconsistent: its opening display says
   `Y = X'β + u'α + ν`, which gives `Y-X'β = u'α+ν`, while the subsequent
   derivation and covariance formulas use
