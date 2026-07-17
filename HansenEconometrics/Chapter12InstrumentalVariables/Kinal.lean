@@ -8801,48 +8801,12 @@ theorem
     (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁) :
     TwoSLSKinalFWLCoordinateMomentIff μ X₁ Y₂ Z₂ Y₁ := by
   classical
-  have hTail :
-      TwoSLSKinalGaussianInverseChiSqProductTailIff (l₂ := l₂)
-        (fun _ : k₂ => 0) directionVar :=
-    twoSLSKinalGaussianInverseChiSqProductTailIff_of_coordinate_momentThresholds
-      hJoint.instrument_count (fun _ : k₂ => 0) directionVar
-      (fun j => gaussianInverseChiSqMomentThresholdIff_zero_of_pos
-        (by omega) (h.normalized_direction_var_pos j))
-  intro r
-  constructor
-  · intro hCoord
-    apply (hTail r).mp
-    intro j
-    have hLaw :=
-      twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
-        hJoint h j
-    have hMap :
-        AEMeasurable (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
-          ((gaussianReal 0 (directionVar j)).prod
-            (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) :=
-      (twoSLSKinalShiftedGaussianInverseChiSqCoordMap_measurable β₂ j).aemeasurable
-    have hShift :
-        MemLp (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
-          (r : ℝ≥0∞)
-          ((gaussianReal 0 (directionVar j)).prod
-            (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) :=
-      (real_memLp_iff_memLp_map_of_hasLaw hLaw hMap).mp (hCoord j)
-    exact (memLp_shiftedGaussianInverseChiSqCoordMap_iff
-      (l₂ := l₂) β₂ (directionVar j) j r).mp hShift
-  · intro hlt j
-    have hBase := (hTail r).mpr hlt j
-    have hShift := (memLp_shiftedGaussianInverseChiSqCoordMap_iff
-      (l₂ := l₂) β₂ (directionVar j) j r).mpr hBase
-    have hLaw :=
-      twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
-        hJoint h j
-    have hMap :
-        AEMeasurable (twoSLSKinalShiftedGaussianInverseChiSqCoordMap β₂ j)
-          ((gaussianReal 0 (directionVar j)).prod
-            (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))) :=
-      (twoSLSKinalShiftedGaussianInverseChiSqCoordMap_measurable
-        β₂ j).aemeasurable
-    exact (real_memLp_iff_memLp_map_of_hasLaw hLaw hMap).mpr hShift
+  let j : k₂ := Classical.choice (inferInstance : Nonempty k₂)
+  apply twoSLSKinalFWLMomentIff_iff_coordinateMomentIff.mp
+  exact
+    TwoSLSKinalNormalizedCoefficientGaussianVectorInputs.toFWLMomentIff_of_exists_var_pos
+      h.toTwoSLSKinalNormalizedCoefficientGaussianVectorInputs
+      hJoint.instrument_count ⟨j, h.normalized_direction_var_pos j⟩
 
 /-- Exact Kinal moment threshold from the corrected normalized-coefficient
 Gaussian support.  This is a strong decomposition theorem, not yet the raw
