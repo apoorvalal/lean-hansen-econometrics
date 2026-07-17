@@ -756,6 +756,7 @@ theorem TwoSLSKinalJointNormalConditions.aemeasurable_Y₁
   simpa [twoSLSKinalJointData, π] using
     hπ.aemeasurable.comp_aemeasurable h.joint_gaussian.aemeasurable
 
+omit [DecidableEq n] in
 private theorem kinal_fromCols_aestronglyMeasurable
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {κ η : Type*} [Fintype κ] [Fintype η]
@@ -829,6 +830,7 @@ private theorem kinal_fromCols_aestronglyMeasurable
     exact ⟨g, hg.mono le_rfl htarget_le, hfg⟩
   exact hAE.aestronglyMeasurable
 
+omit [DecidableEq n] in
 private theorem kinal_instrumentProjectionStar_aestronglyMeasurable
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {κ : Type*} [Fintype κ] [DecidableEq κ]
@@ -852,6 +854,7 @@ private theorem kinal_instrumentProjectionStar_aestronglyMeasurable
       (hleft.prodMk hZt)
   simpa [instrumentProjectionStar, Matrix.mul_assoc] using hproj
 
+omit [DecidableEq n] in
 private theorem kinal_fittedRegressorsStar_aestronglyMeasurable
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {κ η : Type*} [Fintype κ] [DecidableEq κ] [Fintype η]
@@ -866,6 +869,7 @@ private theorem kinal_fittedRegressorsStar_aestronglyMeasurable
       (hP.prodMk hX)
   simpa [fittedRegressorsStar] using hPX
 
+omit [DecidableEq n] [DecidableEq k₂] in
 private theorem kinal_twoSLSFittedIncludedRegressorsStar_aestronglyMeasurable
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
@@ -893,6 +897,7 @@ private theorem kinal_twoSLSFittedIncludedRegressorsStar_aestronglyMeasurable
   simpa [twoSLSFittedIncludedRegressorsStar] using
     hcont.comp_aestronglyMeasurable hFitted
 
+omit [DecidableEq n] [DecidableEq k₂] in
 private theorem kinal_twoSLSFittedEndogenousRegressorsStar_aestronglyMeasurable
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
@@ -986,6 +991,7 @@ private theorem kinal_residualizedOutcomeStar_aestronglyMeasurable
       (hAnnihilator.prodMk hy)
   simpa only [residualizedOutcomeStar] using hResidualized
 
+omit [DecidableEq k₂] in
 private theorem kinal_fwlScoreStar_aestronglyMeasurable
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
@@ -1026,6 +1032,7 @@ private theorem kinal_fwlScoreStar_aestronglyMeasurable
       (hRt.prodMk hYresid)
   simpa [twoSLSKinalFWLScoreStar] using hScore
 
+omit [DecidableEq k₂] in
 /-- Measurability of the residualized fitted-endogenous Gram from measurable
 Kinal design blocks. -/
 private theorem kinal_fwlGramStar_aestronglyMeasurable
@@ -8112,7 +8119,7 @@ noncomputable def twoSLSKinalShiftedGaussianInverseChiSqCoordMap
     (β₂ : k₂ → ℝ) : k₂ → ℝ × ℝ → ℝ :=
   fun j z => β₂ j + z.1 / Real.sqrt z.2
 
-omit [DecidableEq k₂] [DecidableEq l₂] in
+omit [Fintype k₂] [DecidableEq k₂] [DecidableEq l₂] in
 /-- The corrected shifted coefficient map is Borel measurable. -/
 theorem twoSLSKinalShiftedGaussianInverseChiSqCoordMap_measurable
     (β₂ : k₂ → ℝ) (j : k₂) :
@@ -8794,246 +8801,6 @@ theorem twoSLSKinalExactMomentIff_memLp_one_and_not_memLp_two_of_one_overidentif
     ⟨twoSLSKinalExactMomentIff_memLp_one_of_overidentified hiff hover,
       twoSLSKinalExactMomentIff_not_memLp_two_of_one_overidentifying hiff hover1⟩
 
-/-
-The specialized corollaries below depended on the obsolete raw-score package
-commented out above.  The generic corollaries from `TwoSLSKinalExactMomentIff`
-remain public and apply to the corrected normalized-coefficient endpoint.
-
-set_option linter.style.longLine false in
-/-- Standardized-score canonical-rest Kinal consequence: in the just-identified
-case, every moment order `r ≥ 1` is infinite. -/
-theorem twoSLSKinal_not_memLp_of_justIdentified_of_jointNormal_standardizedScoreCanonicalRestInputs
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    [SFinite (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hjust : Fintype.card l₂ = Fintype.card k₂)
-    {r : ℝ≥0} (hr : 1 ≤ r) :
-    ¬ MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (r : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_not_memLp_of_justIdentified_of_one_le
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs
-      hJoint hInputs)
-    hjust hr
-
-set_option linter.style.longLine false in
-/-- Auto-`SFinite` version of
-`twoSLSKinal_not_memLp_of_justIdentified_of_jointNormal_standardizedScoreCanonicalRestInputs`. -/
-theorem twoSLSKinal_not_memLp_of_justIdentified_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hjust : Fintype.card l₂ = Fintype.card k₂)
-    {r : ℝ≥0} (hr : 1 ≤ r) :
-    ¬ MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (r : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_not_memLp_of_justIdentified_of_one_le
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-      hJoint hInputs)
-    hjust hr
-
-set_option linter.style.longLine false in
-/-- Standardized-score canonical-rest Kinal consequence: one overidentifying
-restriction gives a finite first moment. -/
-theorem twoSLSKinal_memLp_one_of_overidentified_of_jointNormal_standardizedScoreCanonicalRestInputs
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    [SFinite (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover : Fintype.card k₂ < Fintype.card l₂) :
-    MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (1 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_memLp_one_of_overidentified
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs
-      hJoint hInputs)
-    hover
-
-set_option linter.style.longLine false in
-/-- Auto-`SFinite` version of
-`twoSLSKinal_memLp_one_of_overidentified_of_jointNormal_standardizedScoreCanonicalRestInputs`. -/
-theorem twoSLSKinal_memLp_one_of_overidentified_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover : Fintype.card k₂ < Fintype.card l₂) :
-    MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (1 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_memLp_one_of_overidentified
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-      hJoint hInputs)
-    hover
-
-set_option linter.style.longLine false in
-/-- Standardized-score canonical-rest Kinal consequence: two overidentifying
-restrictions give a finite second moment. -/
-theorem twoSLSKinal_memLp_two_of_two_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    [SFinite (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover2 : Fintype.card k₂ + 1 < Fintype.card l₂) :
-    MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (2 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_memLp_two_of_two_overidentifying
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs
-      hJoint hInputs)
-    hover2
-
-set_option linter.style.longLine false in
-/-- Auto-`SFinite` version of
-`twoSLSKinal_memLp_two_of_two_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs`. -/
-theorem twoSLSKinal_memLp_two_of_two_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover2 : Fintype.card k₂ + 1 < Fintype.card l₂) :
-    MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (2 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_memLp_two_of_two_overidentifying
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-      hJoint hInputs)
-    hover2
-
-set_option linter.style.longLine false in
-/-- Standardized-score canonical-rest Kinal consequence: with exactly one
-overidentifying restriction, the endogenous 2SLS block has no finite second
-moment. -/
-theorem twoSLSKinal_not_memLp_two_of_one_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    [SFinite (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover1 : Fintype.card l₂ = Fintype.card k₂ + 1) :
-    ¬ MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (2 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_not_memLp_two_of_one_overidentifying
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs
-      hJoint hInputs)
-    hover1
-
-set_option linter.style.longLine false in
-/-- Auto-`SFinite` version of
-`twoSLSKinal_not_memLp_two_of_one_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs`. -/
-theorem twoSLSKinal_not_memLp_two_of_one_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover1 : Fintype.card l₂ = Fintype.card k₂ + 1) :
-    ¬ MemLp
-      (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-      (2 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_not_memLp_two_of_one_overidentifying
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-      hJoint hInputs)
-    hover1
-
-set_option linter.style.longLine false in
-/-- Standardized-score canonical-rest Kinal consequence: with exactly one
-overidentifying restriction, the endogenous 2SLS block has a finite first
-moment but no finite second moment. -/
-theorem twoSLSKinal_memLp_one_and_not_memLp_two_of_one_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    [SFinite (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover1 : Fintype.card l₂ = Fintype.card k₂ + 1) :
-    MemLp
-        (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-        (1 : ℝ≥0∞) μ ∧
-      ¬ MemLp
-        (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-        (2 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_memLp_one_and_not_memLp_two_of_one_overidentifying
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs
-      hJoint hInputs)
-    hover1
-
-set_option linter.style.longLine false in
-/-- Auto-`SFinite` version of
-`twoSLSKinal_memLp_one_and_not_memLp_two_of_one_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs`. -/
-theorem twoSLSKinal_memLp_one_and_not_memLp_two_of_one_overidentifying_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
-    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    {Sigma : Matrix k₂ k₂ ℝ} {Rstd : Ω → Matrix l₂ k₂ ℝ}
-    [Nonempty k₂]
-    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
-    (hInputs :
-      TwoSLSKinalJointNormalStandardizedScoreCanonicalRestInputs
-        μ X₁ Y₂ Z₂ Y₁ Sigma Rstd)
-    (hover1 : Fintype.card l₂ = Fintype.card k₂ + 1) :
-    MemLp
-        (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-        (1 : ℝ≥0∞) μ ∧
-      ¬ MemLp
-        (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
-        (2 : ℝ≥0∞) μ :=
-  twoSLSKinalExactMomentIff_memLp_one_and_not_memLp_two_of_one_overidentifying
-    (twoSLSKinalExactMomentIff_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite
-      hJoint hInputs)
-    hover1
--/
 
 end KinalSupport
 
