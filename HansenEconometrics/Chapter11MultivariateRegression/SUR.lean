@@ -1,3 +1,4 @@
+import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.Chapter8Asymptotics
@@ -363,31 +364,6 @@ structure SURScoreCLTConditions
     atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
     (multivariateGaussian 0 M)
 
-omit [Fintype n] [DecidableEq n] [Fintype m] [DecidableEq m] in
-private theorem matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
-    {Ahat : ℕ → Ω → Matrix k k ℝ} {A : Matrix k k ℝ}
-    (hA_meas : ∀ t, AEStronglyMeasurable (Ahat t) μ)
-    (hA : TendstoInMeasure μ Ahat atTop (fun _ => A))
-    (hA_unit : IsUnit A.det) :
-    Tendsto (fun t => μ {ω | ¬ IsUnit (Ahat t ω).det}) atTop (𝓝 0) := by
-  have hDet : TendstoInMeasure μ (fun t ω => (Ahat t ω).det)
-      atTop (fun _ => A.det) :=
-    tendstoInMeasure_continuous_comp hA_meas hA (Continuous.matrix_det continuous_id)
-  have hqne : A.det ≠ 0 := hA_unit.ne_zero
-  set ε : ℝ := |A.det| / 2 with hε_def
-  have hε_pos : 0 < ε := half_pos (abs_pos.mpr hqne)
-  have hε_le : ε ≤ |A.det| := by
-    rw [hε_def]
-    linarith [abs_nonneg A.det]
-  have hmeas_eps := hDet (ENNReal.ofReal ε) (ENNReal.ofReal_pos.mpr hε_pos)
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hmeas_eps
-    (fun _ => zero_le _) (fun t => ?_)
-  refine measure_mono ?_
-  intro ω hω
-  simp only [Set.mem_setOf_eq, isUnit_iff_ne_zero, not_not] at hω
-  simp only [Set.mem_setOf_eq, hω, edist_dist, Real.dist_eq, zero_sub, abs_neg]
-  exact ENNReal.ofReal_le_ofReal hε_le
-
 omit [DecidableEq n] [DecidableEq m] in
 private theorem surBetaFromInverseCovStar_linearization_core
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
@@ -427,10 +403,10 @@ private theorem surBetaFromInverseCovStar_linearization_core
         atTop (𝓝 0) :=
     matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
       (μ := μ)
-      (Ahat := fun t ω =>
+      (A := fun t ω =>
         systemHomoskedasticMiddle (fun i : Fin t => X i.val ω)
           (SigmaInvHat t ω))
-      (A := M) hMhat_meas hMhat_tendsto hM_unit
+      (A0 := M) hMhat_meas hMhat_tendsto hM_unit
   intro ε hε
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsingular
     (fun _ => zero_le _) (fun t => ?_)
@@ -1718,30 +1694,6 @@ structure SystemConditionalMeanZero
   error_integrable : ∀ a, Integrable (fun ω => e 0 ω a) μ
   cond_mean_zero : ∀ a,
     condExpOn μ (fun ω => e 0 ω a) Z =ᵐ[μ] fun _ => 0
-
-omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
-private theorem condExpOn_matrix_mul_left_right
-    {ζ ι κ ν ρ : Type*} [MeasurableSpace ζ]
-    [Fintype ι] [Fintype κ] [Fintype ν] [Fintype ρ]
-    {Z : Ω → ζ} (A : Matrix ι κ ℝ) (B : Matrix ν ρ ℝ)
-    {F : Ω → Matrix κ ν ℝ} {M : Matrix κ ν ℝ}
-    (hF : Integrable F μ)
-    (hcond : condExpOn μ F Z =ᵐ[μ] fun _ => M) :
-    condExpOn μ (fun ω => A * F ω * B) Z =ᵐ[μ] fun _ => A * M * B := by
-  let T : Matrix κ ν ℝ →L[ℝ] Matrix ι ρ ℝ :=
-    matrixLeftRightContinuousLinearMap A B
-  have hcomm :
-      T ∘ condExpOn μ F Z =ᵐ[μ] condExpOn μ (T ∘ F) Z := by
-    simpa [condExpOn] using
-      (T.comp_condExp_comm (μ := μ) (m := conditioningSpace Z) hF)
-  have hconst :
-      T ∘ condExpOn μ F Z =ᵐ[μ] fun _ => A * M * B := by
-    filter_upwards [hcond] with ω hω
-    change A * condExpOn μ F Z ω * B = A * M * B
-    exact congrArg (fun N => A * N * B) hω
-  have htarget : condExpOn μ (T ∘ F) Z =ᵐ[μ] fun _ => A * M * B :=
-    hcomm.symm.trans hconst
-  simpa [T, Function.comp_def] using htarget
 
 namespace SystemConditionalMeanZero
 

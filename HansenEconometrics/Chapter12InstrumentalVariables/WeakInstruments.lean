@@ -338,16 +338,6 @@ noncomputable def weakIVLIMLWeakScaledScore
 
 section FiniteSampleWeakIVMeasurability
 
-omit [IsProbabilityMeasure μ] in
-private theorem weakIV_stackScalar_aestronglyMeasurable
-    {n : ℕ} {Y : ℕ → Ω → ℝ}
-    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
-    AEStronglyMeasurable (fun ω => (fun i : Fin n => Y i.val ω)) μ := by
-  rw [aestronglyMeasurable_iff_aemeasurable]
-  rw [aemeasurable_pi_iff]
-  intro i
-  exact (hY i.val).aemeasurable
-
 set_option linter.unusedFintypeInType false in
 set_option linter.unusedDecidableInType false in
 set_option linter.unusedSectionVars false in
@@ -397,7 +387,7 @@ theorem weakIVOLSNormalizedScore_aestronglyMeasurable_of_rows
   have hevec : AEStronglyMeasurable
       (fun ω => stackErrors e m ω) μ := by
     simpa [stackErrors] using
-      (weakIV_stackScalar_aestronglyMeasurable (μ := μ) (n := m) he)
+      (stackScalar_aestronglyMeasurable (μ := μ) (n := m) he)
   have hXt : AEStronglyMeasurable
       (fun ω => (stackRegressors X m ω)ᵀ) μ :=
     (continuous_id.matrix_transpose).comp_aestronglyMeasurable hXmat
@@ -630,7 +620,7 @@ theorem weakIVLIMLWeakScaledScore_aestronglyMeasurable_of_rows
   have hevec : AEStronglyMeasurable
       (fun ω => stackErrors e m ω) μ := by
     simpa [stackErrors] using
-      (weakIV_stackScalar_aestronglyMeasurable (μ := μ) (n := m) he)
+      (stackScalar_aestronglyMeasurable (μ := μ) (n := m) he)
   have hmu :=
     weakIV_finiteSampleMu_aestronglyMeasurable (μ := μ)
       (limlMuHat := limlMuHat) hMu m
@@ -671,7 +661,7 @@ theorem weakIVLIMLBetaStar_aestronglyMeasurable_of_rows
   have hYvec : AEStronglyMeasurable
       (fun ω => stackOutcomes Y m ω) μ := by
     simpa [stackOutcomes] using
-      (weakIV_stackScalar_aestronglyMeasurable (μ := μ) (n := m) hY)
+      (stackScalar_aestronglyMeasurable (μ := μ) (n := m) hY)
   have hmu :=
     weakIV_finiteSampleMu_aestronglyMeasurable (μ := μ)
       (limlMuHat := limlMuHat) hMu m
@@ -3846,33 +3836,6 @@ theorem WeakIVLIMLRootAssemblyConditions.of_structural_rayleigh
       h.rayleigh_selector.limit_selector_eq
   limit_nonsing_ae := h.limit_nonsing_ae
 
-private theorem weakIV_matrix_singular_measure_tendsto_zero
-    {A : ℕ → Ω → Matrix k k ℝ} {A0 : Matrix k k ℝ}
-    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
-    (hA : TendstoInMeasure μ A atTop (fun _ => A0))
-    (hA0 : IsUnit A0.det) :
-    Tendsto (fun m => μ {ω | ¬ IsUnit (A m ω).det}) atTop (𝓝 0) := by
-  have hDet : TendstoInMeasure μ
-      (fun m ω => (A m ω).det) atTop (fun _ => A0.det) :=
-    tendstoInMeasure_continuous_comp hA_meas hA
-      (Continuous.matrix_det continuous_id)
-  have hdet_ne : A0.det ≠ 0 := hA0.ne_zero
-  set ε : ℝ := |A0.det| / 2 with hε_def
-  have hε_pos : 0 < ε := half_pos (abs_pos.mpr hdet_ne)
-  have hε_le : ε ≤ |A0.det| := by
-    rw [hε_def]
-    linarith [abs_nonneg A0.det]
-  have hmeas_eps := hDet (ENNReal.ofReal ε) (ENNReal.ofReal_pos.mpr hε_pos)
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hmeas_eps
-    (fun _ => zero_le _) (fun m => ?_)
-  refine measure_mono ?_
-  intro ω hω
-  simp only [Set.mem_setOf_eq, isUnit_iff_ne_zero, not_not] at hω
-  simp only [Set.mem_setOf_eq, edist_dist, Real.dist_eq]
-  rw [hω]
-  simp only [zero_sub, abs_neg]
-  exact ENNReal.ofReal_le_ofReal hε_le
-
 omit [IsProbabilityMeasure μ] in
 private theorem weakIV_pair_bread_singular_tendsto_zero_of_joint_tendsto
     {Ωlim : Type*} [MeasurableSpace Ωlim]
@@ -4479,7 +4442,7 @@ private theorem weakIV_ols_totalization_remainder_tendstoInMeasure_zero
           (weakIVOLSNormalizedBread X m ω)⁻¹ *ᵥ
             weakIVOLSNormalizedScore X e m ω)
       atTop (fun _ => (0 : k → ℝ)) := by
-  have hsingular := weakIV_matrix_singular_measure_tendsto_zero
+  have hsingular := matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
     (A := fun m ω => weakIVOLSNormalizedBread X m ω)
     h.bread_meas h.bread_tendsto h.bread_nonsing
   intro ε hε
@@ -4659,30 +4622,6 @@ theorem weakIV2SLSRootScaledScore_eq_card_smul_normalizedScore
     sampleQXZ, Matrix.smul_mul, Matrix.smul_mulVec, Matrix.mulVec_smul,
     smul_smul, hsqrt]
 
-omit [Fintype k] [DecidableEq k] in
-private theorem weakIV_limlNormalizedMomentMatrixStar_eq_zero_sub_mu_residual
-    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
-    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (muHat : ℝ) :
-    limlNormalizedMomentMatrixStar Z X muHat =
-      limlNormalizedMomentMatrixStar Z X 0 -
-        muHat • (sampleGram X - limlNormalizedMomentMatrixStar Z X 0) := by
-  ext a b
-  simp [limlNormalizedMomentMatrixStar, limlMomentMatrixStar, limlWeightMatrixStar,
-    sampleGram, Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_assoc]
-  ring
-
-omit [Fintype k] [DecidableEq k] in
-private theorem weakIV_limlNormalizedMomentVectorStar_eq_zero_sub_mu_residual
-    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
-    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (e : n → ℝ) (muHat : ℝ) :
-    limlNormalizedMomentVectorStar Z X e muHat =
-      limlNormalizedMomentVectorStar Z X e 0 -
-        muHat • (sampleCrossMoment X e - limlNormalizedMomentVectorStar Z X e 0) := by
-  ext a
-  simp [limlNormalizedMomentVectorStar, limlMomentVectorStar, limlWeightMatrixStar,
-    sampleCrossMoment, Matrix.mul_sub, Matrix.sub_mulVec, Matrix.smul_mulVec]
-  ring_nf
-
 omit [Fintype k] [DecidableEq k] [MeasurableSpace Ω] [IsProbabilityMeasure μ] in
 private theorem weakIVLIMLNormalizedBread_zero_eq_twoSLSNormalizedBread
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (m : ℕ) (ω : Ω) :
@@ -4771,7 +4710,7 @@ theorem weakIVLIMLWeakScaledBread_eq_root_assembled_add_projected
             (weakIVOLSNormalizedBread X m ω -
               weakIVLIMLNormalizedBread Z X (fun _ _ => 0) m ω) := by
     simpa [weakIVLIMLNormalizedBread, weakIVOLSNormalizedBread] using
-      weakIV_limlNormalizedMomentMatrixStar_eq_zero_sub_mu_residual
+      limlNormalizedMomentMatrixStar_eq_zero_sub_mu_residual
         (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
         (muHat := weakIVLIMLFiniteSampleMu limlMuHat m ω)
   have hm_real : (m : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hm
@@ -4807,7 +4746,7 @@ theorem weakIVLIMLWeakScaledScore_eq_root_assembled_add_projected
             (weakIVOLSNormalizedScore X e m ω -
               weakIVLIMLNormalizedScore Z X e (fun _ _ => 0) m ω) := by
     simpa [weakIVLIMLNormalizedScore, weakIVOLSNormalizedScore] using
-      weakIV_limlNormalizedMomentVectorStar_eq_zero_sub_mu_residual
+      limlNormalizedMomentVectorStar_eq_zero_sub_mu_residual
         (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
         (e := stackErrors e m ω)
         (muHat := weakIVLIMLFiniteSampleMu limlMuHat m ω)
@@ -15532,6 +15471,144 @@ noncomputable def weakIVLIMLSmallestGeneralizedRoot
     weakIVLIMLSmallestRootOnPositiveDenominator ⟨p, hp⟩ else 0
 
 omit [DecidableEq ι] [Nonempty ι] in
+/-- A unit null direction puts a pencil on the concrete selector's bad set. -/
+theorem weakIVLIMLSelectorBadSet_of_unit_kernel
+    (p : Matrix ι ι ℝ × Matrix ι ι ℝ) (x : ι → ℝ)
+    (hxnorm : ‖x‖ = 1) (hker : p.2 *ᵥ x = 0) :
+    p ∈ weakIVLIMLSelectorBadSet := by
+  rw [weakIVLIMLSelectorBadSet]
+  intro hp
+  change 0 < sInf
+    ((fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
+      Metric.sphere (0 : ι → ℝ) 1) at hp
+  letI := FiniteDimensional.proper_real (ι → ℝ)
+  have hxsphere : x ∈ Metric.sphere (0 : ι → ℝ) 1 := by
+    simpa [Metric.mem_sphere, dist_eq_norm] using hxnorm
+  have hcompact : IsCompact
+      ((fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
+        Metric.sphere (0 : ι → ℝ) 1) := by
+    exact (isCompact_sphere (0 : ι → ℝ) 1).image_of_continuousOn (by fun_prop)
+  have hzero : (0 : ℝ) ∈
+      (fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
+        Metric.sphere (0 : ι → ℝ) 1 := by
+    refine ⟨x, hxsphere, ?_⟩
+    simp [hker]
+  have hle : sInf
+      ((fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
+        Metric.sphere (0 : ι → ℝ) 1) ≤ 0 :=
+    csInf_le hcompact.bddBelow hzero
+  exact (not_lt_of_ge hle) hp
+
+omit [DecidableEq ι] [Nonempty ι] in
+/-- The concrete generalized-root selector returns zero on a pencil with a
+unit denominator-kernel direction. -/
+theorem weakIVLIMLSmallestGeneralizedRoot_eq_zero_of_unit_kernel
+    (p : Matrix ι ι ℝ × Matrix ι ι ℝ) (x : ι → ℝ)
+    (hxnorm : ‖x‖ = 1) (hker : p.2 *ᵥ x = 0) :
+    weakIVLIMLSmallestGeneralizedRoot p = 0 := by
+  have hbad := weakIVLIMLSelectorBadSet_of_unit_kernel p x hxnorm hker
+  have hnot : p ∉ weakIVLIMLPositiveDenominatorSet := by
+    simpa [weakIVLIMLSelectorBadSet] using hbad
+  simp [weakIVLIMLSmallestGeneralizedRoot, hnot]
+
+omit [DecidableEq ι] [Nonempty ι] in
+/-- Any nonzero denominator-kernel direction forces the concrete selector's
+zero branch. -/
+theorem weakIVLIMLSmallestGeneralizedRoot_eq_zero_of_nonzero_kernel
+    (p : Matrix ι ι ℝ × Matrix ι ι ℝ) (x : ι → ℝ)
+    (hx : x ≠ 0) (hker : p.2 *ᵥ x = 0) :
+    weakIVLIMLSmallestGeneralizedRoot p = 0 := by
+  let y : ι → ℝ := ‖x‖⁻¹ • x
+  have hxnorm : ‖x‖ ≠ 0 := norm_ne_zero_iff.mpr hx
+  have hynorm : ‖y‖ = 1 := by
+    simp [y, norm_smul, hxnorm]
+  have hyker : p.2 *ᵥ y = 0 := by
+    simp [y, Matrix.mulVec_smul, hker]
+  exact weakIVLIMLSmallestGeneralizedRoot_eq_zero_of_unit_kernel
+    p y hynorm hyker
+
+private def weakIVSingularCounterexampleDenominator :
+    Matrix (Sum Unit Unit) (Sum Unit Unit) ℝ
+  | Sum.inl _, Sum.inl _ => 1
+  | _, _ => 0
+
+private def weakIVSingularCounterexampleFirstDirection : Sum Unit Unit → ℝ
+  | Sum.inl _ => 1
+  | Sum.inr _ => 0
+
+private def weakIVSingularCounterexampleKernelDirection : Sum Unit Unit → ℝ
+  | Sum.inl _ => 0
+  | Sum.inr _ => 1
+
+private theorem weakIV_singularCounterexample_rayleighMinimizer :
+    LIMLRayleighMinimizer
+      (1 : Matrix (Sum Unit Unit) (Sum Unit Unit) ℝ)
+      weakIVSingularCounterexampleDenominator 1 := by
+  constructor
+  · refine ⟨weakIVSingularCounterexampleFirstDirection, ?_, ?_⟩
+    · norm_num [limlRayleighAdmissible, weakIVSingularCounterexampleDenominator,
+        weakIVSingularCounterexampleFirstDirection, Matrix.mulVec, dotProduct]
+    · norm_num [limlRayleighQuotient, weakIVSingularCounterexampleDenominator,
+        weakIVSingularCounterexampleFirstDirection, Matrix.mulVec, dotProduct]
+  · intro x hx
+    have hpos : 0 < x (Sum.inl ()) * x (Sum.inl ()) := by
+      simpa [limlRayleighAdmissible, weakIVSingularCounterexampleDenominator,
+        Matrix.mulVec, dotProduct] using hx
+    have hbound :
+        1 ≤ (x (Sum.inl ()) * x (Sum.inl ()) +
+          x (Sum.inr ()) * x (Sum.inr ())) /
+            (x (Sum.inl ()) * x (Sum.inl ())) := by
+      apply (le_div_iff₀ hpos).2
+      nlinarith [sq_nonneg (x (Sum.inr ()))]
+    simpa [limlRayleighQuotient, weakIVSingularCounterexampleDenominator,
+      Matrix.mulVec, dotProduct] using hbound
+
+private theorem weakIV_singularCounterexample_concreteRoot_eq_zero :
+    weakIVLIMLSmallestGeneralizedRoot
+      ((1 : Matrix (Sum Unit Unit) (Sum Unit Unit) ℝ),
+        weakIVSingularCounterexampleDenominator) = 0 := by
+  apply weakIVLIMLSmallestGeneralizedRoot_eq_zero_of_nonzero_kernel _
+    weakIVSingularCounterexampleKernelDirection
+  · intro h
+    have hh := congrFun h (Sum.inr ())
+    simp [weakIVSingularCounterexampleKernelDirection] at hh
+  · ext i
+    cases i <;>
+      simp [weakIVSingularCounterexampleDenominator,
+        weakIVSingularCounterexampleKernelDirection, Matrix.mulVec, dotProduct]
+
+/-- A singular positive-semidefinite denominator can have a genuine finite
+Rayleigh minimum even though the repository's positive-definite-only concrete
+selector returns zero. -/
+theorem weakIVLIMLSmallestGeneralizedRoot_singular_counterexample :
+    ∃ A B : Matrix (Sum Unit Unit) (Sum Unit Unit) ℝ,
+      B.PosSemidef ∧ ¬ IsUnit B.det ∧
+        LIMLRayleighMinimizer A B 1 ∧
+        weakIVLIMLSmallestGeneralizedRoot (A, B) = 0 :=
+  ⟨1, weakIVSingularCounterexampleDenominator, by
+    let d : Sum Unit Unit → ℝ
+      | Sum.inl _ => 1
+      | Sum.inr _ => 0
+    have hdiag : weakIVSingularCounterexampleDenominator = Matrix.diagonal d := by
+      ext i j
+      cases i <;> cases j <;>
+        simp [weakIVSingularCounterexampleDenominator, d, Matrix.diagonal]
+    rw [hdiag]
+    exact Matrix.PosSemidef.diagonal (by
+      intro i
+      cases i <;> norm_num), by
+    let d : Sum Unit Unit → ℝ
+      | Sum.inl _ => 1
+      | Sum.inr _ => 0
+    have hdiag : weakIVSingularCounterexampleDenominator = Matrix.diagonal d := by
+      ext i j
+      cases i <;> cases j <;>
+        simp [weakIVSingularCounterexampleDenominator, d, Matrix.diagonal]
+    simp [hdiag, Matrix.det_diagonal, d],
+    weakIV_singularCounterexample_rayleighMinimizer,
+    weakIV_singularCounterexample_concreteRoot_eq_zero⟩
+
+omit [DecidableEq ι] [Nonempty ι] in
 private theorem weakIVLIMLSmallestGeneralizedRoot_continuousOn :
     ContinuousOn (weakIVLIMLSmallestGeneralizedRoot (ι := ι))
       weakIVLIMLPositiveDenominatorSet := by
@@ -15569,7 +15646,7 @@ theorem weakIVLIMLSmallestGeneralizedRoot_measurable :
   · simp [Set.piecewise, weakIVLIMLSmallestGeneralizedRoot, hp]
 
 omit [DecidableEq ι] in
-private theorem weakIVLIMLPositiveDenominatorSet_of_posDef
+theorem weakIVLIMLPositiveDenominatorSet_of_posDef
     {p : Matrix ι ι ℝ × Matrix ι ι ℝ} (hp : p.2.PosDef) :
     p ∈ weakIVLIMLPositiveDenominatorSet := by
   letI := FiniteDimensional.proper_real (ι → ℝ)

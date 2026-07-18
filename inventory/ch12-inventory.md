@@ -122,12 +122,14 @@
   residual used for covariance estimation, robust and homoskedastic plug-in covariance
   definitions, and the finite-sample structural-error decomposition (12.39).
 - The canonical textbook endpoints are complete for Theorems 12.1--12.6, 12.8,
-  12.16, and 12.17. Corrected raw endpoints are also complete for Theorems
-  12.9--12.11, 12.15, and 12.18. Theorem 12.7 is false as printed. Theorem
-  12.12 now has its full joint actual-estimator CLT but still lacks a raw proof
-  of covariance-estimator consistency; Theorems 12.13--12.14 consequently
-  remain conditional on that covariance engine, and Theorem 12.19 still lacks
-  the projected quadratic concentration proof behind (12.81).
+  12.12--12.14, 12.16, and 12.17. Corrected raw endpoints are also complete for
+  Theorems 12.9--12.11, 12.15, and 12.18--12.19. Theorem 12.7 is false as
+  printed, and Theorem 12.19's displayed LIML minimization is undefined in the
+  exact-fit covariance case permitted by its printed assumptions. The corrected
+  Theorems 12.13--12.14 endpoints derive the unequal-block
+  coefficient CLT, literal robust covariance consistency, sample-rank control,
+  chi-square Wald limit, and calibrated rejection probability from one
+  observed-iid model package.
 - The current asymptotic layer proves the rectangular continuous-mapping step from
   sample IV moment convergence to Hansen's linearization matrix, the resulting
   linearized 2SLS consistency term, iid finite-moment constructors for the main
@@ -330,9 +332,9 @@ crosswalk.
 | Theorem 12.9 | `theorem12_9_corrected_normal_covariance_wald_size` |
 | Theorem 12.10 | `generatedRegressor_theorem12_10_conditional_hasLaw_bundle` |
 | Theorem 12.11 | `generatedRegressorLS_theorem12_11_of_corrected_regularities` |
-| Theorem 12.12 |  |
-| Theorem 12.13 |  |
-| Theorem 12.14 |  |
+| Theorem 12.12 | `expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat_of_observed_iid` |
+| Theorem 12.13 | `controlFunction_theorem12_13_multivariateGaussian_and_canonicalVHat_of_observed_iid` |
+| Theorem 12.14 | `controlFunctionEndogeneityWald_theorem12_14_of_observed_iid_lowerTail` |
 | Theorem 12.15 | `controlFunctionEndogeneityFTestOrZero_theorem12_15_conditionalNormal_lowerTail` |
 | Theorem 12.16 | `Theorem12_16.observed` |
 | Theorem 12.17 | `Theorem12_17.observed` |
@@ -341,9 +343,10 @@ crosswalk.
 
 ## Lean-only support inventory
 
-This section records the strongest current support surface and the remaining
-raw-assumption obligation. Conditional assembly results do not belong in the
-canonical crosswalk above.
+This section records the strongest current support surface, corrected
+assumptions where Hansen's printed statement is insufficient or inconsistent,
+and compatibility assembly results. Conditional assembly results do not belong
+in the canonical crosswalk above.
 
 ### Completed textbook results
 
@@ -380,7 +383,7 @@ canonical crosswalk above.
   derived by
   `twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_observed_assumption12_2`.
 
-### Open textbook results
+### Corrected and qualified textbook results
 
 - **Theorem 12.7.** The printed hypothesis is false as a sufficient condition:
   `twoSLSKinal_printedJointNormal_not_sufficient` gives identically-zero data
@@ -532,41 +535,24 @@ canonical crosswalk above.
   displayed first-stage inverse is otherwise undefined. The package derives
   `Q_ZX = Q_ZZ A`, score orthogonality, relevance rank, sample first-stage
   nonsingularity in probability, the coefficient CLT, and covariance
-  consistency; it does not assume any of those conclusions. Because Hansen's
-  printed assumptions do not imply the theorem, this corrected endpoint is
-  support rather than a canonical crosswalk entry.
-- **Theorem 12.12.**
-  `expectationError_theorem12_12_of_assembly` consumes
-  `ExpectationErrorAsymptoticCovarianceAssemblyConditions`, whose `asymptotic` field
-  still supplies the main joint CLT and feasible covariance engine instead of
-  deriving it from the raw fourth-moment model. The new
-  `ExpectationErrorHansenObservedIidConditions` is an honest regularity
-  extension of the corrected primitive package: it adds observed-row iid
-  sampling and `E[ZZ'] > 0`, neither a limit nor a sample-rank conclusion.
-  `ExpectationErrorHansenObservedIidConditions.combinedQZZ_eq_popGram` and
-  `.toGeneratedRegressorLSObservedIidRegularityConditions` derive the
-  population instrument block and the corrected Theorem 12.11 raw engine.
-  Consequently
-  `expectationError_firstStepBeta_theorem12_12_of_observed_iid` proves the
-  first-step generated-regression beta CLT and structural-residual HC0
-  consistency with Hansen's `V_{ββ}` formula.
-  `expectationErrorBetaHatStar_tendstoInDistribution_of_observed_iid` now
-  identifies that coefficient with the beta block of the full `(What,Uhat)`
-  regression outside a singular event whose probability is proved to vanish.
-  The raw joint score CLT
-  `rawJointInfluence_tendstoInDistribution_theorem12_12` also derives Hansen's
-  exact full covariance, including the cross block, from the same observed-iid
-  package. `expectationErrorBetaAlphaStar_tendstoInDistribution_theorem12_12_of_observed_iid`
-  proves the actual joint estimator CLT by deriving both block influence
-  remainders and applying Slutsky. The ideal covariance side is now raw as
-  well: `rawJointScore_outer_tendstoInMeasure_covMat` proves the full joint
-  score outer-product WLLN, preserving the `E[uZ'eν]` cross block, and
-  `rawJointOracleCovariance_tendstoInMeasure_theorem12_12` proves convergence
-  of the exact fixed-influence oracle sandwich. The remaining raw obligation
-  is the feasible-substitution step replacing the oracle score, error, and
-  innovation by the fitted designs and residuals inside
-  `expectationErrorVHatStar`; the older assembly endpoint still assumes that
-  conclusion. The source section
+  consistency; it does not assume any of those conclusions. The canonical
+  crosswalk therefore names this explicitly corrected endpoint rather than
+  presenting it as a proof from Hansen's insufficient printed assumptions.
+- **Theorem 12.12.** The complete corrected observed-iid endpoint is
+  `expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat_of_observed_iid`.
+  `ExpectationErrorHansenObservedIidConditions` adds observed-row iid sampling
+  and `E[ZZ'] > 0` to the corrected primitive model, but stores no CLT,
+  sample-rank conclusion, or covariance-consistency premise. The proof derives
+  the full joint raw-score CLT and its covariance, including the
+  `E[uZ'eν]` cross block, then derives the two actual estimator influence
+  remainders and applies Slutsky. `rawJointScore_outer_tendstoInMeasure_covMat`
+  proves the full score outer-product WLLN, and
+  `expectationErrorFeasibleScoreMiddle_tendstoInMeasure_theorem12_12` proves the
+  feasible substitution of fitted designs, structural residuals, and
+  second-step residuals in all three covariance blocks. Thus the literal
+  `expectationErrorVHatStar` is consistent for the same covariance as the
+  Gaussian coefficient limit; the older conditional assembly is no longer the
+  canonical endpoint. The source section
   is also internally inconsistent: its opening display says
   `Y = X'β + u'α + ν`, which gives `Y-X'β = u'α+ν`, while the subsequent
   derivation and covariance formulas use
@@ -575,35 +561,37 @@ canonical crosswalk above.
   the latter corrected interpretation and its docstring flags the discrepancy;
   it is not represented as a literal proof of the contradictory printed model.
 - **Theorem 12.13.**
-  `controlFunctionAlphaHatStar_theorem12_13_of_assembly` consumes
-  `ControlFunctionAlphaAsymptoticAssemblyConditions`, which explicitly carries the
-  expectation-error asymptotic engine and finite-sample bridge obligations.
-  The displayed assumptions are not sufficient as a standalone theorem unless
-  “the model described in this section” imports omitted projection and sampling
-  conditions: `E[Zu₂']=0`, inclusion `X₁ ∈ span(Z)`, observed-row iid/CLT
-  sampling, `QZZ>0` for the first-stage inverse, positive definiteness of the
-  full fitted-left Gram (not only `Γ'QZZΓ`), and `E[u₂u₂']>0`. The source also
-  reverses one coefficient label: the preceding definition gives
-  `γhat=αhat+βhat₂`, hence `αhat=γhat-βhat₂`; Lean's
-  `controlFunctionEndogeneityMap` uses this correct identity and obtains the
-  exact displayed covariance
-  `Vα=V22+Vγγ-Vγ2-Vγ2'`. A faithful completion should derive the corrected
-  unequal-block joint estimator linearization from one honest observed-row package,
-  derive generated-design Gram convergence and high-probability rank, then
-  reuse the existing deterministic alpha map and displayed-covariance endpoint.
+  `controlFunction_theorem12_13_multivariateGaussian_and_canonicalVHat_of_observed_iid`
+  is the complete corrected endpoint. Its
+  `ControlFunctionHansenObservedIidConditions` argument records the primitive
+  model, fourth moments, observed-row iid sampling, instrument-span and
+  orthogonality facts, and the population rank conditions Hansen uses. It stores
+  no CLT, covariance-consistency conclusion, or finite-sample rank conclusion.
+  The proof reuses the corrected Theorem 12.12 joint-score engine, derives the
+  unequal-block coefficient influence representation, proves the literal robust
+  feasible middle and sandwich covariance limits, and derives singular-design
+  probability convergence to zero from the fitted and residual Gram limits. It
+  concludes both
+  `sqrt n (alphahat-alpha) => N(0,V22+Vgammagamma-Vgamma2-Vgamma2')`
+  and consistency of the canonical `controlFunctionAlphaVHatStar` for that same
+  displayed covariance. The source's coefficient relation is
+  `gammahat=alphahat+betahat2`, so Lean correctly uses
+  `alphahat=gammahat-betahat2`. Hansen's printed residual
+  `nuhat=Y-X'betahat-uhat2'gammahat` is inconsistent with the reparameterized
+  generated design; the feasible covariance proof uses the coherent residual
+  `Y-[X1,P_Z X2,uhat2](betahat1,betahat2,gammahat)`.
 - **Theorem 12.14.**
-  `controlFunctionEndogeneityWald_theorem12_14_of_assembly`
-  reuses the 12.13 conditional assembly, primitive null bridge, generic
-  restriction-Wald theorem, and calibrated chi-square-size machinery. The
-  facade now derives the null bridge directly from the raw primitive package
-  and uses the coefficient and covariance bridges already present in the 12.13
-  assembly; it does not add sample-Gram convergence or rank assumptions.
-  Hansen still omits positive definiteness of the displayed alpha covariance,
-  which is needed for a nondegenerate `χ²_{k₂}` limit: a zero-error model makes
-  both covariance and Wald statistic zero. The minimal correction is therefore
-  `Vα.PosDef`, not positive definiteness of the full stacked covariance. The
-  remaining conditionality is exactly the 12.13 assembly's unresolved raw
-  coefficient-CLT and feasible-covariance engine.
+  `controlFunctionEndogeneityWald_theorem12_14_of_observed_iid_lowerTail` is the
+  complete corrected endpoint. It reuses the preceding Theorem 12.13 result,
+  derives `E[X2 e]=0 iff alpha=0` from Hansen's primitive reduced-form and
+  control-error equations, and invokes the generic robust restriction-Wald and
+  chi-square calibration theorems. It returns both convergence of the actual
+  totalized robust Wald statistic to `chiSquared k2` and convergence of its
+  rejection probability to the calibrated upper-tail mass. Hansen's assumptions
+  permit a zero-error model, so the theorem explicitly adds only positive
+  definiteness of the displayed alpha covariance. It does not strengthen this
+  to positive definiteness of the full stacked covariance and adds no CLT,
+  covariance-consistency, or sample-rank premise.
 - **Theorem 12.15.** The corrected covariance statistic is
   `controlFunctionEndogeneityHomoskedasticFStatOrZero`, with fixed-design law
   `controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist`
@@ -676,7 +664,7 @@ canonical crosswalk above.
   routes, and nonpositive-Rayleigh sufficient-condition endpoints are
   historical compatibility declarations under `WeakIVCompatibility`, not
   canonical Theorem 12.18 support.
-- **Theorem 12.19.** The Hansen-facing non-circular model surface is
+- **Theorem 12.19.** The corrected non-circular model surface is
   `ManyInstrumentsPrimitiveErrorRawModelConditions`. Its primitive error row
   is exactly `[u1,u2]`, `Sigma` is exactly the conditional covariance in
   (12.74), and the structural error `e = u1 - beta'u2` is derived through
@@ -688,11 +676,13 @@ canonical crosswalk above.
   `ManyInstrumentsProjectionQuadraticMeanSquareConditions`,
   `ManyInstrumentsLIMLNormalizedPencilConvergenceConditions`,
   `ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate`, and
-  `manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector`. The endpoint
-  `manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_selector`
-  now derives the complete 2SLS assembly, normalized LIML pencil, and all three
-  estimator limits with Hansen's displayed OLS and 2SLS biases from that raw
-  model plus projected mean-square concentration. The raw model now derives the
+  `manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector`. The strongest
+  corrected endpoint
+  `manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot`
+  derives the complete OLS and 2SLS assemblies, normalized LIML pencil,
+  positive-definite-branch root with explicit zero totalization, and all three
+  estimator limits with Hansen's displayed OLS and 2SLS biases directly from
+  the raw model. The raw model derives the
   reduced-form OLS moment assembly internally, including Hansen's
   signal-weighted WLLNs (12.78). It also implies the ordinary full-error WLLN through
   `ManyInstrumentsConditionalHomoskedasticFourthMomentModel.toUnprojectedFullErrorMomentConditions`:
@@ -701,10 +691,30 @@ canonical crosswalk above.
   constructor
   `ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments`
   combines that WLLN with the OLS and projected moments, so normalized-pencil
-  convergence is no longer an endpoint assumption. The corrected raw package additionally requires
+  convergence is no longer an endpoint assumption. The projected moment is now
+  raw as well:
+  `ManyInstrumentsConditionalHomoskedasticFourthMomentModel.toProjectionQuadraticMeanSquareConditions`
+  centers the projected full-error form, eliminates cross-row terms by
+  conditional independence, and proves the entrywise `8 * B / n` mean-square
+  bound behind (12.81). The corrected raw package additionally requires
   `Sigma.PosDef`; Hansen's covariance display identifies `Sigma` but does not
-  state this nondegeneracy condition, while the current LIML limit assembly
-  consumes it. The internal LIML pencil uses the covariance obtained by
+  state this nondegeneracy condition. This is not merely a proof convenience:
+  `manyInstrumentsLIMLLimitDenominator_eq_zero_of_covariance_eq_zero` shows that
+  the limiting denominator vanishes when `Sigma = 0`, and
+  `manyInstrumentsLIMLLimit_no_rayleighMinimizer_of_covariance_eq_zero` proves
+  that no admissible generalized-Rayleigh minimizer then exists. Because the
+  printed assumptions permit this exact-fit case, no declaration is placed in
+  the canonical Theorem 12.19 crosswalk. Nor is it sound simply to allow every
+  singular covariance in the current concrete selector:
+  `weakIVLIMLSmallestGeneralizedRoot_singular_counterexample` exhibits a
+  singular positive-semidefinite denominator with genuine Rayleigh minimum
+  one for which that selector returns zero. The generic kernel result
+  `weakIVLIMLSmallestGeneralizedRoot_eq_zero_of_nonzero_kernel`, together with
+  `limlBetaStar_normalizedSmallestRoot_eq_twoSLS_of_residual_relation`, proves
+  that an exact residualized dependence forces the current LIML estimator onto
+  its 2SLS branch. A complete singular-covariance extension therefore requires
+  a measurable smallest-finite-root selector rather than removal of the
+  positive-definiteness premise. The internal LIML pencil uses the covariance obtained by
   transforming `[u1,u2]` first to `[e,u2]` and then back to
   `[e+u2' beta,u2]`; the round-trip theorem
   `manyInstrumentsJointReducedFormCovariance_structuralErrorCovariance` proves
@@ -713,13 +723,10 @@ canonical crosswalk above.
   (12.78), to identify `H`, and in every estimator limit. The concrete
   `manyInstrumentsLIMLSmallestRoot` now converges by continuity at the
   positive-definite limiting denominator, without any finite-sample
-  positive-denominator premise. The sole remaining raw probability step is to
-  derive the `O(1/n)` projected concentration bounds from conditional
-  independence and (12.74)--(12.75), thereby discharging (12.81) rather than
-  accepting `ManyInstrumentsProjectionQuadraticMeanSquareConditions` as a
-  premise. Hansen's argument also uses row independence and
-  `Z'Z` nonsingularity, neither of which appears in the numbered theorem
-  assumptions. The former additive-row and
+  positive-denominator premise. Hansen's argument also uses conditional row
+  independence and `Z'Z` nonsingularity, neither of which appears in the
+  numbered theorem assumptions; the corrected raw package makes both explicit.
+  The former additive-row and
   scalar adjustment-gap packages are deprecated compatibility surfaces.
 
 ## Notes
@@ -840,11 +847,10 @@ support inventory above control completion status and preferred public names.
   `(X₁,P_ZX₂)` / `û₂` block-rank certificates; no rank or nonsingularity is inferred from
   measurability alone.
 
-- Theorem 12.19 now separates the raw conditional-homoskedastic model from
-  honest projection concentration and generalized-eigenvalue selection. The
-  deprecated additive-row/adjustment-gap facades remain compatibility-only;
-  the unresolved raw-to-concentration/pencil/selector assembly is recorded
-  above.
+- Theorem 12.19 now derives honest projection concentration and the concrete
+  generalized-eigenvalue selection from the raw conditional-homoskedastic
+  model. The deprecated additive-row/adjustment-gap facades remain
+  compatibility-only.
 - For Theorem 12.8, the interval-facing bootstrap surface now includes
   original-sample scalar restriction definitions
   `twoSLSLinearRestrictionEstimateFinSucc`,
@@ -1456,9 +1462,9 @@ support inventory above control completion status and preferred public names.
   `expectationErrorStructuralError_instrument_orthogonal_of_hansen_primitive` derives the
   corresponding centered score condition `E[Z(Y-X'β)] = 0` from Hansen's `E[Zν]=0` and
   `E[Zu']=0` moment restrictions.
-  The remaining proof work is still deriving
-  the joint CLT and a generic feasible block covariance consistency theorem from those raw
-  fourth-moment and positive-definiteness assumptions.
+  That former proof obligation is discharged by the observed-iid Theorem 12.12
+  endpoint above, which derives the joint CLT and feasible block covariance
+  consistency from the raw fourth-moment and positive-definiteness assumptions.
 - For Theorem 12.13, `controlFunctionAlphaHatStar_theorem12_13_multivariateGaussian_and_covariance`
   is the direct control-function endpoint, and the eventual-a.e. nonsingularity route is now exposed by
   `ControlFunctionAlphaEventualAsymptoticNormalConditions`,
@@ -1518,10 +1524,10 @@ support inventory above control completion status and preferred public names.
   `controlFunctionPrimitiveError_eq_controlError_of_hansen_primitive` targets
   `expectationErrorControlError` directly, and
   `controlFunctionOmegaUZeNu_eq_controlError_of_hansen_primitive` reuses the 12.12
-  `Ω_uZeν` congruence bridge for the actual control-function primitive error row. The remaining
-  proof work is
-  constructing the expectation-error asymptotic-normal and covariance-consistency package from those
-  primitive assumptions rather than assuming it as theorem input.
+  `Ω_uZeν` congruence bridge for the actual control-function primitive error row. The
+  observed-iid endpoint now constructs the expectation-error asymptotic-normal
+  and covariance-consistency results from those primitive assumptions rather
+  than accepting either conclusion as theorem input.
   For Theorem 12.14,
   `ControlFunctionPrimitiveMomentBridgeConditions` records Hansen's population equation
   `E[X₂e] = Qα`; `ControlFunctionPrimitiveMomentBridgeConditions.of_moment_eq_posDef`,
@@ -1580,7 +1586,8 @@ support inventory above control completion status and preferred public names.
   displayed alpha-covariance positive definiteness, so callers no
   longer pass the reduced-form equation, residual-Gram integrability, `e u₂` integrability, or
   covariance-block symmetry separately. The expectation-error coefficient CLT and covariance
-  consistency inputs remain explicit fields of the 12.13 assembly package. The older structural-error route through
+  consistency inputs remain explicit only in this compatibility assembly; the
+  canonical observed-iid 12.13--12.14 route derives both. The older structural-error route through
   `controlFunctionEndogeneityWald_theorem12_14_of_structural_error_popGram_posDef_eventual` remains
   available as a compatibility endpoint for callers that already assume `e = X₂'α + u` and
   `E[X₂u]=0`.

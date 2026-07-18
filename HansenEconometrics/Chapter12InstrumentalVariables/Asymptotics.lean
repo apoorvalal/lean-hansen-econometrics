@@ -511,7 +511,9 @@ theorem stackMatrix_aestronglyMeasurable
   exact ((continuous_apply j).comp_aestronglyMeasurable (hX i.val)).aemeasurable
 
 omit [IsProbabilityMeasure μ] in
-private theorem stackScalar_aestronglyMeasurable
+/-- Row measurability implies measurability of the corresponding finite scalar
+stack. -/
+theorem stackScalar_aestronglyMeasurable
     {n : ℕ} {Y : ℕ → Ω → ℝ}
     (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
     AEStronglyMeasurable (fun ω => (fun i : Fin n => Y i.val ω)) μ := by

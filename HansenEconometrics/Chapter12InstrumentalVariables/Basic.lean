@@ -1,6 +1,7 @@
 import Mathlib.Data.Matrix.ColumnRowPartitioned
 import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter7Asymptotics.Basic
+import HansenEconometrics.LinearAlgebraUtils
 
 /-!
 # Chapter 12 — instrumental-variables algebra
@@ -31,6 +32,23 @@ noncomputable def instrumentProjection
 It agrees with `instrumentProjection` when `Z'Z` is nonsingular. -/
 noncomputable def instrumentProjectionStar (Z : Matrix n l ℝ) : Matrix n n ℝ :=
   Z * (Zᵀ * Z)⁻¹ * Zᵀ
+
+omit [Fintype k] [DecidableEq k] in
+/-- Every entry of the totalized instrument projection is measurable when all
+instrument entries are measurable. -/
+theorem instrumentProjectionStar_apply_measurable_of_entries
+    {α : Type*} [MeasurableSpace α] {Z : α → Matrix n l ℝ}
+    (hZ : ∀ i a, Measurable fun x => Z x i a) (i j : n) :
+    Measurable fun x => instrumentProjectionStar (Z x) i j := by
+  classical
+  have hgram (a b : l) : Measurable fun x => ((Z x)ᵀ * Z x) a b :=
+    gram_apply_measurable_of_entries hZ a b
+  have hinv (a b : l) : Measurable fun x => (((Z x)ᵀ * Z x)⁻¹) a b :=
+    matrix_inv_apply_measurable_of_entries hgram a b
+  simp only [instrumentProjectionStar, Matrix.mul_apply, Matrix.transpose_apply]
+  exact Finset.measurable_sum Finset.univ (fun a _ =>
+    (Finset.measurable_sum Finset.univ (fun b _ => (hZ i b).mul (hinv b a))).mul
+      (hZ j a))
 
 /-- Hansen reduced-form coefficient matrix `Γ̂ = (Z'Z)^{-1} Z'X`. -/
 noncomputable def reducedFormCoef
@@ -298,6 +316,33 @@ theorem sampleGram_fromCols_right_right
       sampleGram X := by
   ext a b
   simp [sampleGram, Matrix.mul_apply]
+
+omit [Fintype k] [Fintype l] [DecidableEq k]
+  [DecidableEq l] in
+/-- A positive-size normalized sample Gram is nonsingular exactly when its raw
+fixed-design Gram is nonsingular. -/
+theorem rawGram_det_isUnit_of_sampleGram_det_isUnit
+    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n) (hX : IsUnit (sampleGram X).det) :
+    IsUnit ((Xᵀ * X).det) := by
+  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt hn)
+  rw [isUnit_iff_ne_zero] at hX ⊢
+  rw [sampleGram, Matrix.det_smul] at hX
+  exact (mul_ne_zero_iff.mp hX).2
+
+omit [Fintype k] [Fintype l] [DecidableEq k]
+  [DecidableEq l] in
+/-- Converse normalized/raw Gram determinant bridge for positive sample size. -/
+theorem sampleGram_det_isUnit_of_rawGram_det_isUnit
+    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n) (hX : IsUnit ((Xᵀ * X).det)) :
+    IsUnit (sampleGram X).det := by
+  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt hn)
+  rw [isUnit_iff_ne_zero] at hX ⊢
+  rw [sampleGram, Matrix.det_smul]
+  exact mul_ne_zero (pow_ne_zero _ (inv_ne_zero hn_ne)) hX
 
 /-- Hansen structural residual variance estimator for 2SLS,
 `σ̂² = n^{-1}∑ ê_i²`, using structural 2SLS residuals. -/

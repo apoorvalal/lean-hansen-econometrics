@@ -6,6 +6,8 @@ import Mathlib.MeasureTheory.Measure.LevyConvergence
 import Mathlib.MeasureTheory.Measure.Tight
 import Mathlib.Probability.StrongLaw
 
+open scoped Matrix.Norms.Elementwise
+
 /-!
 # Asymptotic utilities: WLLN wrapper and CMT for convergence in measure
 
@@ -2908,5 +2910,65 @@ theorem tendstoInMeasure_transformed_wlln
     (fun i => (hident i).comp hh)
 
 end WLLN
+
+/-- Convergence in measure is unchanged when two sequences disagree on events
+whose measures vanish. -/
+theorem tendstoInMeasure_congr_of_measure_ne_tendsto_zero
+    {Ω E : Type*} [MeasurableSpace Ω] [PseudoEMetricSpace E]
+    {μ : Measure Ω} {X Y : ℕ → Ω → E} {c : Ω → E}
+    (hX : TendstoInMeasure μ X atTop c)
+    (hbad : Tendsto (fun m => μ {ω | X m ω ≠ Y m ω}) atTop (𝓝 0)) :
+    TendstoInMeasure μ Y atTop c := by
+  intro ε hε
+  have hXε := hX ε hε
+  have hsum : Tendsto
+      (fun m => μ {ω | X m ω ≠ Y m ω} +
+        μ {ω | ε ≤ edist (X m ω) (c ω)}) atTop (𝓝 0) := by
+    simpa only [zero_add] using hbad.add hXε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+    hsum (Eventually.of_forall fun _ => zero_le _) ?_
+  exact Eventually.of_forall fun m => by
+    calc
+      μ {ω | ε ≤ edist (Y m ω) (c ω)} ≤
+          μ ({ω | X m ω ≠ Y m ω} ∪
+            {ω | ε ≤ edist (X m ω) (c ω)}) := measure_mono (by
+              intro ω hω
+              by_cases hEq : X m ω = Y m ω
+              · right
+                simpa [hEq] using hω
+              · exact Or.inl hEq)
+      _ ≤ μ {ω | X m ω ≠ Y m ω} +
+          μ {ω | ε ≤ edist (X m ω) (c ω)} := measure_union_le _ _
+
+/-- If square random matrices converge in measure to a nonsingular constant,
+their singularity probabilities vanish. -/
+theorem matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
+    {Ω p : Type*} [MeasurableSpace Ω] [Fintype p] [DecidableEq p]
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {A : ℕ → Ω → Matrix p p ℝ} {A0 : Matrix p p ℝ}
+    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
+    (hA : TendstoInMeasure μ A atTop (fun _ => A0))
+    (hA0 : IsUnit A0.det) :
+    Tendsto (fun m => μ {ω | ¬ IsUnit (A m ω).det}) atTop (𝓝 0) := by
+  have hDet : TendstoInMeasure μ
+      (fun m ω => (A m ω).det) atTop (fun _ => A0.det) :=
+    tendstoInMeasure_continuous_comp hA_meas hA
+      (Continuous.matrix_det continuous_id)
+  have hdet_ne : A0.det ≠ 0 := hA0.ne_zero
+  set ε : ℝ := |A0.det| / 2 with hε_def
+  have hε_pos : 0 < ε := half_pos (abs_pos.mpr hdet_ne)
+  have hε_le : ε ≤ |A0.det| := by
+    rw [hε_def]
+    linarith [abs_nonneg A0.det]
+  have hmeas_eps := hDet (ENNReal.ofReal ε) (ENNReal.ofReal_pos.mpr hε_pos)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hmeas_eps
+    (fun _ => zero_le _) (fun m => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq, isUnit_iff_ne_zero, not_not] at hω
+  simp only [Set.mem_setOf_eq, edist_dist, Real.dist_eq]
+  rw [hω]
+  simp only [zero_sub, abs_neg]
+  exact ENNReal.ofReal_le_ofReal hε_le
 
 end HansenEconometrics

@@ -847,6 +847,55 @@ theorem condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
     condExp_mul_eq_mul_condExp_of_condIndepFun
       (conditioningSpace_le hZ) hfg hf hg hfg_int
 
+/-- Continuous linear map given by fixed matrix multiplication on the left and
+right. -/
+noncomputable def matrixLeftRightContinuousLinearMap
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    (A : Matrix a b ℝ) (B : Matrix c d ℝ) :
+    Matrix b c ℝ →L[ℝ] Matrix a d ℝ :=
+  ({ toFun := fun M => A * M * B
+     map_add' := by
+       intro M N
+       ext i j
+       simp [Matrix.mul_apply, Finset.sum_add_distrib, add_mul, mul_add]
+     map_smul' := by
+       intro r M
+       ext i j
+       simp [Matrix.mul_apply, Finset.mul_sum, mul_comm, mul_left_comm] } :
+      Matrix b c ℝ →ₗ[ℝ] Matrix a d ℝ).toContinuousLinearMap
+
+@[simp]
+theorem matrixLeftRightContinuousLinearMap_apply
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    (A : Matrix a b ℝ) (B : Matrix c d ℝ) (M : Matrix b c ℝ) :
+    matrixLeftRightContinuousLinearMap A B M = A * M * B :=
+  rfl
+
+/-- Conditional expectation commutes with multiplication by fixed matrices on
+the left and right. -/
+theorem condExpOn_matrix_mul_left_right
+    {ζ a b c d : Type*} [MeasurableSpace ζ]
+    [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    {Z : Ω → ζ} (A : Matrix a b ℝ) (B : Matrix c d ℝ)
+    {F : Ω → Matrix b c ℝ} {M : Matrix b c ℝ}
+    (hF : Integrable F μ)
+    (hcond : condExpOn μ F Z =ᵐ[μ] fun _ => M) :
+    condExpOn μ (fun ω => A * F ω * B) Z =ᵐ[μ] fun _ => A * M * B := by
+  let T : Matrix b c ℝ →L[ℝ] Matrix a d ℝ :=
+    matrixLeftRightContinuousLinearMap A B
+  have hcomm :
+      T ∘ condExpOn μ F Z =ᵐ[μ] condExpOn μ (T ∘ F) Z := by
+    simpa [condExpOn] using
+      (T.comp_condExp_comm (μ := μ) (m := conditioningSpace Z) hF)
+  have hconst :
+      T ∘ condExpOn μ F Z =ᵐ[μ] fun _ => A * M * B := by
+    filter_upwards [hcond] with ω hω
+    change A * condExpOn μ F Z ω * B = A * M * B
+    exact congrArg (fun N => A * N * B) hω
+  have htarget : condExpOn μ (T ∘ F) Z =ᵐ[μ] fun _ => A * M * B :=
+    hcomm.symm.trans hconst
+  simpa [T, Function.comp_def] using htarget
+
 end ProbabilityOnRandomVars
 
 section ConditioningSpaceFactors

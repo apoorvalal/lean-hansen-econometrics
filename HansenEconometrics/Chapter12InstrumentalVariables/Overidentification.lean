@@ -3357,34 +3357,6 @@ private theorem tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero
     rw [hEq, sub_self, edist_self] at hω
     exact (not_le_of_gt hε) hω)
 
-private theorem tendstoInMeasure_congr_of_measure_ne_tendsto_zero
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {E : Type*} [PseudoEMetricSpace E]
-    {X Y : ℕ → Ω → E} {c : Ω → E}
-    (hX : TendstoInMeasure μ X atTop c)
-    (hbad : Tendsto (fun m => μ {ω | X m ω ≠ Y m ω}) atTop (𝓝 0)) :
-    TendstoInMeasure μ Y atTop c := by
-  intro ε hε
-  have hXε := hX ε hε
-  have hsum : Tendsto
-      (fun m => μ {ω | X m ω ≠ Y m ω} +
-        μ {ω | ε ≤ edist (X m ω) (c ω)}) atTop (𝓝 0) := by
-    simpa only [zero_add] using hbad.add hXε
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
-    hsum (Eventually.of_forall fun _ => zero_le _) ?_
-  exact Eventually.of_forall fun m => by
-    calc
-      μ {ω | ε ≤ edist (Y m ω) (c ω)} ≤
-          μ ({ω | X m ω ≠ Y m ω} ∪
-            {ω | ε ≤ edist (X m ω) (c ω)}) := measure_mono (by
-              intro ω hω
-              by_cases hEq : X m ω = Y m ω
-              · right
-                simpa [hEq] using hω
-              · exact Or.inl hEq)
-      _ ≤ μ {ω | X m ω ≠ Y m ω} +
-          μ {ω | ε ≤ edist (X m ω) (c ω)} := measure_union_le _ _
-
 omit [Fintype n] [DecidableEq n] [Fintype k] [DecidableEq k]
   [Fintype l] [DecidableEq l] [Fintype la] [DecidableEq la]
   [Fintype lb] [DecidableEq lb] in
@@ -8411,28 +8383,6 @@ structure TwoSLSSubsetEventuallyRankConditions
         fittedRegressorsStar
           (stackRegressors Za m ω) (stackRegressors X m ω)))
 
-omit [DecidableEq n] in
-private theorem rawGram_det_isUnit_of_sampleGram_det_isUnit_overid
-    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
-    (hn : 0 < Fintype.card n) (hX : IsUnit (sampleGram X).det) :
-    IsUnit (Xᵀ * X).det := by
-  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
-    exact_mod_cast (Nat.ne_of_gt hn)
-  rw [isUnit_iff_ne_zero] at hX ⊢
-  rw [sampleGram, Matrix.det_smul] at hX
-  exact (mul_ne_zero_iff.mp hX).2
-
-omit [DecidableEq n] in
-private theorem sampleGram_det_isUnit_of_rawGram_det_isUnit_overid
-    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
-    (hn : 0 < Fintype.card n) (hX : IsUnit (Xᵀ * X).det) :
-    IsUnit (sampleGram X).det := by
-  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
-    exact_mod_cast (Nat.ne_of_gt hn)
-  rw [isUnit_iff_ne_zero] at hX ⊢
-  rw [sampleGram, Matrix.det_smul]
-  exact mul_ne_zero (pow_ne_zero _ (inv_ne_zero hn_ne)) hX
-
 private theorem measure_rawGram_singular_tendsto_zero
     {p : Type*} [Fintype p] [DecidableEq p]
     {W : ℕ → Ω → p → ℝ} {u : ℕ → Ω → ℝ}
@@ -8450,11 +8400,11 @@ private theorem measure_rawGram_singular_tendsto_zero
   constructor
   · intro hraw hsample_unit
     exact hraw
-      (rawGram_det_isUnit_of_sampleGram_det_isUnit_overid
+      (rawGram_det_isUnit_of_sampleGram_det_isUnit
         (stackRegressors W m ω) (by simpa using hm) hsample_unit)
   · intro hsample_bad hraw_unit
     exact hsample_bad
-      (sampleGram_det_isUnit_of_rawGram_det_isUnit_overid
+      (sampleGram_det_isUnit_of_rawGram_det_isUnit
         (stackRegressors W m ω) (by simpa using hm) hraw_unit)
 
 namespace TwoSLSSubsetRankFailureProbabilityConditions

@@ -41,6 +41,77 @@ lemma matrixBorelSpace (m n : Type*) [Fintype m] [Fintype n] :
   letI : MeasurableSpace (Matrix m n ℝ) := matrixBorelMeasurableSpace m n
   exact ⟨rfl⟩
 
+/-- A finite determinant is measurable when all matrix entries are measurable. -/
+theorem det_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) :
+    Measurable fun x => (A x).det := by
+  classical
+  rw [show (fun x => (A x).det) =
+      (fun x => ∑ σ : Equiv.Perm κ, Equiv.Perm.sign σ * ∏ i, A x (σ i) i) by
+        funext x
+        rw [Matrix.det_apply']]
+  exact Finset.measurable_sum Finset.univ (fun σ _ =>
+    measurable_const.mul
+      (Finset.measurable_prod Finset.univ (fun i _ => hA (σ i) i)))
+
+/-- Every adjugate entry is measurable when all source entries are measurable. -/
+theorem adjugate_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) (i j : κ) :
+    Measurable fun x => (A x).adjugate i j := by
+  classical
+  rw [show (fun x => (A x).adjugate i j) =
+      (fun x => ((A x).updateRow j (Pi.single i 1)).det) by
+        funext x
+        rw [Matrix.adjugate_apply]]
+  apply det_measurable_of_entries
+  intro a b
+  by_cases ha : a = j
+  · subst a
+    by_cases hb : b = i
+    · subst b
+      simp [Matrix.updateRow]
+    · simp [Matrix.updateRow, Pi.single_eq_of_ne hb]
+  · have heq : (fun x => ((A x).updateRow j (Pi.single i 1)) a b) =
+        fun x => A x a b := by
+      funext x
+      simp [Matrix.updateRow, ha]
+    rw [heq]
+    exact hA a b
+
+/-- Every entry of the totalized matrix inverse is measurable when all source
+entries are measurable. -/
+theorem matrix_inv_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) (i j : κ) :
+    Measurable fun x => (A x)⁻¹ i j := by
+  classical
+  have hdet : Measurable fun x => (A x).det := det_measurable_of_entries hA
+  have hadj : Measurable fun x => (A x).adjugate i j :=
+    adjugate_apply_measurable_of_entries hA i j
+  have hrinv : Measurable fun x => Ring.inverse ((A x).det) := by
+    rw [show (fun x => Ring.inverse ((A x).det)) = fun x => ((A x).det)⁻¹ by
+      funext x
+      exact Ring.inverse_eq_inv _]
+    exact measurable_inv.comp hdet
+  rw [show (fun x => (A x)⁻¹ i j) =
+      (fun x => Ring.inverse ((A x).det) * (A x).adjugate i j) by
+        funext x
+        rw [Matrix.inv_def]
+        rfl]
+  exact hrinv.mul hadj
+
+/-- Every entry of a finite Gram matrix is measurable when all source entries
+are measurable. -/
+theorem gram_apply_measurable_of_entries
+    {α n κ : Type*} [MeasurableSpace α] [Fintype n]
+    {X : α → Matrix n κ ℝ} (hX : ∀ i j, Measurable fun x => X x i j) (a b : κ) :
+    Measurable fun x => ((X x)ᵀ * X x) a b := by
+  classical
+  simp only [Matrix.mul_apply, Matrix.transpose_apply]
+  exact Finset.measurable_sum Finset.univ (fun r _ => (hX r a).mul (hX r b))
+
 /-- **Scalar-scaled matrix inverse (unconditional).** For `c : ℝ` and any square
 matrix `M` over `ℝ`, the total inverse `Matrix.nonsingInv` satisfies
 `(c • M)⁻¹ = c⁻¹ • M⁻¹`. Mathlib's `Matrix.inv_smul` requires `Invertible c`

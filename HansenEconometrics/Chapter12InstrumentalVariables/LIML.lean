@@ -56,6 +56,32 @@ noncomputable def limlNormalizedMomentVectorStar
     (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) (μhat : ℝ) : k → ℝ :=
   (Fintype.card n : ℝ)⁻¹ • limlMomentVectorStar Z X Y μhat
 
+omit [Fintype k] [DecidableEq k] in
+/-- A normalized LIML bread is its zero-adjustment value minus the adjustment
+times the residual OLS bread. -/
+theorem limlNormalizedMomentMatrixStar_eq_zero_sub_mu_residual
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (muHat : ℝ) :
+    limlNormalizedMomentMatrixStar Z X muHat =
+      limlNormalizedMomentMatrixStar Z X 0 -
+        muHat • (sampleGram X - limlNormalizedMomentMatrixStar Z X 0) := by
+  ext a b
+  simp [limlNormalizedMomentMatrixStar, limlMomentMatrixStar, limlWeightMatrixStar,
+    sampleGram, Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_assoc]
+  ring
+
+omit [Fintype k] [DecidableEq k] in
+/-- A normalized LIML score is its zero-adjustment value minus the adjustment
+times the residual OLS score. -/
+theorem limlNormalizedMomentVectorStar_eq_zero_sub_mu_residual
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (e : n → ℝ) (muHat : ℝ) :
+    limlNormalizedMomentVectorStar Z X e muHat =
+      limlNormalizedMomentVectorStar Z X e 0 -
+        muHat • (sampleCrossMoment X e - limlNormalizedMomentVectorStar Z X e 0) := by
+  ext a
+  simp [limlNormalizedMomentVectorStar, limlMomentVectorStar, limlWeightMatrixStar,
+    sampleCrossMoment, Matrix.mul_sub, Matrix.sub_mulVec, Matrix.smul_mulVec]
+  ring_nf
+
 omit [DecidableEq k] in
 /-- LIML cross moments split under the structural equation `Y = Xβ + e`. -/
 theorem limlMomentVectorStar_linear_model
