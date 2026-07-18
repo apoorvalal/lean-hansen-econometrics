@@ -2264,6 +2264,49 @@ theorem wishartLaw_congr_map_of_iidMatrixGaussianLaw_map
     _ = wishartLaw (n := n) Sigma' := by
             rfl
 
+omit [DecidableEq n] in
+/-- Scaling a Wishart draw by a nonnegative scalar is the Wishart law with
+the covariance parameter scaled by the same scalar.
+
+This is the notation bridge from the push-forward law used by the sample
+covariance proof to Hansen's literal `W_m(n, cΣ)` notation. -/
+theorem scaledWishartLaw_eq_wishartLaw_smul
+    (c : ℝ) (Sigma : Matrix m m ℝ) (hc : 0 ≤ c)
+    (hSigma : Sigma.PosSemidef) :
+    scaledWishartLaw (n := n) c Sigma =
+      wishartLaw (n := n) (c • Sigma) := by
+  classical
+  let s : ℝ := Real.sqrt c
+  let T : Matrix m m ℝ := s • 1
+  have hs : s * s = c := by
+    simpa [s, pow_two] using Real.sq_sqrt hc
+  have hmean : Tᵀ *ᵥ (0 : m → ℝ) = 0 := by simp
+  have hcov : Tᵀ * Sigma * T = c • Sigma := by
+    simp [T, smul_smul, hs]
+  have hYmap :
+      (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma).map
+          (fun Y : Matrix n m ℝ => Y * T) =
+        iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) (c • Sigma) := by
+    simpa [hmean, hcov] using
+      iidMatrixGaussianLaw_columnMap
+        (n := n) (mean := (0 : m → ℝ)) hSigma T
+  have hcongr := wishartLaw_congr_map_of_iidMatrixGaussianLaw_map
+    (n := n) (Sigma := Sigma) (Sigma' := c • Sigma) T hYmap
+  rw [scaledWishartLaw, scaledWishartMatrixLaw, wishartLaw]
+  rw [wishartLaw] at hcongr
+  calc
+    (wishartMatrixLaw
+        (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)).map
+          (fun W => c • W) =
+        (wishartMatrixLaw
+          (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)).map
+            (fun W => Tᵀ * W * T) := by
+      apply Measure.map_congr
+      filter_upwards with W
+      simp [T, smul_smul, hs]
+    _ = wishartMatrixLaw
+        (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) (c • Sigma)) := hcongr
+
 omit [DecidableEq n] [DecidableEq m] in
 /-- Sample covariance law from a scaled cross-product representation.
 
@@ -2535,6 +2578,31 @@ theorem sampleCovarianceMatrix_hasLaw_theorem11_10_canonical
       (hSigma := hSigma)
       (sampleCenteringEigenContrast_mul_transpose (n := n))
       (sampleCenteringEigenContrast_transpose_mul (n := n)) hrow hInd)
+
+/-- **Hansen Theorem 11.10** in the textbook's literal Wishart notation.
+
+The canonical sample-covariance proof above yields a scaled push-forward law;
+`scaledWishartLaw_eq_wishartLaw_smul` identifies it with
+`W_m(n-1, (n-1)⁻¹Σ)` exactly as displayed by Hansen. -/
+theorem sampleCovarianceMatrix_hasLaw_theorem11_10_wishart
+    [IsProbabilityMeasure μ] [Nonempty n]
+    (Y : Ω → Matrix n m ℝ)
+    (mean : m → ℝ) {Sigma : Matrix m m ℝ} (hSigma : Sigma.PosSemidef)
+    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw mean Sigma) μ)
+    (hInd : iIndepFun (fun i ω => Y ω i) μ) :
+    HasLaw (fun ω => sampleCovarianceMatrix (Y ω))
+      (wishartLaw
+        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
+        (((Fintype.card n - 1 : ℝ)⁻¹) • Sigma)) μ := by
+  have h := sampleCovarianceMatrix_hasLaw_theorem11_10_canonical
+    (Y := Y) (mean := mean) (hSigma := hSigma) hrow hInd
+  have hn : (1 : ℝ) ≤ Fintype.card n := by
+    exact_mod_cast (Fintype.card_pos_iff.mpr inferInstance)
+  have hc : 0 ≤ (Fintype.card n - 1 : ℝ)⁻¹ :=
+    inv_nonneg.mpr (sub_nonneg.mpr hn)
+  rw [scaledWishartLaw_eq_wishartLaw_smul
+    ((Fintype.card n - 1 : ℝ)⁻¹) Sigma hc hSigma] at h
+  exact h
 
 /-- Centered orthonormal contrast cross-products have the Hansen Wishart law.
 
@@ -5344,7 +5412,7 @@ theorem standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nui
       (r := Fintype.card n - Fintype.card (Sum Unit r) + 1)
       hZ hP hInd hrank_pos hprops
 
-omit [Fintype m] [DecidableEq m] in
+omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- Raw standard-coordinate full/nuisance nonsingularity from the nuisance
 Gram certificate.
 
@@ -5528,7 +5596,7 @@ theorem iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
           (n := n) e hsum
   exact hP hcard
 
-omit [Fintype m] [DecidableEq m] in
+omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- Standard-coordinate inverse-Wishart map identity from nuisance Gram
 nonsingularity alone.
 
@@ -5547,15 +5615,17 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
         (inverseWishartScaledLinearForm
           (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
           (Pi.single (Sum.inl ()) (1 : ℝ))) =
-      chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1) :=
-  inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residualProjection_law
-    (n := n) (r := r)
-    (standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
-      (n := n) hcard hnuisance)
-    (standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular
-      (n := n) hcard hnuisance)
+      chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1) := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residualProjection_law
+      (n := n) (r := r)
+      (standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
+        (n := n) hcard hnuisance)
+      (standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular
+        (n := n) hcard hnuisance)
 
-omit [Fintype m] [DecidableEq m] in
+omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- Standard-coordinate inverse-Wishart map identity from full and nuisance
 Gram nonsingularity.
 
@@ -5576,6 +5646,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
           (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
           (Pi.single (Sum.inl ()) (1 : ℝ))) =
       chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1) := by
+  classical
   have hnuisance :
       ∀ᵐ Y ∂iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
           (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
@@ -5598,7 +5669,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residualProjection_law
       (n := n) (r := r) hnonsing hquad
 
-omit [Fintype m] [DecidableEq m] in
+omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- **Hansen Theorem 11.11**, standard-coordinate fixed-`α` endpoint from
 nonsingularity.
 
@@ -5623,15 +5694,17 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinat
         inverseWishartScaledLinearForm
           (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
           (Pi.single (Sum.inl ()) (1 : ℝ)) (W ω))
-      (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ :=
-  inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq
-    (W := W)
-    (Sigma := (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
-    (α := Pi.single (Sum.inl ()) (1 : ℝ)) hW
-    (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular
-      (n := n) (r := r) hcard hnonsing)
+      (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq
+      (W := W)
+      (Sigma := (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
+      (α := Pi.single (Sum.inl ()) (1 : ℝ)) hW
+      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular
+        (n := n) (r := r) hcard hnonsing)
 
-omit [Fintype m] [DecidableEq m] in
+omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- Raw standard-coordinate form of Hansen Theorem 11.11 from nonsingularity.
 
 In the standardized `Σ = I`, `α = e₁` boundary, the Hansen normalizing scale is
@@ -5651,6 +5724,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_one_standardCoordinate_raw_
     HasLaw
       (fun ω => inverseWishartLinearForm (Pi.single (Sum.inl ()) (1 : ℝ)) (W ω))
       (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ := by
+  classical
   have hscaled :=
     inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinate_of_nonsingular
       (n := n) (r := r) W hcard hW hnonsing
@@ -5659,7 +5733,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_one_standardCoordinate_raw_
       filter_upwards with ω
       simp [inverseWishartScaledLinearForm, inv_one])
 
-omit [Fintype m] [DecidableEq m] in
+omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- **Hansen Theorem 11.11**, standard-coordinate fixed-`α` endpoint from
 nuisance-Gram nonsingularity.
 
@@ -5680,15 +5754,17 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinat
         inverseWishartScaledLinearForm
           (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
           (Pi.single (Sum.inl ()) (1 : ℝ)) (W ω))
-      (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ :=
-  inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq
-    (W := W)
-    (Sigma := (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
-    (α := Pi.single (Sum.inl ()) (1 : ℝ)) hW
-    (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular
-      (n := n) (r := r) hcard hnuisance)
+      (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq
+      (W := W)
+      (Sigma := (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
+      (α := Pi.single (Sum.inl ()) (1 : ℝ)) hW
+      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular
+        (n := n) (r := r) hcard hnuisance)
 
-omit [Fintype m] [DecidableEq m] in
+omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- Raw standard-coordinate form of Hansen Theorem 11.11 from nuisance-Gram
 nonsingularity. -/
 theorem inverseWishartLinearForm_hasLaw_theorem11_11_one_standardCoordinate_raw_of_nuisance_nonsingular
@@ -5704,6 +5780,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_one_standardCoordinate_raw_
     HasLaw
       (fun ω => inverseWishartLinearForm (Pi.single (Sum.inl ()) (1 : ℝ)) (W ω))
       (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ := by
+  classical
   have hscaled :=
     inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinate_of_nuisance_nonsingular
       (n := n) (r := r) W hcard hW hnuisance
@@ -5841,7 +5918,7 @@ then supplied by
 `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular`,
 not by a direct law premise. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (hcard : Fintype.card r < Fintype.card dfidx)
@@ -5862,6 +5939,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   rw [hcongr, ← hdf]
   exact
     inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular
@@ -5870,7 +5948,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
 /-- Hansen Theorem 11.11 random-variable endpoint from standard-coordinate
 nonsingularity and a whitening/coordinate congruence. -/
 theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate_nonsingular_congr
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (hW : HasLaw W (wishartLaw (n := dfidx) Sigma) μ)
@@ -5890,18 +5968,20 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate
             (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
             (Pi.single (Sum.inl ()) (1 : ℝ)))) :
     HasLaw (fun ω => inverseWishartScaledLinearForm Sigma α (W ω))
-      (chiSquared df) μ :=
-  inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
-    (W := W) (Wlaw := wishartLaw (n := dfidx) Sigma)
-    (Sigma := Sigma) (α := α) (df := df) hW
-    (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
-      (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
-      hcard hnonsing hdf hcongr)
+      (chiSquared df) μ := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
+      (W := W) (Wlaw := wishartLaw (n := dfidx) Sigma)
+      (Sigma := Sigma) (α := α) (df := df) hW
+      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+        (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
+        hcard hnonsing hdf hcongr)
 
 /-- Hansen Theorem 11.11 fixed-`α` map identity from standard-coordinate
 nuisance-Gram nonsingularity and a whitening/coordinate congruence. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular_congr
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (hcard : Fintype.card r < Fintype.card dfidx)
@@ -5922,6 +6002,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   rw [hcongr, ← hdf]
   exact
     inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular
@@ -5930,7 +6011,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
 /-- Hansen Theorem 11.11 random-variable endpoint from standard-coordinate
 nuisance-Gram nonsingularity and a whitening/coordinate congruence. -/
 theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate_nuisance_nonsingular_congr
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (hW : HasLaw W (wishartLaw (n := dfidx) Sigma) μ)
@@ -5950,13 +6031,15 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate
             (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
             (Pi.single (Sum.inl ()) (1 : ℝ)))) :
     HasLaw (fun ω => inverseWishartScaledLinearForm Sigma α (W ω))
-      (chiSquared df) μ :=
-  inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
-    (W := W) (Wlaw := wishartLaw (n := dfidx) Sigma)
-    (Sigma := Sigma) (α := α) (df := df) hW
-    (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular_congr
-      (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
-      hcard hnuisance hdf hcongr)
+      (chiSquared df) μ := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
+      (W := W) (Wlaw := wishartLaw (n := dfidx) Sigma)
+      (Sigma := Sigma) (α := α) (df := df) hW
+      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular_congr
+        (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
+        hcard hnuisance hdf hcongr)
 
 /-- Hansen Theorem 11.11 scaled endpoint from explicit standard-coordinate
 whitening/coordinate transport.
@@ -5965,7 +6048,7 @@ This wrapper feeds the concrete transport data into the standard-coordinate
 nonsingularity theorem, eliminating the direct scalar `hcongr` premise from
 the theorem-facing call site. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_transport
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -5994,6 +6077,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   have hcongr :
       (wishartLaw (n := dfidx) Sigma).map
           (inverseWishartScaledLinearForm Sigma α) =
@@ -6019,7 +6103,7 @@ This replaces the direct Wishart congruence premise in
 `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_transport`
 by the underlying iid matrix-Gaussian column-map identity. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_transport
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -6049,6 +6133,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   have hcongr :
       (wishartLaw (n := dfidx) Sigma).map
           (inverseWishartScaledLinearForm Sigma α) =
@@ -6117,7 +6202,7 @@ This removes the explicit iid matrix-Gaussian map premise from
 `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_transport`;
 the map identity is now supplied by `iidMatrixGaussianLaw_standardCoordinate_whiten_map`. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -6141,6 +6226,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   have hcongr :
       (wishartLaw (n := dfidx) Sigma).map
           (inverseWishartScaledLinearForm Sigma α) =
@@ -6166,7 +6252,7 @@ Compared with
 this theorem derives the original Wishart a.s. nonsingularity premise from
 the standardized full-Gram nonsingularity plus the whitening transport. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -6189,6 +6275,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   have hnonsing_std_full :
       ∀ᵐ Y ∂iidMatrixGaussianLaw
           (n := dfidx) (m := Sum Unit r)
@@ -6215,7 +6302,7 @@ standard-coordinate nuisance-Gram nonsingularity certificate.
 The standardized full-Gram certificate, and then the original Wishart
 nonsingularity certificate, are both derived from the nuisance Gram. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -6237,6 +6324,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   have hnonsing_std :
       ∀ᵐ Y ∂iidMatrixGaussianLaw
           (n := dfidx) (m := Sum Unit r)
@@ -6260,7 +6348,7 @@ This is the fixed-parameter boundary with the deterministic whitening objects
 packaged as existence data.  The remaining stochastic input is exactly the raw
 standardized nuisance-column Gram nonsingularity certificate. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (hSigma : Sigma.PosDef)
@@ -6281,6 +6369,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
       chiSquared df := by
+  classical
   rcases htransport with ⟨T, S, c, hST, hTS, hSigma_one, hα_one, hc⟩
   exact
     inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
@@ -6297,7 +6386,7 @@ This is the same boundary as
 `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`,
 but removes the otherwise mechanical `hdf` premise. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef)
@@ -6317,20 +6406,22 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
           c ≠ 0) :
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
-      chiSquared (Fintype.card dfidx - Fintype.card m + 1) :=
-  inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
-    (dfidx := dfidx) (r := r)
-    (Sigma := Sigma) (α := α)
-    (df := Fintype.card dfidx - Fintype.card m + 1)
-    hSigma hcard hnuisance_std
-    (standardCoordinate_df_eq_of_card_eq (m := m) (dfidx := dfidx) (r := r) hcard_dim)
-    htransport
+      chiSquared (Fintype.card dfidx - Fintype.card m + 1) := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+      (dfidx := dfidx) (r := r)
+      (Sigma := Sigma) (α := α)
+      (df := Fintype.card dfidx - Fintype.card m + 1)
+      hSigma hcard hnuisance_std
+      (standardCoordinate_df_eq_of_card_eq (m := m) (dfidx := dfidx) (r := r) hcard_dim)
+      htransport
 
 /-- Hansen Theorem 11.11 scaled endpoint from existential whitening/alignment
 data, with the stochastic standard-coordinate premise reduced to the canonical
 rectangular iid standard-Gaussian Gram certificate. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef)
@@ -6349,14 +6440,16 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
           c ≠ 0) :
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
-      chiSquared (Fintype.card dfidx - Fintype.card m + 1) :=
-  inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
-    (dfidx := dfidx) (r := r)
-    (Sigma := Sigma) (α := α)
-    hSigma hcard hcard_dim
-    (standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw
-      (n := dfidx) (r := r) hgram_std)
-    htransport
+      chiSquared (Fintype.card dfidx - Fintype.card m + 1) := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
+      (dfidx := dfidx) (r := r)
+      (Sigma := Sigma) (α := α)
+      hSigma hcard hcard_dim
+      (standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw
+        (n := dfidx) (r := r) hgram_std)
+      htransport
 
 /-- Hansen Theorem 11.11 scaled endpoint from existential
 whitening/alignment data.
@@ -6366,7 +6459,7 @@ canonical rectangular iid standard-Gaussian Gram nonsingularity theorem, so the
 only remaining input is the deterministic whitening/alignment data for
 `Σ` and `α`. -/
 theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef)
@@ -6381,14 +6474,16 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
           c ≠ 0) :
     (wishartLaw (n := dfidx) Sigma).map
         (inverseWishartScaledLinearForm Sigma α) =
-      chiSquared (Fintype.card dfidx - Fintype.card m + 1) :=
-  inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
-    (dfidx := dfidx) (r := r)
-    (Sigma := Sigma) (α := α)
-    hSigma hcard hcard_dim
-    (iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
-      (n := dfidx) (r := r) (Nat.le_of_lt hcard))
-    htransport
+      chiSquared (Fintype.card dfidx - Fintype.card m + 1) := by
+  classical
+  exact
+    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
+      (dfidx := dfidx) (r := r)
+      (Sigma := Sigma) (α := α)
+      hSigma hcard hcard_dim
+      (iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
+        (n := dfidx) (r := r) (Nat.le_of_lt hcard))
+      htransport
 
 omit [Fintype m] [DecidableEq m] in
 /-- Standard-coordinate residual-projection map identity for Hansen Theorem
@@ -7191,7 +7286,7 @@ This is the same displayed Hansen law as
 but derives the raw standardized full-Gram certificate from nuisance-Gram
 nonsingularity. -/
 theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -7216,6 +7311,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
     HasLaw (fun ω => inverseWishartLinearForm α (W ω))
       ((chiSquared (Fintype.card dfidx - Fintype.card m + 1)).map
         fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
+  classical
   have hnonsing_std :
       ∀ᵐ Y ∂iidMatrixGaussianLaw
           (n := dfidx) (m := Sum Unit r)
@@ -7241,7 +7337,7 @@ This packages the remaining deterministic whitening step as an existence
 premise for the fixed nonzero direction `α`; no separate original-Wishart
 nonsingularity premise is needed. -/
 theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef) (hα : α ≠ 0)
@@ -7265,6 +7361,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
     HasLaw (fun ω => inverseWishartLinearForm α (W ω))
       ((chiSquared (Fintype.card dfidx - Fintype.card m + 1)).map
         fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
+  classical
   have hmap :
       (wishartLaw (n := dfidx) Sigma).map
           (inverseWishartScaledLinearForm Sigma α) =
@@ -7282,7 +7379,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
 existential whitening/alignment data, deriving Hansen's degrees of freedom from
 the standard-coordinate dimension match `m = 1 + r`. -/
 theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef) (hα : α ≠ 0)
@@ -7303,20 +7400,22 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
           c ≠ 0) :
     HasLaw (fun ω => inverseWishartLinearForm α (W ω))
       ((chiSquared (Fintype.card dfidx - Fintype.card m + 1)).map
-        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ :=
-  inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
-    (dfidx := dfidx) (r := r)
-    (W := W) (Sigma := Sigma) (α := α)
-    hSigma hα hW hcard hnuisance_std
-    (standardCoordinate_df_eq_of_card_eq (m := m) (dfidx := dfidx) (r := r) hcard_dim)
-    htransport
+        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
+  classical
+  exact
+    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+      (dfidx := dfidx) (r := r)
+      (W := W) (Sigma := Sigma) (α := α)
+      hSigma hα hW hcard hnuisance_std
+      (standardCoordinate_df_eq_of_card_eq (m := m) (dfidx := dfidx) (r := r) hcard_dim)
+      htransport
 
 /-- **Hansen Theorem 11.11**, raw inverse-Wishart scalar endpoint from
 existential whitening/alignment data, with the stochastic standard-coordinate
 premise reduced to the canonical rectangular iid standard-Gaussian Gram
 certificate. -/
 theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef) (hα : α ≠ 0)
@@ -7336,14 +7435,16 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
           c ≠ 0) :
     HasLaw (fun ω => inverseWishartLinearForm α (W ω))
       ((chiSquared (Fintype.card dfidx - Fintype.card m + 1)).map
-        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ :=
-  inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
-    (dfidx := dfidx) (r := r)
-    (W := W) (Sigma := Sigma) (α := α)
-    hSigma hα hW hcard hcard_dim
-    (standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw
-      (n := dfidx) (r := r) hgram_std)
-    htransport
+        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
+  classical
+  exact
+    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
+      (dfidx := dfidx) (r := r)
+      (W := W) (Sigma := Sigma) (α := α)
+      hSigma hα hW hcard hcard_dim
+      (standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw
+        (n := dfidx) (r := r) hgram_std)
+      htransport
 
 /-- **Hansen Theorem 11.11**, raw inverse-Wishart scalar endpoint from
 existential whitening/alignment data.
@@ -7353,7 +7454,7 @@ discharges the stochastic standard-coordinate premise; the remaining theorem
 input is exactly the deterministic whitening/alignment certificate for
 `Σ` and the nonzero direction `α`. -/
 theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq
-    {dfidx r : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef) (hα : α ≠ 0)
@@ -7369,14 +7470,16 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
           c ≠ 0) :
     HasLaw (fun ω => inverseWishartLinearForm α (W ω))
       ((chiSquared (Fintype.card dfidx - Fintype.card m + 1)).map
-        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ :=
-  inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
-    (dfidx := dfidx) (r := r)
-    (W := W) (Sigma := Sigma) (α := α)
-    hSigma hα hW hcard hcard_dim
-    (iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
-      (n := dfidx) (r := r) (Nat.le_of_lt hcard))
-    htransport
+        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
+  classical
+  exact
+    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
+      (dfidx := dfidx) (r := r)
+      (W := W) (Sigma := Sigma) (α := α)
+      hSigma hα hW hcard hcard_dim
+      (iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
+        (n := dfidx) (r := r) (Nat.le_of_lt hcard))
+      htransport
 
 omit [DecidableEq m] in
 private theorem fintype_card_pos_of_ne_zero_vector
@@ -7396,7 +7499,7 @@ chi-square law. The proof reuses the standard-coordinate Schur-complement
 theorem, canonical rectangular Gaussian Gram nonsingularity, and deterministic
 square-root whitening/alignment. -/
 theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le
-    {dfidx : Type*} [Fintype dfidx] [DecidableEq dfidx]
+    {dfidx : Type*} [Fintype dfidx]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hSigma : Sigma.PosDef) (hα : α ≠ 0)
     (hW : HasLaw W (wishartLaw (n := dfidx) Sigma) μ)

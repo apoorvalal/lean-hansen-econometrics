@@ -8,6 +8,7 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter11MultivariateRegression.PCA
 
 /-!
@@ -66,7 +67,7 @@ theorem factorScoreEstimator_diagonal_apply
 `(Λ'Λ)^{-1}Λ'X`, using Mathlib's total nonsingular inverse. -/
 noncomputable def factorScoreLeastSquares
     (Λ : Matrix k r ℝ) (X : k → ℝ) : r → ℝ :=
-  (Λᵀ * Λ)⁻¹ *ᵥ (Λᵀ *ᵥ X)
+  olsBetaStar Λ X
 
 /-- Sample second-moment matrix `n⁻¹∑ X_i X_i'` used in Hansen Theorem 11.9. -/
 noncomputable def factorSampleCovariance
@@ -3895,7 +3896,7 @@ theorem factorScoreEstimator_eq_leastSquaresScore
             rw [Matrix.mul_assoc, ← Matrix.mul_assoc Hᵀ H sqrtD]
       _ = sqrtDᵀ * (1 * sqrtD) := by rw [hscale.eigenvectors_orthonormal]
       _ = sqrtDᵀ * sqrtD := by rw [Matrix.one_mul]
-  unfold factorScoreEstimator factorScoreLeastSquares factorLoadingEstimator
+  unfold factorScoreEstimator factorScoreLeastSquares factorLoadingEstimator olsBetaStar
   rw [hgram, Matrix.transpose_mul]
   calc
     invSqrtD *ᵥ (Hᵀ *ᵥ X)

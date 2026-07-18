@@ -82,6 +82,71 @@ noncomputable def systemPopulationGram
     (μ : Measure Ω) (X : ℕ → Ω → Matrix m k ℝ) : Matrix k k ℝ :=
   μ[fun ω => (X 0 ω)ᵀ * X 0 ω]
 
+omit [IsProbabilityMeasure μ] [Fintype k] [Fintype q] [DecidableEq k]
+  [DecidableEq q] in
+/-- Hansen's block-diagonal population Gram matrix for equation-specific
+regressors. The coefficient index `Sigma κ` permits equation `j` to use its
+own finite coordinate type `κ j`. -/
+noncomputable def systemEquationBlockPopulationGram
+    {κ : m → Type*}
+    (μ : Measure Ω) (x : ℕ → Ω → (j : m) → κ j → ℝ) :
+    Matrix (Sigma κ) (Sigma κ) ℝ :=
+  fun ja lb => if h : ja.1 = lb.1 then
+    ∫ ω, x 0 ω ja.1 ja.2 * x 0 ω ja.1 (h.symm ▸ lb.2) ∂μ
+  else 0
+
+omit [IsProbabilityMeasure μ] [Fintype k] [Fintype q] [Fintype m]
+  [DecidableEq k] [DecidableEq q] in
+@[simp]
+theorem systemEquationBlockPopulationGram_same
+    {κ : m → Type*}
+    (μ : Measure Ω) (x : ℕ → Ω → (j : m) → κ j → ℝ)
+    (j : m) (a b : κ j) :
+    systemEquationBlockPopulationGram μ x ⟨j, a⟩ ⟨j, b⟩ =
+      ∫ ω, x 0 ω j a * x 0 ω j b ∂μ := by
+  simp [systemEquationBlockPopulationGram]
+
+omit [IsProbabilityMeasure μ] [Fintype k] [Fintype q] [Fintype m]
+  [DecidableEq k] [DecidableEq q] in
+@[simp]
+theorem systemEquationBlockPopulationGram_ne
+    {κ : m → Type*}
+    (μ : Measure Ω) (x : ℕ → Ω → (j : m) → κ j → ℝ)
+    {j l : m} (hjl : j ≠ l) (a : κ j) (b : κ l) :
+    systemEquationBlockPopulationGram μ x ⟨j, a⟩ ⟨l, b⟩ = 0 := by
+  simp [systemEquationBlockPopulationGram, hjl]
+
+omit [IsProbabilityMeasure μ] [Fintype k] [Fintype q] [DecidableEq k]
+  [DecidableEq q] in
+/-- The generic population system Gram specializes to Hansen's displayed
+block-diagonal matrix for the sparse equation-specific design. -/
+theorem systemPopulationGram_equationBlockDesign_eq
+    {κ : m → Type*} [(j : m) → Fintype (κ j)]
+    (μ : Measure Ω) (x : ℕ → Ω → (j : m) → κ j → ℝ)
+    (hint : Integrable
+      (fun ω =>
+        (systemEquationBlockDesign (x 0 ω))ᵀ *
+          systemEquationBlockDesign (x 0 ω)) μ) :
+    systemPopulationGram μ
+        (fun i ω => systemEquationBlockDesign (x i ω)) =
+      systemEquationBlockPopulationGram μ x := by
+  ext ⟨j, a⟩ ⟨l, b⟩
+  unfold systemPopulationGram
+  calc
+    (∫ ω,
+        (systemEquationBlockDesign (x 0 ω))ᵀ *
+          systemEquationBlockDesign (x 0 ω) ∂μ) ⟨j, a⟩ ⟨l, b⟩ =
+        ∫ ω,
+          ((systemEquationBlockDesign (x 0 ω))ᵀ *
+            systemEquationBlockDesign (x 0 ω)) ⟨j, a⟩ ⟨l, b⟩ ∂μ :=
+      integral_apply_apply hint ⟨j, a⟩ ⟨l, b⟩
+    _ = systemEquationBlockPopulationGram μ x ⟨j, a⟩ ⟨l, b⟩ := by
+      by_cases hjl : j = l
+      · subst l
+        simp [systemEquationBlockPopulationGram]
+      · simp [systemEquationBlockPopulationGram,
+          systemEquationBlockDesign_gram_ne, hjl]
+
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 /-- Hansen's population system score covariance middle
 `Ω = E[Xᵢ'eᵢeᵢ'Xᵢ]`. -/
@@ -200,7 +265,7 @@ The package keeps the assumptions at the observation level: WLLN hypotheses for
 mean of that score, and nonsingularity of `Q`. The covariance identity
 `cov(Xᵢ'eᵢ) = E[Xᵢ'eᵢeᵢ'Xᵢ]` is derived from these fields rather than assumed.
 It deliberately does not assume the Chapter 11 Gaussian limit. -/
-structure SystemAssumption72
+structure SystemRegressionMomentConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → Matrix m k ℝ) (e : ℕ → Ω → m → ℝ) : Prop where
   gram_integrable : Integrable (fun ω => (X 0 ω)ᵀ * X 0 ω) μ
@@ -244,7 +309,7 @@ integrability and zero mean of `Xᵢ'eᵢ`, and nonsingularity of `Q`. The
 conversion below derives the older split Gram/score iid fields by measurable
 composition, so theorem-facing call sites do not have to assume those split
 fields separately. -/
-structure SystemAssumption72PrimitiveRow
+structure SystemPrimitiveRowRegressionMomentConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → Matrix m k ℝ) (e : ℕ → Ω → m → ℝ) : Prop where
   row_iIndep : iIndepFun (fun i ω => (X i ω, e i ω)) μ
@@ -297,7 +362,7 @@ The fourth moments are packaged as finite-dimensional row-norm moments, which
 are equivalent to Hansen's coordinate fourth moments. The conversion below
 derives the residual-row iid, Gram-integrability, and score-`L²` fields used by
 the Chapter 11 proof engine; none of those consequences is assumed here. -/
-structure SystemAssumption72ObservedResponseFourthConditions
+structure SystemObservedResponseFourthMomentConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → Matrix m k ℝ) (e Y : ℕ → Ω → m → ℝ)
     (β : k → ℝ) : Prop where
@@ -312,33 +377,33 @@ structure SystemAssumption72ObservedResponseFourthConditions
     meanVec μ (fun ω => systemScore (X 0 ω) (e 0 ω)) = 0
   gram_posDef : (systemPopulationGram μ X).PosDef
 
-namespace SystemAssumption72ObservedResponseFourthConditions
+namespace SystemObservedResponseFourthMomentConditions
 
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem observed_row_aestronglyMeasurable_at
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β)
     (i : ℕ) : AEStronglyMeasurable (fun ω => (X i ω, Y i ω)) μ :=
   (h.observed_identDistrib i).aestronglyMeasurable_fst
 
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem x_aestronglyMeasurable_at
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β)
     (i : ℕ) : AEStronglyMeasurable (X i) μ :=
   (h.observed_row_aestronglyMeasurable_at i).fst
 
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem y_aestronglyMeasurable_at
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β)
     (i : ℕ) : AEStronglyMeasurable (Y i) μ :=
   (h.observed_row_aestronglyMeasurable_at i).snd
 
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem design_memLp_four
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     MemLp (X 0) 4 μ := by
   refine MemLp.of_eval fun a => MemLp.of_eval fun c => ?_
   have hcoord : AEStronglyMeasurable (fun ω => X 0 ω a c) μ :=
@@ -359,7 +424,7 @@ theorem design_memLp_four
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem response_memLp_four
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     MemLp (Y 0) 4 μ := by
   refine MemLp.of_eval fun a => ?_
   have hcoord : AEStronglyMeasurable (fun ω => Y 0 ω a) μ :=
@@ -378,7 +443,7 @@ theorem response_memLp_four
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem fitted_memLp_four
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     MemLp (fun ω => X 0 ω *ᵥ β) 4 μ := by
   classical
   refine MemLp.of_eval fun a => ?_
@@ -391,7 +456,7 @@ theorem fitted_memLp_four
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem error_memLp_four
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     MemLp (e 0) 4 μ := by
   have hdiff := h.response_memLp_four.sub h.fitted_memLp_four
   convert hdiff using 1
@@ -413,7 +478,7 @@ private theorem observed_to_residual_measurable (β : k → ℝ) :
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 private theorem observed_to_residual_apply
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β)
     (i : ℕ) (ω : Ω) :
     ((X i ω, Y i ω).1, (X i ω, Y i ω).2 - (X i ω, Y i ω).1 *ᵥ β) =
       (X i ω, e i ω) := by
@@ -428,7 +493,7 @@ private theorem observed_to_residual_apply
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem gram_integrable
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     Integrable (fun ω => (X 0 ω)ᵀ * X 0 ω) μ := by
   have hX2 : MemLp (X 0) 2 μ := h.design_memLp_four.mono_exponent (by norm_num)
   refine Integrable.of_eval fun c => Integrable.of_eval fun d => ?_
@@ -440,7 +505,7 @@ theorem gram_integrable
 omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 theorem score_memLp_two
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     MemLp (fun ω => systemScore (X 0 ω) (e 0 ω)) 2 μ := by
   classical
   refine MemLp.of_eval fun c => ?_
@@ -456,7 +521,7 @@ omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 moment used by the feasible covariance proof. -/
 theorem error_norm_sq_integrable
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     Integrable (fun ω => ‖e 0 ω‖ ^ 2) μ :=
   (h.error_memLp_four.mono_exponent (by norm_num : (2 : ENNReal) ≤ 4)).integrable_norm_pow
     (by norm_num)
@@ -467,7 +532,7 @@ omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 covariance substitution. This is Young's inequality applied pointwise. -/
 theorem error_design_norm_cubed_integrable
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     Integrable (fun ω => ‖e 0 ω‖ * ‖X 0 ω‖ ^ 3) μ := by
   have he4 : Integrable (fun ω => ‖e 0 ω‖ ^ 4) μ :=
     h.error_memLp_four.integrable_norm_pow (by norm_num)
@@ -493,10 +558,10 @@ theorem error_design_norm_cubed_integrable
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- Literal observed-row Assumption 7.2 implies the primitive residual-row
 package used by Hansen Theorems 11.1--11.3. -/
-theorem toSystemAssumption72PrimitiveRow
+theorem toSystemPrimitiveRowRegressionMomentConditions
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
-    SystemAssumption72PrimitiveRow μ X e where
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
+    SystemPrimitiveRowRegressionMomentConditions μ X e where
   row_iIndep := by
     have hcomp := h.observed_iIndep.comp
       (fun _ row => (row.1, row.2 - row.1 *ᵥ β))
@@ -516,7 +581,7 @@ theorem toSystemAssumption72PrimitiveRow
   score_mean_zero := h.score_mean_zero
   gram_nonsing := (Matrix.isUnit_iff_isUnit_det _).mp h.gram_posDef.isUnit
 
-end SystemAssumption72ObservedResponseFourthConditions
+end SystemObservedResponseFourthMomentConditions
 
 omit [IsProbabilityMeasure μ] [Fintype q] [DecidableEq k] [DecidableEq q]
   [DecidableEq m] in
@@ -593,15 +658,15 @@ theorem systemDesign_memLp_two_of_gram_integrable_coordinates
     exact (memLp_two_iff_integrable_sq (hX a c)).2 hsq
   exact MemLp.of_eval (fun a => MemLp.of_eval (fun c => hcoord a c))
 
-namespace SystemAssumption72PrimitiveRow
+namespace SystemPrimitiveRowRegressionMomentConditions
 
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- A primitive row-iid Assumption 7.2 package supplies the split
-`SystemAssumption72` fields used by the Chapter 11 proof engine. -/
-theorem toSystemAssumption72
+`SystemRegressionMomentConditions` fields used by the Chapter 11 proof engine. -/
+theorem toSystemRegressionMomentConditions
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) :
-    SystemAssumption72 μ X e where
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) :
+    SystemRegressionMomentConditions μ X e where
   gram_integrable := h.gram_integrable
   gram_independent := by
     let f : Matrix m k ℝ × (m → ℝ) → Matrix k k ℝ := fun row => row.1ᵀ * row.1
@@ -637,7 +702,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 baseline observation row. -/
 theorem row_aestronglyMeasurable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) :
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) :
     AEStronglyMeasurable (fun ω => (X 0 ω, e 0 ω)) μ :=
   (h.row_identDistrib 0).aestronglyMeasurable_fst
 
@@ -646,7 +711,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 observation row. -/
 theorem row_aestronglyMeasurable_at
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) (i : ℕ) :
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) (i : ℕ) :
     AEStronglyMeasurable (fun ω => (X i ω, e i ω)) μ :=
   (h.row_identDistrib i).aestronglyMeasurable_fst
 
@@ -655,7 +720,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 baseline system design. -/
 theorem x_aestronglyMeasurable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) :
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) :
     AEStronglyMeasurable (X 0) μ :=
   h.row_aestronglyMeasurable.fst
 
@@ -664,7 +729,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 system design row. -/
 theorem x_aestronglyMeasurable_at
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) (i : ℕ) :
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) (i : ℕ) :
     AEStronglyMeasurable (X i) μ :=
   (h.row_aestronglyMeasurable_at i).fst
 
@@ -673,7 +738,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 baseline system error vector. -/
 theorem e_aestronglyMeasurable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) :
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) :
     AEStronglyMeasurable (e 0) μ :=
   h.row_aestronglyMeasurable.snd
 
@@ -682,7 +747,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 system error row. -/
 theorem e_aestronglyMeasurable_at
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) (i : ℕ) :
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) (i : ℕ) :
     AEStronglyMeasurable (e i) μ :=
   (h.row_aestronglyMeasurable_at i).snd
 
@@ -691,12 +756,12 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 Assumption 7.2's Gram integrability. -/
 theorem design_memLp_two
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72PrimitiveRow μ X e) :
+    (h : SystemPrimitiveRowRegressionMomentConditions μ X e) :
     MemLp (X 0) 2 μ :=
   systemDesign_memLp_two_of_gram_integrable
     (μ := μ) h.x_aestronglyMeasurable h.gram_integrable
 
-end SystemAssumption72PrimitiveRow
+end SystemPrimitiveRowRegressionMomentConditions
 
 omit [IsProbabilityMeasure μ] [Fintype q] [DecidableEq k] [DecidableEq q] [Fintype m]
   [DecidableEq m] in
@@ -727,7 +792,7 @@ theorem systemOutcome_aestronglyMeasurable_of_linear_model
   exact ((hdot.add hej).congr
     (ae_of_all μ fun ω => (hmodel i ω j).symm)).aemeasurable
 
-namespace SystemAssumption72
+namespace SystemRegressionMomentConditions
 
 omit [IsProbabilityMeasure μ] [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 /-- The Hansen scaling `√n ĝₙ` equals the centered iid-vector-CLT scaling when
@@ -767,7 +832,7 @@ theorem sqrt_smul_systemScoreMean_eq_inv_sqrt_sum
     exact congrArg (fun c : ℝ => c • ∑ i ∈ Finset.range n, systemScore (X i ω) (e i ω))
       hscale
 
-end SystemAssumption72
+end SystemRegressionMomentConditions
 
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- Linearized Hansen Theorem 11.1 at the observation-system level.
@@ -1265,20 +1330,20 @@ function of the system coefficient vector.
 The derivative of `r` at `β` is represented by Hansen's matrix `R`, with
 linear action `v ↦ Rᵀv`. The stochastic Taylor-remainder negligibility needed
 for Theorem 11.2 is intentionally kept outside this deterministic package. -/
-structure SystemDeltaAssumption73
+structure SystemDeltaRemainderConditions
     (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (R : Matrix k q ℝ)
     extends SmoothFunctionAssumption73 r β R
 
 omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [Fintype m] [DecidableEq m] in
-/-- Measurable companion to `SystemDeltaAssumption73`.
+/-- Measurable companion to `SystemDeltaRemainderConditions`.
 
 Local differentiability at `β` supplies Hansen's Taylor remainder, but it does
 not by itself make every plug-in sample transform measurable. This package adds
 the exact measurable-transform field used to discharge the transformed-target
 measurability premises in theorem-facing wrappers. -/
-structure SystemDeltaAssumption73Measurable
+structure SystemDeltaMeasurableRemainderConditions
     (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (R : Matrix k q ℝ)
-    extends SystemDeltaAssumption73 r β R where
+    extends SystemDeltaRemainderConditions r β R where
   measurable : Measurable r
 
 omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [Fintype m] [DecidableEq m] in
@@ -1288,7 +1353,7 @@ The `ContDiffAt` field records Hansen's continuously differentiable-at-the-true
 parameter assumption. The derivative representation, full-rank condition, and
 measurability are the additional finite-dimensional data needed by the current
 Lean theorem route. -/
-structure SystemDeltaAssumption73ContDiffAt
+structure SystemDeltaContDiffAtConditions
     (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (R : Matrix k q ℝ)
     extends SmoothFunctionAssumption73 r β R where
   contDiffAt : ContDiffAt ℝ 1 r β
@@ -1302,7 +1367,7 @@ noncomputable def systemDeltaTaylorRemainder
     (k → ℝ) → (q → ℝ) :=
   fun b => r b - r β - Rᵀ *ᵥ (b - β)
 
-namespace SystemDeltaAssumption73
+namespace SystemDeltaRemainderConditions
 
 omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q]
   [Fintype m] [DecidableEq m] in
@@ -1311,7 +1376,7 @@ Chapter 11 system layer. -/
 def of_smoothFunctionAssumption73
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
     (h73 : SmoothFunctionAssumption73 r β R) :
-    SystemDeltaAssumption73 r β R where
+    SystemDeltaRemainderConditions r β R where
   toSmoothFunctionAssumption73 := h73
 
 omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q]
@@ -1319,7 +1384,7 @@ omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq
 /-- Assumption 7.3 supplies the deterministic little-o Taylor remainder. -/
 theorem taylorRemainder_isLittleO
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h73 : SystemDeltaAssumption73 r β R) :
+    (h73 : SystemDeltaRemainderConditions r β R) :
     systemDeltaTaylorRemainder r β R =o[𝓝 β] (fun b => b - β) := by
   simpa [systemDeltaTaylorRemainder, h73.derivative_apply] using
     deltaMethod_remainder_isLittleO h73.differentiable_at
@@ -1329,26 +1394,26 @@ omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq
 /-- Algebraic form of the Taylor expansion around `β`. -/
 theorem taylorExpansion_eq_linear_plus_remainder
     {r : (k → ℝ) → (q → ℝ)} {β b : k → ℝ} {R : Matrix k q ℝ}
-    (_h73 : SystemDeltaAssumption73 r β R) :
+    (_h73 : SystemDeltaRemainderConditions r β R) :
     r b - r β =
       Rᵀ *ᵥ (b - β) + systemDeltaTaylorRemainder r β R b := by
   ext j
   simp [systemDeltaTaylorRemainder]
 
-end SystemDeltaAssumption73
+end SystemDeltaRemainderConditions
 
-namespace SystemDeltaAssumption73Measurable
+namespace SystemDeltaMeasurableRemainderConditions
 
 omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q]
   [Fintype m] [DecidableEq m] in
 /-- Add the measurable-transform field to an existing Chapter 11 Assumption 7.3
 package. This is the direct constructor for call sites that already proved the
-derivative representation and full-rank condition in `SystemDeltaAssumption73`. -/
+derivative representation and full-rank condition in `SystemDeltaRemainderConditions`. -/
 def of_systemDeltaAssumption73
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (hr : Measurable r) (h73 : SystemDeltaAssumption73 r β R) :
-    SystemDeltaAssumption73Measurable r β R where
-  toSystemDeltaAssumption73 := h73
+    (hr : Measurable r) (h73 : SystemDeltaRemainderConditions r β R) :
+    SystemDeltaMeasurableRemainderConditions r β R where
+  toSystemDeltaRemainderConditions := h73
   measurable := hr
 
 omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q]
@@ -1358,31 +1423,31 @@ Assumption 7.3 package. -/
 def of_smoothFunctionAssumption73
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
     (hr : Measurable r) (h73 : SmoothFunctionAssumption73 r β R) :
-    SystemDeltaAssumption73Measurable r β R where
-  toSystemDeltaAssumption73 :=
-    SystemDeltaAssumption73.of_smoothFunctionAssumption73 h73
+    SystemDeltaMeasurableRemainderConditions r β R where
+  toSystemDeltaRemainderConditions :=
+    SystemDeltaRemainderConditions.of_smoothFunctionAssumption73 h73
   measurable := hr
 
-end SystemDeltaAssumption73Measurable
+end SystemDeltaMeasurableRemainderConditions
 
-namespace SystemDeltaAssumption73ContDiffAt
+namespace SystemDeltaContDiffAtConditions
 
 omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q]
   [Fintype m] [DecidableEq m] in
 /-- The literal `ContDiffAt` package supplies the measurable Chapter 11
 Assumption 7.3 surface. -/
-def toSystemDeltaAssumption73Measurable
+def toSystemDeltaMeasurableRemainderConditions
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h73 : SystemDeltaAssumption73ContDiffAt r β R) :
-    SystemDeltaAssumption73Measurable r β R where
-  toSystemDeltaAssumption73 :=
+    (h73 : SystemDeltaContDiffAtConditions r β R) :
+    SystemDeltaMeasurableRemainderConditions r β R where
+  toSystemDeltaRemainderConditions :=
     { derivative := h73.derivative
       differentiable_at := h73.differentiable_at
       derivative_apply := h73.derivative_apply
       fullRank := h73.fullRank }
   measurable := h73.measurable
 
-end SystemDeltaAssumption73ContDiffAt
+end SystemDeltaContDiffAtConditions
 
 omit [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q] in
 /-- Hansen Theorem 11.2 Taylor-remainder bridge.
@@ -1392,7 +1457,7 @@ If the coefficient estimator is consistent and its scaled coefficient error is
 after the same scaling. -/
 theorem systemDelta_scaled_taylor_remainder_tendstoInMeasure_of_consistency_bounded
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h73 : SystemDeltaAssumption73 r β R)
+    (h73 : SystemDeltaRemainderConditions r β R)
     (root : ℕ → ℝ) (βhat : ℕ → Ω → k → ℝ)
     (hβ : TendstoInMeasure μ βhat atTop (fun _ => β))
     (hTβ : BoundedInProbabilityNorm μ
@@ -1411,7 +1476,7 @@ theorem systemDelta_scaled_taylor_remainder_tendstoInMeasure_of_consistency_boun
   have hnear :
       ∀ᶠ b in 𝓝 β,
         ‖systemDeltaTaylorRemainder r β R b‖ ≤ η * ‖b - β‖ :=
-    (SystemDeltaAssumption73.taylorRemainder_isLittleO h73).def hηpos
+    (SystemDeltaRemainderConditions.taylorRemainder_isLittleO h73).def hηpos
   rcases Metric.mem_nhds_iff.1 hnear with ⟨ρ, hρpos, hρsub⟩
   have hβev := (hβ ρ hρpos).eventually_lt_const hδ2
   obtain ⟨N, hN⟩ := eventually_atTop.1 (hMev.and hβev)
@@ -1482,10 +1547,10 @@ structure SystemDeltaLinearization
 
 omit [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q] [Fintype m] [DecidableEq m] in
 /-- Constructor for the Chapter 11 nonlinear-delta interface from the scaled Taylor
-remainder associated with `SystemDeltaAssumption73`. -/
+remainder associated with `SystemDeltaRemainderConditions`. -/
 theorem systemDeltaLinearization_of_scaled_taylor_remainder
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (_h73 : SystemDeltaAssumption73 r β R)
+    (_h73 : SystemDeltaRemainderConditions r β R)
     (root : ℕ → ℝ) (βhat : ℕ → Ω → k → ℝ)
     (hscaled_meas : ∀ n,
       AEMeasurable (fun ω => root n • (r (βhat n ω) - r β)) μ)
@@ -1521,36 +1586,33 @@ theorem systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization
     TendstoInDistribution Tθ atTop (fun z : EuclideanSpace ℝ q => z.ofLp)
       (fun _ => μ) (multivariateGaussian 0 (systemDeltaVariance Vβ R)) := by
   let Tβe : ℕ → Ω → EuclideanSpace ℝ k := fun n ω => WithLp.toLp 2 (Tβ n ω)
+  let Tθe : ℕ → Ω → EuclideanSpace ℝ q := fun n ω => WithLp.toLp 2 (Tθ n ω)
   have hTβe :
       TendstoInDistribution Tβe atTop (fun z : EuclideanSpace ℝ k => z)
         (fun _ => μ) (multivariateGaussian 0 Vβ) := by
     have hmap := hTβ.continuous_comp (PiLp.continuous_toLp 2 (fun _ : k => ℝ))
     simpa [Tβe, Function.comp_def] using hmap
-  have hlinE :
-      TendstoInDistribution
-        (fun n => matrixContinuousLinearMap Rᵀ ∘ Tβe n)
-        atTop (matrixContinuousLinearMap Rᵀ ∘ fun z : EuclideanSpace ℝ k => z)
-        (fun _ => μ) (multivariateGaussian 0 Vβ) :=
-    hTβe.continuous_comp (matrixContinuousLinearMap Rᵀ).continuous
-  have hLaw : HasLaw (fun z : EuclideanSpace ℝ k => matrixContinuousLinearMap Rᵀ z)
-      (multivariateGaussian 0 (systemDeltaVariance Vβ R)) (multivariateGaussian 0 Vβ) := by
-    simpa [systemDeltaVariance, matrixContinuousLinearMap,
-      Matrix.conjTranspose_eq_transpose_of_trivial] using
-      hasLaw_multivariateGaussian_zero_linearMap (n := k) (q := q) hVβ Rᵀ
-  have htargetE :
-      TendstoInDistribution
-        (fun n ω => matrixContinuousLinearMap Rᵀ (Tβe n ω))
-        atTop (fun z : EuclideanSpace ℝ q => z)
-        (fun _ => μ) (multivariateGaussian 0 (systemDeltaVariance Vβ R)) := by
-    simpa [Function.comp_def] using
-      tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ q) hlinE hLaw
-  have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : q => ℝ))
-  exact tendstoInDistribution_of_tendstoInMeasure_sub
-    (X := fun n ω => Rᵀ *ᵥ Tβ n ω) (Y := Tθ)
-    (Z := fun z : EuclideanSpace ℝ q => z.ofLp)
-    (by
-      simpa [Tβe, Function.comp_def, matrixContinuousLinearMap_apply] using htarget)
-    hlinear.expansion hlinear.scaled_measurable
+  have hremMeas : ∀ n, AEStronglyMeasurable
+      ((Tθ - fun n ω => Rᵀ *ᵥ Tβ n ω) n) μ := by
+    intro n
+    have hlin : AEMeasurable (fun ω => Rᵀ *ᵥ Tβ n ω) μ :=
+      (Continuous.matrix_mulVec continuous_const continuous_id).measurable.comp_aemeasurable
+        (hTβ.forall_aemeasurable n)
+    exact ((hlinear.scaled_measurable n).sub hlin).aestronglyMeasurable
+  have hremMap := tendstoInMeasure_continuous_comp hremMeas hlinear.expansion
+    (PiLp.continuous_toLp 2 (fun _ : q => ℝ))
+  have hremE : TendstoInMeasure μ
+      (Tθe - fun n ω => matrixContinuousLinearMap Rᵀ (Tβe n ω))
+      atTop (fun _ => 0) := by
+    simpa [Tθe, Tβe, matrixContinuousLinearMap_apply] using hremMap
+  have hTθeMeas : ∀ n, AEMeasurable (Tθe n) μ := fun n =>
+    (PiLp.continuous_toLp 2 (fun _ : q => ℝ)).measurable.comp_aemeasurable
+      (hlinear.scaled_measurable n)
+  have hresult := smoothFunction_asymptoticNormality_gaussian
+    (S := Vβ) (R := Rᵀ) hVβ hTβe hremE hTθeMeas
+  have hraw := hresult.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : q => ℝ))
+  simpa [Tθe, Function.comp_def, systemDeltaVariance,
+    Matrix.conjTranspose_eq_transpose_of_trivial] using hraw
 
 /-- Hansen Theorem 11.2 from the Chapter 11 Gaussian-limit interface and a
 stable nonlinear-delta linearization. -/
@@ -1575,7 +1637,7 @@ theorem systemDelta_systemLeastSquaresBetaStarObs_tendstoInDistribution
     {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
     (h : SystemScoreCLTConditions μ X e Q Omega)
-    (h73 : SystemDeltaAssumption73 r β R)
+    (h73 : SystemDeltaRemainderConditions r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hmeasβ : ∀ t : ℕ, AEMeasurable
       (fun ω =>
@@ -1720,7 +1782,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- Measurability of the normalized system score mean under Assumption 7.2. -/
 theorem systemScoreMean_aestronglyMeasurable_of_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) (n : ℕ) :
+    (h : SystemRegressionMomentConditions μ X e) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω => systemScoreMean (fun i : Fin n => X i.val ω) (fun i : Fin n => e i.val ω))
       μ := by
@@ -1738,7 +1800,7 @@ measurability fields derived from Assumption 7.2. -/
 theorem systemLeastSquaresBetaStarObs_aestronglyMeasurable_of_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) (β : k → ℝ)
+    (h : SystemRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω =>
@@ -1900,7 +1962,7 @@ derived from Assumption 7.2 instead of left as a theorem premise. -/
 theorem systemLeastSquaresBetaStarObs_scaled_aemeasurable_of_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) (β : k → ℝ)
+    (h : SystemRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) (n : ℕ) :
     AEMeasurable
       (fun ω =>
@@ -1917,7 +1979,7 @@ Star/OrZero bridge. -/
 theorem systemLeastSquaresBetaOrZeroObs_scaled_aemeasurable_of_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) (β : k → ℝ)
+    (h : SystemRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) (n : ℕ) :
     AEMeasurable
       (fun ω =>
@@ -1936,7 +1998,7 @@ theorem systemDelta_systemLeastSquaresBetaStarObs_scaled_aemeasurable_of_assumpt
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ}
-    (h : SystemAssumption72 μ X e) (hr : Measurable r)
+    (h : SystemRegressionMomentConditions μ X e) (hr : Measurable r)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) (n : ℕ) :
     AEMeasurable
       (fun ω =>
@@ -1959,7 +2021,7 @@ theorem systemDelta_systemLeastSquaresBetaOrZeroObs_scaled_aemeasurable_of_assum
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ}
-    (h : SystemAssumption72 μ X e) (hr : Measurable r)
+    (h : SystemRegressionMomentConditions μ X e) (hr : Measurable r)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) (n : ℕ) :
     AEMeasurable
       (fun ω =>
@@ -1971,14 +2033,14 @@ theorem systemDelta_systemLeastSquaresBetaOrZeroObs_scaled_aemeasurable_of_assum
   ext ω
   rw [systemLeastSquaresBetaOrZeroObs_eq_star]
 
-namespace SystemAssumption72
+namespace SystemRegressionMomentConditions
 
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- A Chapter 11 Assumption 7.2 package supplies the lower-level
 `SystemScoreCLTConditions` consumed by the existing system-LS proof engine. -/
 theorem toSystemScoreCLTConditions
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) :
+    (h : SystemRegressionMomentConditions μ X e) :
     SystemScoreCLTConditions μ X e
       (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e) where
   gram_meas :=
@@ -2042,7 +2104,7 @@ omit [DecidableEq m] in
 middle integrable because `Xᵢ'eᵢeᵢ'Xᵢ` is the score outer product. -/
 theorem robustMiddleTerm_integrable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) :
+    (h : SystemRegressionMomentConditions μ X e) :
     Integrable (fun ω => systemRobustMiddleTerm (X 0 ω) (e 0 ω)) μ := by
   classical
   have houter :
@@ -2063,7 +2125,7 @@ omit [DecidableEq m] in
 true-error robust middle sequence. -/
 theorem robustMiddleTerm_independent
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) :
+    (h : SystemRegressionMomentConditions μ X e) :
     Pairwise ((· ⟂ᵢ[μ] ·) on
       (fun i ω => systemRobustMiddleTerm (X i ω) (e i ω))) := by
   classical
@@ -2082,7 +2144,7 @@ omit [DecidableEq m] in
 distribution of the true-error robust middle sequence. -/
 theorem robustMiddleTerm_identDistrib
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) (i : ℕ) :
+    (h : SystemRegressionMomentConditions μ X e) (i : ℕ) :
     IdentDistrib (fun ω => systemRobustMiddleTerm (X i ω) (e i ω))
       (fun ω => systemRobustMiddleTerm (X 0 ω) (e 0 ω)) μ μ := by
   classical
@@ -2094,7 +2156,7 @@ omit [DecidableEq m] in
 Theorem 11.3. The remaining robust feasible step is only residual substitution. -/
 theorem robustMiddle_ideal_tendstoInMeasure
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) :
+    (h : SystemRegressionMomentConditions μ X e) :
     TendstoInMeasure μ
       (fun n ω =>
         systemRobustMiddle (fun i : Fin n => X i.val ω) (fun i : Fin n => e i.val ω))
@@ -2127,11 +2189,11 @@ theorem robustMiddle_ideal_tendstoInMeasure
 
 omit [DecidableEq m] in
 /-- Measurability of the true-error robust middle follows from the
-`SystemAssumption72` score-outer integrability and identical-distribution
+`SystemRegressionMomentConditions` score-outer integrability and identical-distribution
 projections. -/
 theorem robustMiddle_ideal_aestronglyMeasurable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
-    (h : SystemAssumption72 μ X e) (n : ℕ) :
+    (h : SystemRegressionMomentConditions μ X e) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω =>
         systemRobustMiddle (fun i : Fin n => X i.val ω) (fun i : Fin n => e i.val ω)) μ :=
@@ -2142,11 +2204,11 @@ by
   exact ((robustMiddleTerm_identDistrib (μ := μ) h i.val).integrable_iff.mpr
     (robustMiddleTerm_integrable (μ := μ) h)).aestronglyMeasurable
 
-end SystemAssumption72
+end SystemRegressionMomentConditions
 
 /-- The theorem-facing residual/covariance inputs for Hansen Theorem 11.3.
 
-`SystemAssumption72` supplies the system Gram WLLN and nonsingularity.  The two
+`SystemRegressionMomentConditions` supplies the system Gram WLLN and nonsingularity.  The two
 remaining fields are exactly the feasible-residual middle convergence premises
 needed for the displayed robust and homoskedastic covariance estimators.  They
 are kept explicit here so the public theorem does not pretend to derive the
@@ -2155,7 +2217,7 @@ structure SystemCovarianceTheorem113Conditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → Matrix m k ℝ) (e : ℕ → Ω → m → ℝ)
     (Y : ℕ → Ω → m → ℝ) (Omega0 : Matrix k k ℝ) : Prop where
-  assumption72 : SystemAssumption72 μ X e
+  assumption72 : SystemRegressionMomentConditions μ X e
   robust_middle_measurable : ∀ n,
     AEStronglyMeasurable
       (fun ω =>
@@ -2189,7 +2251,7 @@ linearization. -/
 theorem systemLeastSquaresBetaStarObs_tendstoInDistribution_of_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h72 : SystemAssumption72 μ X e) (β : k → ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hmeas : ∀ t : ℕ, AEMeasurable
       (fun ω =>
@@ -2218,7 +2280,7 @@ Star proof engine without duplicating the CLT argument. -/
 theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h72 : SystemAssumption72 μ X e) (β : k → ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hmeas : ∀ t : ℕ, AEMeasurable
       (fun ω =>
@@ -2244,11 +2306,11 @@ theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_assumption72
 
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- Hansen Theorem 11.1 with the scaled-estimator measurability discharged
-from `SystemAssumption72`. -/
+from `SystemRegressionMomentConditions`. -/
 theorem systemLeastSquaresBetaStarObs_tendstoInDistribution_of_assumption72_auto_measurable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h72 : SystemAssumption72 μ X e) (β : k → ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
@@ -2267,11 +2329,11 @@ theorem systemLeastSquaresBetaStarObs_tendstoInDistribution_of_assumption72_auto
 
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- Textbook-facing OrZero Hansen Theorem 11.1 with estimator measurability
-derived from `SystemAssumption72`. -/
+derived from `SystemRegressionMomentConditions`. -/
 theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_assumption72_auto_measurable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h72 : SystemAssumption72 μ X e) (β : k → ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
@@ -2293,7 +2355,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_primitive_row_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e) (β : k → ℝ)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
@@ -2306,7 +2368,7 @@ theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_primitive_row_a
           (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e))) :=
   systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_assumption72_auto_measurable
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72.toSystemAssumption72 β hmodel
+    h72.toSystemRegressionMomentConditions β hmodel
 
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- **Hansen Theorem 11.1** from literal observed-row Assumption 7.2.
@@ -2316,7 +2378,7 @@ inputs are derived from observed `(Xᵢ,Yᵢ)` iid rows, Hansen's fourth moments
 orthogonality, and positive definiteness of `Q`. -/
 theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_observed_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h72 : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
         Real.sqrt (t : ℝ) •
@@ -2328,7 +2390,40 @@ theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_observed_assump
           (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e))) :=
   systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_primitive_row_assumption72
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72.toSystemAssumption72PrimitiveRow β h72.model
+    h72.toSystemPrimitiveRowRegressionMomentConditions β h72.model
+
+omit [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q] in
+/-- **Hansen Theorem 11.1** with the displayed equation-specific block design.
+
+This thin wrapper permits equation-specific regressor dimensions, identifies
+`Q = E[Xᵢ'Xᵢ]` with the block-diagonal matrix whose `j`th block is
+`E[X_{ji}X_{ji}']`, and reuses the observed-row system CLT above. -/
+theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_equation_blocks
+    {κ : m → Type*} [(j : m) → Fintype (κ j)]
+    [(j : m) → DecidableEq (κ j)]
+    {x : ℕ → Ω → (j : m) → κ j → ℝ}
+    {e Y : ℕ → Ω → m → ℝ} {β : Sigma κ → ℝ}
+    (h72 : SystemObservedResponseFourthMomentConditions μ
+      (fun i ω => systemEquationBlockDesign (x i ω)) e Y β) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaOrZeroObs
+            (fun i : Fin t => systemEquationBlockDesign (x i.val ω))
+            (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sigma κ) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (systemAsymptoticVariance
+          (systemEquationBlockPopulationGram μ x)
+          (systemPopulationScoreCovariance μ
+            (fun i ω => systemEquationBlockDesign (x i ω)) e))) := by
+  have hlimit :=
+    systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_observed_assumption72
+      (μ := μ) (X := fun i ω => systemEquationBlockDesign (x i ω))
+      (e := e) (Y := Y) (β := β) h72
+  rw [systemPopulationGram_equationBlockDesign_eq
+    (μ := μ) x h72.gram_integrable] at hlimit
+  exact hlimit
 
 omit [DecidableEq m] in
 /-- Hansen Theorem 11.2 from the Chapter 11 observation-level Assumption 7.2
@@ -2337,8 +2432,8 @@ theorem systemDelta_systemLeastSquaresBetaStarObs_tendstoInDistribution_of_assum
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72 μ X e)
-    (h73 : SystemDeltaAssumption73 r β R)
+    (h72 : SystemRegressionMomentConditions μ X e)
+    (h73 : SystemDeltaRemainderConditions r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hmeasβ : ∀ t : ℕ, AEMeasurable
       (fun ω =>
@@ -2373,8 +2468,8 @@ theorem systemDelta_systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_ass
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72 μ X e)
-    (h73 : SystemDeltaAssumption73 r β R)
+    (h72 : SystemRegressionMomentConditions μ X e)
+    (h73 : SystemDeltaRemainderConditions r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hmeasβ : ∀ t : ℕ, AEMeasurable
       (fun ω =>
@@ -2410,14 +2505,14 @@ theorem systemDelta_systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_ass
 
 omit [DecidableEq m] in
 /-- Hansen Theorem 11.2 with both scaled coefficient and transformed-target
-measurability discharged from `SystemAssumption72` and a measurable
+measurability discharged from `SystemRegressionMomentConditions` and a measurable
 Assumption 7.3 package. -/
 theorem systemDelta_betaStarObs_tendstoInDistribution_of_assumptions72_73_measurable
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72 μ X e)
-    (h73 : SystemDeltaAssumption73Measurable r β R)
+    (h72 : SystemRegressionMomentConditions μ X e)
+    (h73 : SystemDeltaMeasurableRemainderConditions r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
@@ -2431,7 +2526,7 @@ theorem systemDelta_betaStarObs_tendstoInDistribution_of_assumptions72_73_measur
             (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
   systemDelta_systemLeastSquaresBetaStarObs_tendstoInDistribution_of_assumptions72_73
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72 h73.toSystemDeltaAssumption73 hmodel
+    h72 h73.toSystemDeltaRemainderConditions hmodel
     (fun t =>
       systemLeastSquaresBetaStarObs_scaled_aemeasurable_of_assumption72
         (μ := μ) (X := X) (e := e) (Y := Y) h72 β hmodel t)
@@ -2447,8 +2542,8 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_assumptions72_73_meas
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72 μ X e)
-    (h73 : SystemDeltaAssumption73Measurable r β R)
+    (h72 : SystemRegressionMomentConditions μ X e)
+    (h73 : SystemDeltaMeasurableRemainderConditions r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
@@ -2472,8 +2567,8 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
-    (h73 : SystemDeltaAssumption73Measurable r β R)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
+    (h73 : SystemDeltaMeasurableRemainderConditions r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
@@ -2487,7 +2582,7 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
             (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
   systemDelta_betaOrZeroObs_tendstoInDistribution_of_assumptions72_73_measurable
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72.toSystemAssumption72 h73 hmodel
+    h72.toSystemRegressionMomentConditions h73 hmodel
 
 omit [DecidableEq m] in
 /-- **Hansen Theorem 11.2** from literal observed-row Assumption 7.2 and the
@@ -2495,8 +2590,8 @@ measurable Assumption 7.3 smooth-function package. -/
 theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions72_73
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
-    (h73 : SystemDeltaAssumption73Measurable r β R) :
+    (h72 : SystemObservedResponseFourthMomentConditions μ X e Y β)
+    (h73 : SystemDeltaMeasurableRemainderConditions r β R) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
         Real.sqrt (t : ℝ) •
@@ -2509,7 +2604,7 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions7
             (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
   systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumptions72_73
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72.toSystemAssumption72PrimitiveRow h73 h72.model
+    h72.toSystemPrimitiveRowRegressionMomentConditions h73 h72.model
 
 set_option linter.style.longLine false in
 omit [DecidableEq m] in
@@ -2520,7 +2615,7 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
     (hr : Measurable r)
     (h73 : SmoothFunctionAssumption73 r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
@@ -2536,7 +2631,7 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
             (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
   systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumptions72_73
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72 (SystemDeltaAssumption73Measurable.of_smoothFunctionAssumption73 hr h73)
+    h72 (SystemDeltaMeasurableRemainderConditions.of_smoothFunctionAssumption73 hr h73)
     hmodel
 
 omit [DecidableEq m] in
@@ -2549,8 +2644,8 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
     {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
     {Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
-    (h73 : SystemDeltaAssumption73ContDiffAt r β R)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
+    (h73 : SystemDeltaContDiffAtConditions r β R)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
@@ -2564,7 +2659,7 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
             (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
   systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumptions72_73
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72 h73.toSystemDeltaAssumption73Measurable hmodel
+    h72 h73.toSystemDeltaMeasurableRemainderConditions hmodel
 
 omit [DecidableEq m] in
 /-- **Hansen Theorem 11.2** from literal observed-row Assumption 7.2 and the
@@ -2572,8 +2667,8 @@ literal `ContDiffAt` Assumption 7.3 surface. -/
 theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions72_contDiffAt
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h72 : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
-    (h73 : SystemDeltaAssumption73ContDiffAt r β R) :
+    (h72 : SystemObservedResponseFourthMomentConditions μ X e Y β)
+    (h73 : SystemDeltaContDiffAtConditions r β R) :
     TendstoInDistribution
       (fun (t : ℕ) ω =>
         Real.sqrt (t : ℝ) •
@@ -2586,7 +2681,7 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions7
             (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
   systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumptions72_contDiffAt
     (μ := μ) (X := X) (e := e) (Y := Y)
-    h72.toSystemAssumption72PrimitiveRow h73 h72.model
+    h72.toSystemPrimitiveRowRegressionMomentConditions h73 h72.model
 
 omit [DecidableEq k] [DecidableEq m] in
 /-- **Ideal robust system-middle WLLN for Hansen Chapter 11.**
@@ -4462,14 +4557,14 @@ omit [DecidableEq m] in
 /-- Constructor for Hansen Theorem 11.3 from residual and covariance
 perturbation bounds.
 
-`SystemAssumption72` supplies the Gram WLLN and the true-error robust middle
+`SystemRegressionMomentConditions` supplies the Gram WLLN and the true-error robust middle
 WLLN. The remaining robust input is the feasible-residual substitution
 `Ω̂(ê)-Ω̂(e)=oₚ(1)`. The homoskedastic input is split into a fixed-covariance
 WLLN plus consistency of `Σ̂`, with bounded empirical design weights handling
 the covariance substitution. -/
 theorem of_substitution_and_covariance_bounded_weights
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
-    (h72 : SystemAssumption72 μ X e) (Sigma : Matrix m m ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (Sigma : Matrix m m ℝ)
     (hrobust_meas : ∀ n,
       AEStronglyMeasurable
         (fun ω =>
@@ -4513,7 +4608,7 @@ theorem of_substitution_and_covariance_bounded_weights
   robust_middle_consistent :=
     TendstoInMeasure.of_sub_tendsto_zero_matrix
       hrobust_sub
-      (SystemAssumption72.robustMiddle_ideal_tendstoInMeasure h72)
+      (SystemRegressionMomentConditions.robustMiddle_ideal_tendstoInMeasure h72)
   homoskedastic_middle_measurable := hhomoskedastic_meas
   homoskedastic_middle_consistent :=
     systemHomoskedasticMiddle_feasible_tendstoInMeasure_of_covariance_bounded_weights
@@ -4531,7 +4626,7 @@ omit [DecidableEq m] in
 homoskedastic design-weight boundedness is derived from scalar WLLN premises. -/
 theorem of_substitution_and_covariance_weight_wlln
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
-    (h72 : SystemAssumption72 μ X e) (Sigma : Matrix m m ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (Sigma : Matrix m m ℝ)
     (hrobust_meas : ∀ n,
       AEStronglyMeasurable
         (fun ω =>
@@ -4589,13 +4684,13 @@ omit [DecidableEq m] in
 consistency, and scalar residual-perturbation WLLNs.
 
 This is the theorem-facing route that derives both displayed middle
-consistencies. `SystemAssumption72` supplies the ideal robust WLLN and the
+consistencies. `SystemRegressionMomentConditions` supplies the ideal robust WLLN and the
 coefficient consistency used in the feasible-residual perturbation. The
 cross/quadratic scalar WLLNs control the robust residual substitution, while
 `Σ̂ ->p Σ` plus scalar design-weight WLLNs control the homoskedastic middle. -/
 theorem of_beta_weight_wlln_and_covariance_weight_wlln
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72 μ X e) (Sigma : Matrix m m ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (Sigma : Matrix m m ℝ)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hbeta_meas : ∀ t : ℕ, AEMeasurable
       (fun ω =>
@@ -4681,7 +4776,7 @@ fields and consistency of the feasible residual covariance; the finite-sample
 residual algebra is discharged by the scalar expansion theorem above. -/
 theorem of_beta_weight_wlln_and_covariance_joint_iid
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72 μ X e) (Sigma : Matrix m m ℝ)
+    (h72 : SystemRegressionMomentConditions μ X e) (Sigma : Matrix m m ℝ)
     (hjoint : iIndepFun (fun i ω => (X i ω, e i ω)) μ)
     (hident : ∀ i,
       IdentDistrib (fun ω => (X i ω, e i ω))
@@ -4794,7 +4889,7 @@ consistency is assembled internally from the true-error outer-product WLLN plus
 the residual-covariance cross/quadratic WLLNs. -/
 theorem of_beta_weight_wlln_and_true_error_covariance_weight_wlln
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72 μ X e)
+    (h72 : SystemRegressionMomentConditions μ X e)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hbeta_meas : ∀ t : ℕ, AEMeasurable
       (fun ω =>
@@ -4934,7 +5029,7 @@ remain explicit here because they encode the exact mixed moments consumed by
 the scalar WLLNs. -/
 theorem of_beta_weight_wlln_and_true_error_covariance_joint_iid
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72 μ X e)
+    (h72 : SystemRegressionMomentConditions μ X e)
     (hjoint : iIndepFun (fun i ω => (X i ω, e i ω)) μ)
     (hident : ∀ i,
       IdentDistrib (fun ω => (X i ω, e i ω))
@@ -5096,7 +5191,7 @@ are the exact higher mixed moments Hansen's feasible robust covariance proof
 uses. -/
 theorem of_beta_weight_wlln_and_true_error_covariance_joint_iid_design_memLp
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72 μ X e)
+    (h72 : SystemRegressionMomentConditions μ X e)
     (hjoint : iIndepFun (fun i ω => (X i ω, e i ω)) μ)
     (hident : ∀ i,
       IdentDistrib (fun ω => (X i ω, e i ω))
@@ -5150,14 +5245,14 @@ theorem of_beta_weight_wlln_and_true_error_covariance_joint_iid_design_memLp
 omit [DecidableEq m] in
 /-- Primitive row-iid Theorem 11.3 constructor with finite design second moment.
 
-The split `SystemAssumption72`, scaled-estimator measurability, and all iid
-composition fields are derived from `SystemAssumption72PrimitiveRow`. The
+The split `SystemRegressionMomentConditions`, scaled-estimator measurability, and all iid
+composition fields are derived from `SystemPrimitiveRowRegressionMomentConditions`. The
 remaining explicit assumptions are the higher mixed moments that are not yet
 encoded in the current primitive-row Assumption 7.2 facade and the
 measurability of the two displayed feasible middle surfaces. -/
 theorem of_primitive_row_true_error_covariance_joint_iid_design_memLp
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hrobust_meas : ∀ n,
       AEStronglyMeasurable
@@ -5186,11 +5281,11 @@ theorem of_primitive_row_true_error_covariance_joint_iid_design_memLp
         (μ[fun ω => Matrix.vecMulVec (e 0 ω) (e 0 ω)])]) :=
   of_beta_weight_wlln_and_true_error_covariance_joint_iid_design_memLp
     (μ := μ) (X := X) (e := e) (Y := Y) (β := β)
-    h72.toSystemAssumption72 h72.row_iIndep h72.row_identDistrib hmodel
+    h72.toSystemRegressionMomentConditions h72.row_iIndep h72.row_identDistrib hmodel
     (fun t =>
       systemLeastSquaresBetaStarObs_scaled_aemeasurable_of_assumption72
         (μ := μ) (X := X) (e := e) (Y := Y)
-        h72.toSystemAssumption72 β hmodel t)
+        h72.toSystemRegressionMomentConditions β hmodel t)
     hrobust_meas hX_memLp hRobustCross_int hRobustQuadratic_int
     hErrorOuter_int hSigmaCross_int hhomoskedastic_meas
 
@@ -5199,7 +5294,7 @@ omit [DecidableEq m] in
 second moment from Assumption 7.2's Gram integrability. -/
 theorem of_primitive_row_true_error_covariance_joint_iid_gram
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hrobust_meas : ∀ n,
       AEStronglyMeasurable
@@ -5241,7 +5336,7 @@ covariance fields are the error outer-product and the simpler residual
 cross-weight moments. -/
 theorem of_primitive_row_true_error_covariance_joint_iid_compact_moments
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hrobust_meas : ∀ n,
       AEStronglyMeasurable
@@ -5283,7 +5378,7 @@ omit [DecidableEq m] in
 the design `L²` moment and error measurability from the primitive row package. -/
 theorem of_primitive_row_true_error_covariance_joint_iid_compact_moments_of_gram
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hrobust_meas : ∀ n,
       AEStronglyMeasurable
@@ -5321,7 +5416,7 @@ fields; `E‖e₀‖²`, `E‖e₀‖‖X₀‖³`, and `E‖X₀‖⁴` supply 
 perturbation moments. -/
 theorem of_primitive_row_true_error_covariance_joint_iid_compact_norm_moments_of_gram
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
-    (h72 : SystemAssumption72PrimitiveRow μ X e)
+    (h72 : SystemPrimitiveRowRegressionMomentConditions μ X e)
     (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
     (hrobust_meas : ∀ n,
       AEStronglyMeasurable
@@ -5366,7 +5461,7 @@ structure SystemCovarianceTheorem113CompactPrimitiveRowConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → Matrix m k ℝ) (e Y : ℕ → Ω → m → ℝ)
     (β : k → ℝ) : Prop
-    extends SystemAssumption72PrimitiveRow μ X e where
+    extends SystemPrimitiveRowRegressionMomentConditions μ X e where
   /-- System linear model, observation by observation and equation by equation. -/
   model : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j
   /-- Compact finite second moment for the system error vector. -/
@@ -5406,7 +5501,7 @@ theorem toSystemCovarianceTheorem113Conditions
   open SystemCovarianceTheorem113Conditions in
   of_primitive_row_true_error_covariance_joint_iid_compact_norm_moments_of_gram
       (μ := μ) (X := X) (e := e) (Y := Y) (β := β)
-      h.toSystemAssumption72PrimitiveRow h.model
+      h.toSystemPrimitiveRowRegressionMomentConditions h.model
       h.robust_middle_measurable
       h.error_norm_sq_integrable
       h.error_design_norm_cubed_integrable
@@ -5712,7 +5807,7 @@ omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- **Hansen Theorem 11.3**, displayed system covariance estimators.
 
 This is the theorem-facing endpoint for the actual Star residual covariance
-surfaces.  `SystemAssumption72` supplies the system Gram WLLN and nonsingularity;
+surfaces.  `SystemRegressionMomentConditions` supplies the system Gram WLLN and nonsingularity;
 the robust and homoskedastic residual/covariance middle consistency premises
 are carried explicitly by `SystemCovarianceTheorem113Conditions`. -/
 theorem systemCovariances_theorem11_3_of_middle_consistency
@@ -5802,7 +5897,7 @@ middle matrices is derived from the observed rows and the Star estimator. -/
 theorem systemCovariances_theorem11_3_of_observed_assumption72
     {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
     {β : k → ℝ}
-    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    (h : SystemObservedResponseFourthMomentConditions μ X e Y β) :
     TendstoInMeasure μ
       (fun n ω =>
         systemRobustCovarianceStarObs
@@ -5823,7 +5918,8 @@ theorem systemCovariances_theorem11_3_of_observed_assumption72
   apply systemCovariances_theorem11_3_of_primitive_row_compact_assumption72
     (μ := μ) (X := X) (e := e) (Y := Y) (β := β)
   exact
-    { toSystemAssumption72PrimitiveRow := h.toSystemAssumption72PrimitiveRow
+    { toSystemPrimitiveRowRegressionMomentConditions :=
+        h.toSystemPrimitiveRowRegressionMomentConditions
       model := h.model
       error_norm_sq_integrable := h.error_norm_sq_integrable
       error_design_norm_cubed_integrable := h.error_design_norm_cubed_integrable

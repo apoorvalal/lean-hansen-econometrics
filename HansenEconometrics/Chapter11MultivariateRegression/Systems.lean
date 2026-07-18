@@ -43,6 +43,53 @@ noncomputable def systemStackRegressors
     (X : n → Matrix m k ℝ) : Matrix (n × m) k ℝ :=
   fun im a => X im.1 im.2 a
 
+omit [Fintype n] [Fintype k] [Fintype q] [Fintype m] [DecidableEq n]
+  [DecidableEq k] [DecidableEq q] in
+/-- Embed equation-specific regressors in Hansen's sparse observation-level
+system design. Columns are dependently indexed by the equation and that
+equation's own coefficient coordinates, so different equations may have
+different regressor dimensions. -/
+def systemEquationBlockDesign
+    {κ : m → Type*} (x : (j : m) → κ j → ℝ) : Matrix m (Sigma κ) ℝ :=
+  fun j la => if h : la.1 = j then x j (h ▸ la.2) else 0
+
+omit [Fintype n] [Fintype k] [Fintype q] [Fintype m] [DecidableEq n]
+  [DecidableEq k] [DecidableEq q] in
+@[simp]
+theorem systemEquationBlockDesign_same
+    {κ : m → Type*} (x : (j : m) → κ j → ℝ) (j : m) (a : κ j) :
+    systemEquationBlockDesign x j ⟨j, a⟩ = x j a := by
+  simp [systemEquationBlockDesign]
+
+omit [Fintype n] [Fintype k] [Fintype q] [Fintype m] [DecidableEq n]
+  [DecidableEq k] [DecidableEq q] in
+@[simp]
+theorem systemEquationBlockDesign_ne
+    {κ : m → Type*} (x : (j : m) → κ j → ℝ)
+    {j l : m} (hjl : l ≠ j) (a : κ l) :
+    systemEquationBlockDesign x j ⟨l, a⟩ = 0 := by
+  simp [systemEquationBlockDesign, hjl]
+
+omit [Fintype n] [Fintype k] [Fintype q] [DecidableEq n]
+  [DecidableEq k] [DecidableEq q] in
+@[simp]
+theorem systemEquationBlockDesign_gram_same
+    {κ : m → Type*} (x : (j : m) → κ j → ℝ)
+    (j : m) (a b : κ j) :
+    ((systemEquationBlockDesign x)ᵀ * systemEquationBlockDesign x)
+        ⟨j, a⟩ ⟨j, b⟩ = x j a * x j b := by
+  simp [Matrix.mul_apply, systemEquationBlockDesign]
+
+omit [Fintype n] [Fintype k] [Fintype q] [DecidableEq n]
+  [DecidableEq k] [DecidableEq q] in
+@[simp]
+theorem systemEquationBlockDesign_gram_ne
+    {κ : m → Type*} (x : (j : m) → κ j → ℝ)
+    {j l : m} (hjl : j ≠ l) (a : κ j) (b : κ l) :
+    ((systemEquationBlockDesign x)ᵀ * systemEquationBlockDesign x)
+        ⟨j, a⟩ ⟨l, b⟩ = 0 := by
+  simp [Matrix.mul_apply, systemEquationBlockDesign, hjl]
+
 omit [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q] in
 /-- Stack observation-level system outcomes into scalar rows indexed by
 observation and equation. -/

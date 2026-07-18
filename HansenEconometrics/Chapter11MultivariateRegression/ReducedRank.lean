@@ -115,6 +115,7 @@ theorem generalizedEigenvectorColumns_crossGram_eq_mul_diagonal
     _ = (Gᵀ * B * G) * Matrix.diagonal lambda := by
       simp [Matrix.mul_assoc]
 
+omit [Fintype r] [DecidableEq r] in
 /-- Generalized eigenvector blocks for disjoint roots of the same symmetric
 pencil are orthogonal for the denominator bilinear form.
 
@@ -123,7 +124,7 @@ This is the block form of the standard identity
 symmetry of both pencil matrices and separation of the two displayed root
 families are sufficient. -/
 theorem generalizedEigenvectorColumns_crossGram_eq_zero_of_disjoint_roots
-    [Fintype s] [DecidableEq s]
+    [Finite r] [Finite s]
     (A B : Matrix k k ℝ)
     (lambda : r → ℝ) (G : Matrix k r ℝ)
     (mu : s → ℝ) (H : Matrix k s ℝ)
@@ -132,6 +133,9 @@ theorem generalizedEigenvectorColumns_crossGram_eq_zero_of_disjoint_roots
     (hH : generalizedEigenvectorColumns A B mu H)
     (hDisjoint : ∀ i j, lambda i ≠ mu j) :
     Gᵀ * B * H = 0 := by
+  letI := Fintype.ofFinite r
+  letI := Fintype.ofFinite s
+  classical
   have hGMat : A * G = B * G * Matrix.diagonal lambda :=
     generalizedEigenvectorColumns_mul_eq_mul_diagonal A B lambda G hG
   have hHMat : A * H = B * H * Matrix.diagonal mu :=
@@ -1482,6 +1486,7 @@ theorem generalizedEigenDetProductLowerBound_identity_of_square_orthonormal_eige
     _ = (Hᵀ * A * H).det := (det_orthonormal_conj_eq_det A H hHNorm').symm
     _ ≤ (Hᵀ * A * H).det := le_rfl
 
+omit [DecidableEq r] in
 /-- Ordinary full-basis identity-denominator determinant/product upper bound,
 with the selected full basis indexed by any type equivalent to the ambient
 index type.
@@ -1492,11 +1497,13 @@ but it reindexes the selected columns before applying the square theorem. It is
 useful for theorem surfaces that keep Hansen's selected-root index type separate
 from the matrix row/column type. -/
 theorem generalizedEigenDetProductUpperBound_identity_of_equiv_orthonormal_eigenbasis
-    [DecidableEq k] [DecidableEq r] (e : k ≃ r)
+    [DecidableEq k] (e : k ≃ r)
     (A : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambda G)
-    (hNorm : Gᵀ * G = 1) :
-    generalizedEigenDetProductUpperBound A (1 : Matrix k k ℝ) lambda := by
+    (hNorm : letI := Classical.decEq r; Gᵀ * G = 1) :
+    (letI := Classical.decEq r
+     generalizedEigenDetProductUpperBound A (1 : Matrix k k ℝ) lambda) := by
+  classical
   let lambdaSq : k → ℝ := fun i => lambda (e i)
   let Gsq : Matrix k k ℝ := G.submatrix id e
   have hSq : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambdaSq Gsq := by
@@ -1523,15 +1530,18 @@ theorem generalizedEigenDetProductUpperBound_identity_of_equiv_orthonormal_eigen
     _ = ∏ j : r, lambda j := by
       simpa [lambdaSq] using Equiv.prod_comp e lambda
 
+omit [DecidableEq r] in
 /-- Ordinary full-basis identity-denominator determinant/product lower bound,
 with the selected full basis indexed by any type equivalent to the ambient
 index type. -/
 theorem generalizedEigenDetProductLowerBound_identity_of_equiv_orthonormal_eigenbasis
-    [DecidableEq k] [DecidableEq r] (e : k ≃ r)
+    [DecidableEq k] (e : k ≃ r)
     (A : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambda G)
-    (hNorm : Gᵀ * G = 1) :
-    generalizedEigenDetProductLowerBound A (1 : Matrix k k ℝ) lambda := by
+    (hNorm : letI := Classical.decEq r; Gᵀ * G = 1) :
+    (letI := Classical.decEq r
+     generalizedEigenDetProductLowerBound A (1 : Matrix k k ℝ) lambda) := by
+  classical
   let lambdaSq : k → ℝ := fun i => lambda (e i)
   let Gsq : Matrix k k ℝ := G.submatrix id e
   have hSq : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambdaSq Gsq := by
@@ -1559,6 +1569,7 @@ theorem generalizedEigenDetProductLowerBound_identity_of_equiv_orthonormal_eigen
       hBound (H.submatrix id e) hHSqNorm'
     _ = (Hᵀ * A * H).det := det_columnReindex_compression_eq e A H
 
+omit [DecidableEq r] in
 /-- Ordinary full-basis identity-denominator selected compressed-determinant
 maximum.
 
@@ -1567,11 +1578,13 @@ This is the determinant-extrema form of
 when the selected orthonormal eigenvectors span the ambient whitened space, the
 selected compressed determinant is maximal over all orthonormal competitors. -/
 theorem generalizedEigenSelectedCompressedDetMaximal_identity_of_equiv_orthonormal_eigenbasis
-    [DecidableEq k] [DecidableEq r] (e : k ≃ r)
+    [DecidableEq k] (e : k ≃ r)
     (A : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambda G)
-    (hNorm : Gᵀ * G = 1) :
-    generalizedEigenSelectedCompressedDetMaximal A (1 : Matrix k k ℝ) G := by
+    (hNorm : letI := Classical.decEq r; Gᵀ * G = 1) :
+    (letI := Classical.decEq r
+     generalizedEigenSelectedCompressedDetMaximal A (1 : Matrix k k ℝ) G) := by
+  classical
   have hNorm' : generalizedEigenvectorBNormalized (1 : Matrix k k ℝ) G := by
     simpa [generalizedEigenvectorBNormalized, Matrix.mul_assoc] using hNorm
   have hBound :=
@@ -1584,6 +1597,7 @@ theorem generalizedEigenSelectedCompressedDetMaximal_identity_of_equiv_orthonorm
       exact (generalizedEigenvectorColumns_compressed_det_eq_prod_of_normalized
         A (1 : Matrix k k ℝ) lambda G h hNorm').symm
 
+omit [DecidableEq r] in
 /-- Ordinary full-basis identity-denominator selected compressed-determinant
 minimum.
 
@@ -1592,11 +1606,13 @@ This is the determinant-extrema counterpart of
 it is useful for the trailing/full-basis side of whitened reduced-rank
 pencils. -/
 theorem generalizedEigenSelectedCompressedDetMinimal_identity_of_equiv_orthonormal_eigenbasis
-    [DecidableEq k] [DecidableEq r] (e : k ≃ r)
+    [DecidableEq k] (e : k ≃ r)
     (A : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambda G)
-    (hNorm : Gᵀ * G = 1) :
-    generalizedEigenSelectedCompressedDetMinimal A (1 : Matrix k k ℝ) G := by
+    (hNorm : letI := Classical.decEq r; Gᵀ * G = 1) :
+    (letI := Classical.decEq r
+     generalizedEigenSelectedCompressedDetMinimal A (1 : Matrix k k ℝ) G) := by
+  classical
   have hNorm' : generalizedEigenvectorBNormalized (1 : Matrix k k ℝ) G := by
     simpa [generalizedEigenvectorBNormalized, Matrix.mul_assoc] using hNorm
   have hBound :=
@@ -3144,6 +3160,7 @@ theorem
       (Ytilde * (Ytildeᵀ * Ytilde)⁻¹ * Ytildeᵀ) lambda G0
       hG0 hG0Norm hG0Max)
 
+omit [DecidableEq r] in
 /-- Hansen G-side determinant/product bound from the canonical whitening when
 the selected ordinary eigenvectors form a full orthonormal basis of the
 whitened ambient space.
@@ -3153,13 +3170,15 @@ the partial leading-eigenspace theorem needed for the general `r < n` Hansen
 case, but it removes all remaining determinant-extrema premises in the
 full-basis case. -/
 theorem reducedRankGDetVariationalBound_of_canonical_whitened_equiv_orthonormal_eigenbasis
-    [DecidableEq r] (e : n ≃ r)
+    (e : n ≃ r)
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (lambda : r → ℝ) (G0 : Matrix n r ℝ)
     (hG0 : generalizedEigenvectorColumns
       (reducedRankGWhitenedProjection Ytilde) (1 : Matrix n n ℝ) lambda G0)
-    (hG0Norm : G0ᵀ * G0 = 1) :
-    reducedRankGDetVariationalBound Xtilde Ytilde lambda := by
+    (hG0Norm : letI := Classical.decEq r; G0ᵀ * G0 = 1) :
+    (letI := Classical.decEq r
+     reducedRankGDetVariationalBound Xtilde Ytilde lambda) := by
+  classical
   have hBound :
       generalizedEigenDetProductUpperBound
         (reducedRankGWhitenedProjection Ytilde) (1 : Matrix n n ℝ) lambda :=
@@ -3806,7 +3825,7 @@ theorem
     (generalizedEigenDetProductLowerBound_identity_of_selected_compressedDet_minimal
       M eta A0 hA0 hA0Norm hA0Min)
 
-omit [DecidableEq m] in
+omit [DecidableEq m] [DecidableEq s] in
 /-- Hansen `A⊥` determinant/product lower bound from a residual-factor
 identity when the selected ordinary residual-factor eigenvectors form a full
 orthonormal basis of the whitened ambient space.
@@ -3815,18 +3834,21 @@ This is the full-basis multi-column ordinary determinant route for the dual
 side. The general Hansen theorem still needs the partial trailing-eigenspace
 determinant theorem when the selected `A⊥` block is not ambient-square. -/
 theorem reducedRankAperpDetVariationalBound_of_residual_factor_identity_equiv_orthonormal_eigenbasis
-    [DecidableEq s] (e : n ≃ s)
+    (e : n ≃ s)
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (R : Matrix n n ℝ) (eta : s → ℝ) (A0 : Matrix n s ℝ)
     (hE : Etilde = R * Ytilde)
     (hA0 : generalizedEigenvectorColumns
       (reducedRankAperpResidualWhitenedMatrix R) (1 : Matrix n n ℝ) eta A0)
-    (hA0Norm : A0ᵀ * A0 = 1) :
-    reducedRankAperpDetVariationalBound Etilde Ytilde eta :=
-  reducedRankAperpDetVariationalBound_of_residual_factor_identity_productLowerBound
-    Etilde Ytilde R (reducedRankAperpResidualWhitenedMatrix R) eta hE rfl
-    (generalizedEigenDetProductLowerBound_identity_of_equiv_orthonormal_eigenbasis
-      e (reducedRankAperpResidualWhitenedMatrix R) eta A0 hA0 hA0Norm)
+    (hA0Norm : letI := Classical.decEq s; A0ᵀ * A0 = 1) :
+    (letI := Classical.decEq s
+     reducedRankAperpDetVariationalBound Etilde Ytilde eta) := by
+  classical
+  exact
+    reducedRankAperpDetVariationalBound_of_residual_factor_identity_productLowerBound
+      Etilde Ytilde R (reducedRankAperpResidualWhitenedMatrix R) eta hE rfl
+      (generalizedEigenDetProductLowerBound_identity_of_equiv_orthonormal_eigenbasis
+        e (reducedRankAperpResidualWhitenedMatrix R) eta A0 hA0 hA0Norm)
 
 omit [DecidableEq m] in
 /-- Residualized Hansen `A⊥` determinant/product lower bound from the ordinary
@@ -3875,12 +3897,12 @@ theorem
       (reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z))
       eta A0 hA0 hA0Norm hA0Min)
 
-omit [DecidableEq m] in
+omit [DecidableEq m] [DecidableEq s] in
 /-- Residualized Hansen `A⊥` determinant/product lower bound from a full
 ordinary orthonormal eigenbasis of the concrete residual-factor matrix
 `R'R`, where `R = M_[X,Z]`. -/
 theorem reducedRankAperpDetVariationalBound_of_residualized_equiv_orthonormal_eigenbasis
-    [DecidableEq s] (e : n ≃ s)
+    (e : n ≃ s)
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (eta : s → ℝ) (A0 : Matrix n s ℝ)
     [DecidableEq k] [Invertible (Zᵀ * Z)]
@@ -3888,13 +3910,16 @@ theorem reducedRankAperpDetVariationalBound_of_residualized_equiv_orthonormal_ei
     (hA0 : generalizedEigenvectorColumns
       (reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z))
       (1 : Matrix n n ℝ) eta A0)
-    (hA0Norm : A0ᵀ * A0 = 1) :
-    reducedRankAperpDetVariationalBound
-      (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta :=
-  reducedRankAperpDetVariationalBound_of_residual_factor_identity_equiv_orthonormal_eigenbasis
-    e (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y)
-    (reducedRankAperpResidualFactor X Z) eta A0
-    (reducedRankTildeE_eq_residualFactor_mul_tildeY Z X Y) hA0 hA0Norm
+    (hA0Norm : letI := Classical.decEq s; A0ᵀ * A0 = 1) :
+    (letI := Classical.decEq s
+     reducedRankAperpDetVariationalBound
+       (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta) := by
+  classical
+  exact
+    reducedRankAperpDetVariationalBound_of_residual_factor_identity_equiv_orthonormal_eigenbasis
+      e (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y)
+      (reducedRankAperpResidualFactor X Z) eta A0
+      (reducedRankTildeE_eq_residualFactor_mul_tildeY Z X Y) hA0 hA0Norm
 
 omit [DecidableEq n] [DecidableEq m] in
 /-- Rank-one Hansen `A⊥`-side determinant/product bound from the scalar
@@ -5525,15 +5550,23 @@ theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_whitened_fu
     (hA0Norm : A0ᵀ * A0 = 1) :
     ReducedRankHansenDetProductMinMaxCertificate
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-      G lambda Aperp eta :=
-  ReducedRankHansenDetProductMinMaxCertificate.of_product_variational_bounds
-    (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-    G lambda Aperp eta hG hGNorm
-    (reducedRankGDetVariationalBound_of_canonical_whitened_equiv_orthonormal_eigenbasis
-      eG (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda G0 hG0 hG0Norm)
-    hAperp hAperpNorm
-    (reducedRankAperpDetVariationalBound_of_residualized_equiv_orthonormal_eigenbasis
-      eA Z X Y eta A0 hA0 hA0Norm)
+      G lambda Aperp eta := by
+  have hDecR : (inferInstance : DecidableEq r) = Classical.decEq r :=
+    Subsingleton.elim _ _
+  have hDecS : (inferInstance : DecidableEq s) = Classical.decEq s :=
+    Subsingleton.elim _ _
+  cases hDecR
+  cases hDecS
+  classical
+  exact
+    ReducedRankHansenDetProductMinMaxCertificate.of_product_variational_bounds
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
+      G lambda Aperp eta hG hGNorm
+      (reducedRankGDetVariationalBound_of_canonical_whitened_equiv_orthonormal_eigenbasis
+        eG (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda G0 hG0 hG0Norm)
+      hAperp hAperpNorm
+      (reducedRankAperpDetVariationalBound_of_residualized_equiv_orthonormal_eigenbasis
+        eA Z X Y eta A0 hA0 hA0Norm)
 
 omit [DecidableEq n] in
 /-- Build Hansen's determinant/product min-max certificate from generic
@@ -6514,11 +6547,11 @@ def reducedRankAperpYOrthogonal
     (Ytilde : Matrix n m ℝ) (Aperp : Matrix m s ℝ) (W : Matrix m r ℝ) : Prop :=
   Aperpᵀ * reducedRankAperpPencilB Ytilde * W = 0
 
-omit [DecidableEq n] in
+omit [DecidableEq n] [DecidableEq m] [Fintype r] [DecidableEq r] in
 /-- Residual-pencil eigenblocks with disjoint roots are orthogonal in Hansen's
 `Ỹ'Ỹ` metric. -/
 theorem reducedRankAperpYOrthogonal_of_disjoint_eigenblocks
-    [Fintype s] [DecidableEq s]
+    [Finite r] [Finite s]
     (Etilde Ytilde : Matrix n m ℝ)
     (eta : s → ℝ) (Aperp : Matrix m s ℝ)
     (mu : r → ℝ) (W : Matrix m r ℝ)
@@ -6526,6 +6559,9 @@ theorem reducedRankAperpYOrthogonal_of_disjoint_eigenblocks
     (hW : reducedRankHansenAperpEigenvectors Etilde Ytilde mu W)
     (hDisjoint : ∀ i j, eta i ≠ mu j) :
     reducedRankAperpYOrthogonal Ytilde Aperp W := by
+  letI := Fintype.ofFinite r
+  letI := Fintype.ofFinite s
+  classical
   exact generalizedEigenvectorColumns_crossGram_eq_zero_of_disjoint_roots
     (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
     eta Aperp mu W
@@ -6768,7 +6804,7 @@ of those premises from `reducedRankAperp_cross_orthogonal_of_dual_relation`;
 the nontrivial remaining spectral premise is that the canonical dual block is
 indeed a residual-pencil eigenblock with roots separated from `A⊥`. -/
 theorem reducedRankAperp_cross_orthogonal_of_canonical_dual_eigenblock
-    [Fintype s] [DecidableEq s]
+    [Finite s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Aperp : Matrix m s ℝ)
     (Lambda LambdaInv : Matrix r r ℝ)
@@ -6781,6 +6817,7 @@ theorem reducedRankAperp_cross_orthogonal_of_canonical_dual_eigenblock
     (hDisjoint : ∀ i j, eta i ≠ mu j)
     (hLambdaInv : Lambda * LambdaInv = 1) :
     reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp := by
+  classical
   exact reducedRankAperp_cross_orthogonal_of_dual_relation
     Xtilde Ytilde G Aperp
     (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda)
