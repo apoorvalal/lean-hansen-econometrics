@@ -936,17 +936,15 @@ theorem
       hβ_meas hr_meas h hmodel h73
 
 /-- Hansen Theorem 12.4 Star endpoint from the literal observed-row finite
-second-moment Assumption 12.1 package and Assumption 7.3 smoothness. -/
+second-moment Assumption 12.1 package and Assumption 7.3 smoothness.
+
+The direct tail-event continuous-mapping theorem avoids adding a global or
+finite-sample measurability assumption on `rfun` that Hansen does not state. -/
 theorem
     twoSLSFunctionEstimator_tendstoInMeasure_of_textbook12_1_joint_iid_second_73
     {rfun : (k → ℝ) → (q → ℝ)}
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ} {R : Matrix k q ℝ}
-    (hr_meas : ∀ t : ℕ, AEStronglyMeasurable
-      (fun ω =>
-        twoSLSFunctionEstimator rfun
-          (fun i : Fin t => Z i.val ω) (fun i : Fin t => X i.val ω)
-          (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0)
     (h73 : SmoothFunctionAssumption73 rfun β0 R) :
     TendstoInMeasure μ
@@ -955,22 +953,21 @@ theorem
           (fun i : Fin t => Z i.val ω) (fun i : Fin t => X i.val ω)
           (fun i : Fin t => Y i.val ω))
       atTop (fun _ => rfun β0) :=
-  twoSLSFunctionEstimator_tendstoInMeasure_of_joint_iid_73_aestronglyMeasurable
-    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    hr_meas h.toJointIidConditions h.model h73
+  tendstoInMeasure_continuousAt_const_comp_without_measurability
+    (twoSLSBetaStar_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h)
+    h73.continuousAt
 
 /-- Hansen Theorem 12.4 OrZero endpoint from the literal observed-row finite
-second-moment Assumption 12.1 package and Assumption 7.3 smoothness. -/
+second-moment Assumption 12.1 package and Assumption 7.3 smoothness.
+
+This is the canonical textbook-facing endpoint and has no assumptions beyond
+the two Hansen packages. -/
 theorem
     twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_textbook12_1_joint_iid_second_73
     {rfun : (k → ℝ) → (q → ℝ)}
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ} {R : Matrix k q ℝ}
-    (hr_meas : ∀ t : ℕ, AEStronglyMeasurable
-      (fun ω =>
-        twoSLSFunctionEstimatorOrZero rfun
-          (fun i : Fin t => Z i.val ω) (fun i : Fin t => X i.val ω)
-          (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0)
     (h73 : SmoothFunctionAssumption73 rfun β0 R) :
     TendstoInMeasure μ
@@ -979,9 +976,10 @@ theorem
           (fun i : Fin t => Z i.val ω) (fun i : Fin t => X i.val ω)
           (fun i : Fin t => Y i.val ω))
       atTop (fun _ => rfun β0) :=
-  twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_joint_iid_73_aestronglyMeasurable
-    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    hr_meas h.toJointIidConditions h.model h73
+  tendstoInMeasure_continuousAt_const_comp_without_measurability
+    (twoSLSBetaOrZero_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h)
+    h73.continuousAt
 
 /-- Hansen Theorem 12.4 Star endpoint from the single-row iid Assumption 12.1
 package, deriving the technical measurability hypotheses from row

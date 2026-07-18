@@ -8825,12 +8825,66 @@ theorem TwoSLSKinalNormalizedCoefficientGaussianInputs.toExactMomentIff
     (twoSLSKinal_fwl_ae_eq_of_jointNormalConditions hJoint)
     (h.toFWLCoordinateMomentIff hJoint)
 
+/-- The central-Wishart law and a positive covariance direction force the
+residualized fitted-endogenous Gram matrix to be nonsingular almost surely. -/
+private theorem
+    twoSLSKinal_residualizedFittedEndogenousRank_of_centralWishart
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
+    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
+    {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
+    {directionVar : k₂ → ℝ≥0}
+    (hInstrumentCount : Fintype.card k₂ ≤ Fintype.card l₂)
+    (hPositive : ∃ j : k₂, 0 < directionVar j)
+    (h : TwoSLSKinalNormalizedCoefficientGaussianVectorInputs
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar) :
+    ∀ᵐ ω ∂μ,
+      IsUnit
+        ((((residualizedRegressorsStar
+          (twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))
+          (twoSLSFittedEndogenousRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)))ᵀ *
+          residualizedRegressorsStar
+            (twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))
+            (twoSLSFittedEndogenousRegressorsStar
+              (X₁ ω) (Y₂ ω) (Z₂ ω)))).det) := by
+  obtain ⟨j, _⟩ := hPositive
+  have hLaws : TwoSLSKinalFWLCoordinateInverseScaleLaws
+      (n := n) (l₂ := l₂) μ X₁ Y₂ Z₂ Sigma :=
+    twoSLSKinalFWLCoordinateInverseScaleLaws_of_standardGramBridge
+      X₁ Y₂ Z₂ Sigma h.fitted_residual_gram_wishart_law
+      (TwoSLSKinalCoordinateInverseWishartStandardGramBridge.of_posDef_canonicalRest
+        (l₂ := l₂) Sigma h.sigma_posDef hInstrumentCount)
+  have hScale := twoSLSKinalFWLCoordinateInverseScaleStar_hasLaw
+    (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Sigma := Sigma) hLaws j
+  have hChiNe :
+      ∀ᵐ q ∂chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1), q ≠ 0 := by
+    simpa [Set.mem_singleton_iff] using
+      (Set.countable_singleton (0 : ℝ)).ae_notMem
+        (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))
+  have hScaleNe : ∀ᵐ ω ∂μ,
+      twoSLSKinalFWLCoordinateInverseScaleStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) Sigma j ≠ 0 :=
+    (hScale.ae_iff (p := fun q : ℝ => q ≠ 0) (by fun_prop)).2 hChiNe
+  filter_upwards [hScaleNe] with ω hne
+  by_contra hsing
+  have hsing' :
+      ¬ IsUnit (twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω)).det := by
+    simpa [twoSLSKinalFWLGramStar,
+      twoSLSKinalResidualizedFittedEndogenousStar] using hsing
+  have hinv :
+      (twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω))⁻¹ = 0 :=
+    Matrix.nonsing_inv_apply_not_isUnit _ hsing'
+  apply hne
+  simp [twoSLSKinalFWLCoordinateInverseScaleStar,
+    inverseWishartScaledLinearForm, inverseWishartLinearForm, hinv]
+
 /-- Strongest vector-valued central-Wishart Kinal threshold.
 
 Only one normalized-direction coordinate must have positive variance. The
 remaining zero-variance coordinates are constants and hence have every finite
-moment. The other premises are exactly the rank events and instrument-count
-inequality used by the proof. -/
+moment. The residualized fitted-endogenous rank event is derived from the
+central-Wishart law; the remaining rank events and instrument-count inequality
+are the deterministic premises used by the proof. -/
 theorem
     twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussianVector_of_rank_ae
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
@@ -8860,16 +8914,6 @@ theorem
           ((((twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))ᵀ *
             twoSLSFittedIncludedRegressorsStar
               (X₁ ω) (Y₂ ω) (Z₂ ω))).det))
-    (hResidualizedFittedEndogenousRank :
-      ∀ᵐ ω ∂μ,
-        IsUnit
-          ((((residualizedRegressorsStar
-            (twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-            (twoSLSFittedEndogenousRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)))ᵀ *
-            residualizedRegressorsStar
-              (twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-              (twoSLSFittedEndogenousRegressorsStar
-                (X₁ ω) (Y₂ ω) (Z₂ ω)))).det))
     (hPositive : ∃ j : k₂, 0 < directionVar j)
     (h : TwoSLSKinalNormalizedCoefficientGaussianVectorInputs
       μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar) :
@@ -8878,6 +8922,9 @@ theorem
           (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
         (r : ℝ≥0∞) μ ↔
       (r : ℝ) < (Fintype.card l₂ : ℝ) - (Fintype.card k₂ : ℝ) + 1 := by
+  have hResidualizedFittedEndogenousRank :=
+    twoSLSKinal_residualizedFittedEndogenousRank_of_centralWishart
+      hInstrumentCount hPositive h
   have hExact := twoSLSKinalExactMomentIff_of_fwl_ae_eq
     (twoSLSKinal_fwl_ae_eq_of_rank_ae hInstrumentRank hFittedRank
       hIncludedFittedRank hResidualizedFittedEndogenousRank)
@@ -8888,8 +8935,9 @@ theorem
 premises used by the all-coordinate-positive convenience package.
 
 The Gaussian/Wishart input contains no coefficient decomposition or moment
-conclusion. The four rank premises supply the deterministic 2SLS/FWL bridge,
-while the count inequality supplies the inverse-Wishart degrees of freedom. -/
+conclusion. The three explicit rank premises and the rank event derived from
+the central-Wishart law supply the deterministic 2SLS/FWL bridge, while the
+count inequality supplies the inverse-Wishart degrees of freedom. -/
 theorem twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian_of_rank_ae
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
@@ -8918,16 +8966,6 @@ theorem twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian_of_rank_ae
           ((((twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))ᵀ *
             twoSLSFittedIncludedRegressorsStar
               (X₁ ω) (Y₂ ω) (Z₂ ω))).det))
-    (hResidualizedFittedEndogenousRank :
-      ∀ᵐ ω ∂μ,
-        IsUnit
-          ((((residualizedRegressorsStar
-            (twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-            (twoSLSFittedEndogenousRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)))ᵀ *
-            residualizedRegressorsStar
-              (twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-              (twoSLSFittedEndogenousRegressorsStar
-                (X₁ ω) (Y₂ ω) (Z₂ ω)))).det))
     (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
       μ X₁ Y₂ Z₂ Y₁ β₂ Sigma directionVar) :
     ∀ r : ℝ≥0,
@@ -8939,7 +8977,6 @@ theorem twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian_of_rank_ae
   exact
     twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussianVector_of_rank_ae
       hInstrumentCount hInstrumentRank hFittedRank hIncludedFittedRank
-      hResidualizedFittedEndogenousRank
       ⟨j, h.normalized_direction_var_pos j⟩
       h.toTwoSLSKinalNormalizedCoefficientGaussianVectorInputs
 
@@ -8966,8 +9003,7 @@ theorem twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian
   exact
     twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian_of_rank_ae
       hJoint.instrument_count hJoint.instrument_rank_ae hJoint.fitted_rank_ae
-      hJoint.included_fitted_rank_ae
-      hJoint.residualized_fitted_endogenous_rank_ae h
+      hJoint.included_fitted_rank_ae h
 
 omit [DecidableEq k₂] [DecidableEq l₂] in
 /-- In the just-identified case `ℓ₂ = k₂`, Kinal's threshold is exactly one. -/

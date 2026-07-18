@@ -18,14 +18,14 @@ variable {Omega k : Type*}
 variable [MeasurableSpace Omega] {mu : Measure Omega}
 variable [Fintype k]
 
-/-- Moment-existence interface for finite-sample 2SLS under joint normality. -/
-structure TwoSLSFiniteMomentInterface
+/-- File-local moment-existence interface used to isolate backend choices. -/
+private structure TwoSLSFiniteMomentInterface
     (betahat : Omega → k → ℝ) : Prop where
   finite_linear_moments : ∀ r : ℕ, ∀ a : k → ℝ,
     Integrable (fun ω => (a ⬝ᵥ betahat ω) ^ r) mu
 
-/-- Interface projection for finite linear moments of a 2SLS estimator. -/
-theorem twoStageLeastSquares_finiteMoments_from_interface
+/-- File-local projection from the finite-moment interface. -/
+private theorem twoStageLeastSquares_finiteMoments_from_interface
     (betahat : Omega → k → ℝ)
     (h : TwoSLSFiniteMomentInterface (mu := mu) betahat) :
     ∀ r : ℕ, ∀ a : k → ℝ, Integrable (fun ω => (a ⬝ᵥ betahat ω) ^ r) mu :=

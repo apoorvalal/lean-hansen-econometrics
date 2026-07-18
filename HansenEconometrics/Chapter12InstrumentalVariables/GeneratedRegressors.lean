@@ -167,6 +167,25 @@ theorem sampleScoreCovQuadraticWeight_generatedRegressors
 
 omit [Fintype n] [DecidableEq n] [DecidableEq l]
     [DecidableEq k₁] [DecidableEq k₂] in
+/-- The realized-design form of Hansen's exact-left-block assumption. -/
+theorem generatedRegressors_mulVec_eq_of_realized_leftBlock_exact_of_rightBlock_zero
+    (Z : Matrix n l ℝ)
+    (Ahat A : Matrix l (Sum k₁ k₂) ℝ) (β : Sum k₁ k₂ → ℝ)
+    (hleft : ∀ i j,
+      generatedRegressors Z Ahat i (Sum.inl j) =
+        generatedRegressors Z A i (Sum.inl j))
+    (hnull : ∀ j, β (Sum.inr j) = 0) :
+    generatedRegressors Z Ahat *ᵥ β = generatedRegressors Z A *ᵥ β := by
+  ext i
+  simp only [Matrix.mulVec, dotProduct, Fintype.sum_sum_type]
+  congr 1
+  · apply Finset.sum_congr rfl
+    intro j _
+    rw [hleft]
+  · simp [hnull]
+
+omit [Fintype n] [DecidableEq n] [DecidableEq l]
+    [DecidableEq k₁] [DecidableEq k₂] in
 /-- Under Hansen's Theorem 12.9 null and exact-left-block condition, replacing
 `A` by `Ahat` does not change the fitted structural component `ZAβ`. -/
 theorem generatedRegressors_mulVec_eq_of_leftBlock_exact_of_rightBlock_zero
@@ -175,16 +194,14 @@ theorem generatedRegressors_mulVec_eq_of_leftBlock_exact_of_rightBlock_zero
     (hleft : ∀ a j, Ahat a (Sum.inl j) = A a (Sum.inl j))
     (hnull : ∀ j, β (Sum.inr j) = 0) :
     generatedRegressors Z Ahat *ᵥ β = generatedRegressors Z A *ᵥ β := by
+  apply generatedRegressors_mulVec_eq_of_realized_leftBlock_exact_of_rightBlock_zero
+    Z Ahat A β ?_ hnull
+  intro i j
   unfold generatedRegressors
-  rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
-  apply congrArg (fun x : l → ℝ => Z *ᵥ x)
-  ext a
-  simp only [Matrix.mulVec, dotProduct, Fintype.sum_sum_type]
-  congr 1
-  · apply Finset.sum_congr rfl
-    intro j _
-    rw [hleft]
-  · simp [hnull]
+  simp only [Matrix.mul_apply]
+  apply Finset.sum_congr rfl
+  intro a _
+  rw [hleft]
 
 /-- Hansen Theorem 12.9 asymptotic covariance
 `(A' E[ZZ'] A)^{-1} A' E[ZZ'v²] A (A' E[ZZ'] A)^{-1}`. -/
@@ -421,10 +438,10 @@ variable [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
 
 /-- Proof-facing package for Hansen Theorem 12.9.
 
-The fields intentionally include Hansen's null `β₂ = 0` and the exact,
-ungenerated left block condition for `What = (W₁, W₂hat)`.  The probabilistic
-fields then state the coefficient CLT and HC0 covariance consistency with
-Hansen's generated-regressor covariance formula. -/
+The fields include Hansen's null `β₂ = 0`, the coefficient CLT, and HC0
+covariance consistency with Hansen's generated-regressor covariance formula.
+The raw condition package below separately records and uses the exact realized
+left-block assumption needed to derive these conclusions. -/
 structure GeneratedRegressorAsymptoticNormalConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (ν : Measure Ωlim) [IsProbabilityMeasure ν]
@@ -435,7 +452,6 @@ structure GeneratedRegressorAsymptoticNormalConditions
     (β : Sum k₁ k₂ → ℝ)
     (G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)) : Prop where
   beta2_null : ∀ j : k₂, β (Sum.inr j) = 0
-  left_block_exact : ∀ (m : ℕ) ω a j, Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
   coefficient_limit : TendstoInDistribution
     (fun (m : ℕ) ω =>
       Real.sqrt (m : ℝ) •
@@ -475,7 +491,6 @@ structure GeneratedRegressorOracleApproximationConditions
     (β : Sum k₁ k₂ → ℝ)
     (G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)) : Prop where
   beta2_null : ∀ j : k₂, β (Sum.inr j) = 0
-  left_block_exact : ∀ (m : ℕ) ω a j, Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
   Ahat_measurable : ∀ m, AEStronglyMeasurable (Ahat m) μ
   Ahat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A)
   oracle_coefficient_limit : TendstoInDistribution
@@ -1000,9 +1015,8 @@ theorem generatedRegressorRightBlockLimit_hasLaw
     generatedRegressorRightBlockCovariance_eq_linMap, Function.comp_def] using hcomp
 
 omit [DecidableEq l] in
-/-- Hansen Theorem 12.9 coefficient and covariance conclusion, with the null
-and generated-left-block conditions carried by
-`GeneratedRegressorAsymptoticNormalConditions`. -/
+/-- Hansen Theorem 12.9 coefficient and covariance conclusion from the
+proof-facing asymptotic-normal conditions. -/
 theorem generatedRegressor_theorem12_9_coefficient_and_covariance
     {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
     {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
@@ -1046,7 +1060,6 @@ theorem generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
       μ ν Z Y Ahat A QZZ OmegaZV β G := by
   refine
     { beta2_null := h.beta2_null
-      left_block_exact := h.left_block_exact
       coefficient_limit := ?_
       gaussian_limit := h.gaussian_limit
       covariance_measurable := h.generated_covariance_measurable
@@ -1079,8 +1092,6 @@ theorem GeneratedRegressorOracleApproximationConditions.of_row_measurable
     {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
     {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
     (hbeta2_null : ∀ j : k₂, β (Sum.inr j) = 0)
-    (hleft_block_exact : ∀ (m : ℕ) ω a j,
-      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
     (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
     (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
     (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
@@ -1119,7 +1130,6 @@ theorem GeneratedRegressorOracleApproximationConditions.of_row_measurable
     GeneratedRegressorOracleApproximationConditions
       μ ν Z Y Ahat A QZZ OmegaZV β G where
   beta2_null := hbeta2_null
-  left_block_exact := hleft_block_exact
   Ahat_measurable := hAhat_meas
   Ahat_consistent := hAhat_consistent
   oracle_coefficient_limit := horacle_coefficient_limit
@@ -1183,8 +1193,6 @@ theorem GeneratedRegressorOracleApproximationConditions.of_row_measurable_beta_d
     {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
     {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
     (hbeta2_null : ∀ j : k₂, β (Sum.inr j) = 0)
-    (hleft_block_exact : ∀ (m : ℕ) ω a j,
-      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
     (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
     (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
     (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
@@ -1225,7 +1233,7 @@ theorem GeneratedRegressorOracleApproximationConditions.of_row_measurable_beta_d
     (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
     (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
     (β := β) (G := G)
-    hbeta2_null hleft_block_exact hZ hY hAhat_meas hAhat_consistent
+    hbeta2_null hZ hY hAhat_meas hAhat_consistent
     horacle_coefficient_limit
     (by
       simpa [generatedRegressor_oracleCoefficientRemainder_eq_scaled_beta_diff]
@@ -1390,8 +1398,6 @@ theorem
     {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
     {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
     (hbeta2_null : ∀ j : k₂, β (Sum.inr j) = 0)
-    (hleft_block_exact : ∀ (m : ℕ) ω a j,
-      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
     (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
     (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
     (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
@@ -1447,7 +1453,7 @@ theorem
       (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
       (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
       (β := β) (G := G)
-      hbeta2_null hleft_block_exact hZ hY hAhat_meas hAhat_consistent
+      hbeta2_null hZ hY hAhat_meas hAhat_consistent
       horacle_coefficient_limit hcoefficient_remainder hgaussian_limit
       horacle_covariance_consistent hcovariance_remainder)
 
@@ -1464,7 +1470,6 @@ structure GeneratedRegressorBlockWaldConditions
     (G₂ : Ωlim → EuclideanSpace ℝ (Fin r))
     (Vβ22 : Matrix (Fin r) (Fin r) ℝ) : Prop where
   beta2_null : ∀ j : Fin r, β (Sum.inr j) = 0
-  left_block_exact : ∀ (m : ℕ) ω a j, Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
   block_limit : TendstoInDistribution
     (fun (m : ℕ) ω =>
       root m • generatedRegressorRightBlock
@@ -1487,8 +1492,7 @@ structure GeneratedRegressorBlockWaldConditions
 
 omit [DecidableEq l] in
 /-- Hansen Theorem 12.9 Wald endpoint: the null block statistic converges to
-`χ²_r`.  The assumptions retain the generated-regressor null structure, while
-the final statistic-level proof reuses the generic Chapter 9 Wald theorem. -/
+`χ²_r`.  The statistic-level proof reuses the generic Chapter 9 Wald theorem. -/
 theorem generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared
     {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
     {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
@@ -1640,7 +1644,6 @@ theorem generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal
       (generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G) := by
   refine
     { beta2_null := h.beta2_null
-      left_block_exact := h.left_block_exact
       block_limit := ?_
       gaussian_limit := ?_
       block_covariance_measurable := ?_
@@ -2349,8 +2352,6 @@ theorem
         (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
           Matrix (Fin r) (Fin r) ℝ).PosDef)
     (hbeta2_null : ∀ j : Fin r, β (Sum.inr j) = 0)
-    (hleft_block_exact : ∀ (m : ℕ) ω a j,
-      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
     (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
     (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
     (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
@@ -2427,7 +2428,7 @@ theorem
       (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
       (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
       (β := β) (G := G)
-      hbeta2_null hleft_block_exact hZ hY hAhat_meas hAhat_consistent
+      hbeta2_null hZ hY hAhat_meas hAhat_consistent
       horacle_coefficient_limit hcoefficient_remainder hgaussian_limit
       horacle_covariance_consistent hcovariance_remainder)
     hcrit
@@ -2455,8 +2456,6 @@ theorem
         (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
           Matrix (Fin r) (Fin r) ℝ).PosDef)
     (hbeta2_null : ∀ j : Fin r, β (Sum.inr j) = 0)
-    (hleft_block_exact : ∀ (m : ℕ) ω a j,
-      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
     (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
     (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
     (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
@@ -2528,7 +2527,7 @@ theorem
   generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_rows_beta_diff
     (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
     (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
-    (β := β) (G := G) hV hV22 hbeta2_null hleft_block_exact hZ hY
+    (β := β) (G := G) hV hV22 hbeta2_null hZ hY
     hAhat_meas hAhat_consistent horacle_coefficient_limit
     hcoefficient_remainder hgaussian_limit horacle_covariance_consistent
     hcovariance_remainder
@@ -4135,9 +4134,9 @@ theorem expectationErrorDesignStar_aestronglyMeasurable_of_rows
     matrix_fromCols_aestronglyMeasurable (μ := μ) hW hU
 
 set_option maxHeartbeats 900000 in
-omit [DecidableEq k] in
 -- Heartbeat bump: the block-matrix CMT has to synthesize matrix product and
 -- finite-dimensional topology instances for two generated Gram blocks.
+omit [DecidableEq k] in
 /-- Block sample-Gram convergence for Hansen's expectation-error generated
 design from fitted/residual block Gram convergence and high-probability
 first-stage nonsingularity.  The finite-sample orthogonality identity supplies
@@ -7211,9 +7210,9 @@ theorem controlFunctionExpectationErrorDesignStar_sampleGram_eq_fromBlocks_of_in
             using congrFun (congrFun h i) j
 
 set_option maxHeartbeats 900000 in
-omit [DecidableEq k₁] [DecidableEq k₂] in
 -- Heartbeat bump: the block CMT has to synthesize four rectangular matrix
 -- topologies for the control-function expectation-error design.
+omit [DecidableEq k₁] [DecidableEq k₂] in
 /-- Block sample-Gram convergence for Hansen's control-function
 expectation-error design from projection/span geometry.
 
@@ -8030,9 +8029,9 @@ theorem controlFunctionExpectationErrorDesignStar_aestronglyMeasurable_of_rows
 
 set_option linter.style.longLine false in
 set_option maxHeartbeats 900000 in
-omit [DecidableEq k₁] [DecidableEq k₂] in
 -- Heartbeat bump: the row facade expands stacked measurability for the
 -- projected left block and residual block before applying the block WLLN.
+omit [DecidableEq k₁] [DecidableEq k₂] in
 /-- Row-measurable projection/span sample-Gram WLLN for Hansen's
 control-function expectation-error design. -/
 theorem controlFunctionExpectationErrorDesignStar_sampleGram_tendstoInMeasure_of_projection_span_block_sampleGrams_rows
@@ -8164,6 +8163,7 @@ theorem controlFunctionAlphaHatStar_scaled_centered_aemeasurable_of_rows
     (Real.sqrt (N : ℝ))).aemeasurable
 
 set_option maxHeartbeats 1200000 in
+-- The three feasible covariance blocks expand nested residual and matrix maps.
 omit [IsProbabilityMeasure μ] in
 /-- Hansen's three-block expectation-error covariance measurability from row
 measurability. -/
@@ -10607,11 +10607,6 @@ theorem
           (controlFunctionAlphaHatStar
             (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
             (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
-    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
-      (fun ω =>
-        controlFunctionAlphaVHatStar
-          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
-          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
     (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
       (fun ω =>
         controlFunctionExpectationErrorVHatStar
@@ -10755,11 +10750,6 @@ theorem
           (controlFunctionAlphaHatStar
             (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
             (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
-    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
-      (fun ω =>
-        controlFunctionAlphaVHatStar
-          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
-          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
     (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
       (fun ω =>
         controlFunctionExpectationErrorVHatStar
@@ -10801,8 +10791,7 @@ theorem
       (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
       (βEE := βEE) (α := α) (G := G)
       (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
-      halpha_target hnonsing hcoef hG hVpsd halpha_meas halphaV_meas
-      hV_meas hVEE
+      halpha_target hnonsing hcoef hG hVpsd halpha_meas hV_meas hVEE
   have hcov :
       controlFunctionEndogeneityMap *
           Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
@@ -10916,10 +10905,6 @@ theorem
         controlFunctionAlphaHatStar_scaled_centered_aemeasurable_of_rows
           (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
           hX₁ hX₂ hZ hY α)
-      (fun m =>
-        controlFunctionAlphaVHatStar_aestronglyMeasurable_of_rows
-          (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
-          hX₁ hX₂ hZ hY)
       (fun m =>
         controlFunctionExpectationErrorVHatStar_aestronglyMeasurable_of_rows
           (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
@@ -11197,12 +11182,8 @@ structure ControlFunctionHansenPrimitiveConditions
   control_error_projection : ∀ i, (fun ω => e i ω) =ᵐ[μ]
     fun ω => dotProduct (u₂ i ω) α + νe i ω
   z_e_integrable : Integrable (fun ω => e 0 ω • Z 0 ω) μ
-  x1_nu_integrable : Integrable (fun ω => νe 0 ω • X₁ 0 ω) μ
-  x2_nu_integrable : Integrable (fun ω => νe 0 ω • X₂ 0 ω) μ
   u2_nu_integrable : Integrable (fun ω => νe 0 ω • u₂ 0 ω) μ
   z_e_orthogonal : μ[fun ω => e 0 ω • Z 0 ω] = 0
-  x1_nu_orthogonal : μ[fun ω => νe 0 ω • X₁ 0 ω] = 0
-  x2_nu_orthogonal : μ[fun ω => νe 0 ω • X₂ 0 ω] = 0
   u2_nu_orthogonal : μ[fun ω => νe 0 ω • u₂ 0 ω] = 0
   y_fourth_integrable : Integrable (fun ω => (Y 0 ω) ^ 4) μ
   z_norm_fourth_integrable : Integrable (fun ω => ‖Z 0 ω‖ ^ 4) μ
@@ -23300,8 +23281,9 @@ structure GeneratedRegressorObservedIidConditions
   qww_posDef : (Aᵀ * popGram μ Z * A).PosDef
   Ahat_aestronglyMeasurable : ∀ m, AEStronglyMeasurable (Ahat m) μ
   Ahat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A)
-  left_block_exact : ∀ (m : ℕ) ω a j,
-    Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
+  left_block_exact : ∀ (m : ℕ) ω i j,
+    generatedRegressors (stackRegressors Z m ω) (Ahat m ω) i (Sum.inl j) =
+      generatedRegressors (stackRegressors Z m ω) A i (Sum.inl j)
   beta2_null : ∀ j : k₂, β (Sum.inr j) = 0
 
 /-- Minimal Wald extension of the corrected Hansen Theorem 12.9 observed-row
@@ -23597,8 +23579,8 @@ private noncomputable def coefficientLinearization
   (Bᵀ * Q * B)⁻¹ * Bᵀ
 
 set_option maxHeartbeats 2400000 in
-omit [DecidableEq l] in
 -- Nested finite-dimensional matrix CMTs have expensive instance synthesis.
+omit [DecidableEq l] in
 private theorem coefficientLinearization_tendstoInMeasure
     {Bhat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
     {Qhat : ℕ → Ω → Matrix l l ℝ}
@@ -23643,9 +23625,9 @@ private theorem coefficientLinearization_tendstoInMeasure
     tendstoInMeasure_matrix_mul_rect hinv_meas hBt_meas hinv hBt
 
 set_option maxHeartbeats 2400000 in
+-- Coordinatewise product and finite-sum CMT elaboration is instance-heavy.
 omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂]
   [IsProbabilityMeasure μ] in
--- Coordinatewise product and finite-sum CMT elaboration is instance-heavy.
 private theorem matrix_sub_mulVec_tight_tendstoInMeasure_zero
     {Ahat Bhat : ℕ → Ω → Matrix (Sum k₁ k₂) l ℝ}
     {A : Matrix (Sum k₁ k₂) l ℝ} {X : ℕ → Ω → l → ℝ}
@@ -23678,8 +23660,8 @@ private theorem matrix_sub_mulVec_tight_tendstoInMeasure_zero
         (Ahat m ω i a - Bhat m ω i a) * X m ω a) hterms
 
 set_option maxHeartbeats 2400000 in
-omit [DecidableEq l] in
 -- The generated-design identities expand several nested finite matrix products.
+omit [DecidableEq l] in
 /-- The feasible and oracle generated-regressor coefficients differ by
 `o_p(n^{-1/2})` under the corrected raw conditions. -/
 theorem coefficient_remainder
@@ -23819,22 +23801,17 @@ theorem coefficient_remainder
       atTop (fun _ => 0) := by
     exact matrix_sub_mulVec_tight_tendstoInMeasure_zero
       hLhat hLoracle hscore_bdd
-  have hmodel_feasible : ∀ m i ω,
-      Y i ω = ((Ahat m ω)ᵀ *ᵥ Z i ω) ⬝ᵥ β + v i ω := by
+  have hmodel_feasible : ∀ m (i : Fin m) ω,
+      Y i.val ω = ((Ahat m ω)ᵀ *ᵥ Z i.val ω) ⬝ᵥ β + v i.val ω := by
     intro m i ω
-    rw [h.model i ω]
-    congr 1
-    simp only [generatedRegressorOracleRow, Matrix.mulVec, dotProduct,
-      Fintype.sum_sum_type,
-      Matrix.transpose_apply]
-    congr 1
-    · apply Finset.sum_congr rfl
-      intro j _
-      apply congrArg (fun t : ℝ => t * β (Sum.inl j))
-      apply Finset.sum_congr rfl
-      intro a _
-      rw [h.left_block_exact]
-    · simp [h.beta2_null]
+    rw [h.model i.val ω]
+    have hfit :=
+      generatedRegressors_mulVec_eq_of_realized_leftBlock_exact_of_rightBlock_zero
+        (stackRegressors Z m ω) (Ahat m ω) A β
+        (h.left_block_exact m ω) h.beta2_null
+    simpa [generatedRegressorOracleRow, generatedRegressors, stackRegressors,
+      Matrix.mulVec, dotProduct, mul_comm] using
+      congrArg (fun t => t + v i.val ω) (congrFun hfit i).symm
   have hgenGram : TendstoInMeasure μ
       (fun m ω => sampleGram
         (generatedRegressors (stackRegressors Z m ω) (Ahat m ω)))
@@ -23892,7 +23869,7 @@ theorem coefficient_remainder
           ext i
           simpa [D, ev, generatedRegressors, stackRegressors, stackOutcomes,
             stackErrors, Matrix.mulVec, dotProduct, mul_comm] using
-            hmodel_feasible m i.val ω
+            hmodel_feasible m i ω
         have hleading : Lhat m ω *ᵥ score m ω =
             (sampleGram D)⁻¹ *ᵥ
               (Real.sqrt (m : ℝ) • sampleCrossMoment D ev) := by
@@ -24441,21 +24418,17 @@ theorem generatedRegressorVHatStar_tendstoInMeasure_of_bddWts
       (fun _ => Aᵀ * scoreSecondMomMat μ Z v * A) := by
     simpa only [ideal, D, sampleScoreCovIdeal_generatedRegressors,
       Matrix.transpose_transpose] using hIdealCmt
-  have hmodel_feasible : ∀ m i ω,
-      Y i ω = ((Ahat m ω)ᵀ *ᵥ Z i ω) ⬝ᵥ β + v i ω := by
+  have hmodel_feasible : ∀ m (i : Fin m) ω,
+      Y i.val ω = ((Ahat m ω)ᵀ *ᵥ Z i.val ω) ⬝ᵥ β + v i.val ω := by
     intro m i ω
-    rw [h.model i ω]
-    congr 1
-    simp only [generatedRegressorOracleRow, Matrix.mulVec, dotProduct,
-      Fintype.sum_sum_type, Matrix.transpose_apply]
-    congr 1
-    · apply Finset.sum_congr rfl
-      intro j _
-      apply congrArg (fun t : ℝ => t * β (Sum.inl j))
-      apply Finset.sum_congr rfl
-      intro a _
-      rw [h.left_block_exact]
-    · simp [h.beta2_null]
+    rw [h.model i.val ω]
+    have hfit :=
+      generatedRegressors_mulVec_eq_of_realized_leftBlock_exact_of_rightBlock_zero
+        (stackRegressors Z m ω) (Ahat m ω) A β
+        (h.left_block_exact m ω) h.beta2_null
+    simpa [generatedRegressorOracleRow, generatedRegressors, stackRegressors,
+      Matrix.mulVec, dotProduct, mul_comm] using
+      congrArg (fun t => t + v i.val ω) (congrFun hfit i).symm
   have hMiddle : TendstoInMeasure μ middle atTop
       (fun _ => Aᵀ * scoreSecondMomMat μ Z v * A) := by
     refine tendstoInMeasure_pi (fun a => ?_)
@@ -24472,7 +24445,7 @@ theorem generatedRegressorVHatStar_tendstoInMeasure_of_bddWts
       ext i
       simpa [D, generatedRegressors, stackRegressors, stackOutcomes,
         stackErrors, Matrix.mulVec, dotProduct, mul_comm] using
-        hmodel_feasible m i.val ω
+        hmodel_feasible m i ω
     have hexp := sampleScoreCovStar_linear_model
       (D m ω) β (stackErrors v m ω)
     calc
@@ -24751,7 +24724,6 @@ theorem theorem12_9_corrected_normal_covariance_wald_size
   have hnormal : GeneratedRegressorAsymptoticNormalConditions
       μ νV Z Y Ahat A (popGram μ Z) (scoreSecondMomMat μ Z v) β G :=
     { beta2_null := hraw.beta2_null
-      left_block_exact := hraw.left_block_exact
       coefficient_limit := by
         simpa [G, νV, V] using hraw.theorem12_9_corrected_coefficient
       gaussian_limit := by
@@ -26065,6 +26037,7 @@ theorem expectationError_block_singularProb_tendsto_zero_of_observed_iid
   exact ⟨hZrank, hWrank, hUrank⟩
 
 set_option maxHeartbeats 1200000 in
+-- The exact two-estimator comparison expands both totalized normal equations.
 private theorem
     expectationErrorBetaHatStar_sub_twoSLSBetaStar_tendstoInMeasure_zero
     {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
@@ -26200,6 +26173,7 @@ private theorem
     tendstoInMeasure_congr_of_measure_ne_tendsto_zero hzero hne
 
 set_option maxHeartbeats 2400000 in
+-- The upper-block representation combines several stochastic matrix remainders.
 /-- Corrected Hansen Theorem 12.12 upper-block fixed-influence representation.
 
 The actual expectation-error beta estimator equals the fixed population
@@ -26308,6 +26282,7 @@ theorem expectationErrorBetaHatStar_fixedInfluence_remainder_of_observed_iid
     Matrix.sub_mulVec]
 
 set_option maxHeartbeats 1200000 in
+-- The lower-block sample influence expands the generated residual normal equations.
 private theorem
     expectationErrorAlphaHatStar_sampleInfluence_remainder_of_observed_iid
     {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
@@ -26458,6 +26433,7 @@ private theorem
   exact (not_le_of_gt hε) hlarge
 
 set_option maxHeartbeats 2400000 in
+-- The lower-block representation combines inverse-Gram and score replacements.
 /-- Corrected Hansen Theorem 12.12 lower-block fixed-influence representation.
 
 The actual alpha estimator equals `E[uu']⁻¹` applied to the joint score's
@@ -26587,6 +26563,7 @@ theorem expectationErrorAlphaHatStar_fixedInfluence_remainder_of_observed_iid
     Matrix.mulVec_sub]
 
 set_option maxHeartbeats 1200000 in
+-- The joint representation assembles both blockwise influence remainders.
 /-- Corrected Hansen Theorem 12.12 joint fixed-influence representation.
 
 The actual stacked expectation-error estimator has the fixed block influence
@@ -26622,6 +26599,7 @@ theorem expectationErrorBetaAlphaStar_fixedInfluence_remainder_of_observed_iid
         expectationErrorAlphaHatStar_apply, Pi.sub_apply, Pi.smul_apply] using halpha
 
 set_option maxHeartbeats 1200000 in
+-- Slutsky transfers the joint fixed-influence remainder to the Gaussian limit.
 /-- **Corrected Hansen Theorem 12.12**, full joint actual-estimator CLT from
 literal observed-iid fourth moments and population rank conditions. -/
 theorem expectationErrorBetaAlphaStar_tendstoInDistribution_theorem12_12_of_observed_iid
@@ -26669,6 +26647,7 @@ theorem expectationErrorBetaAlphaStar_tendstoInDistribution_theorem12_12_of_obse
     h.expectationErrorBetaAlphaStar_fixedInfluence_remainder_of_observed_iid hactual
 
 set_option maxHeartbeats 1200000 in
+-- The beta-block endpoint also controls three derived singular events.
 /-- Corrected Hansen Theorem 12.12 beta-block CLT from literal observed-iid
 fourth moments and population rank.
 
@@ -26915,6 +26894,7 @@ theorem rawJointScore_outer_tendstoInMeasure_covMat
 
 set_option maxHeartbeats 1200000 in
 -- The matrix-valued WLLN and block sandwich CMT need extra elaboration time.
+omit [DecidableEq l] in
 /-- The oracle joint sandwich built from the raw Theorem 12.12 scores is
 consistent for Hansen's exact displayed covariance matrix.
 
@@ -27131,8 +27111,8 @@ private noncomputable def expectationErrorRegressorLoading
   Matrix.fromRows A 1
 
 set_option maxHeartbeats 2400000 in
-omit [DecidableEq r] [IsProbabilityMeasure μ] in
 -- The coordinate expansion has four nested finite-dimensional stochastic sums.
+omit [DecidableEq r] [IsProbabilityMeasure μ] in
 private theorem expectationErrorSampleMixedMiddle_residual_replacement
     {D : (m : ℕ) → Ω → Matrix (Fin m) r ℝ}
     {e₁ e₂ : (m : ℕ) → Ω → Fin m → ℝ}
@@ -27606,6 +27586,7 @@ private theorem bilinear_matrix_transform_sub_const_tendstoInMeasure_zero
   ring
 
 set_option maxHeartbeats 1200000 in
+-- Coordinatewise tightness from the joint CLT is assembled over both blocks.
 /-- The joint expectation-error estimator is consistent under the same raw
 observed-iid conditions used for the corrected Theorem 12.12 CLT. -/
 theorem expectationErrorBetaAlphaStar_tendstoInMeasure_of_observed_iid
@@ -27681,8 +27662,10 @@ private noncomputable def expectationErrorFeasibleScoreMiddle
   Matrix.fromBlocks Mββ Mαβᵀ Mαβ Mαα
 
 set_option maxHeartbeats 1200000 in
+-- The covariance pushforward expands a full finite block matrix.
+omit [DecidableEq l] in
 private theorem rawJointOracleMiddle_tendstoInMeasure_of_observed_iid
-    {p : Type*} [Fintype p] [DecidableEq p]
+    {p : Type*} [Fintype p]
     {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
     {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
     {β α : k → ℝ}
@@ -27756,6 +27739,7 @@ private theorem rawJointOracleMiddle_tendstoInMeasure_of_observed_iid
   rw [htarget] at hpush
   simpa [M, T, S, e] using hpush
 
+omit [DecidableEq l] in
 private theorem rawJointOracleMiddle_tendstoInMeasure_theorem12_12
     {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
     {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
@@ -28551,6 +28535,7 @@ private theorem matrix_triple_product_tendstoInMeasure
   simpa [Matrix.mul_apply, Finset.sum_mul] using hsum
 
 set_option maxHeartbeats 2400000 in
+-- The proof assembles all feasible covariance blocks and their substitution limits.
 /-- **Corrected Hansen Theorem 12.12, displayed feasible covariance.**
 
 The literal observed-iid fourth-moment model implies consistency of Hansen's
@@ -28748,6 +28733,7 @@ theorem expectationErrorVHatStar_tendstoInMeasure_theorem12_12_of_observed_iid
             Matrix.transpose_apply] using hab
 
 set_option maxHeartbeats 1200000 in
+-- The endpoint composes the joint CLT with the full feasible covariance proof.
 /-- **Corrected Hansen Theorem 12.12, complete observed-iid endpoint.**
 
 The joint estimator has Hansen's displayed Gaussian limit and the literal
@@ -29165,7 +29151,7 @@ theorem rawJointScore_tendstoInDistribution_multivariateGaussian
   intro m
   exact h.rawJointRootScore_ae_primitive m
 
-omit [DecidableEq k₁] in
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
 /-- Exact four-block covariance of the primitive Theorem 12.13 score. -/
 theorem rawJointScore_covMat_eq_fromBlocks
     {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
@@ -29180,6 +29166,7 @@ theorem rawJointScore_covMat_eq_fromBlocks
         (expectationErrorOmegaUZeNu μ u₂ Z e νe)ᵀ
         (expectationErrorOmegaUZeNu μ u₂ Z e νe)
         (scoreCovMat μ u₂ νe) := by
+  classical
   let h12 := h.toExpectationErrorObservedIidConditions
   let ep := expectationErrorStructuralError X₂
     (controlFunctionPartialOutcome X₁ Y β) (controlFunctionBetaTwo β)
@@ -29584,6 +29571,7 @@ private theorem fullStructuralRawJointRootScore_ae_primitive
   simp [expectationErrorRawJointScoreRow, hie]
 
 set_option maxHeartbeats 2400000 in
+-- The 2SLS linearization expands the raw normal equations and fixed influence map.
 /-- Fixed-influence representation for the upper structural coefficient in
 corrected Theorem 12.13, obtained directly from the existing 2SLS
 linearization. -/
@@ -29688,6 +29676,7 @@ theorem twoSLSBetaStar_fixedInfluence_remainder
   simp [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, Matrix.sub_mulVec]
 
 set_option maxHeartbeats 2400000 in
+-- The partial-outcome reduction reuses the full corrected Theorem 12.12 engine.
 omit [DecidableEq k₁] in
 /-- Fixed-influence representation for the lower `γ` coefficient, obtained
 by applying corrected Theorem 12.12 to the partial outcome. -/
@@ -30291,6 +30280,7 @@ namespace ControlFunctionHansenObservedIidConditions
 
 set_option maxHeartbeats 1200000 in
 -- The proof pushes the primitive score CLT through a rectangular linear map.
+omit [DecidableEq l] in
 /-- The unequal-block influence image has the Gaussian covariance appearing in
 corrected Hansen Theorem 12.13. -/
 theorem rawJointInfluence_tendstoInDistribution_theorem12_13
@@ -30316,6 +30306,7 @@ theorem rawJointInfluence_tendstoInDistribution_theorem12_13
           (scoreCovMat μ Z e)
           (expectationErrorOmegaUZeNu μ u₂ Z e νe)
           (scoreCovMat μ u₂ νe))) := by
+  classical
   let R := controlFunctionExpectationErrorInfluenceMatrix
     (controlFunctionFirstStageLoading A₁ Γ) (popGram μ Z) (popGram μ u₂)
   let S := covMat μ (expectationErrorRawJointScoreRow Z u₂ e νe 0)
@@ -30525,10 +30516,9 @@ variable [Fintype d] [Fintype p] [Fintype q]
 variable [DecidableEq d] [DecidableEq p] [DecidableEq q]
 
 set_option maxHeartbeats 2400000 in
+-- The proof combines three unequal covariance blocks and several substitution limits.
 omit [IsProbabilityMeasure μ] [DecidableEq d] [DecidableEq p]
   [DecidableEq q] in
--- Private unequal-block Slutsky engine shared by the three literal covariance
--- blocks in corrected Hansen Theorem 12.13.
 private theorem unequalBlockFeasibleScoreMiddle_tendstoInMeasure
     {D : (m : ℕ) → Ω → Matrix (Fin m) d ℝ}
     {E N Ehat Nhat : (m : ℕ) → Ω → Fin m → ℝ}
@@ -30963,6 +30953,7 @@ private theorem controlFunctionPopulationOutcomeLoading_mulVec
 
 set_option maxHeartbeats 1200000 in
 -- The finite block-covariance pushforward expands several matrix products.
+omit [DecidableEq l] [DecidableEq k₁] in
 private theorem controlFunctionRawOracleMiddle_tendstoInMeasure_theorem12_13
     {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
     {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
@@ -31012,6 +31003,7 @@ private theorem controlFunctionRawOracleMiddle_tendstoInMeasure_theorem12_13
 
 set_option maxHeartbeats 2400000 in
 -- The unequal-block fixed-score replacement combines all three covariance blocks.
+omit [DecidableEq l] [DecidableEq k₁] in
 private theorem controlFunctionFixedScoreMiddle_tendstoInMeasure_theorem12_13
     {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
     {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
@@ -31526,8 +31518,8 @@ private theorem controlFunctionExpectationErrorFeasibleScoreMiddle_tendstoInMeas
     controlFunctionExpectationErrorFeasibleScoreMiddle] using hmiddle
 
 set_option maxHeartbeats 1200000 in
-omit [DecidableEq k₁] in
 -- The fitted generated-design Gram proof composes several matrix convergence maps.
+omit [DecidableEq k₁] [DecidableEq k₂] in
 private theorem fittedStructuralStar_sampleGram_tendstoInMeasure_of_observed_iid
     {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
     {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
@@ -31852,8 +31844,8 @@ theorem
             Matrix.transpose_apply] using hab
 
 set_option maxHeartbeats 1200000 in
-omit [DecidableEq k₁] in
 -- The full expectation-error Gram bridge combines block limits and rare rank failures.
+omit [DecidableEq k₁] [DecidableEq k₂] in
 private theorem
     controlFunctionExpectationErrorDesignStar_sampleGram_tendstoInMeasure_of_observed_iid
     {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
@@ -31999,9 +31991,11 @@ set_option maxHeartbeats 1600000 in
 /-- **Corrected Hansen Theorem 12.13, complete observed-iid endpoint.**
 
 The actual control-function endogeneity estimator has Hansen's displayed
-Gaussian limit, and the literal robust covariance estimator following the
-theorem is consistent for the same alpha covariance.  All finite-sample rank
-failures are discharged in probability from the observed-iid assumptions. -/
+Gaussian limit, and the correctly normalized robust covariance estimator is
+consistent for the same alpha covariance. This corrects the `1/n` prefactors
+printed on the raw-matrix `Vhat22` and `Vhatgamma2` sandwiches in (12.62).
+All finite-sample rank failures are discharged in probability from the
+observed-iid assumptions. -/
 theorem
     controlFunction_theorem12_13_multivariateGaussian_and_canonicalVHat_of_observed_iid
     {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
@@ -32101,17 +32095,6 @@ theorem
         (μ := μ) (N := m) h.x1_aestronglyMeasurable
         h.x2_aestronglyMeasurable h.z_aestronglyMeasurable
         h.y_aestronglyMeasurable α
-  have halphaVMeas : ∀ m : ℕ, AEStronglyMeasurable
-      (fun ω =>
-        controlFunctionAlphaVHatStar
-          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
-          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ := by
-    intro m
-    simpa [stackRegressors, stackOutcomes] using
-      controlFunctionAlphaVHatStar_aestronglyMeasurable_of_rows
-        (μ := μ) (N := m) h.x1_aestronglyMeasurable
-        h.x2_aestronglyMeasurable h.z_aestronglyMeasurable
-        h.y_aestronglyMeasurable
   have hVMeas : ∀ m : ℕ, AEStronglyMeasurable
       (fun ω =>
         controlFunctionExpectationErrorVHatStar
@@ -32136,7 +32119,7 @@ theorem
       (μ := μ) (ν := νV) (βEE := controlFunctionExpectationErrorTarget β α)
       (α := α) (G := G) (VEE := VEE)
       (controlFunctionEndogeneityMap_mulVec_expectationErrorTarget β α)
-      hnonsing hcoef hG hVpsd halphaMeas halphaVMeas hVMeas hV
+      hnonsing hcoef hG hVpsd halphaMeas hVMeas hV
   have hcov :
       controlFunctionEndogeneityMap * VEE *
           (controlFunctionEndogeneityMap)ᵀ = Vα := by

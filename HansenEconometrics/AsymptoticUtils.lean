@@ -106,10 +106,32 @@ theorem tendstoInMeasure_continuous_comp
 
 /-- **Local continuous mapping theorem for convergence in probability to a constant.**
 
+This direct form needs no measurability premise.  It compares the transformed
+tail event with an input tail event, and `Measure` evaluates arbitrary sets via
+its underlying outer measure. -/
+theorem tendstoInMeasure_continuousAt_const_comp_without_measurability
+    [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {f : ℕ → α → E} {x : E} {h : E → F}
+    (hfx : TendstoInMeasure μ f atTop (fun _ => x))
+    (hh : ContinuousAt h x) :
+    TendstoInMeasure μ (fun n ω => h (f n ω)) atTop (fun _ => h x) := by
+  rw [tendstoInMeasure_iff_dist] at hfx ⊢
+  intro ε hε
+  obtain ⟨δ, hδ, hδ_imp⟩ := (Metric.continuousAt_iff.mp hh) ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    (hfx δ hδ) (fun _ => zero_le _) (fun n => ?_)
+  refine measure_mono (fun ω hω => ?_)
+  by_contra hnot
+  have hlt : dist (f n ω) x < δ := lt_of_not_ge hnot
+  exact (not_lt_of_ge hω) (hδ_imp hlt)
+
+/-- **Measurable-space compatibility form of the local continuous mapping theorem.**
+
 If `f n →ₚ x` and `h` is continuous at `x`, then `h (f n) →ₚ h x`, provided
-the composed sequence is a.e. strongly measurable. The explicit measurability
-premise is necessary because continuity at one point does not imply global
-measurability of `h`. -/
+the input and composed sequences are a.e. strongly measurable.  The stronger
+metric-space theorem
+`tendstoInMeasure_continuousAt_const_comp_without_measurability` is preferred
+when those technical premises are not part of the mathematical statement. -/
 theorem tendstoInMeasure_continuousAt_const_comp
     [IsFiniteMeasure μ]
     [PseudoEMetricSpace E] [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]

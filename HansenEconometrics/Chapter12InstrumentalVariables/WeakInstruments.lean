@@ -14,10 +14,11 @@ LIML eigenvalue primitive is the finite-sample generalized Rayleigh pair
 `([Y X]'P_Z[Y X], n^{-1}[Y X]'M_Z[Y X])`; the corresponding limit pair uses
 Hansen's full reduced-form Gaussian matrix and covariance `Σ`.
 
-The literal triangular-array endpoint is
-`weakIV_theorem12_18_triangular_estimators`. It derives all three actual Star
-estimator limits from raw iid moments, the generalized-pencil selector
-certificate, and explicit limiting-bread nondegeneracy assumptions.
+The canonical corrected triangular-array endpoint is
+`weakIV_theorem12_18_triangular_estimators_of_raw_moments`. It derives all
+three actual Star-estimator limits from raw iid moments, constructs the
+generalized-pencil selector from the concrete smallest root, and states the
+limiting-bread nondegeneracy assumptions omitted by the printed theorem.
 
 Older assembly and structural-block Rayleigh interfaces are retained under
 `WeakIVCompatibility`.  They are proof support only and are not canonical
@@ -823,8 +824,10 @@ noncomputable def weakIVLIMLGeneralizedRayleighQuotient
 generalized eigenvalue and its weak-IV limit.
 
 The same scalar is required to minimize only the full reduced-form quotient,
-first against the random sample residual covariance and then against its limit
-`Σ`.  No X-only minimizer or nonpositive-Rayleigh condition is present. -/
+first against every regular random sample residual covariance and then against
+its limit `Σ`. At `m = 0` the sample denominator is zero, so the finite-sample
+minimum is required only off `selectorBad`. No X-only minimizer or
+nonpositive-Rayleigh condition is present. -/
 structure WeakIVLIMLGeneralizedEigenvalueSelectorCertificate
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
     (Y : ℕ → Ω → ℝ) (limlMuHat : ℕ → Ω → ℝ)
@@ -854,8 +857,9 @@ structure WeakIVLIMLGeneralizedEigenvalueSelectorCertificate
       muSelector
         (weakIVLIMLGeneralizedEigenvalueLimitPrimitive
           QZZ C Xi2 xie β Sigma η)
-  finite_sample_rayleigh_minimizer : ∀ m ω,
+  finite_sample_rayleigh_minimizer_of_regular : ∀ m ω,
     let p := weakIVLIMLGeneralizedEigenvalueSamplePrimitive Z X Y m ω
+    p ∉ selectorBad →
     LIMLRayleighMinimizer p.1 p.2 (limlMuHat m ω)
   limit_rayleigh_minimizer : ∀ η,
     LIMLRayleighMinimizer
@@ -2495,9 +2499,9 @@ proof stack.  They are not the canonical Hansen Theorem 12.18 surface:
 * root-assembly packages that already contain joint convergence with `µhat`
   are support interfaces, not derivations of Hansen's eigenvalue limit.
 
-Use `WeakIVLIMLGeneralizedEigenvalueSelectorCertificate` and
-`weakIV_estimators_minus_beta_of_generalizedEigenvalueAssembly` for the
-canonical theorem route.
+Use `weakIV_theorem12_18_triangular_estimators_of_raw_moments` for the
+canonical corrected theorem route. The selector certificate and assembly
+declarations below remain reusable proof infrastructure.
 -/
 namespace WeakIVCompatibility
 
@@ -14655,11 +14659,12 @@ theorem weakIV_estimators_minus_beta_of_generalizedEigenvalueAssembly
 
 /-! ## Raw local-to-zero model
 
-The canonical endpoint above consumes the exact finite-sample generalized
-eigenvalue primitive.  The declarations below record the lower raw model that
-produces Hansen's Gaussian matrix.  In particular, the sample-size argument is
-kept separate from the row argument: (12.71) is a triangular array and cannot
-be represented by prefixes of one fixed regressor sequence.
+The assembly endpoint above consumes the exact finite-sample generalized
+eigenvalue primitive. The declarations below record the lower raw model that
+produces Hansen's Gaussian matrix and culminate in the canonical corrected
+raw-moment endpoint. In particular, the sample-size argument is kept separate
+from the row argument: (12.71) is a triangular array and cannot be represented
+by prefixes of one fixed regressor sequence.
 -/
 
 /-- Hansen's local-to-zero first stage (12.71),

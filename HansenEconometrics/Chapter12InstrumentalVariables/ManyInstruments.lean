@@ -297,10 +297,11 @@ private theorem instrumentProjectionStar_sum_sq_eq_trace
 
 omit [Fintype k] [DecidableEq k] in
 private theorem instrumentProjectionStar_sum_sq_le_card
-    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
     (Z : Matrix n l ℝ) :
     (∑ i, ∑ j, instrumentProjectionStar Z i j ^ 2) ≤
       (Fintype.card n : ℝ) := by
+  classical
   rw [instrumentProjectionStar_sum_sq_eq_trace]
   have hHermitian : (instrumentProjectionStar Z).IsHermitian := by
     simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
