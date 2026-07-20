@@ -97,7 +97,40 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- not started
+- Chapter 14 is substantially complete across fourteen modules: the chapter core
+  (`Chapter14TimeSeries`, `Chapter14MDS`, `Chapter14Deterministic`, `Chapter14ARInversion`,
+  `Chapter14LinearProcess`), a reusable ergodic-theory stack (`ErgodicTheory/PathShift`,
+  `ErgodicTheory/Koopman`, `ErgodicTheory/MeanErgodic`), and the dependence, projection, CLT, and
+  least-squares layers (`Chapter14Mixing`, `Chapter14WoldL2`, `Chapter14CLT` +
+  `Chapter14CLTDischarge`, `Chapter14ARMA`, `Chapter14LSAsymptotics`).
+- All fourteen modules are registered in `HansenEconometrics.lean` and the chapter builds green
+  under `lake build`. A `#print axioms` audit over the chapter's endpoint theorems reports exactly
+  `[propext, Classical.choice, Quot.sound]` — no `sorryAx`, no custom axioms, no `native_decide`.
+- Results are labelled below in three tiers: full unconditional proofs, bundle-conditional results
+  (a `ScoreCLTConditions`-style bundle carrying Hansen's hypotheses plus one analytic
+  characteristic-function field, following the Chapter 7 precedent), and documented deferrals.
+
+**Full unconditional proofs.** 14.1–14.3 and 14.10; ergodicity 14.4/14.5/14.6/14.7/14.8
+and the ergodic theorem 14.9 (Hansen's L¹-and-in-probability form — pointwise/a.s. Birkhoff is
+deliberately out of scope, see below); mixing 14.12/14.13/14.14; Wold 14.16/14.17/14.18; AR/ARMA
+14.20/14.21/14.22/14.23/14.24 (now fully closed, power-series identity included)/14.25 and 14.36;
+identification 14.27/14.28; least-squares consistency 14.29 and 14.35(a); covariance-matrix
+estimation 14.33(a). Several of these are strictly more general than Hansen's statement (14.5, 14.6,
+14.12 — see the per-row notes).
+
+**Bundle-conditional.** A `ScoreCLTConditions`-style bundle carries Hansen's genuine hypotheses plus
+one analytic characteristic-function field. **14.11** (MDS CLT) is *partially discharged*: the analytic
+field is proven outright for a bounded MDS with constant conditional variance, and for the bounded
+stationary-ergodic case via the McLeish exact martingale (`Chapter14CLTDischarge`); the only delta to
+Hansen's literal statement is unboundedness (a future truncation layer). **14.15** (mixing/Gordin CLT):
+the full Gordin core is proven, the endpoint is bundle-conditional, and the a.e. Gordin decomposition
+identity is left open. **14.30/14.31/14.32**, **14.33(b)**, **14.35(b)(c)**: asymptotic-normality
+endpoints conditional on the relevant vector CLT bundle (`MDSCLTConditionsVec` or
+`MixingCLTConditionsVec`); their surrounding mathematics (identification, Slutsky assembly, and the
+full Ω-convergence-under-mixing lemma) is formalized.
+
+**Documented deferrals** (external-citation results with no Mathlib route; blank Lean cell + note):
+14.19 (Wiener–Masani 1958), 14.26 (Pham–Tran β-mixing), 14.34 (B.E. Hansen 1992 HAC).
 
 ## LaTeX / Lean Crosswalk
 
@@ -117,43 +150,115 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 14.1 | If Yt is i.i.d., then it strictly stationary. |  |
-| Theorem 14.2 | If Yt is strictly stationary and Xt = φ(Yt ,Yt −1,Yt −2,...) ∈ Rq is a |  |
-| Theorem 14.3 | If Yt is strictly stationary, E |#124;Y |#124;< ∞, and ∑∞ |  |
-| Theorem 14.4 | If Yt ∈ Rm is i.i.d. then it strictly stationary and ergodic. |  |
-| Theorem 14.5 | If Yt ∈ Rm is strictly stationary and ergodic and Xt = |  |
-| Theorem 14.6 | If Yt is strictly stationary, ergodic, E |#124;Y |#124;< ∞, and ∑∞ |  |
-| Theorem 14.7 | If Yt ∈ R is strictly stationary, ergodic, and E |  |
-| Theorem 14.8 | A stationary series Yt ∈ Rm is ergodic iff for all events A and B |  |
-| Theorem 14.9 | Ergodic Theorem . |  |
-| Theorem 14.10 | If (et , Ft ) is a MDS and E |  |
-| Theorem 14.11 | MDS CLT If ut is a strictly stationary and ergodic martingale |  |
-| Theorem 14.12 | If Yt has mixing coefﬁcients αY (ℓ) and Xt = |  |
-| Theorem 14.13 | Let F t |  |
-| Theorem 14.14 | If Yt is i.i.d. then it is strong mixing and ergodic. |  |
-| Theorem 14.15 | If ut is strictly stationary with mixing coefﬁcientsα(ℓ), E[ut ] = |  |
-| Theorem 14.16 | If Yt ∈ R is covariance stationary it has the projection equation |  |
-| Theorem 14.17 | The Wold Decomposition If Yt is covariance stationary and |  |
-| Theorem 14.18 | If Yt is covariance stationary and non-deterministic then Yt |  |
-| Theorem 14.19 | If Yt is covariance stationary, non-deterministic, with Wold |  |
-| Theorem 14.21 | If E |#124;et |#124;< ∞ and |#124;α1|#124;< 1 then the AR(1) process (14.25) has the |  |
-| Theorem 14.22 | If E |#124;et |#124;< ∞ and |  |
-| Theorem 14.23 | If E |#124;et |#124;< ∞ and all roots of α(z) lie outside the unit circle then |  |
-| Theorem 14.24 | If all roots r j of the autoregressive polynomial α(z) satisfy⏐⏐r j |  |
-| Theorem 14.25 | The ARMA(p,q) process (14.38) is strictly stationary and er- |  |
-| Theorem 14.26 | Suppose that Yt = µ + ∑∞ |  |
-| Theorem 14.27 | In the AR(p) model (14.38), if 0 < σ2 < ∞ then Q > 0 and α is |  |
-| Theorem 14.28 | If Yt is strictly stationary, not purely deterministic, and |  |
-| Theorem 14.29 | If Yt is strictly stationary, ergodic, not purely deterministic, |  |
-| Theorem 14.30 | If Yt follows the AR(p) model (14.38), all roots of a(z) lie out- |  |
-| Theorem 14.31 | Under the assumptions of Theorem 14.30, if in addition |  |
-| Theorem 14.32 | Assume that Yt is strictly stationary, ergodic, and for somer > |  |
-| Theorem 14.33 | Under the assumptions of Theorem 14.32, as n → ∞, ˆV − →p V |  |
-| Theorem 14.34 | Under the assumptions of Theorem 14.32 plus∑∞ |  |
-| Theorem 14.35 | If (Yt , Xt ) is strictly stationary, ergodic, with ﬁnite second mo- |  |
-| Theorem 14.36 | For any r > 0, as n → ∞, n−1−r ∑n |  |
+| Definition 14.2 | {Yt} is strictly stationary if the joint distribution of (Yt, ..., Yt+ℓ) is independent of t. | [`ProbabilityTheory.IsStrictlyStationary`](../HansenEconometrics/Chapter14TimeSeries.lean) |
+| Theorem 14.1 | If Yt is i.i.d., then it strictly stationary. | [`ProbabilityTheory.IsStrictlyStationary.of_iid`](../HansenEconometrics/Chapter14TimeSeries.lean) |
+| Definition (§14.14) | Yt is covariance stationary if E[Yt] is constant in t and cov(Yt, Yt+h) depends only on h. The Lean form weakens "constant" to shift-invariant, since the index type only carries `[Add ι]`. | [`ProbabilityTheory.IsCovarianceStationary`](../HansenEconometrics/Chapter14TimeSeries.lean) |
+| Definition (§14.14) | Autocovariance γ(h) = cov(Yt, Yt+h); for covariance-stationary Yt this depends only on h. The Lean form provides both `autocovAt X P t h` (time-`t` autocovariance at lag `h`) and `autocov X P h` (canonical lag-only form anchored at index `0`, requires `[Zero ι]`). | [`ProbabilityTheory.autocovAt`](../HansenEconometrics/Chapter14TimeSeries.lean), [`ProbabilityTheory.autocov`](../HansenEconometrics/Chapter14TimeSeries.lean) |
+| Lean-only bridge | A strictly stationary, L²(P) process is covariance stationary. Not a numbered Hansen theorem; bridges Definition 14.2 to the §14.14 setting. | [`ProbabilityTheory.IsStrictlyStationary.isCovarianceStationary`](../HansenEconometrics/Chapter14TimeSeries.lean) |
+| §14.14 (autocovariance algebra) | γ(0) = Var(Y₀); for covariance-stationary Y the autocovariance depends only on the lag (`autocovAt t h = autocov h`); and γ(−h) = γ(h). | [`ProbabilityTheory.autocov_zero`](../HansenEconometrics/Chapter14TimeSeries.lean), [`ProbabilityTheory.IsCovarianceStationary.autocovAt_eq_autocov`](../HansenEconometrics/Chapter14TimeSeries.lean), [`ProbabilityTheory.IsCovarianceStationary.autocov_neg`](../HansenEconometrics/Chapter14TimeSeries.lean) |
+| Theorem 14.2 | If Yt is strictly stationary and Xt = φ(Yt ,Yt −1,Yt −2,...) ∈ Rq is a random vector then Xt is strictly stationary. Lean form is more general: any measurable shift-equivariant functional of the whole path (the causal history is the special case); discrete-time `[Countable ι]`. | [`ProbabilityTheory.IsStrictlyStationary.comp_shiftEquivariant`](../HansenEconometrics/Chapter14TimeSeries.lean) (uses bridge [`identDistrib_path`](../HansenEconometrics/Chapter14TimeSeries.lean)) |
+| Theorem 14.3 | If Yt is strictly stationary, E|Y|< ∞, and ∑∞ⱼ|aⱼ|< ∞, then Xt = ∑aⱼY_{t−j} converges a.s. and is strictly stationary. | [`ProbabilityTheory.linearProcess_summable_ae`](../HansenEconometrics/Chapter14LinearProcess.lean) (a.s. convergence), [`ProbabilityTheory.IsStrictlyStationary.linearProcess`](../HansenEconometrics/Chapter14LinearProcess.lean) (stationarity) |
+| Theorem 14.4 | If Yt ∈ Rm is i.i.d. then it strictly stationary and ergodic. | Ergodic half [`IsErgodicProcess.of_iid`](../HansenEconometrics/ErgodicTheory/PathShift.lean) (stationary half is [`IsStrictlyStationary.of_iid`](../HansenEconometrics/Chapter14TimeSeries.lean), Thm 14.1); Bernoulli-shift engine [`ergodic_pathShift_infinitePi`](../HansenEconometrics/ErgodicTheory/PathShift.lean) via [`ergodic_pathShift_of_pathLaw_eq_infinitePi`](../HansenEconometrics/ErgodicTheory/PathShift.lean). |
+| Theorem 14.5 | If Yt ∈ Rm is strictly stationary and ergodic and Xt = | [`IsErgodicProcess.comp_shiftEquivariant`](../HansenEconometrics/ErgodicTheory/PathShift.lean). More general than Hansen: needs only `Measurable φ` + coordinatewise `AEMeasurable (Y t)` — no strict-stationarity or probability-measure hypothesis (ergodic companion of Thm 14.2). |
+| Theorem 14.6 | If Yt is strictly stationary, ergodic, E \|Y\|< ∞, and ∑∞ | Ergodic half [`IsErgodicProcess.linearProcess`](../HansenEconometrics/Chapter14LinearProcess.lean) (stationarity half [`IsStrictlyStationary.linearProcess`](../HansenEconometrics/Chapter14LinearProcess.lean) + a.s. convergence [`linearProcess_summable_ae`](../HansenEconometrics/Chapter14LinearProcess.lean) are Thm 14.3); the ergodicity conclusion uses only ergodicity + coordinatewise `AEMeasurable` (no integrability/summability, since the `tsum` functional is total). |
+| Theorem 14.7 | If Yt ∈ R is strictly stationary, ergodic, and E | [`IsErgodicProcess.cesaro_autocov_tendsto_zero`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean). |
+| Theorem 14.8 | A stationary series Yt ∈ Rm is ergodic iff for all events A and B | [`isErgodicProcess_iff_cesaro_inter`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean) (events on path space; engines [`Ergodic.tendsto_cesaro_measureReal_inter`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean) forward, [`Ergodic.of_cesaro_inter`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean) converse). |
+| Theorem 14.9 | Ergodic Theorem . | [`IsErgodicProcess.tendsto_average_eLpNorm_one`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean) (L¹) and [`IsErgodicProcess.tendstoInMeasure_average`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean) (in probability), vector form [`tendstoInMeasure_average_pi`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean). Hansen's exact L¹/probability statement (not a.s.); no separate stationarity hypothesis. Backend: L¹ MET [`Ergodic.tendsto_birkhoffAverage_integral_L1`](../HansenEconometrics/ErgodicTheory/MeanErgodic.lean) over the von Neumann MET ([Koopman](../HansenEconometrics/ErgodicTheory/Koopman.lean)). |
+| Definition 14.4 | (et, Ft) is a martingale difference sequence: et adapted, integrable, with E[et | F_{t−1}] = 0. | [`ProbabilityTheory.IsMDS`](../HansenEconometrics/Chapter14MDS.lean) |
+| Theorem 14.10 | If (et, Ft) is a MDS and E[et²]< ∞ then et is serially uncorrelated (cov(et, e_{t−k}) = 0 for k ≥ 1), i.e. white noise. | [`ProbabilityTheory.IsMDS.covariance_eq_zero`](../HansenEconometrics/Chapter14MDS.lean) (mean-zero: [`IsMDS.integral_eq_zero`](../HansenEconometrics/Chapter14MDS.lean)) |
+| Theorem 14.11 | MDS CLT If ut is a strictly stationary and ergodic martingale | *(conditional on the bundle)* [`MDSCLTConditions`](../HansenEconometrics/Chapter14CLT.lean) + [`.central_limit`](../HansenEconometrics/Chapter14CLT.lean) (scalar), [`MDSCLTConditionsVec`](../HansenEconometrics/Chapter14CLT.lean) + [`.central_limit`](../HansenEconometrics/Chapter14CLT.lean) (vector, Cramér–Wold). The bundle carries Hansen's genuine hypotheses plus one analytic `charFun_tendsto` field. **Partial discharge** ([Chapter14CLTDischarge.lean](../HansenEconometrics/Chapter14CLTDischarge.lean)): the field is proven outright for bounded MDS — [`MDSCLTConditions.of_bounded_constCondVar`](../HansenEconometrics/Chapter14CLTDischarge.lean) (constant conditional variance) and [`MDSCLTConditions.of_bounded_ergodic`](../HansenEconometrics/Chapter14CLTDischarge.lean) (stationary-ergodic, McLeish route). Remaining delta to Hansen's literal statement: unboundedness (truncation, future work). |
+| Theorem 14.12 | If Yt has mixing coefﬁcients αY (ℓ) and Xt = | [`mixingCoeff_comp_le`](../HansenEconometrics/Chapter14Mixing.lean). More general than Hansen: the finite-lag functional bound needs no measurability hypothesis on X (only `Measurable φ`). |
+| Theorem 14.13 | Let F t | Three covariance inequalities: bounded [`abs_covariance_le_alphaDep_of_bounded`](../HansenEconometrics/Chapter14Mixing.lean) (const 4), conditional-expectation Lᵖ [`integral_abs_condExp_sub_le_eLpNorm`](../HansenEconometrics/Chapter14Mixing.lean) / [`integral_abs_condExp_le_eLpNorm`](../HansenEconometrics/Chapter14Mixing.lean) (const 6), and Lʳ×Lᵠ [`abs_covariance_le_alphaDep_of_memLp`](../HansenEconometrics/Chapter14Mixing.lean) (const 8). Documented deviation: the last three carry `hα : 0 < alphaDep` (implicit in Hansen). |
+| Theorem 14.14 | If Yt is i.i.d. then it is strong mixing and ergodic. | Mixing half [`iid_mixingCoeff_eq_zero`](../HansenEconometrics/Chapter14Mixing.lean) / [`iid_isStrongMixing`](../HansenEconometrics/Chapter14Mixing.lean); ergodic half is Thm 14.4 [`IsErgodicProcess.of_iid`](../HansenEconometrics/ErgodicTheory/PathShift.lean). |
+| Theorem 14.15 | If ut is strictly stationary with mixing coefﬁcientsα(ℓ), E[ut ] = | *(conditional on the bundle)* [`MixingCLTConditions`](../HansenEconometrics/Chapter14CLT.lean) + [`.central_limit`](../HansenEconometrics/Chapter14CLT.lean). Full Gordin core: [`summable_autocov_of_mixing`](../HansenEconometrics/Chapter14CLT.lean) (+ [`summable_autocov_succ_of_mixing`](../HansenEconometrics/Chapter14CLT.lean)), [`longRunVariance`](../HansenEconometrics/Chapter14CLT.lean), [`gordin_condExp_summable`](../HansenEconometrics/Chapter14CLT.lean). Not closed: the a.e. Gordin decomposition identity (documented on `gordin_condExp_summable`). |
+| Theorem 14.16 | If Yt ∈ R is covariance stationary it has the projection equation | White-noise properties of the one-step Wold error: [`integral_woldError_eq_zero`](../HansenEconometrics/Chapter14WoldL2.lean) (mean zero), [`inner_woldError_woldError_eq_zero`](../HansenEconometrics/Chapter14WoldL2.lean) (serial uncorrelatedness), [`variance_woldError_pathCoord`](../HansenEconometrics/Chapter14WoldL2.lean) (stationary error variance via the lag isometry [`lagIsometryL2`](../HansenEconometrics/Chapter14WoldL2.lean)). |
+| Theorem 14.17 | The Wold Decomposition If Yt is covariance stationary and | [`wold_decomposition`](../HansenEconometrics/Chapter14WoldL2.lean) (coordinate process on path space): coefficients [`woldCoeff`](../HansenEconometrics/Chapter14WoldL2.lean), [`woldCoeff_zero`](../HansenEconometrics/Chapter14WoldL2.lean) (b₀ = 1), orthonormal errors [`orthonormal_woldError_smul`](../HansenEconometrics/Chapter14WoldL2.lean), Bessel summability [`summable_sq_woldCoeff`](../HansenEconometrics/Chapter14WoldL2.lean), projection tower [`starProjection_pastSpan_sub_eq`](../HansenEconometrics/Chapter14WoldL2.lean). Abstract backend: [`Submodule.starProjection_tendsto_iInf_of_antitone`](../HansenEconometrics/Chapter14WoldL2.lean). |
+| Theorem 14.18 | If Yt is covariance stationary and non-deterministic then Yt | [`wold_decomposition_of_nonDeterministic`](../HansenEconometrics/Chapter14WoldL2.lean) + [`IsNonDeterministic`](../HansenEconometrics/Chapter14WoldL2.lean). |
+| Theorem 14.19 | If Yt is covariance stationary, non-deterministic, with Wold | *(deferred — Wiener–Masani 1958; comment block in [Chapter14WoldL2.lean](../HansenEconometrics/Chapter14WoldL2.lean))* |
+| Theorem 14.20 | ∑βᵏ = 1/(1−β) (absolutely convergent) for \|β\|< 1. | [`HansenTimeSeries.tsum_geometric_eq`](../HansenEconometrics/Chapter14Deterministic.lean) |
+| Theorem 14.21 | If E\|et\|< ∞ and \|α₁\|< 1 then the AR(1) process has the convergent MA(∞) representation Yt = µ + ∑α₁ʲe_{t−j}, strictly stationary and ergodic. | [`ar1Process_strictlyStationary`](../HansenEconometrics/Chapter14LinearProcess.lean), [`ar1Process_ergodic`](../HansenEconometrics/Chapter14LinearProcess.lean), [`ar1Process_summable_ae`](../HansenEconometrics/Chapter14LinearProcess.lean), [`ar1Process_recursion`](../HansenEconometrics/Chapter14LinearProcess.lean), [`ar1Innovations_strictlyStationary`](../HansenEconometrics/Chapter14LinearProcess.lean) |
+| Theorem 14.22 | AR(2) is stationary iff the roots of λ²−α₁λ−α₂ have modulus < 1, equivalently α₁+α₂<1 ∧ α₂−α₁<1 ∧ α₂>−1 (the §14.47 algebra). Lean covers the **algebraic root-region equivalence** and now the strict-stationarity/ergodicity conclusion (the p = 2 instance of Thm 14.23). | [`ar2Process_stationary_ergodic`](../HansenEconometrics/Chapter14ARMA.lean); root region [`HansenTimeSeries.ar2_roots_in_unit_disk_iff`](../HansenEconometrics/Chapter14Deterministic.lean) (+ [`charpoly_companion_ar2`](../HansenEconometrics/Chapter14Deterministic.lean), [`jury_conditions_iff_stationarity_triangle`](../HansenEconometrics/Chapter14Deterministic.lean)) |
+| Theorem 14.23 | If E \|et\|< ∞ and all roots of α(z) lie outside the unit circle then the AR(p) process has a strictly stationary, ergodic MA(∞) solution satisfying the recursion. | MA(∞) solution [`arProcess`](../HansenEconometrics/Chapter14ARMA.lean): [`arProcess_summable_ae`](../HansenEconometrics/Chapter14ARMA.lean), [`arProcess_strictlyStationary`](../HansenEconometrics/Chapter14ARMA.lean), [`arProcess_ergodic`](../HansenEconometrics/Chapter14ARMA.lean) (i.i.d. corollary [`arProcess_ergodic_of_iid`](../HansenEconometrics/Chapter14ARMA.lean)), [`arProcess_recursion`](../HansenEconometrics/Chapter14ARMA.lean); coefficient crux [`arCoeffReal_recurrence`](../HansenEconometrics/Chapter14ARMA.lean). Innovations = stationary ergodic white noise (not assumed i.i.d.), per Hansen. |
+| Theorem 14.24 | If all roots rⱼ of α(z) satisfy \|rⱼ\|>1 then b(z)=α(z)⁻¹=∑bⱼzʲ has \|bⱼ\| ≤ (j+1)ᵖλʲ and ∑\|bⱼ\|<∞, λ=maxⱼ\|rⱼ⁻¹\|<1. **Now fully closed**, including the power-series identity b(z)=α(z)⁻¹. | Bound [`norm_arInverseCoeff_le`](../HansenEconometrics/Chapter14ARInversion.lean), summability [`summable_arInverseCoeff`](../HansenEconometrics/Chapter14ARInversion.lean), identity b(z)·α(z)=1 in ℂ⟦X⟧ [`arInverseCoeff_mul_arPoly`](../HansenEconometrics/Chapter14ARInversion.lean) / [`mk_arInverseCoeff_eq_inv`](../HansenEconometrics/Chapter14ARInversion.lean), realness [`starRingEnd_arInverseCoeff`](../HansenEconometrics/Chapter14ARInversion.lean) (coefficient [`arInverseCoeff`](../HansenEconometrics/Chapter14ARInversion.lean)) |
+| Theorem 14.25 | The ARMA(p,q) process (14.38) is strictly stationary and er- | [`armaProcess`](../HansenEconometrics/Chapter14ARMA.lean) = the AR(p) engine driven by the finite MA innovation [`maProcess`](../HansenEconometrics/Chapter14ARMA.lean): [`armaProcess_summable_ae`](../HansenEconometrics/Chapter14ARMA.lean), [`armaProcess_strictlyStationary`](../HansenEconometrics/Chapter14ARMA.lean), [`armaProcess_ergodic`](../HansenEconometrics/Chapter14ARMA.lean) ([`armaProcess_ergodic_of_iid`](../HansenEconometrics/Chapter14ARMA.lean)), [`armaProcess_recursion`](../HansenEconometrics/Chapter14ARMA.lean). |
+| Theorem 14.26 | Suppose that Yt = µ + ∑∞ | *(deferred — Pham–Tran β-mixing; notes in [Chapter14Mixing.lean](../HansenEconometrics/Chapter14Mixing.lean) and [Chapter14ARMA.lean](../HansenEconometrics/Chapter14ARMA.lean))* |
+| Theorem 14.27 | In the AR(p) model (14.38), if 0 < σ2 < ∞ then Q > 0 and α is | [`arGram_posDef_of_ar`](../HansenEconometrics/Chapter14LSAsymptotics.lean) (Q ≻ 0 for the AR(p) design; instance of Thm 14.28), projection coefficient [`arProjCoeff`](../HansenEconometrics/Chapter14LSAsymptotics.lean) and normal equation [`arGram_mulVec_arProjCoeff`](../HansenEconometrics/Chapter14LSAsymptotics.lean). |
+| Theorem 14.28 | If Yt is strictly stationary, not purely deterministic, and | [`arGram_posDef`](../HansenEconometrics/Chapter14LSAsymptotics.lean) — the primary statement (the proof never uses AR correctness, so 14.27 is its instance, per Hansen's own remark). |
+| Theorem 14.29 | If Yt is strictly stationary, ergodic, not purely deterministic, | [`arLS_consistent`](../HansenEconometrics/Chapter14LSAsymptotics.lean) (Star-convention estimators [`arGramHat`](../HansenEconometrics/Chapter14LSAsymptotics.lean), [`arCrossHat`](../HansenEconometrics/Chapter14LSAsymptotics.lean), [`arLSStar`](../HansenEconometrics/Chapter14LSAsymptotics.lean)). |
+| Theorem 14.30 | If Yt follows the AR(p) model (14.38), all roots of a(z) lie out- | *(conditional on [`MDSCLTConditionsVec`](../HansenEconometrics/Chapter14CLT.lean) for the score)* [`arLS_asymptoticNormal`](../HansenEconometrics/Chapter14LSAsymptotics.lean) + [`ARModelConditions`](../HansenEconometrics/Chapter14LSAsymptotics.lean); score-is-MDS [`scoreIsMDS`](../HansenEconometrics/Chapter14LSAsymptotics.lean), identification [`arProjCoeff_eq_coeff`](../HansenEconometrics/Chapter14LSAsymptotics.lean). |
+| Theorem 14.31 | Under the assumptions of Theorem 14.30, if in addition | *(conditional on the score bundle)* [`arLS_asymptoticNormal_homoskedastic`](../HansenEconometrics/Chapter14LSAsymptotics.lean); the covariance identification Σ = σ²Q (`covMat_eq_smul_arGram`) is proven fully. |
+| Theorem 14.32 | Assume that Yt is strictly stationary, ergodic, and for somer > | *(conditional on [`MixingCLTConditionsVec`](../HansenEconometrics/Chapter14LSAsymptotics.lean) for the score)* [`arLS_asymptoticNormal_mixing`](../HansenEconometrics/Chapter14LSAsymptotics.lean) + [`ARMixingConditions`](../HansenEconometrics/Chapter14LSAsymptotics.lean). Full piece: [`summable_autocov_scoreProj_of_mixing`](../HansenEconometrics/Chapter14LSAsymptotics.lean) (Ω-convergence at Hansen's exact 1−4/r rate). |
+| Theorem 14.33 | Under the assumptions of Theorem 14.32, as n → ∞, ˆV − →p V | (a) FULL: residual-variance and homoskedastic-sandwich consistency [`arSigmaSqHat_consistent`](../HansenEconometrics/Chapter14LSAsymptotics.lean), [`arVHat_consistent`](../HansenEconometrics/Chapter14LSAsymptotics.lean). (b) t-ratio: deferred (needs 14.30's √n-normality). Docstring flags Hansen's textual slip: "assumptions of Theorem 14.32" should read 14.30 (correct specification); formalized against [`ARModelConditions`](../HansenEconometrics/Chapter14LSAsymptotics.lean). |
+| Theorem 14.34 | Under the assumptions of Theorem 14.32 plus∑∞ | *(deferred — B.E. Hansen 1992 HAC; note in [Chapter14LSAsymptotics.lean](../HansenEconometrics/Chapter14LSAsymptotics.lean))* |
+| Theorem 14.35 | If (Yt , Xt ) is strictly stationary, ergodic, with ﬁnite second mo- | (a) FULL consistency [`tsRegression_consistent`](../HansenEconometrics/Chapter14LSAsymptotics.lean) + [`TSRegressionConditions`](../HansenEconometrics/Chapter14LSAsymptotics.lean); (b) [`tsRegression_asymptoticNormal`](../HansenEconometrics/Chapter14LSAsymptotics.lean) *(conditional on `MDSCLTConditionsVec`, MDS score)*; (c) [`tsRegression_asymptoticNormal_mixing`](../HansenEconometrics/Chapter14LSAsymptotics.lean) *(conditional on `MixingCLTConditionsVec`, α-mixing score)*. |
+| Theorem 14.36 | For any r > 0, as n → ∞, n^{−1−r} ∑_{t=1}^n tʳ → 1/(1+r). | [`HansenTimeSeries.tendsto_sum_pow_rpow`](../HansenEconometrics/Chapter14Deterministic.lean) |
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- This is a theorem-surface map for the chapter. The Lean column names a real theorem where one
+  exists; bundle-conditional results are marked *(conditional on …)*, and documented deferrals carry
+  an italic *(deferred — …)* note instead of a theorem link.
+
+### Lean-only bridge / supporting results
+- `ProbabilityTheory.IsStrictlyStationary.identDistrib_path` — full-path shift-invariance form of
+  strict stationarity (engine behind Theorem 14.2).
+- `HansenTimeSeries.charpoly_companion_ar2` — 2×2 companion-matrix determinant identity
+  det(λ·I − A) = λ²−α₁λ−α₂ over any commutative ring (supports 14.22/14.23).
+- `HansenTimeSeries.jury_conditions_iff_stationarity_triangle` — real arithmetic equivalence
+  (|α₂|<1 ∧ |α₁|<1−α₂) ↔ (α₁+α₂<1 ∧ α₂−α₁<1 ∧ α₂>−1).
+- `ProbabilityTheory` linear-process helper `measurable_tsum_real` (private) — measurability of a
+  signed real `tsum`; load-bearing for the `comp_shiftEquivariant` applications in 14.3/14.21.
+- `ProbabilityTheory.ergodic_pathShift_infinitePi` — **Bernoulli-shift ergodicity**: the coordinate
+  shift is ergodic for a countable i.i.d. product `Measure.infinitePi`, by cylinder approximation.
+  The reusable engine behind 14.4/14.14 (through `ergodic_pathShift_of_pathLaw_eq_infinitePi`).
+- Koopman / von Neumann layer (`ErgodicTheory/Koopman`): the L² Koopman operator
+  `ProbabilityTheory.koopmanL2`, the von Neumann mean ergodic theorem
+  `MeasurePreserving.tendsto_birkhoffAverage_L2`, and its ergodic endpoint
+  `Ergodic.tendsto_birkhoffAverage_integral_L2` (Birkhoff averages → `∫ g` in L²).
+- `ProbabilityTheory.Ergodic.tendsto_birkhoffAverage_integral_L1` — the **L¹ mean ergodic theorem**,
+  promoting the L² statement via Hansen's truncation split; the backbone of 14.9. The generic
+  Cesàro–inner-product engine `Ergodic.tendsto_cesaro_inner_koopman` powers 14.7/14.8.
+- `Submodule.starProjection_tendsto_iInf_of_antitone` — the **antitone (decreasing-family) dual** of
+  Mathlib's `starProjection_tendsto_closure_iSup`; the remote-past limit in the Wold theorem (14.17).
+  Mathlib-shaped and upstreamable.
+- `ProbabilityTheory.lagIsometryL2` — the lag operator as a surjective L² isometry obtained from
+  strict stationarity; the symmetry engine giving the stationary Wold-error variance (14.16/14.17).
+- α-dependence / strong-mixing framework (`Chapter14Mixing`, entirely absent from Mathlib): `alphaDep`
+  (α-dependence of two σ-algebras), `pastSigma`/`futureSigma`, `mixingCoeff`, and `IsStrongMixing`,
+  with the full monotonicity and Davydov-inequality API.
+- `ProbabilityTheory.norm_cexp_sub_sum_min_bound` — the **min-form Taylor bound** for the
+  imaginary-axis exponential (Billingsley (26.4) / Durrett 3.3.19), absent from Mathlib and
+  upstreamable; the analytic core of the CLT estimates.
+- McLeish exact-martingale toolkit (`Chapter14CLTDischarge`, all Mathlib-shaped): the scalar
+  comparison `norm_sub_pow_le_of_recursion`, the product bound `norm_prod_sub_prod_le_of_norm_le_one`,
+  the decorrelation lemma `tendsto_integral_mul_of_tendsto_integral_norm_sub`, the ergodic
+  normalization `tendsto_eLpNorm_exp_neg_average_sub`, and the complex conditional-expectation
+  pull-out `condExp_cmul_of_stronglyMeasurable_left`.
+
+### Deferred / blocked (honest gaps — no stubs)
+The remaining gaps are narrow and specific:
+- **14.19 (AR(∞) Wold representation, Wiener–Masani 1958).** No proof in Hansen (external citation);
+  needs a spectral lower bound `|b(z)| ≥ δ` on the closed disk and weighted-ℓ² inversion — a
+  Wiener-lemma-grade analytic input with no formal↔analytic power-series-inverse bridge in Mathlib.
+  Comment block in `Chapter14WoldL2.lean`.
+- **14.26 (mixing of linear processes, Pham–Tran).** External citation only; needs β-mixing machinery
+  and the Pham–Tran coupling argument. Notes in `Chapter14Mixing.lean` and `Chapter14ARMA.lean`.
+- **14.34 (Newey–West / HAC consistency, B.E. Hansen 1992).** No proof in Hansen; a research-paper
+  kernel-HAC argument. Note in `Chapter14LSAsymptotics.lean`.
+- **14.11 unboundedness delta.** The MDS-CLT characteristic-function field is discharged for the
+  *bounded* MDS (both the constant-conditional-variance and stationary-ergodic McLeish cases);
+  extending to the unbounded case is a truncation layer left for future work.
+- **14.15 a.e. Gordin decomposition.** The Gordin summability core is proven, but the a.e.
+  decomposition identity `uₜ =ᵐ eₜ + Zₜ − Z_{t+1}` (three research-grade pieces) is left open;
+  documented on `gordin_condExp_summable`'s docstring.
+- **Pointwise / a.s. Birkhoff ergodic theorem (scope decision, not a gap).** Hansen 14.9 claims only
+  L¹ and in-probability convergence, which the (present) von Neumann MET delivers exactly. The
+  pointwise Birkhoff theorem and the maximal inequality it requires are absent from Mathlib and are
+  deliberately out of the chapter's scope; a `PointwiseBirkhoff.lean` stretch module is noted but
+  unscheduled.
+
+### Housekeeping / follow-ups
+- `indep_of_alphaDep_eq_zero` is currently `private` in `Chapter14CLT.lean`; it is a candidate for
+  promotion to `Chapter14Mixing` (where the α-dependence framework lives).
+- Two proofs in `Chapter14CLTDischarge.lean` carry `set_option maxHeartbeats 1600000` — golf
+  candidates for a later performance pass.
