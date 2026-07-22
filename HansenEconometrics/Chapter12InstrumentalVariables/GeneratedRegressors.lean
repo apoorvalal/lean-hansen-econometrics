@@ -19021,7 +19021,10 @@ theorem generatedRegressorBeta2KnownSigmaPivotOrZero_eq_standardizedOlsBetaCoord
   let X : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols W₁ W₂hat
   let β : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)
   have hfit : X *ᵥ β = W₁ *ᵥ β₁ := by
-    simpa [X, β] using fromCols_nullRightBlock_mulVec W₁ W₂hat β₁
+    dsimp only [X, β]
+    rw [Matrix.fromCols_mulVec]
+    change W₁ *ᵥ β₁ + W₂hat *ᵥ (0 : k₂ → ℝ) = W₁ *ᵥ β₁
+    rw [Matrix.mulVec_zero, add_zero]
   funext ω
   change olsBetaOrZero X (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) (Sum.inr j) /
       Real.sqrt (σ2 * ((Xᵀ * X)⁻¹) (Sum.inr j) (Sum.inr j)) =
@@ -19067,7 +19070,10 @@ theorem generatedRegressorBeta_hasGaussianLaw_of_normal_error
   let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols W₁ W₂hat
   let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)
   have hβfull : fullX *ᵥ βfull = W₁ *ᵥ β₁ := by
-    simpa [fullX, βfull] using fromCols_nullRightBlock_mulVec W₁ W₂hat β₁
+    dsimp only [fullX, βfull]
+    rw [Matrix.fromCols_mulVec]
+    change W₁ *ᵥ β₁ + W₂hat *ᵥ (0 : k₂ → ℝ) = W₁ *ᵥ β₁
+    rw [Matrix.mulVec_zero, add_zero]
   have hbase :
       HasGaussianLaw
         (fun ω => olsBeta fullX (fullX *ᵥ βfull + WithLp.ofLp (v ω))) μ :=
@@ -19214,7 +19220,10 @@ theorem generatedRegressorBeta2_olsNullTStat_hasLaw_classicalStudentT_card_sub
   let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols W₁ W₂hat
   let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)
   have hβfull : fullX *ᵥ βfull = W₁ *ᵥ β₁ := by
-    simpa [fullX, βfull] using fromCols_nullRightBlock_mulVec W₁ W₂hat β₁
+    dsimp only [fullX, βfull]
+    rw [Matrix.fromCols_mulVec]
+    change W₁ *ᵥ β₁ + W₂hat *ᵥ (0 : k₂ → ℝ) = W₁ *ᵥ β₁
+    rw [Matrix.mulVec_zero, add_zero]
   have hbase :
       HasLaw
         (fun ω =>
@@ -19440,16 +19449,23 @@ private theorem fTestProjectionMatrix_mulVec_eq_residualized_mul_rightBeta
       residualizedRegressors X₁ X₂ *ᵥ fromColsRightBeta X₁ X₂ y := by
   let fullX : Matrix n (Sum k₁ (Fin r)) ℝ := Matrix.fromCols X₁ X₂
   let D : Matrix n n ℝ := fTestProjectionMatrix X₁ X₂
+  have hleftHat : hatMatrix X₁ * hatMatrix fullX = hatMatrix X₁ := by
+    have hT := congrArg Matrix.transpose (fullHat_mul_leftHat X₁ X₂)
+    simpa [fullX, Matrix.transpose_mul, hatMatrix_transpose] using hT
   have hDfullHat : D * hatMatrix fullX = D := by
     simp [D, fullX, fTestProjectionMatrix, Matrix.sub_mul,
-      hatMatrix_idempotent, leftHat_mul_fullHat]
+      hatMatrix_idempotent, hleftHat]
   have hfullX2 : hatMatrix fullX * X₂ = X₂ := by
     have h := hat_mul_X fullX
     ext i j
     simpa [fullX] using congrFun (congrFun h i) (Sum.inr j)
+  have hfullX1 : hatMatrix fullX * X₁ = X₁ := by
+    have h := hat_mul_X fullX
+    ext i j
+    simpa [fullX] using congrFun (congrFun h i) (Sum.inl j)
   have hleft : D * X₁ = 0 := by
-    simp [D, fTestProjectionMatrix, Matrix.sub_mul,
-      hatMatrix_fromCols_mul_left, hat_mul_X]
+    simp [D, fullX, fTestProjectionMatrix, Matrix.sub_mul,
+      hfullX1, hat_mul_X]
   have hright : D * X₂ = residualizedRegressors X₁ X₂ := by
     calc
       D * X₂ = hatMatrix fullX * X₂ - hatMatrix X₁ * X₂ := by

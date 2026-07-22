@@ -190,7 +190,7 @@ omit [DecidableEq k] [IsProbabilityMeasure μ] in
 the smooth-function Taylor remainder negligible after the same normalization. -/
 theorem twoSLSFunction_scaled_taylor_remainder_tendstoInMeasure_of_consistency_bounded
     {rfun : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h73 : SmoothFunctionAssumption73 rfun β R)
+    (h73 : SmoothFunctionCondition rfun β R)
     (root : ℕ → ℝ) (βhat : ℕ → Ω → k → ℝ)
     (hβ : TendstoInMeasure μ βhat atTop (fun _ => β))
     (hTβ : BoundedInProbabilityNorm μ
@@ -210,7 +210,7 @@ theorem twoSLSFunction_scaled_taylor_remainder_tendstoInMeasure_of_consistency_b
       ∀ᶠ b in 𝓝 β,
         ‖twoSLSFunctionTaylorRemainder rfun β R b‖ ≤ η * ‖b - β‖ := by
     simpa [twoSLSFunctionTaylorRemainder] using
-      (SmoothFunctionAssumption73.taylorRemainder_isLittleO h73).def hηpos
+      (SmoothFunctionCondition.taylorRemainder_isLittleO h73).def hηpos
   rcases Metric.mem_nhds_iff.1 hnear with ⟨ρ, hρpos, hρsub⟩
   have hβev := (hβ ρ hρpos).eventually_lt_const hδ2
   obtain ⟨N, hN⟩ := eventually_atTop.1 (hMev.and hβev)
@@ -300,7 +300,7 @@ coefficient error imply the exact function-level linearization used by the
 2SLS delta-method and Wald wrappers. -/
 theorem twoSLSFunction_linearization_of_assumption73_consistency_bounded
     {rfun : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
-    (h73 : SmoothFunctionAssumption73 rfun β R)
+    (h73 : SmoothFunctionCondition rfun β R)
     (root : ℕ → ℝ) (βhat : ℕ → Ω → k → ℝ)
     (hβ : TendstoInMeasure μ βhat atTop (fun _ => β))
     (hTβ : BoundedInProbabilityNorm μ
@@ -627,7 +627,7 @@ theorem twoSLSFunctionEstimator_tendstoInMeasure_of_assumption12_1_73_model
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSCombinedSampleMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -657,7 +657,7 @@ theorem twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_assumption12_1_73_mode
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSCombinedSampleMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -690,7 +690,7 @@ theorem twoSLSFunctionEstimator_tendstoInMeasure_of_assumption12_1_gram_73_model
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSGramInstrumentMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -720,7 +720,7 @@ theorem twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_assumption12_1_gram_73
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSGramInstrumentMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -750,7 +750,7 @@ theorem twoSLSFunctionEstimator_tendstoInMeasure_of_assumption12_1_iid_73_model
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSSplitIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -780,7 +780,7 @@ theorem twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_assumption12_1_iid_73_
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSSplitIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -810,7 +810,7 @@ theorem twoSLSFunctionEstimator_tendstoInMeasure_of_assumption12_1_joint_iid_73_
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -839,7 +839,7 @@ theorem twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_assumption12_1_joint_i
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -869,7 +869,7 @@ theorem twoSLSFunctionEstimator_tendstoInMeasure_of_joint_iid_73_aestronglyMeasu
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -910,7 +910,7 @@ theorem
           (fun i : Fin t => Y i.val ω)) μ)
     (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -946,7 +946,7 @@ theorem
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ} {R : Matrix k q ℝ}
     (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R) :
+    (h73 : SmoothFunctionCondition rfun β0 R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -969,7 +969,7 @@ theorem
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {β0 : k → ℝ} {R : Matrix k q ℝ}
     (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R) :
+    (h73 : SmoothFunctionCondition rfun β0 R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -991,7 +991,7 @@ theorem twoSLSFunctionEstimator_tendstoInMeasure_of_joint_iid_73_measurable
     (hrfun : Measurable rfun)
     (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -1035,7 +1035,7 @@ theorem twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_joint_iid_73_measurabl
     (hrfun : Measurable rfun)
     (h : TwoSLSResidualJointIidSecondMomentRankConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β R) :
+    (h73 : SmoothFunctionCondition rfun β R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -1079,7 +1079,7 @@ theorem
     {β0 : k → ℝ} {R : Matrix k q ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R) :
+    (h73 : SmoothFunctionCondition rfun β0 R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimator rfun
@@ -1100,7 +1100,7 @@ theorem
     {β0 : k → ℝ} {R : Matrix k q ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R) :
+    (h73 : SmoothFunctionCondition rfun β0 R) :
     TendstoInMeasure μ
       (fun t ω =>
         twoSLSFunctionEstimatorOrZero rfun
@@ -1341,7 +1341,7 @@ theorem twoSLSFunction_remainder_tendstoInMeasure_of_assumption12_2_joint_iid_73
     {β0 : k → ℝ} {R : Matrix k q ℝ}
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hθ_meas : ∀ t : ℕ, AEMeasurable
       (fun ω =>
         (WithLp.toLp 2
@@ -1438,7 +1438,7 @@ theorem twoSLSFunction_remainder_tendstoInMeasure_of_assumption12_2_joint_iid_73
 12.6 under joint-iid Assumption 12.2 plus Assumption 7.3.
 
 Assumption 12.2 supplies the coefficient CLT, coefficient consistency,
-population rank facts, and the ideal covariance limits. `SmoothFunctionAssumption73`
+population rank facts, and the ideal covariance limits. `SmoothFunctionCondition`
 supplies the local Taylor remainder once the transformed statistic is
 measurable. The fields here isolate what those assumptions do not currently
 imply in this file: the feasible covariance residual-substitution WLLN surface,
@@ -1604,7 +1604,7 @@ When the plug-in derivative is the deterministic Hansen derivative matrix `R`
 itself, joint-iid Assumption 12.2, measurability of `r`, and the mixed moment
 summands used by Theorem 12.3 discharge all fields of the function condition
 package. The derivative orientation and full-rank condition remain supplied by
-`SmoothFunctionAssumption73` at the theorem endpoint. -/
+`SmoothFunctionCondition` at the theorem endpoint. -/
 theorem of_joint_iid_mixed_moments_measurable_const_derivative
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {rfun : (k → ℝ) → (q → ℝ)} {β0 : k → ℝ}
@@ -1687,7 +1687,7 @@ with an arbitrary continuous matrix map that merely agrees with `R` at `β₀`. 
 structure SmoothFunctionPlugInDerivativeConditions
     (rfun : (k → ℝ) → (q → ℝ)) (β0 : k → ℝ) (R : Matrix k q ℝ)
     (Rfun : (k → ℝ) → Matrix k q ℝ)
-    extends SmoothFunctionAssumption73 rfun β0 R where
+    extends SmoothFunctionCondition rfun β0 R where
   /-- Locally around `β₀`, `Rfun b` is Hansen's transpose-oriented derivative
   matrix for `r` at `b`. -/
   derivativeMap_hasFDerivAt :
@@ -2195,7 +2195,7 @@ theorem twoSLSFunction_theorem12_5_of_assumption12_2_joint_iid_73_model
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hc : TwoSLSFunctionFeasibleCovarianceDerivativeConditions
       μ Z X e Y rfun β0 R Rhat) :
     TendstoInDistribution
@@ -2296,7 +2296,7 @@ theorem twoSLSFunction_theorem12_5_of_joint_iid_73_mixed_moments_measurable
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
     (hOmegaQuadratic : ∀ a b : l, ∀ j m : k,
@@ -2368,7 +2368,7 @@ theorem twoSLSFunction_theorem12_5_of_joint_iid_73_mixed_moments_measurable_cons
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
     (hOmegaQuadratic : ∀ a b : l, ∀ j m : k,
@@ -2434,7 +2434,7 @@ theorem twoSLSFunction_theorem12_5_of_joint_iid_73_mixed_moment_conditions_measu
     (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hR_meas : ∀ t : ℕ, AEStronglyMeasurable (Rhat t) μ)
     (hRhat : TendstoInMeasure μ Rhat atTop (fun _ => R)) :
     TendstoInDistribution
@@ -2549,7 +2549,7 @@ theorem
       (μ := μ) (q := q) (rfun := rfun)
       (Z := Z) (X := X) (e := e) (Y := Y)
       (R := R) (Rhat := Rhat)
-      h73.function_measurable h β0 hmodel h73.toSmoothFunctionAssumption73 hR_meas hRhat
+      h73.function_measurable h β0 hmodel h73.toSmoothFunctionCondition hR_meas hRhat
 
 /-- **Hansen Theorem 12.5**, literal joint-iid Assumption 12.2 plus
 Assumption 7.3 with Hansen's plug-in derivative estimator
@@ -2617,7 +2617,7 @@ theorem
     (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R) :
+    (h73 : SmoothFunctionCondition rfun β0 R) :
     TendstoInDistribution
         (fun (t : ℕ) ω =>
           (WithLp.toLp 2
@@ -2672,7 +2672,7 @@ theorem twoSLSFunction_theorem12_5_of_textbook12_2_joint_iid_73_const_derivative
     {β0 : k → ℝ} {R : Matrix k q ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R) :
+    (h73 : SmoothFunctionCondition rfun β0 R) :
     TendstoInDistribution
         (fun (t : ℕ) ω =>
           (WithLp.toLp 2
@@ -2768,7 +2768,7 @@ theorem twoSLSFunction_theorem12_5_of_textbook12_2_observed_iid_73_const_derivat
     {β0 : k → ℝ} {R : Matrix k q ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R) :
+    (h73 : SmoothFunctionCondition rfun β0 R) :
     TendstoInDistribution
         (fun (t : ℕ) ω =>
           (WithLp.toLp 2
@@ -4552,7 +4552,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hc : TwoSLSFunctionFeasibleCovarianceDerivativeConditions
       μ Z X e Y rfun β0 R Rhat)
     (hR_full : Function.Injective R.mulVec)
@@ -4631,7 +4631,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model_lowe
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hc : TwoSLSFunctionFeasibleCovarianceDerivativeConditions
       μ Z X e Y rfun β0 R Rhat)
     (hR_full : Function.Injective R.mulVec)
@@ -4667,7 +4667,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model_lowe
 
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 12.6**, joint-iid Assumption 12.2 plus Assumption 7.3,
-with the derivative full-rank condition read directly from `SmoothFunctionAssumption73`. -/
+with the derivative full-rank condition read directly from `SmoothFunctionCondition`. -/
 theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model_fullRank
     {r : ℕ} [Fact (0 < r)]
     {rfun : (k → ℝ) → (Fin r → ℝ)} {θ0 : Fin r → ℝ}
@@ -4677,7 +4677,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model_full
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hc : TwoSLSFunctionFeasibleCovarianceDerivativeConditions
       μ Z X e Y rfun β0 R Rhat)
     (hnull : rfun β0 = θ0)
@@ -4709,7 +4709,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model_full
 
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 12.6**, joint-iid Assumption 12.2 plus Assumption 7.3,
-lower-tail convention, with derivative full rank read from `SmoothFunctionAssumption73`. -/
+lower-tail convention, with derivative full rank read from `SmoothFunctionCondition`. -/
 theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model_fullRank_lowerTail
     {r : ℕ} [Fact (0 < r)]
     {rfun : (k → ℝ) → (Fin r → ℝ)} {θ0 : Fin r → ℝ}
@@ -4719,7 +4719,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_assumption12_2_joint_iid_73_model_full
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hc : TwoSLSFunctionFeasibleCovarianceDerivativeConditions
       μ Z X e Y rfun β0 R Rhat)
     (hnull : rfun β0 = θ0)
@@ -4771,7 +4771,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_joint_iid_73_mixed_moments_measurable
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
     (hOmegaQuadratic : ∀ a b : l, ∀ j m : k,
@@ -4827,7 +4827,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_joint_iid_73_mixed_moments_measurable_
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
     (hOmegaQuadratic : ∀ a b : l, ∀ j m : k,
@@ -4880,7 +4880,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_joint_iid_73_mixed_moments_measurable_
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
     (hOmegaQuadratic : ∀ a b : l, ∀ j m : k,
@@ -4934,7 +4934,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_joint_iid_73_mixed_moments_measurable_
     (h : TwoSLSResidualJointIidFourthMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hOmegaCross : ∀ a b : l, ∀ j : k,
       Integrable (fun ω => e 0 ω * X 0 ω j * Z 0 ω a * Z 0 ω b) μ)
     (hOmegaQuadratic : ∀ a b : l, ∀ j m : k,
@@ -4985,7 +4985,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_joint_iid_73_mixed_moment_conditions_m
     (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hR_meas : ∀ t : ℕ, AEStronglyMeasurable (Rhat t) μ)
     (hRhat : TendstoInMeasure μ Rhat atTop (fun _ => R))
     (hnull : rfun β0 = θ0)
@@ -5087,7 +5087,7 @@ theorem
       (μ := μ) (r := r) (rfun := rfun) (θ0 := θ0)
       (Z := Z) (X := X) (e := e) (Y := Y)
       (R := R) (Rhat := Rhat)
-      h73.function_measurable h β0 hmodel h73.toSmoothFunctionAssumption73
+      h73.function_measurable h β0 hmodel h73.toSmoothFunctionCondition
       hR_meas hRhat hnull hcrit
 
 set_option linter.style.longLine false in
@@ -5257,7 +5257,7 @@ theorem
     (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hR_meas : ∀ t : ℕ, AEStronglyMeasurable (Rhat t) μ)
     (hRhat : TendstoInMeasure μ Rhat atTop (fun _ => R))
     (hnull : rfun β0 = θ0)
@@ -5303,7 +5303,7 @@ theorem
     (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hnull : rfun β0 = θ0)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
@@ -5345,7 +5345,7 @@ theorem
     (h : TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions μ Z X e)
     (β0 : k → ℝ)
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hnull : rfun β0 = θ0)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (halpha_le_one : alpha ≤ 1)
@@ -5390,7 +5390,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_textbook12_2_joint_iid_73_const_deriva
     {β0 : k → ℝ} {R : Matrix k (Fin r) ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hnull : rfun β0 = θ0)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
@@ -5428,7 +5428,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_textbook12_2_joint_iid_73_const_deriva
     {β0 : k → ℝ} {R : Matrix k (Fin r) ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSResidualJointIidModelFourthMomentPositiveCovarianceConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hnull : rfun β0 = θ0)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (halpha_le_one : alpha ≤ 1)
@@ -5565,7 +5565,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_const_der
     {β0 : k → ℝ} {R : Matrix k (Fin r) ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hnull : rfun β0 = θ0)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
@@ -5602,7 +5602,7 @@ theorem twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_const_der
     {β0 : k → ℝ} {R : Matrix k (Fin r) ℝ}
     (hrfun : Measurable rfun)
     (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0)
-    (h73 : SmoothFunctionAssumption73 rfun β0 R)
+    (h73 : SmoothFunctionCondition rfun β0 R)
     (hnull : rfun β0 = θ0)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (halpha_le_one : alpha ≤ 1)

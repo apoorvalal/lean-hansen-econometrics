@@ -2049,6 +2049,53 @@ theorem
 
 set_option linter.style.longLine false
 
+omit [Fintype n] [DecidableEq n] [Fintype k₁] [DecidableEq k₁]
+    [Fintype k₂] [DecidableEq k₂] [Fintype l₂] [DecidableEq l₂] in
+/-- The canonical Chapter 11 endpoint specialized to the standardized first
+coordinate. -/
+private theorem standardCoordinateInverseScale_map_eq_chiSquared
+    {dfidx r : Type*} [Fintype dfidx] [Fintype r] [DecidableEq r]
+    (hcard : Fintype.card r < Fintype.card dfidx) :
+    (wishartLaw (n := dfidx)
+        (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
+        (inverseWishartScaledLinearForm
+          (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
+          (Pi.single (Sum.inl ()) (1 : ℝ))) =
+      chiSquared
+        (Fintype.card dfidx - Fintype.card (Sum Unit r) + 1) := by
+  classical
+  let e₁ : Sum Unit r → ℝ := Pi.single (Sum.inl ()) (1 : ℝ)
+  have he₁ : e₁ ≠ 0 := by
+    intro he
+    have := congrFun he (Sum.inl ())
+    simp [e₁] at this
+  have hcard_le :
+      Fintype.card (Sum Unit r) ≤ Fintype.card dfidx := by
+    simp only [Fintype.card_sum, Fintype.card_unit]
+    omega
+  have hraw :=
+    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le
+      (dfidx := dfidx)
+      (W := id)
+      (Sigma := (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
+      (α := e₁)
+      (Matrix.PosDef.one (n := Sum Unit r) (R := ℝ)) he₁
+      HasLaw.id hcard_le
+  calc
+    (wishartLaw (n := dfidx)
+        (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
+        (inverseWishartScaledLinearForm
+          (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
+          (Pi.single (Sum.inl ()) (1 : ℝ))) =
+      (wishartLaw (n := dfidx)
+        (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
+        (inverseWishartLinearForm (Pi.single (Sum.inl ()) (1 : ℝ))) := by
+          refine Measure.map_congr (ae_of_all _ fun W => ?_)
+          exact inverseWishartScaledLinearForm_one_standardCoordinate W
+    _ = chiSquared
+        (Fintype.card dfidx - Fintype.card (Sum Unit r) + 1) := by
+      simpa [e₁, Function.id_def] using hraw.map_eq
+
 omit [DecidableEq l₂] in
 /-- Coordinate inverse-Wishart map identity from Chapter 11 standard-coordinate
 whitening data. -/
@@ -2067,17 +2114,48 @@ theorem twoSLSKinalCoordinateInverseScale_map_eq_of_standardCoordinate_whitening
         (inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))) =
       chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1) := by
   classical
-  exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport
-      (dfidx := l₂) (r := rIdx j) (m := k₂)
+  have hYmap :
+      (iidMatrixGaussianLaw (n := l₂) (m := k₂)
+          (0 : k₂ → ℝ) Sigma).map
+          (fun Y : Matrix l₂ k₂ ℝ => Y * T j) =
+        iidMatrixGaussianLaw (n := l₂) (m := Sum Unit (rIdx j))
+          (0 : Sum Unit (rIdx j) → ℝ)
+          (1 : Matrix (Sum Unit (rIdx j)) (Sum Unit (rIdx j)) ℝ) :=
+    iidMatrixGaussianLaw_standardCoordinate_whiten_map
+      (n := l₂) (m := k₂) (r := rIdx j)
+      (Sigma := Sigma) h.sigma_posDef.posSemidef (T j) (h.sigma_whiten j)
+  have hWishart :
+      (wishartLaw (n := l₂) Sigma).map
+          (fun W : Matrix k₂ k₂ ℝ => (T j)ᵀ * W * T j) =
+        wishartLaw (n := l₂)
+          (1 : Matrix (Sum Unit (rIdx j)) (Sum Unit (rIdx j)) ℝ) :=
+    wishartLaw_congr_map_of_iidMatrixGaussianLaw_map
+      (n := l₂) (m := k₂) (q := Sum Unit (rIdx j))
+      (Sigma := Sigma)
+      (Sigma' := (1 : Matrix (Sum Unit (rIdx j)) (Sum Unit (rIdx j)) ℝ))
+      (T := T j) hYmap
+  have htransport :=
+    inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_transport
+      (dfidx := l₂) (r := rIdx j)
       (Sigma := Sigma) (α := Pi.single j (1 : ℝ))
-      (df := Fintype.card l₂ - Fintype.card k₂ + 1)
       (T := T j) (S := S j) (c := c j)
-      h.sigma_posDef (h.card_lt j)
-      (h.standard_coordinate_nonsingular j) (h.df_eq j)
       (h.left_inverse j) (h.right_inverse j)
+      (Sigma.isUnit_iff_isUnit_det.mp h.sigma_posDef.isUnit)
       h.wishart_nonsingular (h.sigma_whiten j)
-      (h.alpha_align j) (h.scale_ne j)
+      (h.alpha_align j) (h.scale_ne j) hWishart
+  calc
+    (wishartLaw (n := l₂) Sigma).map
+        (inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))) =
+      (wishartLaw (n := l₂)
+        (1 : Matrix (Sum Unit (rIdx j)) (Sum Unit (rIdx j)) ℝ)).map
+        (inverseWishartScaledLinearForm
+          (1 : Matrix (Sum Unit (rIdx j)) (Sum Unit (rIdx j)) ℝ)
+          (Pi.single (Sum.inl ()) (1 : ℝ))) := htransport
+    _ = chiSquared
+        (Fintype.card l₂ - Fintype.card (Sum Unit (rIdx j)) + 1) :=
+      standardCoordinateInverseScale_map_eq_chiSquared (h.card_lt j)
+    _ = chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1) := by
+      rw [h.df_eq j]
 
 omit [DecidableEq l₂] in
 /-- Coordinate inverse-Wishart map identity from Chapter 11 nuisance-only
@@ -2097,25 +2175,50 @@ theorem twoSLSKinalCoordinateInverseScale_map_eq_of_standardCoordinate_nuisance_
         (inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))) =
       chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1) := by
   classical
+  have hstandard :
+      ∀ᵐ Y ∂iidMatrixGaussianLaw
+          (n := l₂) (m := Sum Unit (rIdx j))
+          (0 : Sum Unit (rIdx j) → ℝ)
+          (1 : Matrix (Sum Unit (rIdx j)) (Sum Unit (rIdx j)) ℝ),
+        Nonempty (Invertible (matrixCrossProduct Y)) ∧
+          Nonempty (Invertible
+            ((standardCoordinateRestColumns (n := l₂) Y)ᵀ *
+              standardCoordinateRestColumns (n := l₂) Y)) :=
+    standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
+      (n := l₂) (h.card_lt j)
+      (h.standard_coordinate_nuisance_nonsingular j)
+  have hWishartNonsingular :
+      ∀ᵐ W ∂wishartLaw (n := l₂) Sigma, IsUnit W.det :=
+    wishartLaw_nonsingular_of_standardCoordinate_whitening_transport
+      (dfidx := l₂) (r := rIdx j)
+      (Sigma := Sigma) (T := T j) (S := S j)
+      h.sigma_posDef.posSemidef (h.left_inverse j) (h.right_inverse j)
+      (hstandard.mono fun _ hY => hY.1) (h.sigma_whiten j)
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
-      (dfidx := l₂) (r := rIdx j) (m := k₂)
-      (Sigma := Sigma) (α := Pi.single j (1 : ℝ))
-      (df := Fintype.card l₂ - Fintype.card k₂ + 1)
-      (T := T j) (S := S j) (c := c j)
-      h.sigma_posDef (h.card_lt j)
-      (h.standard_coordinate_nuisance_nonsingular j) (h.df_eq j)
-      (h.left_inverse j) (h.right_inverse j)
-      (h.sigma_whiten j) (h.alpha_align j) (h.scale_ne j)
+    twoSLSKinalCoordinateInverseScale_map_eq_of_standardCoordinate_whitening
+      (l₂ := l₂) Sigma T S c
+      { sigma_posDef := h.sigma_posDef
+        card_lt := h.card_lt
+        standard_coordinate_nonsingular := fun i =>
+          standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
+            (n := l₂) (h.card_lt i)
+            (h.standard_coordinate_nuisance_nonsingular i)
+        df_eq := h.df_eq
+        left_inverse := h.left_inverse
+        right_inverse := h.right_inverse
+        wishart_nonsingular := hWishartNonsingular
+        sigma_whiten := h.sigma_whiten
+        alpha_align := h.alpha_align
+        scale_ne := h.scale_ne }
+      j
 
 omit [DecidableEq l₂] in
 /-- Coordinate inverse-Wishart map identity from Chapter 11's
 standard-Gram/existential-whitening endpoint.
 
-This wrapper reuses
-`inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular`
-so Kinal callers can provide the canonical rectangular standard-Gaussian Gram
-certificate rather than the rest-column nuisance certificate. -/
+This wrapper derives the nuisance certificate through Chapter 11's canonical
+standard-coordinate Gram bridge, so Kinal callers can provide the rectangular
+standard-Gaussian Gram certificate instead. -/
 theorem twoSLSKinalCoordinateInverseScale_map_eq_of_standardGramBridge
     (Sigma : Matrix k₂ k₂ ℝ)
     {rIdx : k₂ → Type*} [∀ j : k₂, Fintype (rIdx j)]
@@ -2128,12 +2231,37 @@ theorem twoSLSKinalCoordinateInverseScale_map_eq_of_standardGramBridge
         (inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))) =
       chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1) := by
   classical
+  let T : ∀ i : k₂, Matrix k₂ (Sum Unit (rIdx i)) ℝ :=
+    fun i => (h.whitening_exists i).choose
+  let S : ∀ i : k₂, Matrix (Sum Unit (rIdx i)) k₂ ℝ :=
+    fun i => (h.whitening_exists i).choose_spec.choose
+  let c : k₂ → ℝ :=
+    fun i => (h.whitening_exists i).choose_spec.choose_spec.choose
+  have hdata : ∀ i : k₂,
+      S i * T i = 1 ∧ T i * S i = 1 ∧
+        (T i)ᵀ * Sigma * T i =
+          (1 : Matrix (Sum Unit (rIdx i)) (Sum Unit (rIdx i)) ℝ) ∧
+        (T i)ᵀ *ᵥ (Pi.single i (1 : ℝ) : k₂ → ℝ) =
+          c i • (Pi.single (Sum.inl ()) (1 : ℝ) :
+            Sum Unit (rIdx i) → ℝ) ∧
+        c i ≠ 0 := by
+    intro i
+    exact (h.whitening_exists i).choose_spec.choose_spec.choose_spec
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
-      (dfidx := l₂) (r := rIdx j) (m := k₂)
-      (Sigma := Sigma) (α := Pi.single j (1 : ℝ))
-      h.sigma_posDef (h.card_lt j) (h.card_dim j)
-      (h.standard_gram_nonsingular j) (h.whitening_exists j)
+    twoSLSKinalCoordinateInverseScale_map_eq_of_standardCoordinate_nuisance_whitening
+      (l₂ := l₂) Sigma T S c
+      { sigma_posDef := h.sigma_posDef
+        card_lt := h.card_lt
+        standard_coordinate_nuisance_nonsingular := fun i =>
+          standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw
+            (n := l₂) (r := rIdx i) (h.standard_gram_nonsingular i)
+        df_eq := fun i => by rw [h.card_dim i]
+        left_inverse := fun i => (hdata i).1
+        right_inverse := fun i => (hdata i).2.1
+        sigma_whiten := fun i => (hdata i).2.2.1
+        alpha_align := fun i => (hdata i).2.2.2.1
+        scale_ne := fun i => (hdata i).2.2.2.2 }
+      j
 
 omit [DecidableEq l₂] in
 /-- Coordinate inverse-Wishart map identity from positive definiteness and the
@@ -2372,30 +2500,6 @@ theorem twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVecto
         (W := fun W : Matrix k₂ k₂ ℝ => W)
         (Wlaw := wishartLaw (n := l₂) Sigma)
         (Sigma := Sigma) (α := Pi.single j (1 : ℝ)) hId).aemeasurable
-  have hF :
-      AEMeasurable
-        (fun z : ℝ × Matrix k₂ k₂ ℝ => scaleJ z.2)
-        ((ScoreVectorLaw.map evalJ).prod (wishartLaw (n := l₂) Sigma)) :=
-    by
-      have hSnd :
-          (((ScoreVectorLaw.map evalJ).prod
-              (wishartLaw (n := l₂) Sigma)).map Prod.snd) =
-            wishartLaw (n := l₂) Sigma := by
-        rw [Measure.map_snd_prod]
-        simp
-      have hScaleAE' :
-          AEMeasurable scaleJ
-            (((ScoreVectorLaw.map evalJ).prod
-              (wishartLaw (n := l₂) Sigma)).map Prod.snd) := by
-        simpa [hSnd] using hScaleAE
-      exact hScaleAE'.comp_aemeasurable measurable_snd.aemeasurable
-  have hFixed :
-      ∀ᵐ _a ∂ScoreVectorLaw.map evalJ,
-        (wishartLaw (n := l₂) Sigma).map
-            (fun W : Matrix k₂ k₂ ℝ => scaleJ W) =
-          chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1) :=
-    ae_of_all _ fun _ => by
-      simpa [scaleJ] using hScaleMap j
   have hScoreCoordGramInd :
       (fun ω =>
         twoSLSKinalFWLScoreStar (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) j)
@@ -2404,11 +2508,15 @@ theorem twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVecto
     simpa [evalJ, Function.comp_def] using
       IndepFun.comp (φ := evalJ) (ψ := id) hScoreGramInd
         (measurable_pi_apply j) measurable_id
+  have hScaleAEMap :
+      AEMeasurable scaleJ
+        (μ.map fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω)) := by
+    rw [hGramLaw.map_eq]
+    exact hScaleAE
   simpa [twoSLSKinalFWLCoordinateInverseScaleStar, scaleJ] using
-    indepFun_of_indepFun_ae_fixed_map_eq_ae
-      (F := fun z : ℝ × Matrix k₂ k₂ ℝ => scaleJ z.2)
-      hScoreCoord hGramLaw hScoreCoordGramInd hF
-      (fun _ => hScaleAE) hFixed
+    hScoreCoordGramInd.comp₀
+      hScoreCoord.aemeasurable hGramLaw.aemeasurable
+      aemeasurable_id hScaleAEMap
 
 /-- Score-coordinate laws are probability laws once the Kinal joint-normal
 condition supplies a probability source measure. -/

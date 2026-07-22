@@ -1082,7 +1082,7 @@ support inventory above control completion status and preferred public names.
   The derivative-map package certifies that `Rfun b` locally represents
   Hansen's transpose-oriented derivative matrix for `r` at `b`, includes the
   formal global measurability needed for sample transformations, and retains
-  the population full-rank derivative condition through `SmoothFunctionAssumption73`.
+  the population full-rank derivative condition through `SmoothFunctionCondition`.
   `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toJointIidMixedMomentConditions`
   routes through the residual-row finite-fourth package and derives the
   proof-facing `TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions` by Hölder, so
