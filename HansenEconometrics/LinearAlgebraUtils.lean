@@ -198,7 +198,7 @@ theorem transpose_mul_isHermitian {k m : Type*} [Fintype k]
 
 The powers of `X` account for the zero eigenvalues added when passing between
 row space and column space. -/
-theorem mul_transpose_charpoly_mul_X {k m : Type*}
+private theorem mul_transpose_charpoly_mul_X {k m : Type*}
     [Fintype k] [Fintype m] [DecidableEq k] [DecidableEq m]
     (D : Matrix k m ℝ) :
     Polynomial.X ^ Fintype.card m * (D * Dᵀ).charpoly =
@@ -209,7 +209,7 @@ theorem mul_transpose_charpoly_mul_X {k m : Type*}
 
 It states that the spectra of `D * Dᵀ` and `Dᵀ * D` agree after padding
 each side with the zero roots contributed by the other index type. -/
-theorem mul_transpose_roots_with_zero_padding {k m : Type*}
+private theorem mul_transpose_roots_with_zero_padding {k m : Type*}
     [Fintype k] [Fintype m] [DecidableEq k] [DecidableEq m]
     (D : Matrix k m ℝ) :
     Fintype.card m • ({0} : Multiset ℝ) + (D * Dᵀ).charpoly.roots =
@@ -268,11 +268,23 @@ private lemma padded_sorted_lists_eq_of_multiset_eq
     (sortedGE_append_replicate_of_le hs₂ hz₂ b)
     (Multiset.coe_eq_coe.mp hcoe)
 
+/-- Canonical bridge from Mathlib's ambient-index eigenvalues to the ordered
+`Fin (card)` indexing used by this repository's spectral theorems. -/
+@[simp]
+lemma hermitian_eigenvalues_equivOfCardEq
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ} (hM : M.IsHermitian)
+    (i : Fin (Fintype.card ι)) :
+    hM.eigenvalues
+        ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))) i) =
+      hM.eigenvalues₀ i := by
+  simp [Matrix.IsHermitian.eigenvalues]
+
 /-- Sorted nonnegative eigenvalue-list form of the rectangular Gram bridge.
 
 Because both Gram matrices are positive semidefinite, the zero padding appears
 after their decreasingly ordered `eigenvalues₀` lists. -/
-theorem mul_transpose_padded_eigenvalues₀_eq {k m : Type*}
+private theorem mul_transpose_padded_eigenvalues₀_eq {k m : Type*}
     [Fintype k] [Fintype m] [DecidableEq k] [DecidableEq m]
     (D : Matrix k m ℝ) :
     List.ofFn (mul_transpose_isHermitian D).eigenvalues₀ ++
@@ -306,18 +318,22 @@ theorem mul_transpose_padded_eigenvalues₀_eq {k m : Type*}
     rw [List.mem_ofFn] at hx
     rcases hx with ⟨i, rfl⟩
     have hproof : hrowPSD.1 = mul_transpose_isHermitian D := Subsingleton.elim _ _
-    simpa [Matrix.IsHermitian.eigenvalues, hproof] using
-      hrowPSD.eigenvalues_nonneg
-        ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))) i)
+    rw [← hproof]
+    have hnonneg := hrowPSD.eigenvalues_nonneg
+      ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))) i)
+    rw [hermitian_eigenvalues_equivOfCardEq hrowPSD.1 i] at hnonneg
+    exact hnonneg
   have h0Col : ∀ x ∈ lcol, 0 ≤ x := by
     intro x hx
     dsimp [lcol] at hx
     rw [List.mem_ofFn] at hx
     rcases hx with ⟨i, rfl⟩
     have hproof : hcolPSD.1 = transpose_mul_isHermitian D := Subsingleton.elim _ _
-    simpa [Matrix.IsHermitian.eigenvalues, hproof] using
-      hcolPSD.eigenvalues_nonneg
-        ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card m))) i)
+    rw [← hproof]
+    have hnonneg := hcolPSD.eigenvalues_nonneg
+      ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card m))) i)
+    rw [hermitian_eigenvalues_equivOfCardEq hcolPSD.1 i] at hnonneg
+    exact hnonneg
   exact padded_sorted_lists_eq_of_multiset_eq hsRow hsCol h0Row h0Col hpad
 
 /-- The leading ordered eigenvalues of the two rectangular Gram matrices agree
@@ -349,7 +365,7 @@ theorem leading_eigenvalues₀_pos_of_posSemidef_rank_ge
     Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
   have hnonneg : ∀ i : Fin (Fintype.card k), 0 ≤ hM.1.eigenvalues₀ i := by
     intro i
-    simpa [Matrix.IsHermitian.eigenvalues, e] using hM.eigenvalues_nonneg (e i)
+    simpa [e] using hM.eigenvalues_nonneg (e i)
   have hrank_eq :
       M.rank = Fintype.card
         {i : Fin (Fintype.card k) // hM.1.eigenvalues₀ i ≠ 0} := by
@@ -357,9 +373,9 @@ theorem leading_eigenvalues₀_pos_of_posSemidef_rank_ge
         {i : Fin (Fintype.card k) // hM.1.eigenvalues₀ i ≠ 0} ≃
           {a : k // hM.1.eigenvalues a ≠ 0} := {
       toFun i := ⟨e i.1, by
-        simpa [Matrix.IsHermitian.eigenvalues, e] using i.2⟩
+        simpa [e] using i.2⟩
       invFun a := ⟨e.symm a.1, by
-        simpa [Matrix.IsHermitian.eigenvalues, e] using a.2⟩
+        simpa [e] using a.2⟩
       left_inv i := by
         ext
         simp [e]
@@ -397,7 +413,7 @@ ordered eigenvalues of a real Hermitian matrix `A`.
 
 The reversal is essential: Mathlib orders `eigenvalues₀` nonincreasingly,
 while `x ↦ 1 - x` reverses inequalities. -/
-theorem one_sub_ordered_eigenvalues₀_eq_reverse_map
+private theorem one_sub_ordered_eigenvalues₀_eq_reverse_map
     {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℝ} (hA : A.IsHermitian) :
     List.ofFn (isHermitian_one.sub hA).eigenvalues₀ =
@@ -695,17 +711,9 @@ lemma quadraticForm_mulVec_eq_pullback_rect
     _ = x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
       rw [← Matrix.dotProduct_mulVec]
 
-/-- Pull a quadratic form through a fixed square matrix map. -/
-lemma quadraticForm_mulVec_eq_pullback
-    {ι : Type*} [Fintype ι]
-    (B A : Matrix ι ι ℝ) (x : ι → ℝ) :
-    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x)) =
-      x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
-  exact quadraticForm_mulVec_eq_pullback_rect B A x
-
 /-- Pointwise domination of squared norms after two matrix maps implies the
 corresponding Loewner order on their Gram matrices. -/
-theorem gram_le_gram_of_mulVec_norm_sq_le
+private theorem gram_le_gram_of_mulVec_norm_sq_le
     {m n : Type*} [Fintype m] [Fintype n]
     (A B : Matrix m n ℝ)
     (h : ∀ x : n → ℝ,
@@ -806,20 +814,48 @@ private lemma quadForm_eq_sum_eigenvalues_core
 /-- Spectral expansion of the quadratic form `z ⬝ᵥ M *ᵥ z` in the eigenbasis of a
 Hermitian real matrix: it equals the sum of eigenvalues times squared basis coordinates. -/
 lemma quadForm_eq_sum_eigenvalues
-    {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hH : M.IsHermitian)
-    (z : EuclideanSpace ℝ (Fin n)) :
-    (z : Fin n → ℝ) ⬝ᵥ (M *ᵥ (z : Fin n → ℝ))
-      = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
-  exact quadForm_eq_sum_eigenvalues_core hH z
-
-/-- Finite-index version of `quadForm_eq_sum_eigenvalues`. -/
-lemma quadForm_eq_sum_eigenvalues_fintype
     {ι : Type*} [Fintype ι] [DecidableEq ι]
     {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
     (z : EuclideanSpace ℝ ι) :
     (z : ι → ℝ) ⬝ᵥ (M *ᵥ (z : ι → ℝ))
       = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
   exact quadForm_eq_sum_eigenvalues_core hH z
+
+private lemma sum_sq_eigenbasis_repr_eq_one
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
+    (z : EuclideanSpace ℝ ι)
+    (hunit : (z : ι → ℝ) ⬝ᵥ (z : ι → ℝ) = 1) :
+    ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 = 1 := by
+  have hnorm : ‖z‖ ^ 2 = 1 := by
+    rw [EuclideanSpace.real_norm_sq_eq]
+    simpa [dotProduct, pow_two] using hunit
+  calc
+    ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2
+        = ∑ i : ι, ‖inner ℝ (hH.eigenvectorBasis i) z‖ ^ 2 := by
+            refine Finset.sum_congr rfl ?_
+            intro i _
+            rw [OrthonormalBasis.repr_apply_apply]
+            simp [sq_abs]
+            rfl
+    _ = ‖z‖ ^ 2 := OrthonormalBasis.sum_sq_norm_inner_right hH.eigenvectorBasis z
+    _ = 1 := hnorm
+
+private lemma sum_sq_eigenbasis_repr_equiv_eq_one
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
+    (z : EuclideanSpace ℝ ι)
+    (hunit : (z : ι → ℝ) ⬝ᵥ (z : ι → ℝ) = 1) :
+    ∑ i : Fin (Fintype.card ι),
+        (hH.eigenvectorBasis.repr z
+          ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))) i)) ^ 2 = 1 := by
+  calc
+    _ = ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 := by
+      simpa using
+        (Equiv.sum_comp
+          (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι)))
+          (fun i : ι => (hH.eigenvectorBasis.repr z i) ^ 2))
+    _ = 1 := sum_sq_eigenbasis_repr_eq_one hH z hunit
 
 /-- Rayleigh-quotient upper bound from a Hermitian spectral expansion.
 
@@ -840,32 +876,10 @@ lemma quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
     Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))
   let c : Fin (Fintype.card ι) → ℝ := fun i =>
     (hH.eigenvectorBasis.repr z (e i)) ^ 2
-  have hcoords_sum_k :
-      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 = 1 := by
-    have hnorm : ‖z‖ ^ 2 = 1 := by
-      rw [EuclideanSpace.real_norm_sq_eq]
-      simpa [dotProduct, pow_two] using hunit
-    calc
-      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2
-          = ∑ i : ι, ‖inner ℝ (hH.eigenvectorBasis i) z‖ ^ 2 := by
-              refine Finset.sum_congr rfl ?_
-              intro i _
-              rw [OrthonormalBasis.repr_apply_apply]
-              simp [sq_abs]
-              rfl
-      _ = ‖z‖ ^ 2 := OrthonormalBasis.sum_sq_norm_inner_right hH.eigenvectorBasis z
-      _ = 1 := hnorm
   have hcoords_sum : ∑ i : Fin (Fintype.card ι), c i = 1 := by
-    calc
-      ∑ i : Fin (Fintype.card ι), c i
-          = ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 := by
-              simpa [c, e] using
-                (Equiv.sum_comp
-                  (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι)))
-                  (fun i : ι => (hH.eigenvectorBasis.repr z i) ^ 2))
-      _ = 1 := hcoords_sum_k
+    simpa [c, e] using sum_sq_eigenbasis_repr_equiv_eq_one hH z hunit
   have hquad :=
-    quadForm_eq_sum_eigenvalues_fintype (M := M) hH z
+    quadForm_eq_sum_eigenvalues (M := M) hH z
   rw [hquad]
   calc
     ∑ i : ι, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2
@@ -887,7 +901,7 @@ lemma quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
           · have hji : j ≤ i := le_of_not_gt hij
             have heig :
                 hH.eigenvalues (e i) ≤ hH.eigenvalues₀ j := by
-              simpa [Matrix.IsHermitian.eigenvalues, e] using
+              simpa [e] using
                 hH.eigenvalues₀_antitone hji
             exact mul_le_mul_of_nonneg_right heig (sq_nonneg _)
     _ = hH.eigenvalues₀ j := by
@@ -898,7 +912,7 @@ lemma quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
 If the coordinates after `j` in the ordered Hermitian eigenbasis are zero,
 then the `j`th ordered eigenvalue bounds a unit vector's quadratic form from
 below. This is the lower-bound counterpart used in Ritz interlacing. -/
-lemma ordered_eigenvalue_le_quadForm_of_unit_of_zero_after
+private lemma ordered_eigenvalue_le_quadForm_of_unit_of_zero_after
     {ι : Type*} [Fintype ι] [DecidableEq ι]
     {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
     (j : Fin (Fintype.card ι)) (z : EuclideanSpace ℝ ι)
@@ -912,32 +926,10 @@ lemma ordered_eigenvalue_le_quadForm_of_unit_of_zero_after
     Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))
   let c : Fin (Fintype.card ι) → ℝ := fun i =>
     (hH.eigenvectorBasis.repr z (e i)) ^ 2
-  have hcoords_sum_k :
-      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 = 1 := by
-    have hnorm : ‖z‖ ^ 2 = 1 := by
-      rw [EuclideanSpace.real_norm_sq_eq]
-      simpa [dotProduct, pow_two] using hunit
-    calc
-      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2
-          = ∑ i : ι, ‖inner ℝ (hH.eigenvectorBasis i) z‖ ^ 2 := by
-              refine Finset.sum_congr rfl ?_
-              intro i _
-              rw [OrthonormalBasis.repr_apply_apply]
-              simp [sq_abs]
-              rfl
-      _ = ‖z‖ ^ 2 := OrthonormalBasis.sum_sq_norm_inner_right hH.eigenvectorBasis z
-      _ = 1 := hnorm
   have hcoords_sum : ∑ i : Fin (Fintype.card ι), c i = 1 := by
-    calc
-      ∑ i : Fin (Fintype.card ι), c i
-          = ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 := by
-              simpa [c, e] using
-                (Equiv.sum_comp
-                  (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι)))
-                  (fun i : ι => (hH.eigenvectorBasis.repr z i) ^ 2))
-      _ = 1 := hcoords_sum_k
+    simpa [c, e] using sum_sq_eigenbasis_repr_equiv_eq_one hH z hunit
   have hquad :=
-    quadForm_eq_sum_eigenvalues_fintype (M := M) hH z
+    quadForm_eq_sum_eigenvalues (M := M) hH z
   rw [hquad]
   calc
     hH.eigenvalues₀ j =
@@ -955,7 +947,7 @@ lemma ordered_eigenvalue_le_quadForm_of_unit_of_zero_after
           · have hij' : i ≤ j := le_of_not_gt hij
             have heig :
                 hH.eigenvalues₀ j ≤ hH.eigenvalues (e i) := by
-              simpa [Matrix.IsHermitian.eigenvalues, e] using
+              simpa [e] using
                 hH.eigenvalues₀_antitone hij'
             exact mul_le_mul_of_nonneg_right heig (sq_nonneg _)
     _ = ∑ i : ι, hH.eigenvalues i *
@@ -1152,7 +1144,7 @@ private lemma det_one_sub_eq_prod_one_sub_ordered_eigenvalues
         (1 - hA.eigenvalues₀ j) := by
       apply Finset.prod_congr rfl
       intro j _
-      simp [Matrix.IsHermitian.eigenvalues, e]
+      simp [e]
 
 private lemma one_sub_ordered_eigenvalue_nonneg_of_one_sub_posSemidef
     {ι : Type*} [Fintype ι] [DecidableEq ι]
@@ -1179,7 +1171,7 @@ private lemma one_sub_ordered_eigenvalue_nonneg_of_one_sub_posSemidef
     _ = 1 - v ⬝ᵥ (hA.eigenvalues (e j) • v) := by rw [hvunit, heig]
     _ = 1 - hA.eigenvalues (e j) := by simp [dotProduct_smul, hvunit]
     _ = 1 - hA.eigenvalues₀ j := by
-      simp [Matrix.IsHermitian.eigenvalues, e]
+      simp [e]
 
 /-- Complement-determinant lower bound for an orthonormal-column Hermitian
 compression.
@@ -1472,7 +1464,7 @@ theorem hermitian_sum_column_quadratic_le_sum_largest_eigenvalues
               refine Finset.sum_congr rfl ?_
               intro j _
               simpa [col] using
-                quadForm_eq_sum_eigenvalues_fintype (M := M) hM (col j)
+                quadForm_eq_sum_eigenvalues (M := M) hM (col j)
       _ = ∑ j : κ, ∑ i : Fin n,
               hM.eigenvalues (e i) *
                 (hM.eigenvectorBasis.repr (col j) (e i)) ^ 2 := by
@@ -1485,7 +1477,13 @@ theorem hermitian_sum_column_quadratic_le_sum_largest_eigenvalues
       _ = ∑ j : κ, ∑ i : Fin n,
               hM.eigenvalues₀ i *
                 (hM.eigenvectorBasis.repr (col j) (e i)) ^ 2 := by
-              simp [Matrix.IsHermitian.eigenvalues, e]
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              refine Finset.sum_congr rfl ?_
+              intro i _
+              change hM.eigenvalues
+                  ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))) i) * _ = _
+              rw [hermitian_eigenvalues_equivOfCardEq hM i]
       _ = ∑ i : Fin n, hM.eigenvalues₀ i * w i := by
               rw [Finset.sum_comm]
               refine Finset.sum_congr rfl ?_
@@ -1503,14 +1501,6 @@ theorem hermitian_sum_column_quadratic_le_sum_largest_eigenvalues
 /-- For a Hermitian idempotent real matrix, the number of indices whose eigenvalue is `1`
 equals the rank of the matrix. -/
 lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent
-    {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ}
-    (hH : M.IsHermitian) (hI : IsIdempotentElem M) :
-    (Finset.univ.filter (fun i : Fin n => hH.eigenvalues i = 1)).card = M.rank := by
-  rw [← Fintype.card_subtype]
-  exact (rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent hH hI).symm
-
-/-- Finite-index version of `card_eigenvalue_one_eq_rank_of_isHermitian_idempotent`. -/
-lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent_fintype
     {ι : Type*} [Fintype ι] [DecidableEq ι]
     {M : Matrix ι ι ℝ}
     (hH : M.IsHermitian) (hI : IsIdempotentElem M) :

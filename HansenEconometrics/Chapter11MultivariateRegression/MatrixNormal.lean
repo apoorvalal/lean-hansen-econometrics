@@ -39,9 +39,9 @@ private lemma matrixBorelSpaceInst
 
 attribute [local instance] matrixBorelSpaceInst
 
-private theorem matrixBorelMeasurableSpaceInst_le_pi
+private theorem matrixBorelMeasurableSpaceInst_eq_pi
     {ι κ : Type*} [Fintype ι] [Fintype κ] :
-    matrixBorelMeasurableSpaceInst (ι := ι) (κ := κ) ≤
+    matrixBorelMeasurableSpaceInst (ι := ι) (κ := κ) =
       (inferInstance : MeasurableSpace (ι → κ → ℝ)) := by
   have hPiBorel :
       @BorelSpace (ι → κ → ℝ) _
@@ -52,22 +52,19 @@ private theorem matrixBorelMeasurableSpaceInst_le_pi
     @BorelSpace.measurable_eq (ι → κ → ℝ) _
       (inferInstance : MeasurableSpace (ι → κ → ℝ)) hPiBorel
   simpa [matrixBorelMeasurableSpaceInst, matrixBorelMeasurableSpace] using
-    le_of_eq hEq.symm
+    hEq.symm
+
+private theorem matrixBorelMeasurableSpaceInst_le_pi
+    {ι κ : Type*} [Fintype ι] [Fintype κ] :
+    matrixBorelMeasurableSpaceInst (ι := ι) (κ := κ) ≤
+      (inferInstance : MeasurableSpace (ι → κ → ℝ)) :=
+  le_of_eq matrixBorelMeasurableSpaceInst_eq_pi
 
 private theorem pi_le_matrixBorelMeasurableSpaceInst
     {ι κ : Type*} [Fintype ι] [Fintype κ] :
     (inferInstance : MeasurableSpace (ι → κ → ℝ)) ≤
-      matrixBorelMeasurableSpaceInst (ι := ι) (κ := κ) := by
-  have hPiBorel :
-      @BorelSpace (ι → κ → ℝ) _
-        (inferInstance : MeasurableSpace (ι → κ → ℝ)) :=
-    inferInstance
-  have hEq : (inferInstance : MeasurableSpace (ι → κ → ℝ)) =
-      borel (ι → κ → ℝ) :=
-    @BorelSpace.measurable_eq (ι → κ → ℝ) _
-      (inferInstance : MeasurableSpace (ι → κ → ℝ)) hPiBorel
-  simpa [matrixBorelMeasurableSpaceInst, matrixBorelMeasurableSpace] using
-    le_of_eq hEq
+    matrixBorelMeasurableSpaceInst (ι := ι) (κ := κ) :=
+  le_of_eq matrixBorelMeasurableSpaceInst_eq_pi.symm
 
 variable {Ω n m : Type*}
 variable [MeasurableSpace Ω] {μ : Measure Ω}
@@ -367,22 +364,6 @@ instance iidMatrixGaussianLaw_sfinite
   rw [iidMatrixGaussianLaw]
   infer_instance
 
-omit [Fintype m] [DecidableEq m] [DecidableEq n] in
-/-- Almost-sure rectangular Gram nonsingularity from an almost-sure
-invertible selected square row block.
-
-This packages `matrixCrossProduct_nonsingular_of_square_row_submatrix_invertible`
-at the iid matrix-Gaussian law layer. The remaining stochastic primitive is the
-square determinant certificate for the selected rows. -/
-theorem iidMatrixGaussianLaw_crossProduct_nonsingular_ae_of_square_row_submatrix_invertible
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (mean : r → ℝ) (Sigma : Matrix r r ℝ) (e : r → n)
-    (hsub : ∀ᵐ X ∂iidMatrixGaussianLaw (n := n) (m := r) mean Sigma,
-      Nonempty (Invertible (X.submatrix e id))) :
-    ∀ᵐ X ∂iidMatrixGaussianLaw (n := n) (m := r) mean Sigma,
-      Nonempty (Invertible (matrixCrossProduct X)) := by
-  filter_upwards [hsub] with X hX
-  exact matrixCrossProduct_nonsingular_of_square_row_submatrix_invertible X e hX
 
 omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 private theorem matrixCrossProduct_nonsingular_measurable
@@ -887,93 +868,16 @@ theorem sampleCenteringMatrix_isHermitian :
 
 omit [Fintype m] [DecidableEq m] in
 /-- The sample-centering matrix is idempotent. -/
-theorem sampleCenteringMatrix_mul_self :
+private theorem sampleCenteringMatrix_mul_self :
     sampleCenteringMatrix (n := n) * sampleCenteringMatrix (n := n) =
       sampleCenteringMatrix (n := n) := by
   classical
   ext i j
-  let N : ℝ := Fintype.card n
-  let a : ℝ := N⁻¹
-  have hN_nat : Fintype.card n ≠ 0 := by
-    letI : Nonempty n := ⟨i⟩
-    exact Fintype.card_ne_zero
-  have hN : N ≠ 0 := by
-    dsimp [N]
-    exact_mod_cast hN_nat
-  have hNa : N * a = 1 := by
-    simp [N, a, hN]
-  have hdelta :
-      ∑ k : n,
-          (if i = k then (1 : ℝ) else 0) *
-            (if k = j then (1 : ℝ) else 0) =
-        (if i = j then (1 : ℝ) else 0) := by
-    by_cases hij : i = j
-    · subst j
-      rw [if_pos rfl]
-      rw [Finset.sum_eq_single i]
-      · simp
-      · intro b _ hb
-        simp [hb.symm]
-      · intro hnot
-        exact False.elim (hnot (Finset.mem_univ i))
-    · rw [if_neg hij]
-      refine Finset.sum_eq_zero ?_
-      intro k _
-      by_cases hik : i = k
-      · subst k
-        simp [hij]
-      · simp [hik]
-  have hleft :
-      ∑ k : n, (if i = k then (1 : ℝ) else 0) = 1 := by
-    rw [Finset.sum_eq_single i]
-    · simp
-    · intro b _ hb
-      simp [hb.symm]
-    · intro hnot
-      exact False.elim (hnot (Finset.mem_univ i))
-  have hright :
-      ∑ k : n, (if k = j then (1 : ℝ) else 0) = 1 := by
-    rw [Finset.sum_eq_single j]
-    · simp
-    · intro b _ hb
-      simp [hb]
-    · intro hnot
-      exact False.elim (hnot (Finset.mem_univ j))
-  have hconst : ∑ _ : n, a * a = N * (a * a) := by
-    simp [N, nsmul_eq_mul]
-  have hNaa : N * (a * a) = a := by
-    calc
-      N * (a * a) = (N * a) * a := by ring
-      _ = a := by rw [hNa, one_mul]
-  have hsum_right :
-      (∑ k : n, a * (if k = j then (1 : ℝ) else 0)) =
-        a * (∑ k : n, (if k = j then (1 : ℝ) else 0)) := by
-    rw [← Finset.mul_sum]
-  have hsum_left :
-      (∑ k : n, (if i = k then (1 : ℝ) else 0) * a) =
-        a * (∑ k : n, (if i = k then (1 : ℝ) else 0)) := by
-    rw [← Finset.sum_mul]
-    ring
-  calc
-    (sampleCenteringMatrix (n := n) * sampleCenteringMatrix (n := n)) i j
-        = ∑ k : n,
-            (((if i = k then (1 : ℝ) else 0) - a) *
-              ((if k = j then (1 : ℝ) else 0) - a)) := by
-          simp [sampleCenteringMatrix, Matrix.mul_apply, Matrix.one_apply, N, a]
-    _ = (∑ k : n,
-            (if i = k then (1 : ℝ) else 0) *
-              (if k = j then (1 : ℝ) else 0)) -
-          a * (∑ k : n, (if i = k then (1 : ℝ) else 0)) -
-          a * (∑ k : n, (if k = j then (1 : ℝ) else 0)) +
-          ∑ _ : n, a * a := by
-          simp only [sub_mul, mul_sub, Finset.sum_sub_distrib]
-          rw [hsum_right, hsum_left]
-          ring
-    _ = (if i = j then (1 : ℝ) else 0) - a := by
-          rw [hdelta, hleft, hright, hconst, hNaa]
-          ring
-    _ = sampleCenteringMatrix (n := n) i j := by
-          simp [sampleCenteringMatrix, Matrix.one_apply, N, a]
+  letI : Nonempty n := ⟨i⟩
+  have hN : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast (Fintype.card_ne_zero (α := n))
+  simp [sampleCenteringMatrix, Matrix.mul_apply, Matrix.sub_apply,
+    Matrix.one_apply, sub_mul, mul_sub, Finset.sum_sub_distrib, hN]
 
 omit [Fintype m] [DecidableEq m] in
 /-- The sample-centering matrix is an idempotent element. -/
@@ -2736,103 +2640,12 @@ theorem inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
   rw [← hmap]
   exact inverseWishartScaledLinearForm_hasLaw_map W Wlaw Sigma α hW
 
-/-- Independent random-parameter push-forward bridge.
+/-- Core conditional-law bridge for an independent random parameter.
 
-If `A` and `B` are independent, `B ∼ βlaw`, and every fixed-parameter
-push-forward `b ↦ F (a,b)` has the same law `ρ`, then the random-parameter
-statistic `F (A,B)` also has law `ρ`. This is the measure-theoretic bridge
-needed to turn fixed-`α` inverse-Wishart scalar laws into the random-`α`
-Hotelling component. -/
-theorem hasLaw_of_indepFun_forall_fixed_map_eq
-    {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
-    {A : Ω → α} {B : Ω → β}
-    {αlaw : Measure α} {βlaw : Measure β} {ρ : Measure γ}
-    [SFinite βlaw] [SFinite ρ] [IsProbabilityMeasure αlaw]
-    (F : α × β → γ)
-    (hA : HasLaw A αlaw μ) (hB : HasLaw B βlaw μ)
-    (hInd : A ⟂ᵢ[μ] B)
-    (hF : Measurable F)
-    (hF_fixed : ∀ a : α, Measurable fun b : β => F (a, b))
-    (hfixed : ∀ a : α, βlaw.map (fun b : β => F (a, b)) = ρ) :
-    HasLaw (fun ω => F (A ω, B ω)) ρ μ := by
-  haveI : IsProbabilityMeasure μ := hA.isProbabilityMeasure
-  have hPair :
-      HasLaw (fun ω => (A ω, B ω)) (αlaw.prod βlaw) μ := by
-    refine ⟨hA.aemeasurable.prodMk hB.aemeasurable, ?_⟩
-    rw [(indepFun_iff_map_prod_eq_prod_map_map hA.aemeasurable hB.aemeasurable).1 hInd,
-      hA.map_eq, hB.map_eq]
-  have hMap : HasLaw F ρ (αlaw.prod βlaw) := by
-    refine ⟨hF.aemeasurable, ?_⟩
-    ext s hs
-    rw [Measure.map_apply hF hs, Measure.prod_apply (hF hs)]
-    have hsection : ∀ a : α,
-        βlaw ((Prod.mk a) ⁻¹' (F ⁻¹' s)) = ρ s := by
-      intro a
-      calc
-        βlaw ((Prod.mk a) ⁻¹' (F ⁻¹' s))
-            = βlaw ((fun b : β => F (a, b)) ⁻¹' s) := rfl
-        _ = βlaw.map (fun b : β => F (a, b)) s := by
-            rw [← Measure.map_apply (hF_fixed a) hs]
-        _ = ρ s := by rw [hfixed a]
-    simp_rw [hsection]
-    rw [lintegral_const]
-    simp
-  simpa [Function.comp_def] using hMap.comp hPair
-
-/-- A.e.-measurable version of
-`hasLaw_of_indepFun_forall_fixed_map_eq`.
-
-This is the version used by inverse-Wishart scalar forms, since total matrix
-inverse is available in the repo through a.e. measurability. -/
-theorem hasLaw_of_indepFun_forall_fixed_map_eq_ae
-    {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
-    {A : Ω → α} {B : Ω → β}
-    {αlaw : Measure α} {βlaw : Measure β} {ρ : Measure γ}
-    [SFinite βlaw] [IsProbabilityMeasure αlaw]
-    (F : α × β → γ)
-    (hA : HasLaw A αlaw μ) (hB : HasLaw B βlaw μ)
-    (hInd : A ⟂ᵢ[μ] B)
-    (hF : AEMeasurable F (αlaw.prod βlaw))
-    (hF_fixed : ∀ a : α, AEMeasurable (fun b : β => F (a, b)) βlaw)
-    (hfixed : ∀ a : α, βlaw.map (fun b : β => F (a, b)) = ρ) :
-    HasLaw (fun ω => F (A ω, B ω)) ρ μ := by
-  haveI : IsProbabilityMeasure μ := hA.isProbabilityMeasure
-  have hPair :
-      HasLaw (fun ω => (A ω, B ω)) (αlaw.prod βlaw) μ := by
-    refine ⟨hA.aemeasurable.prodMk hB.aemeasurable, ?_⟩
-    rw [(indepFun_iff_map_prod_eq_prod_map_map hA.aemeasurable hB.aemeasurable).1 hInd,
-      hA.map_eq, hB.map_eq]
-  have hMap : HasLaw F ρ (αlaw.prod βlaw) := by
-    refine ⟨hF, ?_⟩
-    apply Measure.ext_of_lintegral
-    intro g hg
-    calc
-      ∫⁻ y, g y ∂Measure.map F (αlaw.prod βlaw)
-          = ∫⁻ z, g (F z) ∂(αlaw.prod βlaw) := by
-              rw [lintegral_map' hg.aemeasurable hF]
-      _ = ∫⁻ a, ∫⁻ b, g (F (a, b)) ∂βlaw ∂αlaw := by
-              rw [lintegral_prod
-                (fun z : α × β => g (F z)) (hg.comp_aemeasurable hF)]
-      _ = ∫⁻ a, ∫⁻ y, g y ∂ρ ∂αlaw := by
-              congr with a
-              calc
-                ∫⁻ b, g (F (a, b)) ∂βlaw
-                    = ∫⁻ y, g y ∂βlaw.map (fun b : β => F (a, b)) := by
-                        rw [lintegral_map' hg.aemeasurable (hF_fixed a)]
-                _ = ∫⁻ y, g y ∂ρ := by rw [hfixed a]
-      _ = ∫⁻ y, g y ∂ρ := by
-              rw [lintegral_const]
-              simp
-  simpa [Function.comp_def] using hMap.comp hPair
-
-/-- A.e. fixed-law version of
-`hasLaw_of_indepFun_forall_fixed_map_eq_ae`.
-
-This is the right bridge when the fixed-parameter law is only meaningful off a
-null set of parameters, as in the inverse-Wishart scalar form with random
-`α`: the fixed `α = 0` map is degenerate, but a nondegenerate Gaussian
-parameter avoids that point almost surely. -/
-theorem hasLaw_of_indepFun_ae_fixed_map_eq_ae
+The fixed-parameter push-forward law need only hold almost everywhere under
+the parameter law, and both the joint map and its sections need only be a.e.
+measurable. -/
+private theorem hasLaw_of_indepFun_ae_fixed_map_eq_ae
     {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
     {A : Ω → α} {B : Ω → β}
     {αlaw : Measure α} {βlaw : Measure β} {ρ : Measure γ}
@@ -2874,6 +2687,25 @@ theorem hasLaw_of_indepFun_ae_fixed_map_eq_ae
               simp
   simpa [Function.comp_def] using hMap.comp hPair
 
+/-- Fixed-law specialization of the independent random-parameter bridge.
+
+This version is used by inverse-Wishart scalar forms when the fixed map law is
+known for every parameter rather than only almost every parameter. -/
+private theorem hasLaw_of_indepFun_forall_fixed_map_eq_ae
+    {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
+    {A : Ω → α} {B : Ω → β}
+    {αlaw : Measure α} {βlaw : Measure β} {ρ : Measure γ}
+    [SFinite βlaw] [IsProbabilityMeasure αlaw]
+    (F : α × β → γ)
+    (hA : HasLaw A αlaw μ) (hB : HasLaw B βlaw μ)
+    (hInd : A ⟂ᵢ[μ] B)
+    (hF : AEMeasurable F (αlaw.prod βlaw))
+    (hF_fixed : ∀ a : α, AEMeasurable (fun b : β => F (a, b)) βlaw)
+    (hfixed : ∀ a : α, βlaw.map (fun b : β => F (a, b)) = ρ) :
+    HasLaw (fun ω => F (A ω, B ω)) ρ μ :=
+  hasLaw_of_indepFun_ae_fixed_map_eq_ae F hA hB hInd hF hF_fixed
+    (Filter.Eventually.of_forall hfixed)
+
 /-- Joint law version of
 `hasLaw_of_indepFun_ae_fixed_map_eq_ae`.
 
@@ -2882,7 +2714,7 @@ conditional push-forward of `B` through `F(a, ·)` is the same law `ρ`, then th
 pair `(A, F(A,B))` has product law `αlaw × ρ`.  This is the reusable
 conditional-law-to-independence bridge needed for Hotelling's random
 inverse-Wishart component. -/
-theorem hasLaw_prodMk_of_indepFun_ae_fixed_map_eq_ae
+private theorem hasLaw_prodMk_of_indepFun_ae_fixed_map_eq_ae
     {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
     {A : Ω → α} {B : Ω → β}
     {αlaw : Measure α} {βlaw : Measure β} {ρ : Measure γ}
@@ -2939,7 +2771,7 @@ theorem hasLaw_prodMk_of_indepFun_ae_fixed_map_eq_ae
 
 The same conditional fixed-map law that gives the marginal law of `F(A,B)`
 also proves that `F(A,B)` is independent of the parameter `A`. -/
-theorem indepFun_of_indepFun_ae_fixed_map_eq_ae
+private theorem indepFun_of_indepFun_ae_fixed_map_eq_ae
     {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
     {A : Ω → α} {B : Ω → β}
     {αlaw : Measure α} {βlaw : Measure β} {ρ : Measure γ}
@@ -3095,7 +2927,7 @@ omit [DecidableEq n] in
 For `W ∼ W_m(n,Σ)`, the scaled inverse-Wishart linear form has Hansen's
 chi-square law once the Schur-complement push-forward identity has been proved
 for the named `wishartLaw`. -/
-theorem inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq
+private theorem inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (hW : HasLaw W (wishartLaw (n := n) Sigma) μ)
     (hmap : (wishartLaw (n := n) Sigma).map
@@ -3324,7 +3156,7 @@ congruence.
 If `T` and `S` are inverse coordinate maps and `TᵀWT` is nonsingular, then
 `W` is nonsingular.  This is the deterministic part needed to derive original
 Wishart nonsingularity from the standardized Wishart law in Theorem 11.11. -/
-theorem isUnit_det_of_congr_isUnit_det_rect
+private theorem isUnit_det_of_congr_isUnit_det_rect
     {q : Type*} [Fintype q] [DecidableEq q]
     (W : Matrix m m ℝ) (T : Matrix m q ℝ) (S : Matrix q m ℝ)
     (hST : S * T = 1) (hTS : T * S = 1)
@@ -3659,6 +3491,37 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_projection_certifi
   simpa [hrank] using hquad.congr hrepr
 
 omit [DecidableEq n] in
+private theorem stdGaussian_quadForm_map_eq_chiSquared_of_props
+    {κ : Type*} [Fintype κ]
+    (P : Matrix κ κ ℝ) (r : ℕ) (hr : 0 < r)
+    (hP : P.IsHermitian ∧ IsIdempotentElem P ∧ P.rank = r) :
+    (stdGaussian (EuclideanSpace ℝ κ)).map
+        (fun z : EuclideanSpace ℝ κ =>
+          (z : κ → ℝ) ⬝ᵥ (P *ᵥ (z : κ → ℝ))) =
+      chiSquared r := by
+  let Zlaw : Measure (EuclideanSpace ℝ κ) := stdGaussian (EuclideanSpace ℝ κ)
+  letI : MeasureSpace (EuclideanSpace ℝ κ) := ⟨Zlaw⟩
+  haveI : IsProbabilityMeasure (volume : Measure (EuclideanSpace ℝ κ)) := by
+    change IsProbabilityMeasure Zlaw
+    dsimp [Zlaw]
+    infer_instance
+  have hZid : HasLaw (fun z : EuclideanSpace ℝ κ => z)
+      (stdGaussian (EuclideanSpace ℝ κ))
+      (volume : Measure (EuclideanSpace ℝ κ)) := by
+    change HasLaw (fun z : EuclideanSpace ℝ κ => z)
+      (stdGaussian (EuclideanSpace ℝ κ)) Zlaw
+    simpa [Zlaw] using (HasLaw.id (μ := Zlaw))
+  have hquad :
+      HasLaw
+        (fun z : EuclideanSpace ℝ κ =>
+          (z : κ → ℝ) ⬝ᵥ (P *ᵥ (z : κ → ℝ)))
+        (chiSquared P.rank) Zlaw :=
+    hasLaw_quadForm_symmIdem_chiSquared_fintype
+      (Z := fun z : EuclideanSpace ℝ κ => z) (M := P)
+      hZid hP.1 hP.2.1 (by simpa [hP.2.2] using hr)
+  simpa [Zlaw, hP.2.2] using hquad.map_eq
+
+omit [DecidableEq n] in
 /-- Random-projection chi-square bridge for the Schur-complement proof of
 Hansen Theorem 11.11.
 
@@ -3668,7 +3531,7 @@ matrix.  This theorem packages the exact reusable reduction: if the projection
 matrix is independent of a standard Gaussian vector and is almost surely
 Hermitian, idempotent, and of fixed rank `r`, then the corresponding quadratic
 form has the `χ²_r` law. -/
-theorem hasLaw_quadForm_random_symmIdem_chiSquared_of_indep
+private theorem hasLaw_quadForm_random_symmIdem_chiSquared_of_indep
     {κ : Type*} [Fintype κ]
     (Z : Ω → EuclideanSpace ℝ κ) (P : Ω → Matrix κ κ ℝ)
     (Plaw : Measure (Matrix κ κ ℝ)) (r : ℕ)
@@ -3699,25 +3562,8 @@ theorem hasLaw_quadForm_random_symmIdem_chiSquared_of_indep
         Zlaw.map (fun z : EuclideanSpace ℝ κ =>
           (z : κ → ℝ) ⬝ᵥ (Pmat *ᵥ (z : κ → ℝ))) = chiSquared r := by
     filter_upwards [hprops] with Pmat hPmat
-    letI : MeasureSpace (EuclideanSpace ℝ κ) := ⟨Zlaw⟩
-    haveI : IsProbabilityMeasure (volume : Measure (EuclideanSpace ℝ κ)) := by
-      change IsProbabilityMeasure Zlaw
-      dsimp [Zlaw]
-      infer_instance
-    have hZid : HasLaw (fun z : EuclideanSpace ℝ κ => z)
-        (stdGaussian (EuclideanSpace ℝ κ)) (volume : Measure (EuclideanSpace ℝ κ)) := by
-      change HasLaw (fun z : EuclideanSpace ℝ κ => z)
-        (stdGaussian (EuclideanSpace ℝ κ)) Zlaw
-      simpa [Zlaw] using (HasLaw.id (μ := Zlaw))
-    have hquad :
-        HasLaw
-          (fun z : EuclideanSpace ℝ κ =>
-            (z : κ → ℝ) ⬝ᵥ (Pmat *ᵥ (z : κ → ℝ)))
-          (chiSquared Pmat.rank) Zlaw :=
-      hasLaw_quadForm_symmIdem_chiSquared_fintype
-        (Z := fun z : EuclideanSpace ℝ κ => z) (M := Pmat)
-        hZid hPmat.1 hPmat.2.1 (by simpa [hPmat.2.2] using hr)
-    simpa [Zlaw, hPmat.2.2] using hquad.map_eq
+    simpa [Zlaw] using
+      stdGaussian_quadForm_map_eq_chiSquared_of_props Pmat r hr hPmat
   simpa [F, Zlaw] using
     hasLaw_of_indepFun_ae_fixed_map_eq_ae
       (A := P) (B := Z) (αlaw := Plaw) (βlaw := Zlaw)
@@ -3810,61 +3656,13 @@ private theorem hasLaw_quadForm_random_symmIdem_chiSquared_of_indep_source_props
         Zlaw.map (fun z : EuclideanSpace ℝ κ =>
           (z : κ → ℝ) ⬝ᵥ (P ω *ᵥ (z : κ → ℝ))) = chiSquared r := by
     filter_upwards [hprops] with ω hPω
-    letI : MeasureSpace (EuclideanSpace ℝ κ) := ⟨Zlaw⟩
-    haveI : IsProbabilityMeasure (volume : Measure (EuclideanSpace ℝ κ)) := by
-      change IsProbabilityMeasure Zlaw
-      dsimp [Zlaw]
-      infer_instance
-    have hZid : HasLaw (fun z : EuclideanSpace ℝ κ => z)
-        (stdGaussian (EuclideanSpace ℝ κ)) (volume : Measure (EuclideanSpace ℝ κ)) := by
-      change HasLaw (fun z : EuclideanSpace ℝ κ => z)
-        (stdGaussian (EuclideanSpace ℝ κ)) Zlaw
-      simpa [Zlaw] using (HasLaw.id (μ := Zlaw))
-    have hquad :
-        HasLaw
-          (fun z : EuclideanSpace ℝ κ =>
-            (z : κ → ℝ) ⬝ᵥ (P ω *ᵥ (z : κ → ℝ)))
-          (chiSquared (P ω).rank) Zlaw :=
-      hasLaw_quadForm_symmIdem_chiSquared_fintype
-        (Z := fun z : EuclideanSpace ℝ κ => z) (M := P ω)
-        hZid hPω.1 hPω.2.1 (by simpa [hPω.2.2] using hr)
-    simpa [Zlaw, hPω.2.2] using hquad.map_eq
+    simpa [Zlaw] using
+      stdGaussian_quadForm_map_eq_chiSquared_of_props (P ω) r hr hPω
   simpa [F, Zlaw] using
     hasLaw_of_indepFun_source_ae_fixed_map_eq_ae
       (A := P) (B := Z) (αlaw := Plaw) (βlaw := Zlaw)
       (ρ := chiSquared r) (F := F) hP hZ hInd hF hF_fixed hfixed
 
-omit [DecidableEq n] in
-/-- Law-level Hansen Theorem 11.11 map identity from a projection certificate.
-
-This is the fixed-`α` push-forward identity for the named `wishartLaw`.  The
-only substantive premise is the exact Schur-complement representation of the
-scaled inverse-Wishart scalar as a rank `n - m + 1` Hermitian-idempotent
-Gaussian quadratic form under the Wishart law itself. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_projection_certificate
-    {κ : Type*} [Fintype κ]
-    (Sigma : Matrix m m ℝ) (α : m → ℝ)
-    (Z : Matrix m m ℝ → EuclideanSpace ℝ κ) (P : Matrix κ κ ℝ)
-    (hSigma : Sigma.PosDef) (hα : α ≠ 0)
-    (hZ : HasLaw Z (stdGaussian (EuclideanSpace ℝ κ)) (wishartLaw (n := n) Sigma))
-    (hP_herm : P.IsHermitian) (hP_idem : IsIdempotentElem P)
-    (hrank : P.rank = Fintype.card n - Fintype.card m + 1)
-    (hrepr :
-      (fun W : Matrix m m ℝ => inverseWishartScaledLinearForm Sigma α W)
-        =ᵐ[wishartLaw (n := n) Sigma]
-        fun W => (Z W : κ → ℝ) ⬝ᵥ (P *ᵥ (Z W : κ → ℝ))) :
-    (wishartLaw (n := n) Sigma).map
-        (inverseWishartScaledLinearForm Sigma α) =
-      chiSquared (Fintype.card n - Fintype.card m + 1) := by
-  classical
-  have hW : HasLaw (fun W : Matrix m m ℝ => W)
-      (wishartLaw (n := n) Sigma) (wishartLaw (n := n) Sigma) :=
-    HasLaw.id
-  have h := inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_projection_certificate
-    (Ω := Matrix m m ℝ) (μ := wishartLaw (n := n) Sigma)
-    (W := fun W : Matrix m m ℝ => W) (Sigma := Sigma) (α := α)
-    (Z := Z) (P := P) hSigma hα hW hZ hP_herm hP_idem hrank hrepr
-  exact h.map_eq
 
 omit [DecidableEq n] in
 /-- Law-level Hansen Theorem 11.11 map identity from a raw Gaussian-matrix
@@ -3876,7 +3674,7 @@ enough to prove, under the iid Gaussian matrix law whose cross-product defines
 standard-Gaussian Hermitian-idempotent quadratic form of rank `n - m + 1`.
 The theorem then pushes that representation through the cross-product map and
 returns the exact Hansen `wishartLaw.map` identity. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_matrixGaussian_projection_certificate
+private theorem InverseWishartProof.matrixProjectionMap
     {κ : Type*} [Fintype κ]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (Z : Matrix n m ℝ → EuclideanSpace ℝ κ) (P : Matrix κ κ ℝ)
@@ -4617,7 +4415,7 @@ private theorem standardCoordinateFirstRest_flat_indepFun_pi
 omit [Fintype m] [DecidableEq n] [DecidableEq m] in
 /-- Under the iid standard Gaussian matrix law on `1 + r` columns, the first
 column is independent of the nuisance columns. -/
-theorem standardCoordinateFirstColumn_indepFun_standardCoordinateRestColumns_iidMatrixGaussianLaw
+private theorem InverseWishartProof.firstRestIndep
     {r : Type*} [Fintype r] [DecidableEq r] :
     (fun Y : Matrix n (Sum Unit r) ℝ => standardCoordinateFirstColumn (n := n) Y)
       ⟂ᵢ[iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
@@ -4796,7 +4594,7 @@ private theorem gaussianResidualProjection_aemeasurable
 omit [Fintype m] [DecidableEq m] in
 /-- Under the iid standard Gaussian matrix law, the residual projection formed
 from the nuisance columns is independent of the first column. -/
-theorem standardCoordinateFirstColumn_indepFun_gaussianResidualProjection_iidMatrixGaussianLaw
+private theorem InverseWishartProof.residualProjectionIndep
     {r : Type*} [Fintype r] [DecidableEq r] :
     (fun Y : Matrix n (Sum Unit r) ℝ =>
         gaussianResidualProjection (n := n) (standardCoordinateRestColumns (n := n) Y))
@@ -4814,7 +4612,7 @@ theorem standardCoordinateFirstColumn_indepFun_gaussianResidualProjection_iidMat
   have hFirstRest :
       First ⟂ᵢ[Ylaw] Rest := by
     simpa [Ylaw, First, Rest] using
-      standardCoordinateFirstColumn_indepFun_standardCoordinateRestColumns_iidMatrixGaussianLaw
+      InverseWishartProof.firstRestIndep
         (n := n) (r := r)
   have hRestFirst : Rest ⟂ᵢ[Ylaw] First := hFirstRest.symm
   have hRestAe : AEMeasurable Rest Ylaw := by
@@ -4908,7 +4706,7 @@ This is the pointwise algebraic identity used by the projection-certificate
 version of Hansen Theorem 11.11: in coordinates with `Σ = I` and `α = e₁`,
 the inverse-Wishart scalar from `(YᵀY)⁻¹` is the residual quadratic form of
 the first column after projecting out the nuisance columns. -/
-theorem inverseWishartScaledLinearForm_one_standardCoordinate_eq_residualProjection_of_invertible
+private theorem InverseWishartProof.residualIdentity
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Matrix n (Sum Unit r) ℝ)
     [Invertible (matrixCrossProduct Y)]
@@ -4982,7 +4780,7 @@ quadratic form is nonzero, then the full `YᵀY` Gram matrix is nonsingular.
 This is the algebraic bridge used to reduce the remaining standard Gaussian
 certificate from full/nuisance nonsingularity to nuisance nonsingularity plus
 the already-proved chi-square residual law. -/
-theorem matrixCrossProduct_standardCoordinate_nonsingular_of_nuisance_nonsingular_residual_ne
+private theorem InverseWishartProof.fullGramNonsingular
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Matrix n (Sum Unit r) ℝ)
     (hnuisance : Nonempty (Invertible
@@ -5040,7 +4838,7 @@ This is the certificate form needed by the projection-law Theorem 11.11
 reduction: once the standard Gaussian matrix law is known to give nonsingular
 full and nuisance Gram matrices almost surely, the residual-projection
 representation follows almost surely. -/
-theorem inverseWishartScaledLinearForm_one_standardCoordinate_ae_eq_residualProjection_of_invertible
+private theorem InverseWishartProof.residualIdentityAE
     {r : Type*} [Fintype r] [DecidableEq r]
     (Ylaw : Measure (Matrix n (Sum Unit r) ℝ))
     (hnonsing : ∀ᵐ Y ∂Ylaw,
@@ -5066,7 +4864,7 @@ theorem inverseWishartScaledLinearForm_one_standardCoordinate_ae_eq_residualProj
   letI : Invertible ((standardCoordinateRestColumns (n := n) Y)ᵀ *
       standardCoordinateRestColumns (n := n) Y) := instX
   exact
-    inverseWishartScaledLinearForm_one_standardCoordinate_eq_residualProjection_of_invertible
+    InverseWishartProof.residualIdentity
       (n := n) (Y := Y)
 
 omit [Fintype m] [DecidableEq m] in
@@ -5078,7 +4876,7 @@ the full and nuisance Gram matrices are nonsingular almost surely, the
 deterministic Schur identity transports any proved chi-square law for the
 residualized first-column quadratic form to Hansen's inverse-Wishart scalar
 computed from `YᵀY`. -/
-theorem inverseWishartScaledLinearForm_one_standardCoordinate_hasLaw_of_residualProjection_law
+private theorem InverseWishartProof.residualLaw
     {r : Type*} [Fintype r] [DecidableEq r]
     (Ylaw : Measure (Matrix n (Sum Unit r) ℝ))
     (hnonsing : ∀ᵐ Y ∂Ylaw,
@@ -5103,7 +4901,7 @@ theorem inverseWishartScaledLinearForm_one_standardCoordinate_hasLaw_of_residual
   exact hquad.congr
     (by
       simpa using
-        inverseWishartScaledLinearForm_one_standardCoordinate_ae_eq_residualProjection_of_invertible
+        InverseWishartProof.residualIdentityAE
           (n := n) (r := r) Ylaw hnonsing)
 
 omit [Fintype m] [DecidableEq m] in
@@ -5114,7 +4912,7 @@ Under the iid standard Gaussian matrix law, a.s. full/nuisance Gram
 nonsingularity plus the chi-square law of the first column residualized against
 the nuisance columns imply the exact Hansen push-forward identity for
 `W = YᵀY`, `Σ = I`, and `α = e₁`. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residualProjection_law
+private theorem InverseWishartProof.standardResidualMap
     {r : Type*} [Fintype r] [DecidableEq r]
     (hnonsing : ∀ᵐ Y ∂iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
         (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
@@ -5149,7 +4947,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
   have hstat : HasLaw stat
       (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) Ylaw := by
     exact
-      inverseWishartScaledLinearForm_one_standardCoordinate_hasLaw_of_residualProjection_law
+      InverseWishartProof.residualLaw
         (n := n) (r := r) Ylaw
         (by simpa [Ylaw] using hnonsing)
         (by simpa [Ylaw] using hquad)
@@ -5203,8 +5001,7 @@ theorem gaussianResidualProjection_isHermitian
     (X : Matrix n r ℝ) [Invertible (Xᵀ * X)] :
     (gaussianResidualProjection (n := n) X).IsHermitian := by
   rw [gaussianResidualProjection_eq_annihilatorMatrix (n := n) X]
-  exact (Matrix.conjTranspose_eq_transpose_of_trivial _).trans
-    (annihilatorMatrix_transpose X)
+  exact annihilatorMatrix_isHermitian X
 
 omit [Fintype m] [DecidableEq m] in
 /-- The residual projection is idempotent when the nuisance Gram matrix is
@@ -5346,7 +5143,7 @@ Under the raw iid standard Gaussian matrix law, if the nuisance-column Gram
 matrix is nonsingular almost surely, then the first column residualized against
 the nuisance columns has Hansen's `χ²_{n-m+1}` law. This closes the random
 projection-law input used by the standard-coordinate inverse-Wishart bridge. -/
-theorem standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular
+private theorem InverseWishartProof.residualChiSquared
     {r : Type*} [Fintype r] [DecidableEq r]
     (hcard : Fintype.card r < Fintype.card n)
     (hnuisance : ∀ᵐ Y ∂iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
@@ -5390,7 +5187,7 @@ theorem standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nui
   have hP : HasLaw P (Ylaw.map P) Ylaw := ⟨hPae, rfl⟩
   have hInd : P ⟂ᵢ[Ylaw] Z := by
     simpa [Ylaw, P, Z] using
-      standardCoordinateFirstColumn_indepFun_gaussianResidualProjection_iidMatrixGaussianLaw
+      InverseWishartProof.residualProjectionIndep
         (n := n) (r := r)
   have hrank_pos : 0 < Fintype.card n - Fintype.card (Sum Unit r) + 1 := by
     rw [standardCoordinate_df_eq_residual_rank (n := n) (r := r) hcard]
@@ -5445,7 +5242,7 @@ theorem standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
   have hquad : HasLaw stat
       (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) Ylaw := by
     simpa [Ylaw, stat] using
-      standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular
+      InverseWishartProof.residualChiSquared
         (n := n) hcard hnuisance
   have hChi_ne :
       ∀ᵐ x ∂chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1),
@@ -5461,7 +5258,7 @@ theorem standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
         standardCoordinateRestColumns (n := n) Y)) := by
     simpa [nonempty_invertible_iff_isUnit] using hY
   exact
-    ⟨matrixCrossProduct_standardCoordinate_nonsingular_of_nuisance_nonsingular_residual_ne
+    ⟨InverseWishartProof.fullGramNonsingular
         (n := n) Y hYinv (by simpa [stat] using hYstat),
       hYinv⟩
 
@@ -5603,7 +5400,7 @@ nonsingularity alone.
 The full-Gram part of the older standard-coordinate certificate is derived
 from the residual chi-square law and Schur complement algebra; the remaining
 raw Gaussian input is only nuisance-Gram nonsingularity. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular
+private theorem InverseWishartProof.standardMapOfNuisance
     {r : Type*} [Fintype r] [DecidableEq r]
     (hcard : Fintype.card r < Fintype.card n)
     (hnuisance : ∀ᵐ Y ∂iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
@@ -5618,11 +5415,11 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
       chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1) := by
   classical
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residualProjection_law
+    InverseWishartProof.standardResidualMap
       (n := n) (r := r)
       (standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
         (n := n) hcard hnuisance)
-      (standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular
+      (InverseWishartProof.residualChiSquared
         (n := n) hcard hnuisance)
 
 omit [Fintype m] [DecidableEq m] [DecidableEq n] in
@@ -5632,7 +5429,7 @@ Gram nonsingularity.
 This combines the residualized Gaussian projection law with the deterministic
 Schur identity, so the standard-coordinate Theorem 11.11 route no longer needs
 to assume the residual-projection chi-square law separately. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular
+private theorem InverseWishartProof.standardMap
     {r : Type*} [Fintype r] [DecidableEq r]
     (hcard : Fintype.card r < Fintype.card n)
     (hnonsing : ∀ᵐ Y ∂iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
@@ -5663,10 +5460,10 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
         (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1))
         (iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
           (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)) :=
-    standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular
+    InverseWishartProof.residualChiSquared
       (n := n) hcard hnuisance
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residualProjection_law
+    InverseWishartProof.standardResidualMap
       (n := n) (r := r) hnonsing hquad
 
 omit [Fintype m] [DecidableEq m] [DecidableEq n] in
@@ -5678,7 +5475,7 @@ projection law, and Chapter 3 residual-projection facts now directly imply
 the Hansen inverse-Wishart chi-square law.  This theorem removes the
 theorem-facing push-forward identity premise in the standardized boundary
 case. -/
-theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinate_of_nonsingular
+private theorem InverseWishartProof.standardScaledLaw
     {r : Type*} [Fintype r] [DecidableEq r]
     (W : Ω → Matrix (Sum Unit r) (Sum Unit r) ℝ)
     (hcard : Fintype.card r < Fintype.card n)
@@ -5701,37 +5498,9 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinat
       (W := W)
       (Sigma := (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
       (α := Pi.single (Sum.inl ()) (1 : ℝ)) hW
-      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular
+      (InverseWishartProof.standardMap
         (n := n) (r := r) hcard hnonsing)
 
-omit [Fintype m] [DecidableEq m] [DecidableEq n] in
-/-- Raw standard-coordinate form of Hansen Theorem 11.11 from nonsingularity.
-
-In the standardized `Σ = I`, `α = e₁` boundary, the Hansen normalizing scale is
-one, so the raw inverse-Wishart scalar has the same chi-square law as the
-scaled form. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_one_standardCoordinate_raw_of_nonsingular
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (W : Ω → Matrix (Sum Unit r) (Sum Unit r) ℝ)
-    (hcard : Fintype.card r < Fintype.card n)
-    (hW : HasLaw W
-      (wishartLaw (n := n) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)) μ)
-    (hnonsing : ∀ᵐ Y ∂iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible (matrixCrossProduct Y)) ∧
-        Nonempty (Invertible ((standardCoordinateRestColumns (n := n) Y)ᵀ *
-          standardCoordinateRestColumns (n := n) Y))) :
-    HasLaw
-      (fun ω => inverseWishartLinearForm (Pi.single (Sum.inl ()) (1 : ℝ)) (W ω))
-      (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ := by
-  classical
-  have hscaled :=
-    inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinate_of_nonsingular
-      (n := n) (r := r) W hcard hW hnonsing
-  exact hscaled.congr
-    (by
-      filter_upwards with ω
-      simp [inverseWishartScaledLinearForm, inv_one])
 
 omit [Fintype m] [DecidableEq m] [DecidableEq n] in
 /-- **Hansen Theorem 11.11**, standard-coordinate fixed-`α` endpoint from
@@ -5739,7 +5508,7 @@ nuisance-Gram nonsingularity.
 
 The standardized full-Gram certificate is derived from the nuisance Gram and
 the residual-projection chi-square law. -/
-theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinate_of_nuisance_nonsingular
+private theorem InverseWishartProof.standardScaledLawOfNuisance
     {r : Type*} [Fintype r] [DecidableEq r]
     (W : Ω → Matrix (Sum Unit r) (Sum Unit r) ℝ)
     (hcard : Fintype.card r < Fintype.card n)
@@ -5761,33 +5530,9 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinat
       (W := W)
       (Sigma := (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
       (α := Pi.single (Sum.inl ()) (1 : ℝ)) hW
-      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular
+      (InverseWishartProof.standardMapOfNuisance
         (n := n) (r := r) hcard hnuisance)
 
-omit [Fintype m] [DecidableEq m] [DecidableEq n] in
-/-- Raw standard-coordinate form of Hansen Theorem 11.11 from nuisance-Gram
-nonsingularity. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_one_standardCoordinate_raw_of_nuisance_nonsingular
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (W : Ω → Matrix (Sum Unit r) (Sum Unit r) ℝ)
-    (hcard : Fintype.card r < Fintype.card n)
-    (hW : HasLaw W
-      (wishartLaw (n := n) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)) μ)
-    (hnuisance : ∀ᵐ Y ∂iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible ((standardCoordinateRestColumns (n := n) Y)ᵀ *
-        standardCoordinateRestColumns (n := n) Y))) :
-    HasLaw
-      (fun ω => inverseWishartLinearForm (Pi.single (Sum.inl ()) (1 : ℝ)) (W ω))
-      (chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1)) μ := by
-  classical
-  have hscaled :=
-    inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinate_of_nuisance_nonsingular
-      (n := n) (r := r) W hcard hW hnuisance
-  exact hscaled.congr
-    (by
-      filter_upwards with ω
-      simp [inverseWishartScaledLinearForm, inv_one])
 
 /-- Standard-coordinate scalar push-forward congruence from explicit
 whitening/coordinate transport.
@@ -5870,7 +5615,7 @@ This is the same deterministic whitening/alignment bridge as
 `inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_transport`,
 but the Wishart congruence is derived from the more primitive iid
 matrix-Gaussian column-map identity `Y ↦ YT`. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_matrixGaussian_transport
+private theorem InverseWishartProof.matrixTransportMap
     {dfidx r : Type*} [Fintype dfidx] [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -5915,9 +5660,9 @@ Schur-complement proof is complete.  The only remaining mathematical input is
 `hcongr`: a proof that the fixed `Σ, α` scalar push-forward is the same as the
 standardized `Σ = I, α = e₁` push-forward.  The chi-square conclusion itself is
 then supplied by
-`inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular`,
+`InverseWishartProof.standardMap`,
 not by a direct law premise. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+private theorem InverseWishartProof.standardMapCongr
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -5942,12 +5687,12 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
   classical
   rw [hcongr, ← hdf]
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular
+    InverseWishartProof.standardMap
       (n := dfidx) (r := r) hcard hnonsing
 
 /-- Hansen Theorem 11.11 random-variable endpoint from standard-coordinate
 nonsingularity and a whitening/coordinate congruence. -/
-theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate_nonsingular_congr
+private theorem InverseWishartProof.standardScaledLawCongr
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -5974,13 +5719,13 @@ theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate
     inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
       (W := W) (Wlaw := wishartLaw (n := dfidx) Sigma)
       (Sigma := Sigma) (α := α) (df := df) hW
-      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+      (InverseWishartProof.standardMapCongr
         (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
         hcard hnonsing hdf hcongr)
 
 /-- Hansen Theorem 11.11 fixed-`α` map identity from standard-coordinate
 nuisance-Gram nonsingularity and a whitening/coordinate congruence. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular_congr
+private theorem InverseWishartProof.standardMapCongrOfNuisance
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -6005,41 +5750,9 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
   classical
   rw [hcongr, ← hdf]
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular
+    InverseWishartProof.standardMapOfNuisance
       (n := dfidx) (r := r) hcard hnuisance
 
-/-- Hansen Theorem 11.11 random-variable endpoint from standard-coordinate
-nuisance-Gram nonsingularity and a whitening/coordinate congruence. -/
-theorem inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate_nuisance_nonsingular_congr
-    {dfidx r : Type*} [Fintype dfidx]
-    [Fintype r] [DecidableEq r]
-    (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
-    (hW : HasLaw W (wishartLaw (n := dfidx) Sigma) μ)
-    (hcard : Fintype.card r < Fintype.card dfidx)
-    (hnuisance : ∀ᵐ Y ∂iidMatrixGaussianLaw
-        (n := dfidx) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible ((standardCoordinateRestColumns (n := dfidx) Y)ᵀ *
-        standardCoordinateRestColumns (n := dfidx) Y)))
-    (hdf : Fintype.card dfidx - Fintype.card (Sum Unit r) + 1 = df)
-    (hcongr :
-      (wishartLaw (n := dfidx) Sigma).map
-          (inverseWishartScaledLinearForm Sigma α) =
-        (wishartLaw (n := dfidx)
-          (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
-          (inverseWishartScaledLinearForm
-            (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-            (Pi.single (Sum.inl ()) (1 : ℝ)))) :
-    HasLaw (fun ω => inverseWishartScaledLinearForm Sigma α (W ω))
-      (chiSquared df) μ := by
-  classical
-  exact
-    inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
-      (W := W) (Wlaw := wishartLaw (n := dfidx) Sigma)
-      (Sigma := Sigma) (α := α) (df := df) hW
-      (inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular_congr
-        (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
-        hcard hnuisance hdf hcongr)
 
 /-- Hansen Theorem 11.11 scaled endpoint from explicit standard-coordinate
 whitening/coordinate transport.
@@ -6047,7 +5760,7 @@ whitening/coordinate transport.
 This wrapper feeds the concrete transport data into the standard-coordinate
 nonsingularity theorem, eliminating the direct scalar `hcongr` premise from
 the theorem-facing call site. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_transport
+private theorem InverseWishartProof.transportMap
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -6092,7 +5805,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
       (T := T) (S := S) (c := c)
       hST hTS hSigma_det hW_nonsing hSigma_one hα_one hc hWishart
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+    InverseWishartProof.standardMapCongr
       (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
       hcard hnonsing_std hdf hcongr
 
@@ -6100,9 +5813,9 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
 standard-coordinate transport.
 
 This replaces the direct Wishart congruence premise in
-`inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_transport`
+`InverseWishartProof.transportMap`
 by the underlying iid matrix-Gaussian column-map identity. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_transport
+private theorem InverseWishartProof.matrixTransportChiSquared
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -6142,12 +5855,12 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
           (inverseWishartScaledLinearForm
             (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
             (Pi.single (Sum.inl ()) (1 : ℝ))) :=
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_matrixGaussian_transport
+    InverseWishartProof.matrixTransportMap
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α) (T := T) (S := S) (c := c)
       hST hTS hSigma_det hW_nonsing hSigma_one hα_one hc hYmap
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+    InverseWishartProof.standardMapCongr
       (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
       hcard hnonsing_std hdf hcongr
 
@@ -6157,7 +5870,7 @@ This version derives the primitive iid matrix-Gaussian column-map identity
 from `TᵀΣT = I`, so callers only supply the deterministic
 whitening/alignment data and the original Wishart a.s. nonsingularity
 certificate. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_whitening_transport
+private theorem InverseWishartProof.whiteningMap
     {dfidx r : Type*} [Fintype dfidx] [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -6191,7 +5904,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_w
       (n := dfidx) (m := m) (r := r)
       (Sigma := Sigma) hSigma.posSemidef T hSigma_one
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_matrixGaussian_transport
+    InverseWishartProof.matrixTransportMap
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α) (T := T) (S := S) (c := c)
       hST hTS hSigma_det hW_nonsing hSigma_one hα_one hc hYmap
@@ -6199,9 +5912,9 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_w
 /-- Hansen Theorem 11.11 scaled endpoint from whitening data.
 
 This removes the explicit iid matrix-Gaussian map premise from
-`inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_transport`;
+`InverseWishartProof.matrixTransportChiSquared`;
 the map identity is now supplied by `iidMatrixGaussianLaw_standardCoordinate_whiten_map`. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport
+private theorem InverseWishartProof.whiteningChiSquared
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -6235,12 +5948,12 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
           (inverseWishartScaledLinearForm
             (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
             (Pi.single (Sum.inl ()) (1 : ℝ))) :=
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_whitening_transport
+    InverseWishartProof.whiteningMap
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α) (T := T) (S := S) (c := c)
       hSigma hST hTS hW_nonsing hSigma_one hα_one hc
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+    InverseWishartProof.standardMapCongr
       (dfidx := dfidx) (r := r) (Sigma := Sigma) (α := α) (df := df)
       hcard hnonsing_std hdf hcongr
 
@@ -6248,10 +5961,10 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
 standard-coordinate Gram nonsingularity certificate.
 
 Compared with
-`inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport`,
+`InverseWishartProof.whiteningChiSquared`,
 this theorem derives the original Wishart a.s. nonsingularity premise from
 the standardized full-Gram nonsingularity plus the whitening transport. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nonsingular
+private theorem InverseWishartProof.whiteningOfStandard
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -6289,7 +6002,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
       (Sigma := Sigma) (T := T) (S := S)
       hSigma.posSemidef hST hTS hnonsing_std_full hSigma_one
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport
+    InverseWishartProof.whiteningChiSquared
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α) (df := df)
       (T := T) (S := S) (c := c)
@@ -6301,7 +6014,7 @@ standard-coordinate nuisance-Gram nonsingularity certificate.
 
 The standardized full-Gram certificate, and then the original Wishart
 nonsingularity certificate, are both derived from the nuisance Gram. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
+private theorem InverseWishartProof.whiteningOfNuisance
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -6335,7 +6048,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
       (n := dfidx) hcard hnuisance_std
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nonsingular
+    InverseWishartProof.whiteningOfStandard
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α) (df := df)
       (T := T) (S := S) (c := c)
@@ -6347,7 +6060,7 @@ data and the standard-coordinate nuisance-Gram nonsingularity certificate.
 This is the fixed-parameter boundary with the deterministic whitening objects
 packaged as existence data.  The remaining stochastic input is exactly the raw
 standardized nuisance-column Gram nonsingularity certificate. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+private theorem InverseWishartProof.whiteningExists
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
@@ -6372,7 +6085,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
   classical
   rcases htransport with ⟨T, S, c, hST, hTS, hSigma_one, hα_one, hc⟩
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
+    InverseWishartProof.whiteningOfNuisance
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α) (df := df)
       (T := T) (S := S) (c := c)
@@ -6383,9 +6096,9 @@ data, deriving Hansen's degrees of freedom from the standard-coordinate
 dimension match `m = 1 + r`.
 
 This is the same boundary as
-`inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`,
+`InverseWishartProof.whiteningExists`,
 but removes the otherwise mechanical `hdf` premise. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
+private theorem InverseWishartProof.whiteningExistsCardOfNuisance
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
@@ -6409,7 +6122,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
       chiSquared (Fintype.card dfidx - Fintype.card m + 1) := by
   classical
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+    InverseWishartProof.whiteningExists
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α)
       (df := Fintype.card dfidx - Fintype.card m + 1)
@@ -6420,7 +6133,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
 /-- Hansen Theorem 11.11 scaled endpoint from existential whitening/alignment
 data, with the stochastic standard-coordinate premise reduced to the canonical
 rectangular iid standard-Gaussian Gram certificate. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
+private theorem InverseWishartProof.whiteningExistsCardOfGram
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (Sigma : Matrix m m ℝ) (α : m → ℝ)
@@ -6443,7 +6156,7 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
       chiSquared (Fintype.card dfidx - Fintype.card m + 1) := by
   classical
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
+    InverseWishartProof.whiteningExistsCardOfNuisance
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α)
       hSigma hcard hcard_dim
@@ -6451,39 +6164,6 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
         (n := dfidx) (r := r) hgram_std)
       htransport
 
-/-- Hansen Theorem 11.11 scaled endpoint from existential
-whitening/alignment data.
-
-The stochastic standard-coordinate Gram certificate is derived from the
-canonical rectangular iid standard-Gaussian Gram nonsingularity theorem, so the
-only remaining input is the deterministic whitening/alignment data for
-`Σ` and `α`. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq
-    {dfidx r : Type*} [Fintype dfidx]
-    [Fintype r] [DecidableEq r]
-    (Sigma : Matrix m m ℝ) (α : m → ℝ)
-    (hSigma : Sigma.PosDef)
-    (hcard : Fintype.card r < Fintype.card dfidx)
-    (hcard_dim : Fintype.card (Sum Unit r) = Fintype.card m)
-    (htransport :
-      ∃ (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ),
-        S * T = 1 ∧ T * S = 1 ∧
-          Tᵀ * Sigma * T = (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ) ∧
-          Tᵀ *ᵥ α =
-            c • (Pi.single (Sum.inl ()) (1 : ℝ) : Sum Unit r → ℝ) ∧
-          c ≠ 0) :
-    (wishartLaw (n := dfidx) Sigma).map
-        (inverseWishartScaledLinearForm Sigma α) =
-      chiSquared (Fintype.card dfidx - Fintype.card m + 1) := by
-  classical
-  exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
-      (dfidx := dfidx) (r := r)
-      (Sigma := Sigma) (α := α)
-      hSigma hcard hcard_dim
-      (iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
-        (n := dfidx) (r := r) (Nat.le_of_lt hcard))
-      htransport
 
 omit [Fintype m] [DecidableEq m] in
 /-- Standard-coordinate residual-projection map identity for Hansen Theorem
@@ -6500,7 +6180,7 @@ three deterministic/probabilistic facts Hansen's proof uses:
   `n - m + 1`, and the Schur-complement identity equates the inverse-Wishart
   scalar with the residual quadratic form.
 -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residual_projection_certificate
+private theorem InverseWishartProof.residualCertificate
     {r : Type*} [Fintype r] [DecidableEq r]
     (Plaw : Measure (Matrix n n ℝ))
     (hrank_pos : 0 < Fintype.card n - Fintype.card (Sum Unit r) + 1)
@@ -6603,70 +6283,6 @@ theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardC
     hscalar (by fun_prop)]
   simpa [Function.comp_def, stat] using hstat.map_eq
 
-omit [Fintype m] [DecidableEq m] in
-/-- Standard-coordinate residual-projection map identity from a nonsingular
-projection-preimage certificate.
-
-Compared with
-`inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residual_projection_certificate`,
-this version asks only that `Plaw`-almost every residual projection come from
-some nuisance design with nonsingular Gram matrix; the Chapter 3 projection
-lemmas then supply Hermitianity, idempotence, and the correct Hansen rank. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residual_projection_nonsingular_certificate
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (Plaw : Measure (Matrix n n ℝ))
-    (hcard : Fintype.card r < Fintype.card n)
-    (hZ : HasLaw
-      (fun Y : Matrix n (Sum Unit r) ℝ => standardCoordinateFirstColumn (n := n) Y)
-      (stdGaussian (EuclideanSpace ℝ n))
-      (iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)))
-    (hP : HasLaw
-      (fun Y : Matrix n (Sum Unit r) ℝ =>
-        gaussianResidualProjection (n := n) (standardCoordinateRestColumns (n := n) Y))
-      Plaw
-      (iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)))
-    (hInd :
-      (fun Y : Matrix n (Sum Unit r) ℝ =>
-        gaussianResidualProjection (n := n) (standardCoordinateRestColumns (n := n) Y))
-        ⟂ᵢ[iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-          (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)]
-      (fun Y : Matrix n (Sum Unit r) ℝ => standardCoordinateFirstColumn (n := n) Y))
-    (hPpre : ∀ᵐ Pmat ∂Plaw, ∃ X : Matrix n r ℝ,
-      Pmat = gaussianResidualProjection (n := n) X ∧
-        Nonempty (Invertible (Xᵀ * X)))
-    (hSchur :
-      (fun Y : Matrix n (Sum Unit r) ℝ =>
-          inverseWishartScaledLinearForm
-            (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-            (Pi.single (Sum.inl ()) (1 : ℝ))
-            (matrixCrossProduct Y))
-        =ᵐ[iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-          (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)]
-        fun Y =>
-          (standardCoordinateFirstColumn (n := n) Y : n → ℝ) ⬝ᵥ
-            (gaussianResidualProjection (n := n)
-                (standardCoordinateRestColumns (n := n) Y) *ᵥ
-              (standardCoordinateFirstColumn (n := n) Y : n → ℝ))) :
-    (wishartLaw (n := n)
-        (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
-        (inverseWishartScaledLinearForm
-          (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-          (Pi.single (Sum.inl ()) (1 : ℝ))) =
-      chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1) := by
-  have hPprops :
-      ∀ᵐ Pmat ∂Plaw,
-        Pmat.IsHermitian ∧ IsIdempotentElem Pmat ∧
-          Pmat.rank = Fintype.card n - Fintype.card (Sum Unit r) + 1 :=
-    standardCoordinate_residualProjection_props_of_nonsingular_preimage
-      (n := n) (r := r) Plaw hcard hPpre
-  have hrank_pos : 0 < Fintype.card n - Fintype.card (Sum Unit r) + 1 := by
-    rw [standardCoordinate_df_eq_residual_rank (n := n) (r := r) hcard]
-    exact Nat.sub_pos_of_lt hcard
-  exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residual_projection_certificate
-      (n := n) (r := r) Plaw hrank_pos hZ hP hInd hPprops hSchur
 
 omit [Fintype n] [Fintype m] [DecidableEq n] [DecidableEq m] in
 /-- In the standard-coordinate block reduction for Theorem 11.11, the Hansen
@@ -6692,51 +6308,6 @@ theorem inverseWishartScaledLinearForm_one_standardCoordinate
       inverseWishartLinearForm (Pi.single (Sum.inl ()) (1 : ℝ)) W := by
   simp [inverseWishartScaledLinearForm, inv_one]
 
-omit [DecidableEq n] in
-/-- Standard-coordinate block version of the raw Gaussian-matrix projection
-certificate for Hansen Theorem 11.11.
-
-This isolates the first block/coordinate Schur-complement route: with
-`Σ = I` and `α = e₁`, proving the residual-projection representation of
-`(e₁'(Y'Y)⁻¹e₁)⁻¹` under the iid standard Gaussian matrix law gives the exact
-Hansen fixed-`α` `wishartLaw.map` identity. -/
-theorem inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_projection_certificate
-    {r κ : Type*} [Fintype r] [DecidableEq r] [Fintype κ]
-    (Z : Matrix n (Sum Unit r) ℝ → EuclideanSpace ℝ κ)
-    (P : Matrix κ κ ℝ)
-    (hZ : HasLaw Z (stdGaussian (EuclideanSpace ℝ κ))
-      (iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)))
-    (hP_herm : P.IsHermitian) (hP_idem : IsIdempotentElem P)
-    (hrank : P.rank = Fintype.card n - Fintype.card (Sum Unit r) + 1)
-    (hrepr :
-      (fun Y : Matrix n (Sum Unit r) ℝ =>
-          inverseWishartScaledLinearForm
-            (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-            (Pi.single (Sum.inl ()) (1 : ℝ))
-            (matrixCrossProduct Y))
-        =ᵐ[iidMatrixGaussianLaw (n := n) (m := Sum Unit r)
-          (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)]
-        fun Y => (Z Y : κ → ℝ) ⬝ᵥ (P *ᵥ (Z Y : κ → ℝ))) :
-    (wishartLaw (n := n)
-        (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
-        (inverseWishartScaledLinearForm
-          (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-          (Pi.single (Sum.inl ()) (1 : ℝ))) =
-      chiSquared (Fintype.card n - Fintype.card (Sum Unit r) + 1) := by
-  classical
-  let Sigma : Matrix (Sum Unit r) (Sum Unit r) ℝ := 1
-  let α : Sum Unit r → ℝ := Pi.single (Sum.inl ()) (1 : ℝ)
-  have hSigma : Sigma.PosDef := by
-    simpa [Sigma] using (Matrix.PosDef.one (n := Sum Unit r) (R := ℝ))
-  have hα : α ≠ 0 := by
-    intro hzero
-    have hcoord := congrFun hzero (Sum.inl ())
-    simp [α] at hcoord
-  simpa [Sigma, α] using
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_matrixGaussian_projection_certificate
-      (n := n) (m := Sum Unit r) (Sigma := Sigma) (α := α)
-      (Z := Z) (P := P) hSigma hα hZ hP_herm hP_idem hrank hrepr
 
 /-- The inverse-Wishart scale `α'Σ⁻¹α` is positive for positive-definite
 `Σ` and nonzero `α`. -/
@@ -7041,7 +6612,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_c
   have hscaled :
       HasLaw (fun ω => inverseWishartScaledLinearForm Sigma α (W ω))
         (chiSquared (Fintype.card dfidx - Fintype.card m + 1)) μ :=
-    inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate_nonsingular_congr
+    InverseWishartProof.standardScaledLawCongr
       (dfidx := dfidx) (r := r) (W := W) (Sigma := Sigma) (α := α)
       (df := Fintype.card dfidx - Fintype.card m + 1)
       hW hcard hnonsing hdf hcongr
@@ -7120,7 +6691,7 @@ This is the same displayed Hansen law as
 `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_transport`,
 but derives the Wishart congruence premise from the primitive iid
 matrix-Gaussian column-map identity. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_matrixGaussian_transport
+private theorem InverseWishartProof.rawMatrixTransport
     {dfidx r : Type*} [Fintype dfidx] [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -7179,7 +6750,7 @@ This version derives the iid matrix-Gaussian column-map identity from
 `TᵀΣT = I`, so the remaining theorem-facing transport data are the
 deterministic whitening/alignment equations and the a.s. nonsingularity
 certificates. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport
+private theorem InverseWishartProof.rawWhitening
     {dfidx r : Type*} [Fintype dfidx] [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -7217,7 +6788,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
       (n := dfidx) (m := m) (r := r)
       (Sigma := Sigma) hSigma.posSemidef T hSigma_one
   exact
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_matrixGaussian_transport
+    InverseWishartProof.rawMatrixTransport
       (dfidx := dfidx) (r := r)
       (W := W) (Sigma := Sigma) (α := α)
       (T := T) (S := S) (c := c)
@@ -7229,10 +6800,10 @@ standard-coordinate whitening data and the raw standard-coordinate Gram
 nonsingularity certificate.
 
 This is the same Hansen law as
-`inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport`,
+`InverseWishartProof.rawWhitening`,
 but the original `W_m(n,Σ)` a.s. nonsingularity certificate is derived from
 the standardized full-Gram nonsingularity and the whitening transport. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport_of_standard_nonsingular
+private theorem InverseWishartProof.rawWhiteningOfStandard
     {dfidx r : Type*} [Fintype dfidx] [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
     (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
@@ -7271,63 +6842,13 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
       (Sigma := Sigma) (T := T) (S := S)
       hSigma.posSemidef hST hTS hnonsing_std_full hSigma_one
   exact
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport
+    InverseWishartProof.rawWhitening
       (dfidx := dfidx) (r := r)
       (W := W) (Sigma := Sigma) (α := α)
       (T := T) (S := S) (c := c)
       hSigma hα hW hcard hnonsing_std hdf
       hST hTS hW_nonsing hSigma_one hα_one hc
 
-/-- **Hansen Theorem 11.11**, raw inverse-Wishart scalar endpoint from
-standard-coordinate whitening data and the nuisance-Gram certificate.
-
-This is the same displayed Hansen law as
-`inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport_of_standard_nonsingular`,
-but derives the raw standardized full-Gram certificate from nuisance-Gram
-nonsingularity. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
-    {dfidx r : Type*} [Fintype dfidx]
-    [Fintype r] [DecidableEq r]
-    (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
-    (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ)
-    (hSigma : Sigma.PosDef) (hα : α ≠ 0)
-    (hW : HasLaw W (wishartLaw (n := dfidx) Sigma) μ)
-    (hcard : Fintype.card r < Fintype.card dfidx)
-    (hnuisance_std : ∀ᵐ Y ∂iidMatrixGaussianLaw
-        (n := dfidx) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible ((standardCoordinateRestColumns (n := dfidx) Y)ᵀ *
-        standardCoordinateRestColumns (n := dfidx) Y)))
-    (hdf :
-      Fintype.card dfidx - Fintype.card (Sum Unit r) + 1 =
-        Fintype.card dfidx - Fintype.card m + 1)
-    (hST : S * T = 1) (hTS : T * S = 1)
-    (hSigma_one :
-      Tᵀ * Sigma * T = (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ))
-    (hα_one :
-      Tᵀ *ᵥ α =
-        c • (Pi.single (Sum.inl ()) (1 : ℝ) : Sum Unit r → ℝ))
-    (hc : c ≠ 0) :
-    HasLaw (fun ω => inverseWishartLinearForm α (W ω))
-      ((chiSquared (Fintype.card dfidx - Fintype.card m + 1)).map
-        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
-  classical
-  have hnonsing_std :
-      ∀ᵐ Y ∂iidMatrixGaussianLaw
-          (n := dfidx) (m := Sum Unit r)
-          (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-        Nonempty (Invertible (matrixCrossProduct Y)) ∧
-          Nonempty (Invertible ((standardCoordinateRestColumns (n := dfidx) Y)ᵀ *
-            standardCoordinateRestColumns (n := dfidx) Y)) :=
-    standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular
-      (n := dfidx) hcard hnuisance_std
-  exact
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport_of_standard_nonsingular
-      (dfidx := dfidx) (r := r)
-      (W := W) (Sigma := Sigma) (α := α)
-      (T := T) (S := S) (c := c)
-      hSigma hα hW hcard hnonsing_std hdf
-      hST hTS hSigma_one hα_one hc
 
 /-- **Hansen Theorem 11.11**, raw inverse-Wishart scalar endpoint from
 existential whitening/alignment data and the raw standardized nuisance-Gram
@@ -7336,7 +6857,7 @@ certificate.
 This packages the remaining deterministic whitening step as an existence
 premise for the fixed nonzero direction `α`; no separate original-Wishart
 nonsingularity premise is needed. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+private theorem InverseWishartProof.rawWhiteningExists
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
@@ -7366,7 +6887,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
       (wishartLaw (n := dfidx) Sigma).map
           (inverseWishartScaledLinearForm Sigma α) =
         chiSquared (Fintype.card dfidx - Fintype.card m + 1) :=
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+    InverseWishartProof.whiteningExists
       (dfidx := dfidx) (r := r)
       (Sigma := Sigma) (α := α)
       (df := Fintype.card dfidx - Fintype.card m + 1)
@@ -7378,7 +6899,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
 /-- **Hansen Theorem 11.11**, raw inverse-Wishart scalar endpoint from
 existential whitening/alignment data, deriving Hansen's degrees of freedom from
 the standard-coordinate dimension match `m = 1 + r`. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
+private theorem InverseWishartProof.rawWhiteningCardOfNuisance
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
@@ -7403,7 +6924,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
         fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
   classical
   exact
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+    InverseWishartProof.rawWhiteningExists
       (dfidx := dfidx) (r := r)
       (W := W) (Sigma := Sigma) (α := α)
       hSigma hα hW hcard hnuisance_std
@@ -7414,7 +6935,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
 existential whitening/alignment data, with the stochastic standard-coordinate
 premise reduced to the canonical rectangular iid standard-Gaussian Gram
 certificate. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
+private theorem InverseWishartProof.rawWhiteningCardOfGram
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
@@ -7438,7 +6959,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
         fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
   classical
   exact
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular
+    InverseWishartProof.rawWhiteningCardOfNuisance
       (dfidx := dfidx) (r := r)
       (W := W) (Sigma := Sigma) (α := α)
       hSigma hα hW hcard hcard_dim
@@ -7453,7 +6974,7 @@ The canonical rectangular iid standard-Gaussian Gram nonsingularity theorem
 discharges the stochastic standard-coordinate premise; the remaining theorem
 input is exactly the deterministic whitening/alignment certificate for
 `Σ` and the nonzero direction `α`. -/
-theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq
+private theorem InverseWishartProof.rawWhiteningCard
     {dfidx r : Type*} [Fintype dfidx]
     [Fintype r] [DecidableEq r]
     (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
@@ -7473,7 +6994,7 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_w
         fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) μ := by
   classical
   exact
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular
+    InverseWishartProof.rawWhiteningCardOfGram
       (dfidx := dfidx) (r := r)
       (W := W) (Sigma := Sigma) (α := α)
       hSigma hα hW hcard hcard_dim
@@ -7517,54 +7038,13 @@ theorem inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le
     simp [r]
     omega
   exact
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq
+    InverseWishartProof.rawWhiteningCard
       (dfidx := dfidx) (r := r)
       (W := W) (Sigma := Sigma) (α := α)
       hSigma hα hW hcard hcard_dim
       (standardCoordinate_whitening_alignment_exists_of_posDef
         (r := r) Sigma α hSigma hα hcard_dim)
 
-/-- Law-level form of
-`inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_congr`.
-
-For `W ∼ W_m(n,Σ)`, the raw inverse-Wishart scalar push-forward is the
-Hansen scaled chi-square law once the standard-coordinate nonsingularity and
-whitening/coordinate congruence inputs are supplied. -/
-theorem inverseWishartLinearForm_wishartLaw_map_eq_theorem11_11_raw_of_standardCoordinate_congr
-    {dfidx r : Type*} [Fintype dfidx] [Fintype r] [DecidableEq r]
-    (Sigma : Matrix m m ℝ) (α : m → ℝ)
-    (hSigma : Sigma.PosDef) (hα : α ≠ 0)
-    (hcard : Fintype.card r < Fintype.card dfidx)
-    (hnonsing : ∀ᵐ Y ∂iidMatrixGaussianLaw (n := dfidx) (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible (matrixCrossProduct Y)) ∧
-        Nonempty (Invertible ((standardCoordinateRestColumns (n := dfidx) Y)ᵀ *
-          standardCoordinateRestColumns (n := dfidx) Y)))
-    (hdf :
-      Fintype.card dfidx - Fintype.card (Sum Unit r) + 1 =
-        Fintype.card dfidx - Fintype.card m + 1)
-    (hcongr :
-      (wishartLaw (n := dfidx) Sigma).map
-          (inverseWishartScaledLinearForm Sigma α) =
-        (wishartLaw (n := dfidx)
-          (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
-          (inverseWishartScaledLinearForm
-            (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-            (Pi.single (Sum.inl ()) (1 : ℝ)))) :
-    (wishartLaw (n := dfidx) Sigma).map (inverseWishartLinearForm α) =
-      ((chiSquared (Fintype.card dfidx - Fintype.card m + 1)).map
-        fun x => (α ⬝ᵥ (Sigma⁻¹ *ᵥ α))⁻¹ * x) := by
-  classical
-  have hW : HasLaw (fun W : Matrix m m ℝ => W)
-      (wishartLaw (n := dfidx) Sigma) (wishartLaw (n := dfidx) Sigma) :=
-    HasLaw.id
-  have hraw :=
-    inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_congr
-      (Ω := Matrix m m ℝ) (μ := wishartLaw (n := dfidx) Sigma)
-      (W := fun W : Matrix m m ℝ => W)
-      (Sigma := Sigma) (α := α)
-      hSigma hα hW hcard hnonsing hdf hcongr
-  exact hraw.map_eq
 
 omit [DecidableEq n] in
 /-- Raw Hansen Theorem 11.11 endpoint from the projection certificate used by
@@ -7688,7 +7168,7 @@ theorem hotellingT2_hasLaw_scaledFDist_of_chiSquared_ratio
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.12 scaled-F bridge with the textbook degrees of freedom
 and fixed Hotelling scale `m(n-1)/(n-m)`. -/
-theorem hotellingT2Sample_hasLaw_hansen_scaledFDist_of_chiSquared_ratio
+private theorem hotellingT2Sample_hasLaw_hansen_scaledFDist_of_chiSquared_ratio
     (Y : Ω → n → m → ℝ) (μ0 : m → ℝ)
     {U V : Ω → ℝ}
     (hm : 0 < Fintype.card m) (hν : 0 < Fintype.card n - Fintype.card m)
@@ -7747,7 +7227,7 @@ surface.
 
 This is the theorem-facing version of Hansen's displayed conclusion:
 `((m(n-1))/(n-m))⁻¹ T² ∼ F(m,n-m)`. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_chiSquared_ratio
+private theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_chiSquared_ratio
     (Y : Ω → n → m → ℝ) (μ0 : m → ℝ)
     {U V : Ω → ℝ}
     (hm : 0 < Fintype.card m) (hν : 0 < Fintype.card n - Fintype.card m)
@@ -7968,22 +7448,12 @@ theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_indep_wi
         (n := n) (m := m) (Y ω) μ0 Sigma (W ω))
       (chiSquared df) μ := by
   classical
-  let Alaw : Measure (m → ℝ) :=
-    (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)).map
-      (fun y : m → ℝ => y - μ0)
-  haveI : IsProbabilityMeasure Alaw := by
-    dsimp [Alaw]
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
-  have hMean :
-      HasLaw (fun ω => sampleMeanMatrix (Y ω))
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) μ :=
-    sampleMeanMatrix_hasLaw_rowGaussianLaw
-      (Y := Y) (mean := μ0) (hSigma := hSigma) hrow hRowsInd
+  let Alaw := hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma
   have hA : HasLaw (fun ω => sampleMeanMatrix (Y ω) - μ0) Alaw μ := by
-    let hShift : HasLaw (fun y : m → ℝ => y - μ0) Alaw
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) :=
-      ⟨by fun_prop, rfl⟩
-    simpa [Function.comp_def, Alaw] using hShift.comp hMean
+    simpa [Alaw] using
+      sampleMeanMatrix_sub_hasLaw_hotellingCenteredMeanParameterLaw
+        (Y := Y) (μ0 := μ0) (hSigma := hSigma) hrow hRowsInd
+  haveI : IsProbabilityMeasure Alaw := hA.isProbabilityMeasure_iff.1 inferInstance
   exact
     hotellingInverseWishartChiSqComponent_hasLaw_of_indep_random_parameter
       (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) (Sigma := Sigma)
@@ -8018,22 +7488,12 @@ theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_indep_wi
         (n := n) (m := m) (Y ω) μ0 Sigma (W ω))
       (chiSquared df) μ := by
   classical
-  let Alaw : Measure (m → ℝ) :=
-    (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)).map
-      (fun y : m → ℝ => y - μ0)
-  haveI : IsProbabilityMeasure Alaw := by
-    dsimp [Alaw]
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
-  have hMean :
-      HasLaw (fun ω => sampleMeanMatrix (Y ω))
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) μ :=
-    sampleMeanMatrix_hasLaw_rowGaussianLaw
-      (Y := Y) (mean := μ0) (hSigma := hSigma) hrow hRowsInd
+  let Alaw := hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma
   have hA : HasLaw (fun ω => sampleMeanMatrix (Y ω) - μ0) Alaw μ := by
-    let hShift : HasLaw (fun y : m → ℝ => y - μ0) Alaw
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) :=
-      ⟨by fun_prop, rfl⟩
-    simpa [Function.comp_def, Alaw] using hShift.comp hMean
+    simpa [Alaw] using
+      sampleMeanMatrix_sub_hasLaw_hotellingCenteredMeanParameterLaw
+        (Y := Y) (μ0 := μ0) (hSigma := hSigma) hrow hRowsInd
+  haveI : IsProbabilityMeasure Alaw := hA.isProbabilityMeasure_iff.1 inferInstance
   exact
     hotellingInverseWishartChiSqComponent_hasLaw_of_indep_random_parameter_ae
       (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) (Sigma := Sigma)
@@ -8047,7 +7507,7 @@ parameters.
 The centered sample mean is nonzero almost surely under positive-definite
 `Σ`, so Hansen Theorem 11.12 only needs the fixed inverse-Wishart identity for
 `α ≠ 0`; the degenerate `α = 0` case is not assumed. -/
-theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_indep_wishart_nonzero
+private theorem HotellingProof.inverseComponentNonzero
     [IsProbabilityMeasure μ] [Nonempty n]
     {dfrow : Type*} [Fintype dfrow]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -8068,22 +7528,12 @@ theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_indep_wi
         (n := n) (m := m) (Y ω) μ0 Sigma (W ω))
       (chiSquared df) μ := by
   classical
-  let Alaw : Measure (m → ℝ) :=
-    (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)).map
-      (fun y : m → ℝ => y - μ0)
-  haveI : IsProbabilityMeasure Alaw := by
-    dsimp [Alaw]
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
-  have hMean :
-      HasLaw (fun ω => sampleMeanMatrix (Y ω))
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) μ :=
-    sampleMeanMatrix_hasLaw_rowGaussianLaw
-      (Y := Y) (mean := μ0) (hSigma := hSigma.posSemidef) hrow hRowsInd
+  let Alaw := hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma
   have hA : HasLaw (fun ω => sampleMeanMatrix (Y ω) - μ0) Alaw μ := by
-    let hShift : HasLaw (fun y : m → ℝ => y - μ0) Alaw
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) :=
-      ⟨by fun_prop, rfl⟩
-    simpa [Function.comp_def, Alaw] using hShift.comp hMean
+    simpa [Alaw] using
+      sampleMeanMatrix_sub_hasLaw_hotellingCenteredMeanParameterLaw
+        (Y := Y) (μ0 := μ0) (hSigma := hSigma.posSemidef) hrow hRowsInd
+  haveI : IsProbabilityMeasure Alaw := hA.isProbabilityMeasure_iff.1 inferInstance
   have hA_ne_μ :
       ∀ᵐ ω ∂μ, sampleMeanMatrix (Y ω) - μ0 ≠ 0 :=
     sampleMeanMatrix_sub_ne_zero_ae_of_iid_normal_rows
@@ -8104,7 +7554,7 @@ The Wishart matrix is the unscaled cross-product of the canonical centered
 contrast rows. The remaining fixed-`α` premise is exactly the Theorem 11.11
 push-forward identity for the centered `n - 1` Wishart law with textbook
 degrees `n - m`. -/
-theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered_wishart_nonzero
+private theorem HotellingProof.centeredInverseComponentNonzero
     [IsProbabilityMeasure μ] [Nonempty n]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
     (hSigma : Sigma.PosDef)
@@ -8150,7 +7600,7 @@ theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered
     simpa [φ, Function.comp_def] using
       (IndepFun.comp (φ := φ) (ψ := id) hMeanW hφ measurable_id)
   simpa [W] using
-    hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_indep_wishart_nonzero
+    HotellingProof.inverseComponentNonzero
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm (W := W)
       (df := Fintype.card n - Fintype.card m) hrow hRowsInd hW hInd hfixed
 
@@ -8160,7 +7610,7 @@ push-forward identity.
 This is the Hotelling-facing form needed when the inverse-Wishart theorem is
 available only on the law of the random centered sample mean, rather than for
 every fixed nonzero direction. -/
-theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered_wishart_ae
+private theorem HotellingProof.centeredInverseComponentAE
     [IsProbabilityMeasure μ] [Nonempty n]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
     (hSigma : Sigma.PosDef)
@@ -8211,122 +7661,7 @@ theorem hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered
       hrow hRowsInd hW hInd
       (by simpa [hotellingCenteredMeanParameterLaw] using hfixed)
 
-/-- Hotelling component independence from the fixed-parameter inverse-Wishart
-law.
-
-The fixed-`α` Schur-complement push-forward identity used for Hansen Theorem
-11.11 does more than give the marginal law of the inverse-Wishart component:
-because the centered sample mean is independent of the centered Wishart
-cross-product and the fixed-parameter push-forward law is the same for every
-nonzero `α`, the resulting inverse-Wishart component is independent of the
-sample-mean chi-square component. -/
-theorem hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid_normal_rows_centered_wishart_nonzero
-    [IsProbabilityMeasure μ] [Nonempty n]
-    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
-    (hSigma : Sigma.PosDef)
-    (hm : 0 < Fintype.card m)
-    (hν : 0 < Fintype.card n - Fintype.card m)
-    [SFinite
-      (wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma)]
-    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
-    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
-    (hfixed : ∀ α : m → ℝ, α ≠ 0 →
-      (wishartLaw
-          (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-          Sigma).map (inverseWishartScaledLinearForm Sigma α) =
-        chiSquared (Fintype.card n - Fintype.card m)) :
-    (fun ω => hotellingMeanChiSqComponent (n := n) (m := m) (Y ω) μ0 Sigma) ⟂ᵢ[μ]
-      (fun ω => hotellingInverseWishartChiSqComponent
-        (n := n) (m := m) (Y ω) μ0 Sigma
-        (matrixCrossProduct
-          (sampleContrastRows (n := n) (sampleCenteringEigenContrast (n := n)) (Y ω)))) := by
-  classical
-  let W : Ω → Matrix m m ℝ := fun ω =>
-    matrixCrossProduct
-      (sampleContrastRows (n := n) (sampleCenteringEigenContrast (n := n)) (Y ω))
-  let A : Ω → m → ℝ := fun ω => sampleMeanMatrix (Y ω) - μ0
-  let Alaw : Measure (m → ℝ) :=
-    (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)).map
-      (fun y : m → ℝ => y - μ0)
-  let Wlaw : Measure (Matrix m m ℝ) :=
-    wishartLaw
-      (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-      Sigma
-  haveI : IsProbabilityMeasure Alaw := by
-    dsimp [Alaw]
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
-  haveI : IsProbabilityMeasure (chiSquared (Fintype.card n - Fintype.card m)) :=
-    isProbabilityMeasure_chiSquared hν
-  have hMean :
-      HasLaw (fun ω => sampleMeanMatrix (Y ω))
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) μ :=
-    sampleMeanMatrix_hasLaw_rowGaussianLaw
-      (Y := Y) (mean := μ0) (hSigma := hSigma.posSemidef) hrow hRowsInd
-  have hA : HasLaw A Alaw μ := by
-    let hShift : HasLaw (fun y : m → ℝ => y - μ0) Alaw
-        (rowGaussianLaw μ0 ((Fintype.card n : ℝ)⁻¹ • Sigma)) :=
-      ⟨by fun_prop, rfl⟩
-    simpa [A, Function.comp_def, Alaw] using hShift.comp hMean
-  have hW : HasLaw W Wlaw μ := by
-    simpa [W, Wlaw] using
-      centeredContrastCrossProduct_hasLaw_wishartLaw_canonical
-        (Y := Y) (mean := μ0) (hSigma := hSigma.posSemidef) hrow hRowsInd
-  have hMeanW :
-      IndepFun (fun ω => sampleMeanMatrix (Y ω)) W μ :=
-    sampleMeanMatrix_indepFun_contrastCrossProduct_of_orthogonal_iid_normal_rows
-      (Y := Y) (C := sampleCenteringEigenContrast (n := n)) (mean := μ0)
-      (hSigma := hSigma.posSemidef)
-      (sampleCenteringEigenContrast_transpose_mul (n := n)) hrow hRowsInd
-  let shift : (m → ℝ) → (m → ℝ) := fun y => y - μ0
-  have hshift : Measurable shift := by
-    dsimp [shift]
-    fun_prop
-  have hA_W : A ⟂ᵢ[μ] W := by
-    simpa [A, shift, Function.comp_def] using
-      (IndepFun.comp (φ := shift) (ψ := id) hMeanW hshift measurable_id)
-  have hA_ne_μ : ∀ᵐ ω ∂μ, A ω ≠ 0 := by
-    simpa [A] using
-      sampleMeanMatrix_sub_ne_zero_ae_of_iid_normal_rows
-        (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
-  have hA_ne_law : ∀ᵐ α ∂Alaw, α ≠ 0 := by
-    exact (hA.ae_iff (p := fun α : m → ℝ => α ≠ 0) (by fun_prop)).1 hA_ne_μ
-  have hfixed_ae :
-      ∀ᵐ α ∂Alaw,
-        Wlaw.map (inverseWishartScaledLinearForm Sigma α) =
-          chiSquared (Fintype.card n - Fintype.card m) :=
-    hA_ne_law.mono fun α hα => by
-      simpa [Wlaw] using hfixed α hα
-  have hA_ind_V :
-      A ⟂ᵢ[μ] fun ω => inverseWishartScaledLinearForm Sigma (A ω) (W ω) :=
-    indepFun_of_indepFun_ae_fixed_map_eq_ae
-      (F := fun z : (m → ℝ) × Matrix m m ℝ =>
-        inverseWishartScaledLinearForm Sigma z.1 z.2)
-      hA hW hA_W
-      (inverseWishartScaledLinearForm_prod_aemeasurable Alaw Wlaw Sigma)
-      (fun α => inverseWishartScaledLinearForm_aemeasurable Wlaw Sigma α)
-      hfixed_ae
-  let meanComponent : (m → ℝ) → ℝ := fun a =>
-    (Fintype.card n : ℝ) * (a ⬝ᵥ (Sigma⁻¹ *ᵥ a))
-  have hmeanComponent : Measurable meanComponent := by
-    dsimp [meanComponent]
-    fun_prop
-  have hInd :=
-    IndepFun.comp (φ := meanComponent) (ψ := id) hA_ind_V hmeanComponent measurable_id
-  refine hInd.congr ?_ ?_
-  · filter_upwards with ω
-    simp [A, meanComponent, hotellingMeanChiSqComponent]
-  · filter_upwards with ω
-    simp [A, W, hotellingInverseWishartChiSqComponent]
-
-/-- Hotelling component independence from an a.e. fixed-parameter
-inverse-Wishart law.
-
-This variant is keyed to `hotellingCenteredMeanParameterLaw`, so the fixed
-inverse-Wishart map identity only has to hold for almost every realized
-centered sample-mean direction. -/
-theorem hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid_normal_rows_centered_wishart_ae
+private theorem hotellingComponents_indepFun_of_centeredWishart_ae
     [IsProbabilityMeasure μ] [Nonempty n]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
     (hSigma : Sigma.PosDef)
@@ -8357,15 +7692,13 @@ theorem hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid
     wishartLaw
       (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
       Sigma
-  haveI : IsProbabilityMeasure Alaw := by
-    dsimp [Alaw, hotellingCenteredMeanParameterLaw]
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
-  haveI : IsProbabilityMeasure (chiSquared (Fintype.card n - Fintype.card m)) :=
-    isProbabilityMeasure_chiSquared hν
   have hA : HasLaw A Alaw μ := by
     simpa [A, Alaw] using
       sampleMeanMatrix_sub_hasLaw_hotellingCenteredMeanParameterLaw
         (Y := Y) (μ0 := μ0) (hSigma := hSigma.posSemidef) hrow hRowsInd
+  haveI : IsProbabilityMeasure Alaw := hA.isProbabilityMeasure_iff.1 inferInstance
+  haveI : IsProbabilityMeasure (chiSquared (Fintype.card n - Fintype.card m)) :=
+    isProbabilityMeasure_chiSquared hν
   have hW : HasLaw W Wlaw μ := by
     simpa [W, Wlaw] using
       centeredContrastCrossProduct_hasLaw_wishartLaw_canonical
@@ -8409,6 +7742,80 @@ theorem hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid
     simp [A, meanComponent, hotellingMeanChiSqComponent]
   · filter_upwards with ω
     simp [A, W, hotellingInverseWishartChiSqComponent]
+
+/-- Hotelling component independence from the fixed-parameter inverse-Wishart
+law.
+
+The fixed-`α` Schur-complement push-forward identity used for Hansen Theorem
+11.11 does more than give the marginal law of the inverse-Wishart component:
+because the centered sample mean is independent of the centered Wishart
+cross-product and the fixed-parameter push-forward law is the same for every
+nonzero `α`, the resulting inverse-Wishart component is independent of the
+sample-mean chi-square component. -/
+private theorem HotellingProof.componentsIndepNonzero
+    [IsProbabilityMeasure μ] [Nonempty n]
+    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
+    (hSigma : Sigma.PosDef)
+    (hm : 0 < Fintype.card m)
+    (hν : 0 < Fintype.card n - Fintype.card m)
+    [SFinite
+      (wishartLaw
+        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
+        Sigma)]
+    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
+    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
+    (hfixed : ∀ α : m → ℝ, α ≠ 0 →
+      (wishartLaw
+          (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
+          Sigma).map (inverseWishartScaledLinearForm Sigma α) =
+        chiSquared (Fintype.card n - Fintype.card m)) :
+    (fun ω => hotellingMeanChiSqComponent (n := n) (m := m) (Y ω) μ0 Sigma) ⟂ᵢ[μ]
+      (fun ω => hotellingInverseWishartChiSqComponent
+        (n := n) (m := m) (Y ω) μ0 Sigma
+        (matrixCrossProduct
+          (sampleContrastRows (n := n) (sampleCenteringEigenContrast (n := n)) (Y ω)))) := by
+  classical
+  have hA := sampleMeanMatrix_sub_hasLaw_hotellingCenteredMeanParameterLaw
+    (Y := Y) (μ0 := μ0) (hSigma := hSigma.posSemidef) hrow hRowsInd
+  have hA_ne_μ : ∀ᵐ ω ∂μ, sampleMeanMatrix (Y ω) - μ0 ≠ 0 :=
+    sampleMeanMatrix_sub_ne_zero_ae_of_iid_normal_rows
+      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
+  have hA_ne_law :
+      ∀ᵐ α ∂hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma, α ≠ 0 :=
+    (hA.ae_iff (p := fun α : m → ℝ => α ≠ 0) (by fun_prop)).1 hA_ne_μ
+  exact hotellingComponents_indepFun_of_centeredWishart_ae
+    (Y := Y) (μ0 := μ0) (hSigma := hSigma) hν hrow hRowsInd
+    (hA_ne_law.mono fun α hα => hfixed α hα)
+
+/-- Hotelling component independence from an a.e. fixed-parameter
+inverse-Wishart law.
+
+This variant is keyed to `hotellingCenteredMeanParameterLaw`, so the fixed
+inverse-Wishart map identity only has to hold for almost every realized
+centered sample-mean direction. -/
+private theorem HotellingProof.componentsIndepAE
+    [IsProbabilityMeasure μ] [Nonempty n]
+    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
+    (hSigma : Sigma.PosDef)
+    (hν : 0 < Fintype.card n - Fintype.card m)
+    [SFinite
+      (wishartLaw
+        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
+        Sigma)]
+    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
+    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
+    (hfixed : ∀ᵐ α ∂hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma,
+      (wishartLaw
+          (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
+          Sigma).map (inverseWishartScaledLinearForm Sigma α) =
+        chiSquared (Fintype.card n - Fintype.card m)) :
+    (fun ω => hotellingMeanChiSqComponent (n := n) (m := m) (Y ω) μ0 Sigma) ⟂ᵢ[μ]
+      (fun ω => hotellingInverseWishartChiSqComponent
+        (n := n) (m := m) (Y ω) μ0 Sigma
+        (matrixCrossProduct
+          (sampleContrastRows (n := n) (sampleCenteringEigenContrast (n := n)) (Y ω)))) := by
+  exact hotellingComponents_indepFun_of_centeredWishart_ae
+    (Y := Y) (μ0 := μ0) (hSigma := hSigma) hν hrow hRowsInd hfixed
 
 private lemma hotelling_ratio_algebra
     (N M A B : ℝ)
@@ -8483,6 +7890,67 @@ theorem hotellingT2Sample_eq_hansen_scaled_ratio_of_components
         simpa [hotellingT2HansenScale, hotellingMeanChiSqComponent,
           hotellingInverseWishartChiSqComponent, inverseWishartScaledLinearForm,
           inverseWishartLinearForm, N, M, A, B, d, hν_cast] using hAlg
+
+omit [DecidableEq n] in
+private theorem hotellingT2Sample_ae_eq_scaled_ratio_of_iid_normal_rows
+    [IsProbabilityMeasure μ] [Nonempty n]
+    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) (Sigma : Matrix m m ℝ)
+    (W : Ω → Matrix m m ℝ)
+    (hSigma : Sigma.PosDef)
+    (hm : 0 < Fintype.card m)
+    (hν : 0 < Fintype.card n - Fintype.card m)
+    (hcard_le : Fintype.card m ≤ Fintype.card n)
+    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
+    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
+    (hWishart : HasLaw
+      (fun ω => hotellingInverseWishartChiSqComponent
+        (n := n) (m := m) (Y ω) μ0 Sigma (W ω))
+      (chiSquared (Fintype.card n - Fintype.card m)) μ)
+    (hCov : ∀ ω, sampleCovarianceMatrix (Y ω) =
+      ((Fintype.card n - 1 : ℝ)⁻¹) • W ω) :
+    (fun ω => hotellingT2Sample (Y ω) μ0) =ᵐ[μ]
+      fun ω => hotellingT2HansenScale (n := n) (m := m) *
+        (((hotellingMeanChiSqComponent (n := n) (m := m) (Y ω) μ0 Sigma) /
+            (Fintype.card m : ℝ)) /
+          ((hotellingInverseWishartChiSqComponent
+              (n := n) (m := m) (Y ω) μ0 Sigma (W ω)) /
+            ((Fintype.card n - Fintype.card m : ℕ) : ℝ))) := by
+  have hD_ne : ∀ᵐ ω ∂μ, sampleMeanMatrix (Y ω) - μ0 ≠ 0 :=
+    sampleMeanMatrix_sub_ne_zero_ae_of_iid_normal_rows
+      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
+  have hA_ne : ∀ᵐ ω ∂μ,
+      (sampleMeanMatrix (Y ω) - μ0) ⬝ᵥ
+        (Sigma⁻¹ *ᵥ (sampleMeanMatrix (Y ω) - μ0)) ≠ 0 :=
+    hD_ne.mono fun ω hω =>
+      inverseWishartScale_ne_of_posDef Sigma (sampleMeanMatrix (Y ω) - μ0) hSigma hω
+  have hChi_ne :
+      ∀ᵐ x ∂chiSquared (Fintype.card n - Fintype.card m), x ≠ (0 : ℝ) := by
+    simpa [Set.mem_singleton_iff] using
+      (Set.countable_singleton (0 : ℝ)).ae_notMem
+        (chiSquared (Fintype.card n - Fintype.card m))
+  have hV_ne :
+      ∀ᵐ ω ∂μ,
+        hotellingInverseWishartChiSqComponent
+          (n := n) (m := m) (Y ω) μ0 Sigma (W ω) ≠ 0 :=
+    (hWishart.ae_iff (p := fun x : ℝ => x ≠ 0) (by fun_prop)).2 hChi_ne
+  have hB_ne : ∀ᵐ ω ∂μ,
+      (sampleMeanMatrix (Y ω) - μ0) ⬝ᵥ
+        ((W ω)⁻¹ *ᵥ (sampleMeanMatrix (Y ω) - μ0)) ≠ 0 := by
+    filter_upwards [hV_ne] with ω hω hzero
+    apply hω
+    simp [hotellingInverseWishartChiSqComponent, inverseWishartScaledLinearForm,
+      inverseWishartLinearForm, hzero]
+  have hm_ne : (Fintype.card m : ℝ) ≠ 0 := by
+    exact_mod_cast (ne_of_gt hm)
+  have hν_ne : (Fintype.card n : ℝ) - (Fintype.card m : ℝ) ≠ 0 := by
+    have hν_pos : 0 < (Fintype.card n : ℝ) - (Fintype.card m : ℝ) := by
+      rw [← Nat.cast_sub hcard_le]
+      exact_mod_cast hν
+    exact ne_of_gt hν_pos
+  filter_upwards [hA_ne, hB_ne] with ω hAω hBω
+  exact hotellingT2Sample_eq_hansen_scaled_ratio_of_components
+    (Y := Y ω) (μ0 := μ0) (Sigma := Sigma) (W := W ω)
+    (hCov ω) hcard_le hm_ne hν_ne hAω hBω
 
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.12 component bridge.
@@ -8564,7 +8032,7 @@ the deterministic Hotelling ratio algebra. The remaining explicit stochastic
 premise is independence between the two chi-square components; this is the
 conditional-independence consequence of the same Schur-complement theorem that
 identifies the fixed inverse-Wishart push-forward. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero
+private theorem HotellingProof.sampleLawNonzero
     [IsProbabilityMeasure μ] [Nonempty n]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
     (hSigma : Sigma.PosDef)
@@ -8606,57 +8074,16 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
         (n := n) (m := m) (Y ω) μ0 Sigma (W ω))
       (chiSquared (Fintype.card n - Fintype.card m)) μ := by
     simpa [W] using
-      hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered_wishart_nonzero
+      HotellingProof.centeredInverseComponentNonzero
         (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd hfixed
-  have hD_ne : ∀ᵐ ω ∂μ, sampleMeanMatrix (Y ω) - μ0 ≠ 0 :=
-    sampleMeanMatrix_sub_ne_zero_ae_of_iid_normal_rows
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
-  have hA_ne : ∀ᵐ ω ∂μ,
-      (sampleMeanMatrix (Y ω) - μ0) ⬝ᵥ
-        (Sigma⁻¹ *ᵥ (sampleMeanMatrix (Y ω) - μ0)) ≠ 0 :=
-    hD_ne.mono fun ω hω =>
-      inverseWishartScale_ne_of_posDef Sigma (sampleMeanMatrix (Y ω) - μ0) hSigma hω
-  have hChi_ne :
-      ∀ᵐ x ∂chiSquared (Fintype.card n - Fintype.card m), x ≠ (0 : ℝ) := by
-    simpa [Set.mem_singleton_iff] using
-      (Set.countable_singleton (0 : ℝ)).ae_notMem
-        (chiSquared (Fintype.card n - Fintype.card m))
-  have hV_ne :
-      ∀ᵐ ω ∂μ,
-        hotellingInverseWishartChiSqComponent
-          (n := n) (m := m) (Y ω) μ0 Sigma (W ω) ≠ 0 := by
-    exact (hWishart.ae_iff (p := fun x : ℝ => x ≠ 0) (by fun_prop)).2 hChi_ne
-  have hB_ne : ∀ᵐ ω ∂μ,
-      (sampleMeanMatrix (Y ω) - μ0) ⬝ᵥ
-        ((W ω)⁻¹ *ᵥ (sampleMeanMatrix (Y ω) - μ0)) ≠ 0 := by
-    filter_upwards [hV_ne] with ω hω hzero
-    apply hω
-    simp [hotellingInverseWishartChiSqComponent, inverseWishartScaledLinearForm,
-      inverseWishartLinearForm, hzero]
-  have hm_ne : (Fintype.card m : ℝ) ≠ 0 := by
-    exact_mod_cast (ne_of_gt hm)
-  have hν_ne : (Fintype.card n : ℝ) - (Fintype.card m : ℝ) ≠ 0 := by
-    have hν_pos : 0 < (Fintype.card n : ℝ) - (Fintype.card m : ℝ) := by
-      rw [← Nat.cast_sub hcard_le]
-      exact_mod_cast hν
-    exact ne_of_gt hν_pos
-  have hT2 : (fun ω => hotellingT2Sample (Y ω) μ0) =ᵐ[μ]
-      fun ω => hotellingT2HansenScale (n := n) (m := m) *
-        (((hotellingMeanChiSqComponent (n := n) (m := m) (Y ω) μ0 Sigma) /
-            (Fintype.card m : ℝ)) /
-          ((hotellingInverseWishartChiSqComponent
-              (n := n) (m := m) (Y ω) μ0 Sigma (W ω)) /
-            ((Fintype.card n - Fintype.card m : ℕ) : ℝ))) := by
-    filter_upwards [hA_ne, hB_ne] with ω hAω hBω
-    exact hotellingT2Sample_eq_hansen_scaled_ratio_of_components
-      (Y := Y ω) (μ0 := μ0) (Sigma := Sigma) (W := W ω)
-      (by
-        dsimp [W]
-        exact sampleCovarianceMatrix_eq_scaled_contrast_crossProduct
-          (C := sampleCenteringEigenContrast (n := n)) (Y := Y ω)
-          (sampleCenteringEigenContrast_mul_transpose (n := n))
-          (sampleCenteringEigenContrast_transpose_mul (n := n)))
-      hcard_le hm_ne hν_ne hAω hBω
+  have hT2 := hotellingT2Sample_ae_eq_scaled_ratio_of_iid_normal_rows
+    (Y := Y) (μ0 := μ0) (Sigma := Sigma) (W := W)
+    hSigma hm hν hcard_le hrow hRowsInd hWishart (fun ω => by
+      dsimp [W]
+      exact sampleCovarianceMatrix_eq_scaled_contrast_crossProduct
+        (C := sampleCenteringEigenContrast (n := n)) (Y := Y ω)
+        (sampleCenteringEigenContrast_mul_transpose (n := n))
+        (sampleCenteringEigenContrast_transpose_mul (n := n)))
   exact hotellingT2Sample_hasLaw_theorem11_12_of_components
     (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) (Sigma := Sigma)
     (W := W) hm hν hMean hWishart (by simpa [W] using hIndComponents) hT2
@@ -8665,12 +8092,12 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
 fixed-parameter inverse-Wishart identity.
 
 Compared with
-`hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero`,
+`HotellingProof.sampleLawNonzero`,
 this theorem no longer assumes independence of the two chi-square components.
 It derives that independence from the centered sample-mean/contrast
 independence and the fixed nonzero-`α` inverse-Wishart push-forward identity
 used for Hansen Theorem 11.11. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_fixed_inverseWishart
+private theorem HotellingProof.sampleLawFixedInverse
     [IsProbabilityMeasure μ] [Nonempty n]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
     (hSigma : Sigma.PosDef)
@@ -8699,54 +8126,22 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
         (n := n) (m := m) (Y ω) μ0 Sigma
         (matrixCrossProduct
           (sampleContrastRows (n := n) (sampleCenteringEigenContrast (n := n)) (Y ω)))) :=
-    hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid_normal_rows_centered_wishart_nonzero
+    HotellingProof.componentsIndepNonzero
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hrow hRowsInd hfixed
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero
+    HotellingProof.sampleLawNonzero
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed hIndComponents
 
-/-- **Hansen Theorem 11.12**, iid-normal-row normalized Hotelling endpoint from
-the fixed-parameter inverse-Wishart identity.
-
-This packages the existing Chapter 11.10 centered-Wishart surface and the
-Chapter 11.11 fixed nonzero-`α` inverse-Wishart push-forward into Hansen's
-displayed normalized conclusion
-`((m(n-1))/(n-m))⁻¹ T² ∼ F(m,n-m)`. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_fixed_inverseWishart
-    [IsProbabilityMeasure μ] [Nonempty n]
-    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
-    (hSigma : Sigma.PosDef)
-    (hm : 0 < Fintype.card m)
-    (hν : 0 < Fintype.card n - Fintype.card m)
-    (hcard_le : Fintype.card m ≤ Fintype.card n)
-    [SFinite
-      (wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma)]
-    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
-    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
-    (hfixed : ∀ α : m → ℝ, α ≠ 0 →
-      (wishartLaw
-          (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-          Sigma).map (inverseWishartScaledLinearForm Sigma α) =
-        chiSquared (Fintype.card n - Fintype.card m)) :
-    HasLaw (fun ω => hotellingT2HansenFStatistic (Y ω) μ0)
-      (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
-  hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
-    (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_fixed_inverseWishart
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
-      hrow hRowsInd hfixed)
 
 /-- **Hansen Theorem 11.12**, iid-normal-row Hotelling endpoint from an
 a.e. fixed-parameter inverse-Wishart identity.
 
 This is the random-centered-mean version of
-`hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_fixed_inverseWishart`.
+`HotellingProof.sampleLawFixedInverse`.
 The fixed inverse-Wishart map identity only has to hold almost everywhere under
 `hotellingCenteredMeanParameterLaw`, the actual law of `Ȳ - μ₀`. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
+private theorem HotellingProof.sampleLawFixedInverseAE
     [IsProbabilityMeasure μ] [Nonempty n]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
     (hSigma : Sigma.PosDef)
@@ -8781,7 +8176,7 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
         (n := n) (m := m) (Y ω) μ0 Sigma (W ω))
       (chiSquared (Fintype.card n - Fintype.card m)) μ := by
     simpa [W] using
-      hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered_wishart_ae
+      HotellingProof.centeredInverseComponentAE
         (Y := Y) (μ0 := μ0) (hSigma := hSigma) hrow hRowsInd hfixed
   have hIndComponents :
       (fun ω => hotellingMeanChiSqComponent
@@ -8789,88 +8184,20 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
       (fun ω => hotellingInverseWishartChiSqComponent
         (n := n) (m := m) (Y ω) μ0 Sigma (W ω)) := by
     simpa [W] using
-      hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid_normal_rows_centered_wishart_ae
+      HotellingProof.componentsIndepAE
         (Y := Y) (μ0 := μ0) (hSigma := hSigma) hν hrow hRowsInd hfixed
-  have hD_ne : ∀ᵐ ω ∂μ, sampleMeanMatrix (Y ω) - μ0 ≠ 0 :=
-    sampleMeanMatrix_sub_ne_zero_ae_of_iid_normal_rows
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
-  have hA_ne : ∀ᵐ ω ∂μ,
-      (sampleMeanMatrix (Y ω) - μ0) ⬝ᵥ
-        (Sigma⁻¹ *ᵥ (sampleMeanMatrix (Y ω) - μ0)) ≠ 0 :=
-    hD_ne.mono fun ω hω =>
-      inverseWishartScale_ne_of_posDef Sigma (sampleMeanMatrix (Y ω) - μ0) hSigma hω
-  have hChi_ne :
-      ∀ᵐ x ∂chiSquared (Fintype.card n - Fintype.card m), x ≠ (0 : ℝ) := by
-    simpa [Set.mem_singleton_iff] using
-      (Set.countable_singleton (0 : ℝ)).ae_notMem
-        (chiSquared (Fintype.card n - Fintype.card m))
-  have hV_ne :
-      ∀ᵐ ω ∂μ,
-        hotellingInverseWishartChiSqComponent
-          (n := n) (m := m) (Y ω) μ0 Sigma (W ω) ≠ 0 := by
-    exact (hWishart.ae_iff (p := fun x : ℝ => x ≠ 0) (by fun_prop)).2 hChi_ne
-  have hB_ne : ∀ᵐ ω ∂μ,
-      (sampleMeanMatrix (Y ω) - μ0) ⬝ᵥ
-        ((W ω)⁻¹ *ᵥ (sampleMeanMatrix (Y ω) - μ0)) ≠ 0 := by
-    filter_upwards [hV_ne] with ω hω hzero
-    apply hω
-    simp [hotellingInverseWishartChiSqComponent, inverseWishartScaledLinearForm,
-      inverseWishartLinearForm, hzero]
-  have hm_ne : (Fintype.card m : ℝ) ≠ 0 := by
-    exact_mod_cast (ne_of_gt hm)
-  have hν_ne : (Fintype.card n : ℝ) - (Fintype.card m : ℝ) ≠ 0 := by
-    have hν_pos : 0 < (Fintype.card n : ℝ) - (Fintype.card m : ℝ) := by
-      rw [← Nat.cast_sub hcard_le]
-      exact_mod_cast hν
-    exact ne_of_gt hν_pos
-  have hT2 : (fun ω => hotellingT2Sample (Y ω) μ0) =ᵐ[μ]
-      fun ω => hotellingT2HansenScale (n := n) (m := m) *
-        (((hotellingMeanChiSqComponent (n := n) (m := m) (Y ω) μ0 Sigma) /
-            (Fintype.card m : ℝ)) /
-          ((hotellingInverseWishartChiSqComponent
-              (n := n) (m := m) (Y ω) μ0 Sigma (W ω)) /
-            ((Fintype.card n - Fintype.card m : ℕ) : ℝ))) := by
-    filter_upwards [hA_ne, hB_ne] with ω hAω hBω
-    exact hotellingT2Sample_eq_hansen_scaled_ratio_of_components
-      (Y := Y ω) (μ0 := μ0) (Sigma := Sigma) (W := W ω)
-      (by
-        dsimp [W]
-        exact sampleCovarianceMatrix_eq_scaled_contrast_crossProduct
-          (C := sampleCenteringEigenContrast (n := n)) (Y := Y ω)
-          (sampleCenteringEigenContrast_mul_transpose (n := n))
-          (sampleCenteringEigenContrast_transpose_mul (n := n)))
-      hcard_le hm_ne hν_ne hAω hBω
+  have hT2 := hotellingT2Sample_ae_eq_scaled_ratio_of_iid_normal_rows
+    (Y := Y) (μ0 := μ0) (Sigma := Sigma) (W := W)
+    hSigma hm hν hcard_le hrow hRowsInd hWishart (fun ω => by
+      dsimp [W]
+      exact sampleCovarianceMatrix_eq_scaled_contrast_crossProduct
+        (C := sampleCenteringEigenContrast (n := n)) (Y := Y ω)
+        (sampleCenteringEigenContrast_mul_transpose (n := n))
+        (sampleCenteringEigenContrast_transpose_mul (n := n)))
   exact hotellingT2Sample_hasLaw_theorem11_12_of_components
     (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) (Sigma := Sigma)
     (W := W) hm hν hMean hWishart hIndComponents hT2
 
-/-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from an a.e.
-fixed-parameter inverse-Wishart identity under the centered-mean law. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
-    [IsProbabilityMeasure μ] [Nonempty n]
-    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
-    (hSigma : Sigma.PosDef)
-    (hm : 0 < Fintype.card m)
-    (hν : 0 < Fintype.card n - Fintype.card m)
-    (hcard_le : Fintype.card m ≤ Fintype.card n)
-    [SFinite
-      (wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma)]
-    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
-    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
-    (hfixed : ∀ᵐ α ∂hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma,
-      (wishartLaw
-          (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-          Sigma).map (inverseWishartScaledLinearForm Sigma α) =
-        chiSquared (Fintype.card n - Fintype.card m)) :
-    HasLaw (fun ω => hotellingT2HansenFStatistic (Y ω) μ0)
-      (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
-  hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
-    (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
-      hrow hRowsInd hfixed)
 
 /-- A.e. fixed inverse-Wishart identity for the centered sample-mean law from
 standard-coordinate nonsingularity and a.e. coordinate congruence.
@@ -8878,7 +8205,7 @@ standard-coordinate nonsingularity and a.e. coordinate congruence.
 The nonzero side condition is discharged from the iid positive-definite
 Gaussian sample-mean law, so the standard-coordinate congruence only needs to
 be supplied on the realized support of `Ȳ - μ₀`. -/
-theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_congr
+private theorem HotellingProof.fixedInverseCongr
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -8940,7 +8267,7 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
     (hA.ae_iff (p := fun α : m → ℝ => α ≠ 0) (by fun_prop)).1 hA_ne_μ
   filter_upwards [by simpa [Alaw] using hcongr_ae, hA_ne_law] with α hcongr hα
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+    InverseWishartProof.standardMapCongr
       (dfidx :=
         {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
       (r := r) (Sigma := Sigma) (α := α)
@@ -8951,11 +8278,11 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
 standard-coordinate nonsingularity and a.e. whitening/alignment data.
 
 Compared with
-`hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_congr`,
+`HotellingProof.fixedInverseCongr`,
 this theorem derives the a.e. scalar congruence from explicit
 whitening/alignment transforms for each realized nonzero centered-mean
 direction. -/
-theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_transport
+private theorem HotellingProof.fixedInverseWhitening
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9025,20 +8352,20 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
     rcases hS with ⟨hSigma_one, hS⟩
     rcases hS with ⟨hα_one, hc⟩
     exact
-      inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_whitening_transport
+      InverseWishartProof.whiteningMap
         (dfidx :=
           {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
         (r := r) (Sigma := Sigma) (α := α)
         (T := T) (S := S) (c := c)
         hSigma hST hTS hW_nonsing hSigma_one hα_one hc
   exact
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_congr
+    HotellingProof.fixedInverseCongr
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
       hcard_std hnonsing hdf hcongr_ae
 
 /-- **Hansen Theorem 11.12**, Hotelling endpoint from standard-coordinate
 congruence supplied only a.e. under the centered sample-mean law. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_congr
+private theorem HotellingProof.sampleLawCongr
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9098,11 +8425,11 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
               (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
             Sigma).map (inverseWishartScaledLinearForm Sigma α) =
           chiSquared (Fintype.card n - Fintype.card m) :=
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_congr
+    HotellingProof.fixedInverseCongr
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
       hcard_std hnonsing hdf hcongr_ae
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
+    HotellingProof.sampleLawFixedInverseAE
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed
 
@@ -9110,10 +8437,10 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
 standard-coordinate whitening data under the centered sample-mean law.
 
 This is the a.e. transport version of
-`hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_congr`:
+`HotellingProof.sampleLawCongr`:
 for almost every realized nonzero centered-mean direction, the supplied
 whitening/alignment transform derives the fixed inverse-Wishart input. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport
+private theorem HotellingProof.sampleLawWhitening
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9171,130 +8498,15 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
               (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
             Sigma).map (inverseWishartScaledLinearForm Sigma α) =
           chiSquared (Fintype.card n - Fintype.card m) :=
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_transport
+    HotellingProof.fixedInverseWhitening
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
       hcard_std hnonsing hdf hW_nonsing htransport_ae
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
+    HotellingProof.sampleLawFixedInverseAE
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed
 
-/-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from
-standard-coordinate congruence supplied only a.e. under the centered
-sample-mean law. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_congr
-    [IsProbabilityMeasure μ] [Nonempty n]
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
-    (hSigma : Sigma.PosDef)
-    (hm : 0 < Fintype.card m)
-    (hν : 0 < Fintype.card n - Fintype.card m)
-    (hcard_le : Fintype.card m ≤ Fintype.card n)
-    [SFinite
-      (wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma)]
-    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
-    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
-    (hcard_std :
-      Fintype.card r <
-        Fintype.card
-          {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-    (hnonsing : ∀ᵐ Z ∂iidMatrixGaussianLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible (matrixCrossProduct Z)) ∧
-        Nonempty (Invertible
-          ((standardCoordinateRestColumns
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1}) Z)ᵀ *
-            standardCoordinateRestColumns
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1}) Z)))
-    (hdf :
-      Fintype.card
-          {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1} -
-            Fintype.card (Sum Unit r) + 1 =
-        Fintype.card n - Fintype.card m)
-    (hcongr_ae :
-      ∀ᵐ α ∂hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma,
-        α ≠ 0 →
-          (wishartLaw
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-              Sigma).map (inverseWishartScaledLinearForm Sigma α) =
-            (wishartLaw
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-              (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
-              (inverseWishartScaledLinearForm
-                (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-                (Pi.single (Sum.inl ()) (1 : ℝ)))) :
-    HasLaw (fun ω => hotellingT2HansenFStatistic (Y ω) μ0)
-      (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
-  hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
-    (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_congr
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
-      hrow hRowsInd hcard_std hnonsing hdf hcongr_ae)
 
-/-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from a.e.
-standard-coordinate whitening data under the centered sample-mean law. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport
-    [IsProbabilityMeasure μ] [Nonempty n]
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
-    (hSigma : Sigma.PosDef)
-    (hm : 0 < Fintype.card m)
-    (hν : 0 < Fintype.card n - Fintype.card m)
-    (hcard_le : Fintype.card m ≤ Fintype.card n)
-    [SFinite
-      (wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma)]
-    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
-    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
-    (hcard_std :
-      Fintype.card r <
-        Fintype.card
-          {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-    (hnonsing : ∀ᵐ Z ∂iidMatrixGaussianLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible (matrixCrossProduct Z)) ∧
-        Nonempty (Invertible
-          ((standardCoordinateRestColumns
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1}) Z)ᵀ *
-            standardCoordinateRestColumns
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1}) Z)))
-    (hdf :
-      Fintype.card
-          {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1} -
-            Fintype.card (Sum Unit r) + 1 =
-        Fintype.card n - Fintype.card m)
-    (hW_nonsing : ∀ᵐ W ∂wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma, IsUnit W.det)
-    (htransport_ae :
-      ∀ᵐ α ∂hotellingCenteredMeanParameterLaw (n := n) μ0 Sigma,
-        α ≠ 0 →
-          ∃ (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ),
-            S * T = 1 ∧ T * S = 1 ∧
-              Tᵀ * Sigma * T = (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ) ∧
-              Tᵀ *ᵥ α =
-                c • (Pi.single (Sum.inl ()) (1 : ℝ) : Sum Unit r → ℝ) ∧
-              c ≠ 0) :
-    HasLaw (fun ω => hotellingT2HansenFStatistic (Y ω) μ0)
-      (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
-  hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
-    (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
-      hrow hRowsInd hcard_std hnonsing hdf hW_nonsing htransport_ae)
 
 /-- **Hansen Theorem 11.12**, Hotelling endpoint from a.e.
 standard-coordinate whitening data, with centered-Wishart nonsingularity
@@ -9304,7 +8516,7 @@ The remaining assumptions are the raw standard-coordinate full/nuisance Gram
 nonsingularity certificate and the whitening/alignment data.  The separate
 centered Wishart nonsingularity premise is discharged by transport through
 `wishartLaw_nonsingular_of_standardCoordinate_whitening_transport`. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nonsingular
+private theorem HotellingProof.sampleLawWhiteningOfStandard
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9373,14 +8585,14 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
       (r := r) (Sigma := Sigma) (T := T) (S := S)
       hSigma.posSemidef hST hTS hnonsing_full hSigma_one
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport
+    HotellingProof.sampleLawWhitening
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hcard_std hnonsing hdf hW_nonsing htransport_ae
 
 /-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from a.e.
 standard-coordinate whitening data, with centered-Wishart nonsingularity
 derived from the raw standardized Gram certificate. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nonsingular
+private theorem hotellingF_hasLaw_whitening_transport_of_standard_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9432,7 +8644,7 @@ theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_cente
       (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
   hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
     (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nonsingular
+    (HotellingProof.sampleLawWhiteningOfStandard
       (Y := Y) (μ0 := μ0) (T := T) (S := S) (hSigma := hSigma)
       hm hν hcard_le hrow hRowsInd hcard_std hnonsing hdf
       hST hTS hSigma_one htransport_ae)
@@ -9443,7 +8655,7 @@ certificate.
 
 This discharges the full part of the raw standardized Gram certificate via
 `standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular`. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
+private theorem hotellingSample_hasLaw_whitening_transport_of_nuisance_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9498,7 +8710,7 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
       (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
       hcard_std hnuisance
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nonsingular
+    HotellingProof.sampleLawWhiteningOfStandard
       (Y := Y) (μ0 := μ0) (T := T) (S := S) (hSigma := hSigma)
       hm hν hcard_le hrow hRowsInd hcard_std hnonsing hdf
       hST hTS hSigma_one htransport_ae
@@ -9506,7 +8718,7 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
 /-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from a.e.
 standard-coordinate whitening data and the raw standardized nuisance-Gram
 certificate. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
+private theorem hotellingF_hasLaw_whitening_transport_of_nuisance_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9557,7 +8769,7 @@ theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_cente
       (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
   hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
     (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular
+    (hotellingSample_hasLaw_whitening_transport_of_nuisance_nonsingular
       (Y := Y) (μ0 := μ0) (T := T) (S := S) (hSigma := hSigma)
       hm hν hcard_le hrow hRowsInd hcard_std hnuisance hdf
       hST hTS hSigma_one htransport_ae)
@@ -9570,7 +8782,7 @@ This is the Hotelling-facing version of the remaining exact gap: the only
 stochastic standard-coordinate premise is nuisance-column Gram nonsingularity,
 and the whitening/alignment objects are supplied only for the realized nonzero
 centered-mean directions. -/
-theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+private theorem HotellingProof.fixedInverseWhiteningExists
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9633,7 +8845,7 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
           c ≠ 0 := by
     simpa [and_assoc, exists_and_left, exists_and_right] using htransport hα
   exact
-    inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+    InverseWishartProof.whiteningExists
       (dfidx :=
         {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
       (r := r) (Sigma := Sigma) (α := α)
@@ -9643,7 +8855,7 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
 
 /-- **Hansen Theorem 11.12**, Hotelling endpoint from existential a.e.
 whitening/alignment data and raw standardized nuisance-Gram nonsingularity. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+private theorem hotellingSample_hasLaw_whitening_exists_of_nuisance_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9690,18 +8902,18 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
       ((classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)).map
         fun x => hotellingT2HansenScale (n := n) (m := m) * x) μ := by
   have hfixed :=
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+    HotellingProof.fixedInverseWhiteningExists
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
       hcard_std hnuisance hdf htransport_ae
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
+    HotellingProof.sampleLawFixedInverseAE
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed
 
 /-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from existential
 a.e. whitening/alignment data and raw standardized nuisance-Gram
 nonsingularity. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+private theorem hotellingF_hasLaw_whitening_exists_of_nuisance_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9748,7 +8960,7 @@ theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_cente
       (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
   hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
     (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+    (hotellingSample_hasLaw_whitening_exists_of_nuisance_nonsingular
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hcard_std hnuisance hdf htransport_ae)
 
@@ -9758,7 +8970,7 @@ a global nonzero-direction whitening/alignment family.
 This wrapper closes the support step that turns deterministic
 `∀ α ≠ 0, ...` whitening/alignment data into the a.e. premise needed by the
 Hotelling route. -/
-theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular
+private theorem HotellingProof.fixedInverseCardOfNuisance
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9803,7 +9015,7 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
               c ≠ 0 :=
     Filter.Eventually.of_forall htransport
   exact
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular
+    HotellingProof.fixedInverseWhiteningExists
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hrow hRowsInd
       (centeredStandardCoordinate_card_lt_of_card_eq (n := n) (m := m) (r := r)
         hcard_dim hν)
@@ -9816,7 +9028,7 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
 a global nonzero-direction whitening/alignment family, with the stochastic
 standard-coordinate premise reduced to the canonical rectangular iid
 standard-Gaussian Gram certificate. -/
-theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular
+private theorem HotellingProof.fixedInverseCardOfGram
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9844,7 +9056,7 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
           (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
           Sigma).map (inverseWishartScaledLinearForm Sigma α) =
         chiSquared (Fintype.card n - Fintype.card m) :=
-  hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular
+  HotellingProof.fixedInverseCardOfNuisance
     (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hrow hRowsInd
     hcard_dim
     (standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw
@@ -9857,7 +9069,7 @@ a global nonzero-direction whitening/alignment family.
 
 The centered standard-coordinate Gram certificate is supplied by the canonical
 rectangular iid standard-Gaussian Gram nonsingularity theorem. -/
-theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq
+private theorem HotellingProof.fixedInverseCard
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9880,7 +9092,7 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordin
           (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
           Sigma).map (inverseWishartScaledLinearForm Sigma α) =
         chiSquared (Fintype.card n - Fintype.card m) :=
-  hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular
+  HotellingProof.fixedInverseCardOfGram
     (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hrow hRowsInd
     hcard_dim
     (iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
@@ -9925,14 +9137,14 @@ theorem hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_posDef_card_eq
     exact standardCoordinate_whitening_alignment_exists_of_posDef
       (r := r) Sigma α hSigma hα hcard_dim
   exact
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq
+    HotellingProof.fixedInverseCard
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hrow hRowsInd
       hcard_dim htransport
 
 /-- **Hansen Theorem 11.12**, Hotelling endpoint from a global nonzero-direction
 whitening/alignment family, with centered degrees of freedom derived from the
 standard-coordinate dimension match. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular
+private theorem hotellingSample_hasLaw_whitening_card_eq_of_nuisance_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -9970,18 +9182,18 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
       ((classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)).map
         fun x => hotellingT2HansenScale (n := n) (m := m) * x) μ := by
   have hfixed :=
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular
+    HotellingProof.fixedInverseCardOfNuisance
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hrow hRowsInd
       hcard_dim hnuisance htransport
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
+    HotellingProof.sampleLawFixedInverseAE
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed
 
 /-- **Hansen Theorem 11.12**, Hotelling endpoint from a global nonzero-direction
 whitening/alignment family, with the stochastic standard-coordinate premise
 reduced to the canonical rectangular iid standard-Gaussian Gram certificate. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular
+private theorem hotellingSample_hasLaw_whitening_card_eq_of_gram_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -10013,11 +9225,11 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
       ((classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)).map
         fun x => hotellingT2HansenScale (n := n) (m := m) * x) μ := by
   have hfixed :=
-    hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular
+    HotellingProof.fixedInverseCardOfGram
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hrow hRowsInd
       hcard_dim hgram_std htransport
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
+    HotellingProof.sampleLawFixedInverseAE
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed
 
@@ -10027,7 +9239,7 @@ whitening/alignment family.
 The only theorem-specific input beyond the iid-normal-row hypotheses is the
 deterministic whitening/alignment family; centered standard-coordinate Gram
 nonsingularity is derived canonically. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq
+private theorem HotellingProof.sampleLawWhiteningCard
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -10053,7 +9265,7 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
     HasLaw (fun ω => hotellingT2Sample (Y ω) μ0)
       ((classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)).map
         fun x => hotellingT2HansenScale (n := n) (m := m) * x) μ :=
-  hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular
+  hotellingSample_hasLaw_whitening_card_eq_of_gram_nonsingular
     (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
     hrow hRowsInd hcard_dim
     (iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae
@@ -10067,7 +9279,7 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
 /-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from a global
 nonzero-direction whitening/alignment family, with centered degrees of freedom
 derived from the standard-coordinate dimension match. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular
+private theorem hotellingF_hasLaw_whitening_card_eq_of_nuisance_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -10105,7 +9317,7 @@ theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_cente
       (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
   hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
     (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular
+    (hotellingSample_hasLaw_whitening_card_eq_of_nuisance_nonsingular
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hcard_dim hnuisance htransport)
 
@@ -10113,7 +9325,7 @@ theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_cente
 nonzero-direction whitening/alignment family, with the stochastic
 standard-coordinate premise reduced to the canonical rectangular iid
 standard-Gaussian Gram certificate. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular
+private theorem hotellingF_hasLaw_whitening_card_eq_of_gram_nonsingular
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -10145,45 +9357,10 @@ theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_cente
       (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
   hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
     (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular
+    (hotellingSample_hasLaw_whitening_card_eq_of_gram_nonsingular
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hcard_dim hgram_std htransport)
 
-/-- **Hansen Theorem 11.12**, normalized Hotelling endpoint from a global
-nonzero-direction whitening/alignment family.
-
-This is the theorem-facing standard-coordinate endpoint with the canonical
-Gram theorem applied internally. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq
-    [IsProbabilityMeasure μ] [Nonempty n]
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
-    (hSigma : Sigma.PosDef)
-    (hm : 0 < Fintype.card m)
-    (hν : 0 < Fintype.card n - Fintype.card m)
-    (hcard_le : Fintype.card m ≤ Fintype.card n)
-    [SFinite
-      (wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma)]
-    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
-    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
-    (hcard_dim : Fintype.card (Sum Unit r) = Fintype.card m)
-    (htransport :
-      ∀ α : m → ℝ, α ≠ 0 →
-        ∃ (T : Matrix m (Sum Unit r) ℝ) (S : Matrix (Sum Unit r) m ℝ) (c : ℝ),
-          S * T = 1 ∧ T * S = 1 ∧
-            Tᵀ * Sigma * T = (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ) ∧
-            Tᵀ *ᵥ α =
-              c • (Pi.single (Sum.inl ()) (1 : ℝ) : Sum Unit r → ℝ) ∧
-            c ≠ 0) :
-    HasLaw (fun ω => hotellingT2HansenFStatistic (Y ω) μ0)
-      (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
-  hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
-    (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
-      hrow hRowsInd hcard_dim htransport)
 
 omit [DecidableEq n] in
 /-- **Hansen Theorem 11.12**, Hotelling `T²` endpoint.
@@ -10217,7 +9394,7 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_posDef
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hrow hRowsInd
       hcard_dim
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart
+    HotellingProof.sampleLawFixedInverseAE
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed
 
@@ -10250,7 +9427,7 @@ the nonzero fixed-`α` chi-square law directly, it assumes for each nonzero
 `α` the remaining whitening/coordinate congruence to the standardized
 `Σ = I, α = e₁` push-forward.  The chi-square law and component independence
 are then derived by existing MatrixNormal and Chapter 3 projection machinery. -/
-theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_standardCoordinate_congr
+private theorem HotellingProof.sampleLawNonzeroCongr
     [IsProbabilityMeasure μ] [Nonempty n]
     {r : Type*} [Fintype r] [DecidableEq r]
     (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
@@ -10306,77 +9483,17 @@ theorem hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishar
         chiSquared (Fintype.card n - Fintype.card m) := by
     intro α hα
     exact
-      inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr
+      InverseWishartProof.standardMapCongr
         (dfidx :=
           {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
         (r := r) (Sigma := Sigma) (α := α)
         (df := Fintype.card n - Fintype.card m)
         hcard_std hnonsing hdf (hcongr α hα)
   exact
-    hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_fixed_inverseWishart
+    HotellingProof.sampleLawFixedInverse
       (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
       hrow hRowsInd hfixed
 
-/-- Compatibility normalized Hotelling endpoint from the standard-coordinate
-Chapter 11.11 bridge.
-
-The remaining fixed inverse-Wishart input is the coordinate congruence used by
-the standard-coordinate Theorem 11.11 boundary, and the conclusion is Hansen's
-unscaled `F(m,n-m)` law for the normalized `T²`. The stronger
-`*_of_iid_normal_rows_posDef` wrappers derive this congruence internally from
-positive-definite covariance and the dimension conditions. -/
-theorem hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_standardCoordinate_congr
-    [IsProbabilityMeasure μ] [Nonempty n]
-    {r : Type*} [Fintype r] [DecidableEq r]
-    (Y : Ω → Matrix n m ℝ) (μ0 : m → ℝ) {Sigma : Matrix m m ℝ}
-    (hSigma : Sigma.PosDef)
-    (hm : 0 < Fintype.card m)
-    (hν : 0 < Fintype.card n - Fintype.card m)
-    (hcard_le : Fintype.card m ≤ Fintype.card n)
-    [SFinite
-      (wishartLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        Sigma)]
-    (hrow : ∀ i : n, HasLaw (fun ω => Y ω i) (rowGaussianLaw μ0 Sigma) μ)
-    (hRowsInd : iIndepFun (fun i ω => Y ω i) μ)
-    (hcard_std :
-      Fintype.card r <
-        Fintype.card
-          {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-    (hnonsing : ∀ᵐ Z ∂iidMatrixGaussianLaw
-        (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-        (m := Sum Unit r)
-        (0 : Sum Unit r → ℝ) (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ),
-      Nonempty (Invertible (matrixCrossProduct Z)) ∧
-        Nonempty (Invertible
-          ((standardCoordinateRestColumns
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1}) Z)ᵀ *
-            standardCoordinateRestColumns
-              (n := {i : n //
-                (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1}) Z)))
-    (hdf :
-      Fintype.card
-          {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1} -
-            Fintype.card (Sum Unit r) + 1 =
-        Fintype.card n - Fintype.card m)
-    (hcongr : ∀ α : m → ℝ, α ≠ 0 →
-      (wishartLaw
-          (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-          Sigma).map (inverseWishartScaledLinearForm Sigma α) =
-        (wishartLaw
-          (n := {i : n // (sampleCenteringMatrix_isHermitian (n := n)).eigenvalues i = 1})
-          (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)).map
-          (inverseWishartScaledLinearForm
-            (1 : Matrix (Sum Unit r) (Sum Unit r) ℝ)
-            (Pi.single (Sum.inl ()) (1 : ℝ)))) :
-    HasLaw (fun ω => hotellingT2HansenFStatistic (Y ω) μ0)
-      (classicalFDist (Fintype.card m) (Fintype.card n - Fintype.card m)) μ :=
-  hotellingT2HansenFStatistic_hasLaw_classicalFDist_of_scaledFDist
-    (Y := fun ω => (Y ω : n → m → ℝ)) (μ0 := μ0) hm hν
-    (hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_standardCoordinate_congr
-      (Y := Y) (μ0 := μ0) (hSigma := hSigma) hm hν hcard_le
-      hrow hRowsInd hcard_std hnonsing hdf hcongr)
 
 omit [DecidableEq n] in
 /-- **Hansen Theorem 11.12**, theorem-shaped Hotelling `T²` endpoint.

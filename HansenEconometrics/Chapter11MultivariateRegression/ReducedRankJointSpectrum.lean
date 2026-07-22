@@ -65,6 +65,20 @@ private structure PosDefWhitening {k : Type*} [Fintype k] [DecidableEq k]
 
 attribute [simp] PosDefWhitening.inv_mul PosDefWhitening.mul_inv
 
+@[simp]
+private theorem PosDefWhitening.transpose_inv_mul
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {B : Matrix k k ℝ} (w : PosDefWhitening B) :
+    w.Tᵀ * w.Sᵀ = 1 := by
+  rw [← Matrix.transpose_mul, w.inv_mul, Matrix.transpose_one]
+
+@[simp]
+private theorem PosDefWhitening.transpose_mul_inv
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {B : Matrix k k ℝ} (w : PosDefWhitening B) :
+    w.Sᵀ * w.Tᵀ = 1 := by
+  rw [← Matrix.transpose_mul, w.mul_inv, Matrix.transpose_one]
+
 /-- Mathlib's strictly-positive factorization supplies a two-sided whitening. -/
 private theorem PosDefWhitening.exists {k : Type*}
     [Fintype k] [DecidableEq k] (B : Matrix k k ℝ) (hB : B.PosDef) :
@@ -89,15 +103,8 @@ private theorem PosDefWhitening.nonsingInv_eq
     {k : Type*} [Fintype k] [DecidableEq k]
     {B : Matrix k k ℝ} (w : PosDefWhitening B) :
     B⁻¹ = w.S * w.Sᵀ := by
-  apply Matrix.inv_eq_right_inv
-  calc
-    B * (w.S * w.Sᵀ) = (w.Tᵀ * w.T) * (w.S * w.Sᵀ) := by
-      exact congrArg (fun C : Matrix k k ℝ => C * (w.S * w.Sᵀ)) w.factor
-    _ = w.Tᵀ * (w.T * w.S) * w.Sᵀ := by
-      simp only [Matrix.mul_assoc]
-    _ = w.Tᵀ * w.Sᵀ := by rw [w.mul_inv, Matrix.mul_one]
-    _ = (w.S * w.T)ᵀ := by rw [Matrix.transpose_mul]
-    _ = 1 := by rw [w.inv_mul, Matrix.transpose_one]
+  simpa [← w.factor] using nonsingInv_conjugate_of_inverse
+    (1 : Matrix k k ℝ) w.T w.S w.inv_mul w.mul_inv (by simp)
 
 private theorem PosDefWhitening.T_det_isUnit
     {k : Type*} [Fintype k] [DecidableEq k]
@@ -128,7 +135,7 @@ private theorem PosDefWhitening.whitened
       congrArg (fun C : Matrix k k ℝ => w.Sᵀ * C * w.S) w.factor
     w.Sᵀ * (w.Tᵀ * w.T) * w.S = (w.T * w.S)ᵀ * (w.T * w.S) := by
       simp only [Matrix.transpose_mul, Matrix.mul_assoc]
-    _ = 1 := by rw [w.mul_inv, Matrix.transpose_one, Matrix.one_mul]
+    _ = 1 := by simp
 
 /-- Invertible left and right whitenings preserve the rank of a rectangular
 cross matrix. -/
@@ -146,61 +153,13 @@ private theorem whitenedCross_rank
       Matrix.rank_mul_eq_right_of_isUnit_det wx.Sᵀ C (by
         simpa [Matrix.det_transpose] using wx.S_det_isUnit)
 
-/-- Transport an ordinary orthonormal eigenblock through a two-sided
-positive-definite whitening. -/
-private theorem generalizedEigenblock_of_whitening
-    {k r : Type*}
-    [Fintype k] [DecidableEq k]
-    [Fintype r] [DecidableEq r]
-    (A B M : Matrix k k ℝ) (w : PosDefWhitening B)
-    (hM : M = w.Sᵀ * A * w.S)
-    (lambda : r → ℝ) (U : Matrix k r ℝ)
-    (hUNorm : Uᵀ * U = 1)
-    (hUEig : M * U = U * Matrix.diagonal lambda) :
-    generalizedEigenvectorColumns A B lambda (w.S * U) ∧
-      generalizedEigenvectorBNormalized B (w.S * U) := by
-  have hTtSt : w.Tᵀ * w.Sᵀ = 1 := by
-    rw [← Matrix.transpose_mul, w.inv_mul, Matrix.transpose_one]
-  have hNorm : generalizedEigenvectorBNormalized B (w.S * U) := by
-    change (w.S * U)ᵀ * B * (w.S * U) = 1
-    calc
-      (w.S * U)ᵀ * B * (w.S * U) =
-          (w.S * U)ᵀ * (w.Tᵀ * w.T) * (w.S * U) :=
-        congrArg (fun C : Matrix k k ℝ => (w.S * U)ᵀ * C * (w.S * U)) w.factor
-      _ =
-          Uᵀ * (w.Sᵀ * w.Tᵀ) * (w.T * w.S) * U := by
-        simp only [Matrix.transpose_mul, Matrix.mul_assoc]
-      _ = Uᵀ * U := by rw [← Matrix.transpose_mul, w.mul_inv]; simp
-      _ = 1 := hUNorm
-  have hBSU : B * (w.S * U) = w.Tᵀ * U := by
-    calc
-      B * (w.S * U) = (w.Tᵀ * w.T) * (w.S * U) := by
-        exact congrArg (fun C : Matrix k k ℝ => C * (w.S * U)) w.factor
-      _ = w.Tᵀ * ((w.T * w.S) * U) := by simp only [Matrix.mul_assoc]
-      _ = w.Tᵀ * U := by rw [w.mul_inv, Matrix.one_mul]
-  have hASU : A * (w.S * U) =
-      B * (w.S * U) * Matrix.diagonal lambda := by
-    calc
-      A * (w.S * U) = (w.Tᵀ * w.Sᵀ) * A * (w.S * U) := by
-        rw [hTtSt]; simp
-      _ = w.Tᵀ * (M * U) := by rw [hM]; simp [Matrix.mul_assoc]
-      _ = w.Tᵀ * (U * Matrix.diagonal lambda) := by rw [hUEig]
-      _ = B * (w.S * U) * Matrix.diagonal lambda := by
-        rw [hBSU]
-        exact (Matrix.mul_assoc w.Tᵀ U (Matrix.diagonal lambda)).symm
-  exact ⟨
-    generalizedEigenvectorColumns_of_mul_eq_mul_diagonal
-      A B lambda (w.S * U) hNorm hASU,
-    hNorm⟩
-
 private theorem PosDefWhitening.factor_of_whitened
     {k : Type*} [Fintype k] [DecidableEq k]
     {B : Matrix k k ℝ} (w : PosDefWhitening B)
     (A M : Matrix k k ℝ) (hM : M = w.Sᵀ * A * w.S) :
     A = w.Tᵀ * M * w.T := by
   calc
-    A = (w.S * w.T)ᵀ * A * (w.S * w.T) := by
-      rw [w.inv_mul, Matrix.transpose_one, Matrix.one_mul, Matrix.mul_one]
+    A = (w.S * w.T)ᵀ * A * (w.S * w.T) := by simp
     _ = w.Tᵀ * (w.Sᵀ * A * w.S) * w.T := by
       simp only [Matrix.transpose_mul, Matrix.mul_assoc]
     _ = w.Tᵀ * M * w.T := by rw [← hM]
@@ -280,49 +239,22 @@ private theorem rectangularGramCanonicalSplit_exists
     have htm : t.val < Fintype.card m := lt_of_lt_of_le t.isLt hrm
     simpa [hK, selected, lambda, t] using
       (mul_transpose_eigenvalues₀_eq_of_lt D t.val htk htm).symm
+  have hVBlock := hermitianEigenvectorBasis_columnBlock
+    (Dᵀ * D) hK selected hSelectedInjective
   have hVNorm : Vᵀ * V = 1 := by
-    ext i j
-    have hij :=
-      (orthonormal_iff_ite.mp hK.eigenvectorBasis.orthonormal)
-        (e (selected i)) (e (selected j))
-    have hiff : e (selected i) = e (selected j) ↔ i = j :=
-      (e.injective.comp hSelectedInjective).eq_iff
-    simpa [V, EuclideanSpace.inner_eq_star_dotProduct, dotProduct,
-      Matrix.mul_apply, Matrix.transpose_apply, Matrix.one_apply, hiff, mul_comm] using hij
+    simpa [V, e] using hVBlock.1
   have hVEig : (Dᵀ * D) * V = V * Matrix.diagonal lambda := by
-    ext i j
-    have heig := hK.mulVec_eigenvectorBasis (e (selected j))
-    have hentry := congrFun heig i
-    simpa [V, hK, Matrix.IsHermitian.eigenvalues, e, hTransfer j,
-      Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.diagonal, mul_comm] using hentry
+    simpa [V, e, hTransfer] using hVBlock.2
+  have hQBlock := hermitianEigenvectorBasis_columnBlock
+    (Dᵀ * D) hK complement hComplementInjective
   have hQNorm : Qᵀ * Q = 1 := by
-    ext i j
-    have hij :=
-      (orthonormal_iff_ite.mp hK.eigenvectorBasis.orthonormal)
-        (e (complement i)) (e (complement j))
-    have hiff : e (complement i) = e (complement j) ↔ i = j :=
-      (e.injective.comp hComplementInjective).eq_iff
-    simpa [Q, EuclideanSpace.inner_eq_star_dotProduct, dotProduct,
-      Matrix.mul_apply, Matrix.transpose_apply, Matrix.one_apply, hiff, mul_comm] using hij
+    simpa [Q, e] using hQBlock.1
   have hQEig : (Dᵀ * D) * Q = Q * Matrix.diagonal mu := by
-    ext i j
-    have heig := hK.mulVec_eigenvectorBasis (e (complement j))
-    have hentry := congrFun heig i
-    simpa [Q, mu, hK, Matrix.IsHermitian.eigenvalues, e,
-      Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.diagonal, mul_comm] using hentry
+    simpa [Q, e, mu] using hQBlock.2
   have hCross : Qᵀ * V = 0 := by
-    ext i j
-    have hij :=
-      (orthonormal_iff_ite.mp hK.eigenvectorBasis.orthonormal)
-        (e (complement i)) (e (selected j))
-    have hne : e (complement i) ≠ e (selected j) := by
-      intro h
-      exact hSelectedComplement j i (e.injective h).symm
-    have hij' := hij
-    rw [if_neg hne] at hij'
-    simp only [Matrix.zero_apply]
-    simpa [Q, V, EuclideanSpace.inner_eq_star_dotProduct, dotProduct,
-      Matrix.mul_apply, Matrix.transpose_apply, mul_comm] using hij'
+    simpa [Q, V, e] using
+      hermitianEigenvectorBasis_crossGram_eq_zero
+        (Dᵀ * D) hK selected complement hSelectedComplement
   have hResidualRoots : ∀ j, 1 - mu j =
       (isHermitian_one.sub (transpose_mul_isHermitian D)).eigenvalues₀
         (Fin.castLE hsm ((Fintype.equivFin s) j)) := by
@@ -356,9 +288,8 @@ private theorem normalizedLeftGramBlock_exists
   let U : Matrix k r ℝ := D * V * Matrix.diagonal a
   have hsqrt_ne : ∀ j, Real.sqrt (lambda j) ≠ 0 := fun j =>
     ne_of_gt (Real.sqrt_pos.2 (hPos j))
-  have hsqrt_sq : ∀ j, Real.sqrt (lambda j) * Real.sqrt (lambda j) = lambda j := by
-    intro j
-    nlinarith [Real.sq_sqrt (le_of_lt (hPos j))]
+  have hsqrt_sq : ∀ j, Real.sqrt (lambda j) * Real.sqrt (lambda j) = lambda j :=
+    fun j => Real.mul_self_sqrt (hPos j).le
   have hVCompression : Vᵀ * (Dᵀ * D) * V = Matrix.diagonal lambda := by
     calc
       Vᵀ * (Dᵀ * D) * V = Vᵀ * ((Dᵀ * D) * V) := by
@@ -407,15 +338,7 @@ private theorem normalizedLeftGramBlock_exists
   have hLambdaScale :
       Matrix.diagonal lambda * Matrix.diagonal a =
         Matrix.diagonal (fun j => Real.sqrt (lambda j)) := by
-    rw [Matrix.diagonal_mul_diagonal]
-    congr with i
-    dsimp [a]
-    calc
-      lambda i * (Real.sqrt (lambda i))⁻¹ =
-          (Real.sqrt (lambda i) * Real.sqrt (lambda i)) *
-            (Real.sqrt (lambda i))⁻¹ := by rw [hsqrt_sq i]
-      _ = Real.sqrt (lambda i) := by
-        rw [mul_assoc, mul_inv_cancel₀ (hsqrt_ne i), mul_one]
+    simp [Matrix.diagonal_mul_diagonal, a, ← div_eq_mul_inv]
   have hDual : Dᵀ * U = V * Matrix.diagonal (fun j => Real.sqrt (lambda j)) := by
     calc
       Dᵀ * U = ((Dᵀ * D) * V) * Matrix.diagonal a := by
@@ -496,12 +419,7 @@ private theorem RectangularJointSpectrum.exists
       _ = Q - Q * Matrix.diagonal mu := by rw [hQEig]
       _ = Q * (1 - Matrix.diagonal mu) := by rw [Matrix.mul_sub, Matrix.mul_one]
       _ = Q * Matrix.diagonal eta := by
-        congr 1
-        ext i j
-        by_cases hij : i = j
-        · subst j
-          simp [eta]
-        · simp [eta, Matrix.diagonal, hij]
+        rw [← Matrix.diagonal_one, Matrix.diagonal_sub]
   have hCross : Qᵀ * (Dᵀ * U) = 0 := by
     rw [hDual]
     calc
@@ -673,9 +591,11 @@ theorem
   let G : Matrix k r ℝ := wx.S * js.U
   let Aperp : Matrix m s ℝ := wy.S * js.Q
   have hGTransport := generalizedEigenblock_of_whitening
-    Ag Bx (D * Dᵀ) wx hM js.lambda js.U js.u_norm js.u_eigenvectors
+    Ag Bx (D * Dᵀ) wx.T wx.S wx.factor hM wx.inv_mul wx.mul_inv
+      js.lambda js.U js.u_norm js.u_eigenvectors
   have hATransport := generalizedEigenblock_of_whitening
-    Ar By (1 - Dᵀ * D) wy hN js.eta js.Q js.q_norm js.q_residual_eigenvectors
+    Ar By (1 - Dᵀ * D) wy.T wy.S wy.factor hN wy.inv_mul wy.mul_inv
+      js.eta js.Q js.q_norm js.q_residual_eigenvectors
   have hGEig : reducedRankHansenGEigenvectors Xtilde Ytilde js.lambda G := by
     simpa [G, Ag, Bx] using hGTransport.1
   have hGNorm : reducedRankGNormalized Xtilde G := by

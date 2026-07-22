@@ -76,7 +76,7 @@ def generalizedEigenvectorColumns
   ∀ j : r, generalizedEigenvector A B (lambda j) (fun i => G i j)
 
 /-- Projection from the generalized-eigenvector column package. -/
-theorem generalizedEigenvectorColumns_apply
+private theorem generalizedEigenvectorColumns_apply
     (A B : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns A B lambda G) (j : r) :
     generalizedEigenvector A B (lambda j) (fun i => G i j) :=
@@ -172,6 +172,22 @@ theorem generalizedEigenvectorColumns_crossGram_eq_zero_of_disjoint_roots
 def generalizedEigenvectorBNormalized
     (B : Matrix k k ℝ) (G : Matrix k r ℝ) : Prop :=
   Gᵀ * B * G = 1
+
+omit [Fintype r] in
+/-- A normalized generalized-eigenvector block compresses the numerator to
+the diagonal matrix of its displayed roots. -/
+theorem generalizedEigenvectorColumns_compression_eq_diagonal
+    [Finite r]
+    (A B : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
+    (hEig : generalizedEigenvectorColumns A B lambda G)
+    (hNorm : generalizedEigenvectorBNormalized B G) :
+    Gᵀ * A * G = Matrix.diagonal lambda := by
+  letI := Fintype.ofFinite r
+  calc
+    Gᵀ * A * G = (Gᵀ * B * G) * Matrix.diagonal lambda :=
+      generalizedEigenvectorColumns_crossGram_eq_mul_diagonal A B lambda G hEig
+    _ = Matrix.diagonal lambda := by
+      rw [hNorm, Matrix.one_mul]
 
 /-- Compression equation for an invariant generalized-eigenspace of a pencil:
 `A G = B G C`.  Columnwise generalized eigenvectors are the special case
@@ -323,6 +339,113 @@ theorem generalizedEigenvectorColumns_of_mul_eq_mul_diagonal
     simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.diagonal, mul_comm]
       using hentry
 
+/-- An injectively selected block of a Hermitian eigenbasis is orthonormal and
+diagonalizes the matrix at the corresponding ordered eigenvalues. -/
+theorem hermitianEigenvectorBasis_columnBlock
+    [DecidableEq k]
+    (M : Matrix k k ℝ) (hM : M.IsHermitian)
+    (f : r → Fin (Fintype.card k)) (hf : Function.Injective f) :
+    let e : Fin (Fintype.card k) ≃ k :=
+      Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
+    let Q : Matrix k r ℝ := fun i j =>
+      (hM.eigenvectorBasis (e (f j)) : EuclideanSpace ℝ k) i
+    Qᵀ * Q = 1 ∧
+      M * Q = Q * Matrix.diagonal (fun j => hM.eigenvalues₀ (f j)) := by
+  classical
+  let e : Fin (Fintype.card k) ≃ k :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
+  let Q : Matrix k r ℝ := fun i j =>
+    (hM.eigenvectorBasis (e (f j)) : EuclideanSpace ℝ k) i
+  constructor
+  · ext i j
+    have hinner :=
+      (orthonormal_iff_ite.mp hM.eigenvectorBasis.orthonormal)
+        (e (f i)) (e (f j))
+    have hiff : e (f i) = e (f j) ↔ i = j :=
+      (e.injective.comp hf).eq_iff
+    simpa [Q, EuclideanSpace.inner_eq_star_dotProduct, dotProduct,
+      Matrix.mul_apply, Matrix.transpose_apply, Matrix.one_apply, hiff, mul_comm]
+      using hinner
+  · ext i j
+    have heig := hM.mulVec_eigenvectorBasis (e (f j))
+    have hentry := congrFun heig i
+    simpa [Q, e, Matrix.IsHermitian.eigenvalues, Matrix.mul_apply,
+      Matrix.mulVec, dotProduct, Matrix.diagonal, mul_comm] using hentry
+
+omit [Fintype r] [DecidableEq r] in
+/-- Eigenbasis blocks selected from disjoint index sets have zero cross Gram. -/
+theorem hermitianEigenvectorBasis_crossGram_eq_zero
+    {s : Type*} [DecidableEq k]
+    (M : Matrix k k ℝ) (hM : M.IsHermitian)
+    (f : r → Fin (Fintype.card k)) (g : s → Fin (Fintype.card k))
+    (hDisjoint : ∀ i j, f i ≠ g j) :
+    let e : Fin (Fintype.card k) ≃ k :=
+      Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
+    let Qf : Matrix k r ℝ := fun i j =>
+      (hM.eigenvectorBasis (e (f j)) : EuclideanSpace ℝ k) i
+    let Qg : Matrix k s ℝ := fun i j =>
+      (hM.eigenvectorBasis (e (g j)) : EuclideanSpace ℝ k) i
+    Qgᵀ * Qf = 0 := by
+  classical
+  let e : Fin (Fintype.card k) ≃ k :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
+  let Qf : Matrix k r ℝ := fun i j =>
+    (hM.eigenvectorBasis (e (f j)) : EuclideanSpace ℝ k) i
+  let Qg : Matrix k s ℝ := fun i j =>
+    (hM.eigenvectorBasis (e (g j)) : EuclideanSpace ℝ k) i
+  ext i j
+  have hinner :=
+    (orthonormal_iff_ite.mp hM.eigenvectorBasis.orthonormal)
+      (e (g i)) (e (f j))
+  have hne : e (g i) ≠ e (f j) := by
+    intro h
+    exact hDisjoint j i (e.injective h).symm
+  rw [if_neg hne] at hinner
+  simp only [Matrix.zero_apply]
+  simpa [Qg, Qf, EuclideanSpace.inner_eq_star_dotProduct, dotProduct,
+    Matrix.mul_apply, Matrix.transpose_apply, mul_comm] using hinner
+
+/-- Transport an ordinary orthonormal eigenblock through an explicit
+two-sided whitening of a generalized pencil. -/
+theorem generalizedEigenblock_of_whitening
+    [DecidableEq k]
+    (A B M T S : Matrix k k ℝ)
+    (hB : B = Tᵀ * T) (hM : M = Sᵀ * A * S)
+    (hST : S * T = 1) (hTS : T * S = 1)
+    (lambda : r → ℝ) (U : Matrix k r ℝ)
+    (hUNorm : Uᵀ * U = 1)
+    (hUEig : M * U = U * Matrix.diagonal lambda) :
+    generalizedEigenvectorColumns A B lambda (S * U) ∧
+      generalizedEigenvectorBNormalized B (S * U) := by
+  have hTtSt : Tᵀ * Sᵀ = 1 := by
+    rw [← Matrix.transpose_mul, hST, Matrix.transpose_one]
+  have hNorm : generalizedEigenvectorBNormalized B (S * U) := by
+    change (S * U)ᵀ * B * (S * U) = 1
+    calc
+      (S * U)ᵀ * B * (S * U) =
+          Uᵀ * (Sᵀ * Tᵀ) * (T * S) * U := by
+        rw [hB]
+        simp only [Matrix.transpose_mul, Matrix.mul_assoc]
+      _ = Uᵀ * U := by rw [← Matrix.transpose_mul, hTS]; simp
+      _ = 1 := hUNorm
+  have hBSU : B * (S * U) = Tᵀ * U := by
+    calc
+      B * (S * U) = (Tᵀ * T) * (S * U) := by rw [hB]
+      _ = Tᵀ * ((T * S) * U) := by simp only [Matrix.mul_assoc]
+      _ = Tᵀ * U := by rw [hTS, Matrix.one_mul]
+  have hASU : A * (S * U) = B * (S * U) * Matrix.diagonal lambda := by
+    calc
+      A * (S * U) = (Tᵀ * Sᵀ) * A * (S * U) := by rw [hTtSt]; simp
+      _ = Tᵀ * (M * U) := by rw [hM]; simp [Matrix.mul_assoc]
+      _ = Tᵀ * (U * Matrix.diagonal lambda) := by rw [hUEig]
+      _ = B * (S * U) * Matrix.diagonal lambda := by
+        rw [hBSU]
+        exact (Matrix.mul_assoc Tᵀ U (Matrix.diagonal lambda)).symm
+  exact ⟨
+    generalizedEigenvectorColumns_of_mul_eq_mul_diagonal
+      A B lambda (S * U) hNorm hASU,
+    hNorm⟩
+
 section GeneralizedEigenExistence
 
 open scoped Matrix.Norms.Elementwise MatrixOrder
@@ -457,65 +580,27 @@ theorem generalizedEigenvectorColumns_normalized_leading_exists_of_whitening
             (Fin.castLE hcard ((Fintype.equivFin r) j))) G ∧
         generalizedEigenvectorBNormalized B G := by
   classical
-  have hTtSt : Tᵀ * Sᵀ = 1 := by
-    rw [← Matrix.transpose_mul, hST, Matrix.transpose_one]
-  let e : r → k := fun j =>
-    (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k)))
-      (Fin.castLE hcard ((Fintype.equivFin r) j))
-  have he : Function.Injective e := by
+  let f : r → Fin (Fintype.card k) := fun j =>
+    Fin.castLE hcard ((Fintype.equivFin r) j)
+  have hf : Function.Injective f := by
     intro i j hij
     apply (Fintype.equivFin r).injective
-    apply Fin.castLE_injective hcard
-    exact (Fintype.equivOfCardEq
-      (Fintype.card_fin (Fintype.card k))).injective hij
+    exact Fin.castLE_injective hcard hij
+  let e : Fin (Fintype.card k) ≃ k :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
   let Q : Matrix k r ℝ := fun i j =>
-    (hMHerm.eigenvectorBasis (e j) : EuclideanSpace ℝ k) i
+    (hMHerm.eigenvectorBasis (e (f j)) : EuclideanSpace ℝ k) i
   let lambda : r → ℝ := fun j => hMHerm.eigenvalues₀
     (Fin.castLE hcard ((Fintype.equivFin r) j))
+  have hBlock := hermitianEigenvectorBasis_columnBlock M hMHerm f hf
   have hQNorm : Qᵀ * Q = 1 := by
-    ext i j
-    rw [Matrix.mul_apply]
-    have hinner :=
-      (orthonormal_iff_ite.mp hMHerm.eigenvectorBasis.orthonormal) (e i) (e j)
-    have hiff : e i = e j ↔ i = j := he.eq_iff
-    have hinner' :
-        (fun a => Q a i) ⬝ᵥ (fun a => Q a j) = if i = j then 1 else 0 := by
-      rw [dotProduct_comm]
-      simpa [Q, hiff] using hinner
-    simpa [Matrix.transpose_apply, dotProduct, Matrix.one_apply] using hinner'
+    simpa [Q, e] using hBlock.1
   have hMQ : M * Q = Q * Matrix.diagonal lambda := by
-    ext i j
-    have heig := hMHerm.mulVec_eigenvectorBasis (e j)
-    have hentry := congrFun heig i
-    simpa [Q, lambda, e, Matrix.IsHermitian.eigenvalues, Matrix.mul_apply,
-      Matrix.mulVec, dotProduct, Matrix.diagonal, mul_comm] using hentry
-  let G : Matrix k r ℝ := S * Q
-  have hGNorm : generalizedEigenvectorBNormalized B G := by
-    change Gᵀ * B * G = 1
-    calc
-      Gᵀ * B * G = Qᵀ * (Sᵀ * Tᵀ) * (T * S) * Q := by
-        simp [G, hB, Matrix.transpose_mul, Matrix.mul_assoc]
-      _ = Qᵀ * (T * S)ᵀ * (T * S) * Q := by
-        rw [Matrix.transpose_mul]
-      _ = Qᵀ * Q := by rw [hTS]; simp
-      _ = 1 := hQNorm
-  have hBGSimp : B * G = Tᵀ * Q := by
-    calc
-      B * G = (Tᵀ * T) * (S * Q) := by rw [hB]
-      _ = Tᵀ * ((T * S) * Q) := by simp [Matrix.mul_assoc]
-      _ = Tᵀ * Q := by rw [hTS, Matrix.one_mul]
-  have hAG : A * G = B * G * Matrix.diagonal lambda := by
-    calc
-      A * G = (Tᵀ * Sᵀ) * A * (S * Q) := by rw [hTtSt]; simp [G]
-      _ = Tᵀ * (M * Q) := by rw [hM]; simp [Matrix.mul_assoc]
-      _ = Tᵀ * (Q * Matrix.diagonal lambda) := by rw [hMQ]
-      _ = B * G * Matrix.diagonal lambda := by
-        rw [hBGSimp]
-        exact (Matrix.mul_assoc Tᵀ Q (Matrix.diagonal lambda)).symm
-  exact ⟨G,
-    generalizedEigenvectorColumns_of_mul_eq_mul_diagonal
-      A B lambda G hGNorm hAG,
-    hGNorm⟩
+    simpa [Q, e, lambda, f] using hBlock.2
+  obtain ⟨hGEig, hGNorm⟩ :=
+    generalizedEigenblock_of_whitening
+      A B M T S hB hM hST hTS lambda Q hQNorm hMQ
+  exact ⟨S * Q, by simpa [lambda] using hGEig, hGNorm⟩
 
 /-- A Hermitian generalized pencil with positive-definite denominator has a
 normalized block of generalized eigenvectors in every admissible dimension.
@@ -697,20 +782,6 @@ def generalizedEigenRayleighUpperBound
     (A B : Matrix k k ℝ) (alpha : ℝ) : Prop :=
   ∀ v : k → ℝ, v ⬝ᵥ (B *ᵥ v) = 1 → v ⬝ᵥ (A *ᵥ v) ≤ alpha
 
-omit [DecidableEq r] in
-private theorem compression_quadratic_eq_image_quadratic
-    (A : Matrix k k ℝ) (H : Matrix k r ℝ) (x : r → ℝ) :
-    x ⬝ᵥ ((Hᵀ * A * H) *ᵥ x) =
-      (H *ᵥ x) ⬝ᵥ (A *ᵥ (H *ᵥ x)) := by
-  calc
-    x ⬝ᵥ ((Hᵀ * A * H) *ᵥ x) =
-        x ⬝ᵥ (Hᵀ *ᵥ (A *ᵥ (H *ᵥ x))) := by
-          simp [Matrix.mulVec_mulVec, Matrix.mul_assoc]
-    _ = (x ᵥ* Hᵀ) ⬝ᵥ (A *ᵥ (H *ᵥ x)) :=
-      Matrix.dotProduct_mulVec x Hᵀ (A *ᵥ (H *ᵥ x))
-    _ = (H *ᵥ x) ⬝ᵥ (A *ᵥ (H *ᵥ x)) := by
-      rw [Matrix.vecMul_transpose]
-
 /-- Multiplicative Ritz bound for a positive-semidefinite matrix.
 
 For every orthonormal `r`-column block, the determinant of the compression is
@@ -834,26 +905,13 @@ theorem generalizedEigenLeadingComplementDetMinimal_of_whitening
       (1 - Gᵀ * A * G).det ≤ (1 - Hᵀ * A * H).det := by
   let lambda : r → ℝ := fun j => hM.1.eigenvalues₀
     (Fin.castLE hcard ((Fintype.equivFin r) j))
-  have hGCompression : Gᵀ * A * G = Matrix.diagonal lambda := by
-    calc
-      Gᵀ * A * G = (Gᵀ * B * G) * Matrix.diagonal lambda :=
-        generalizedEigenvectorColumns_crossGram_eq_mul_diagonal
-          A B lambda G hEig
-      _ = Matrix.diagonal lambda := by
-        change Gᵀ * B * G = 1 at hNorm
-        rw [hNorm]
-        simp
+  have hGCompression : Gᵀ * A * G = Matrix.diagonal lambda :=
+    generalizedEigenvectorColumns_compression_eq_diagonal
+      A B lambda G hEig hNorm
   have hGDet :
       (1 - Gᵀ * A * G).det = ∏ j : r, (1 - lambda j) := by
     rw [hGCompression]
-    rw [show (1 : Matrix r r ℝ) - Matrix.diagonal lambda =
-      Matrix.diagonal (fun j => 1 - lambda j) by
-        ext i j
-        by_cases hij : i = j
-        · subst j
-          simp
-        · simp [hij]]
-    rw [Matrix.det_diagonal]
+    rw [← Matrix.diagonal_one, Matrix.diagonal_sub, Matrix.det_diagonal]
   intro H hH
   rw [hGDet]
   exact generalizedEigenComplementDetLowerBound_of_whitening
@@ -896,7 +954,7 @@ theorem generalizedEigenDetProductUpperBound_of_posSemidef_tied_rayleigh
     have hBunit : v ⬝ᵥ (B *ᵥ v) = 1 := by
       calc
         v ⬝ᵥ (B *ᵥ v) = x ⬝ᵥ ((Hᵀ * B * H) *ᵥ x) := by
-          exact (compression_quadratic_eq_image_quadratic B H x).symm
+          simpa [v] using quadraticForm_mulVec_eq_pullback_rect H B x
         _ = x ⬝ᵥ x := by rw [hHNorm]; simp
         _ = 1 := hnorm
     have heig : C *ᵥ x = hC.1.eigenvalues i • x := by
@@ -904,7 +962,7 @@ theorem generalizedEigenDetProductUpperBound_of_posSemidef_tied_rayleigh
     have hquad : v ⬝ᵥ (A *ᵥ v) = hC.1.eigenvalues i := by
       calc
         v ⬝ᵥ (A *ᵥ v) = x ⬝ᵥ (C *ᵥ x) := by
-          exact (compression_quadratic_eq_image_quadratic A H x).symm
+          simpa [v, C] using quadraticForm_mulVec_eq_pullback_rect H A x
         _ = x ⬝ᵥ (hC.1.eigenvalues i • x) := by rw [heig]
         _ = hC.1.eigenvalues i := by
           simp [dotProduct_smul, hnorm]
@@ -964,9 +1022,8 @@ theorem generalizedEigenRayleighUpperBound_of_whitened_top
           (T *ᵥ v) ⬝ᵥ ((1 : Matrix q q ℝ) *ᵥ (T *ᵥ v)) := by
             simp [z]
       _ = v ⬝ᵥ ((Tᵀ * (1 : Matrix q q ℝ) * T) *ᵥ v) := by
-        exact (compression_quadratic_eq_image_quadratic
-          (1 : Matrix q q ℝ) T v).symm
-      _ = v ⬝ᵥ (B *ᵥ v) := by simp [hB, Matrix.mul_assoc]
+        exact quadraticForm_mulVec_eq_pullback_rect T (1 : Matrix q q ℝ) v
+      _ = v ⬝ᵥ (B *ᵥ v) := by simp [hB]
       _ = 1 := hBunit
   have hzero :
       ∀ i : Fin (Fintype.card q), i < ⟨0, Fintype.card_pos⟩ →
@@ -980,7 +1037,7 @@ theorem generalizedEigenRayleighUpperBound_of_whitened_top
   calc
     v ⬝ᵥ (A *ᵥ v) = v ⬝ᵥ ((Tᵀ * M * T) *ᵥ v) := by rw [hA]
     _ = (T *ᵥ v) ⬝ᵥ (M *ᵥ (T *ᵥ v)) :=
-      compression_quadratic_eq_image_quadratic M T v
+      (quadraticForm_mulVec_eq_pullback_rect T M v).symm
     _ ≤ hM.eigenvalues₀ ⟨0, Fintype.card_pos⟩ := by
       simpa [z] using htop
 
@@ -1412,18 +1469,10 @@ private theorem transpose_mul_columnReindex_eq_one
     [DecidableEq k] [DecidableEq r] (e : k ≃ r)
     (G : Matrix k r ℝ) (hG : Gᵀ * G = 1) :
     (G.submatrix id e)ᵀ * (G.submatrix id e) = 1 := by
-  ext i j
-  calc
-    ((G.submatrix id e)ᵀ * (G.submatrix id e)) i j =
-        (Gᵀ * G) (e i) (e j) := by
-          simp [Matrix.mul_apply, Matrix.transpose_apply]
-    _ = (1 : Matrix r r ℝ) (e i) (e j) := by rw [hG]
-    _ = (1 : Matrix k k ℝ) i j := by
-          by_cases hij : i = j
-          · subst j
-            simp
-          · have heij : e i ≠ e j := fun h => hij (e.injective h)
-            simp [hij, heij]
+  rw [Matrix.transpose_submatrix]
+  change Gᵀ.submatrix e (Equiv.refl k) *
+      G.submatrix (Equiv.refl k) e = 1
+  rw [Matrix.submatrix_mul_equiv, hG, Matrix.submatrix_one_equiv]
 
 omit [DecidableEq r] in
 private theorem det_columnReindex_compression_eq
@@ -1577,7 +1626,7 @@ This is the determinant-extrema form of
 `generalizedEigenDetProductUpperBound_identity_of_equiv_orthonormal_eigenbasis`:
 when the selected orthonormal eigenvectors span the ambient whitened space, the
 selected compressed determinant is maximal over all orthonormal competitors. -/
-theorem generalizedEigenSelectedCompressedDetMaximal_identity_of_equiv_orthonormal_eigenbasis
+private theorem geSelectedDetMax_of_equivOrthonormalBasis
     [DecidableEq k] (e : k ≃ r)
     (A : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambda G)
@@ -1605,7 +1654,7 @@ This is the determinant-extrema counterpart of
 `generalizedEigenDetProductLowerBound_identity_of_equiv_orthonormal_eigenbasis`;
 it is useful for the trailing/full-basis side of whitened reduced-rank
 pencils. -/
-theorem generalizedEigenSelectedCompressedDetMinimal_identity_of_equiv_orthonormal_eigenbasis
+private theorem geSelectedDetMin_of_equivOrthonormalBasis
     [DecidableEq k] (e : k ≃ r)
     (A : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns A (1 : Matrix k k ℝ) lambda G)
@@ -1648,13 +1697,7 @@ private theorem one_sub_idempotent_of_idempotent
     [DecidableEq k] (P : Matrix k k ℝ) (hPid : P * P = P) :
     ((1 : Matrix k k ℝ) - P) * ((1 : Matrix k k ℝ) - P) =
       (1 : Matrix k k ℝ) - P := by
-  calc
-    ((1 : Matrix k k ℝ) - P) * ((1 : Matrix k k ℝ) - P) =
-        ((1 : Matrix k k ℝ) - P) * 1 - ((1 : Matrix k k ℝ) - P) * P := by
-      rw [Matrix.mul_sub]
-    _ = ((1 : Matrix k k ℝ) - P) - (P - P * P) := by
-      rw [Matrix.mul_one, Matrix.sub_mul, Matrix.one_mul]
-    _ = (1 : Matrix k k ℝ) - P := by rw [hPid]; simp
+  exact IsIdempotentElem.one_sub hPid
 
 omit [Fintype r] in
 private theorem compression_eq_one_sub_compression
@@ -1721,7 +1764,7 @@ If `P` is symmetric and idempotent, every orthonormal column block `H` has
 compressed determinant at most `1`. This is the projection-specific partial
 leading-block determinant fact needed by Hansen Theorem 11.7 after the G-side
 whitening identifies `Ỹ(Ỹ'Ỹ)⁻¹Ỹ'` with the Chapter 3 hat matrix. -/
-theorem orthogonalProjection_compressed_det_le_one
+private theorem orthogonalProjection_compressed_det_le_one
     (P : Matrix k k ℝ) (H : Matrix k r ℝ)
     (hPt : Pᵀ = P) (hPid : P * P = P) (hH : Hᵀ * H = 1) :
     (Hᵀ * P * H).det ≤ 1 := by
@@ -1751,14 +1794,13 @@ This is the deterministic root-identification bridge for the residualized
 projection route in Hansen Theorem 11.7: once the selected whitened columns are
 fixed by `P`, the separate assumption `λ_j = 1` is not needed. -/
 theorem generalizedEigenProjection_top_roots_of_range
-    [DecidableEq k] [Finite r]
+    [DecidableEq k]
     (P : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns P (1 : Matrix k k ℝ) lambda G)
     (hNorm : Gᵀ * G = 1)
     (hRange : P * G = G) :
     ∀ j : r, lambda j = 1 := by
   classical
-  haveI := Fintype.ofFinite r
   intro j
   let v : k → ℝ := fun i => G i j
   have hEig : P *ᵥ v = lambda j • v := by
@@ -1786,14 +1828,13 @@ This is the deterministic nullspace bridge for the residual `A⊥` side of
 Hansen Theorem 11.7: once the selected whitened columns are killed by the PSD
 residual matrix, the separate pointwise zero-root assumption is not needed. -/
 theorem generalizedEigenNull_roots_zero
-    [DecidableEq k] [Finite r]
+    [DecidableEq k]
     (M : Matrix k k ℝ) (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : generalizedEigenvectorColumns M (1 : Matrix k k ℝ) lambda G)
     (hNorm : Gᵀ * G = 1)
     (hNull : M * G = 0) :
     ∀ j : r, lambda j = 0 := by
   classical
-  haveI := Fintype.ofFinite r
   intro j
   let v : k → ℝ := fun i => G i j
   have hEig : M *ᵥ v = lambda j • v := by
@@ -1846,8 +1887,7 @@ private theorem column_ne_zero_of_orthonormal
   rw [hDiagZero] at hDiag
   norm_num at hDiag
 
-set_option linter.unusedSectionVars false in
-set_option linter.unusedFintypeInType false in
+omit [Fintype r] in
 /-- Orthonormal columns fixed by an ordinary projection are generalized
 eigenvector columns with all displayed roots equal to one.
 
@@ -1864,8 +1904,7 @@ theorem generalizedEigenvectorColumns_one_of_range
   have hEntry := congrArg (fun M : Matrix k r ℝ => M i j) hRange
   simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct] using hEntry
 
-set_option linter.unusedSectionVars false in
-set_option linter.unusedFintypeInType false in
+omit [Fintype r] in
 /-- Orthonormal columns killed by an ordinary matrix are generalized eigenvector
 columns with all displayed roots equal to zero. -/
 theorem generalizedEigenvectorColumns_zero_of_null
@@ -2000,7 +2039,7 @@ theorem generalizedEigenSelectedCompressedDetMinimal_identity_of_posSemidef_null
 /-- Whitening route to the generalized-pencil product upper bound, with the
 ordinary identity-denominator theorem supplied as a selected compressed-
 determinant maximum. -/
-theorem generalizedEigenDetProductUpperBound_of_whitened_identity_selected_compressedDet_maximal
+private theorem geProductUpper_of_whitened_selectedMax
     [Fintype q] [DecidableEq q]
     (A B : Matrix k k ℝ) (M : Matrix q q ℝ) (T : Matrix q k ℝ)
     (lambda : r → ℝ) (G0 : Matrix q r ℝ)
@@ -2019,7 +2058,7 @@ theorem generalizedEigenDetProductUpperBound_of_whitened_identity_selected_compr
 /-- Whitening route to the generalized-pencil product lower bound, with the
 ordinary identity-denominator theorem supplied as a selected compressed-
 determinant minimum. -/
-theorem generalizedEigenDetProductLowerBound_of_whitened_identity_selected_compressedDet_minimal
+private theorem geProductLower_of_whitened_selectedMin
     [Fintype q] [DecidableEq q]
     (A B : Matrix k k ℝ) (M : Matrix q q ℝ) (T : Matrix q k ℝ)
     (lambda : r → ℝ) (G0 : Matrix q r ℝ)
@@ -2205,7 +2244,7 @@ theorem GeneralizedEigenOrderedProductMaxCertificate.selected_compressedDet_maxi
 /-- A raw ordered-product G-side certificate turns nonsingularity of the
 selected compressed determinant into nonsingularity of the selected root
 product. -/
-theorem GeneralizedEigenOrderedProductMaxCertificate.rootProduct_ne_zero_of_compressedDet_ne_zero
+private theorem geOrderedRootProduct_ne_zero
     {A B : Matrix k k ℝ} {G : Matrix k r ℝ} {lambda : r → ℝ}
     (h : GeneralizedEigenOrderedProductMaxCertificate A B G lambda)
     (hdet : (Gᵀ * A * G).det ≠ 0) :
@@ -3142,7 +3181,7 @@ theorem reducedRankGDetVariationalBound_of_canonical_whitened_identity_productUp
 
 /-- Hansen G-side determinant/product bound from the canonical whitening plus
 an ordinary identity-denominator selected compressed-determinant maximum. -/
-theorem
+private theorem
     reducedRankGDetVariationalBound_of_canonical_whitened_identity_selected_compressedDet_maximal
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (lambda : r → ℝ) (G0 : Matrix n r ℝ)
@@ -3169,7 +3208,7 @@ This is a proved multi-column ordinary determinant route. It does not replace
 the partial leading-eigenspace theorem needed for the general `r < n` Hansen
 case, but it removes all remaining determinant-extrema premises in the
 full-basis case. -/
-theorem reducedRankGDetVariationalBound_of_canonical_whitened_equiv_orthonormal_eigenbasis
+private theorem reducedRankGDetVariationalBound_of_canonical_whitened_equiv_orthonormal_eigenbasis
     (e : n ≃ r)
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (lambda : r → ℝ) (G0 : Matrix n r ℝ)
@@ -3567,7 +3606,7 @@ omit [DecidableEq n] in
 /-- If the reciprocal selected-eigenvalue product is minimal over normalized
 generalized-eigenvector competitors, then the corresponding columns minimize
 Hansen's reciprocal determinant objective on that candidate class. -/
-theorem reducedRankGReciprocalObjectiveMinimizerOnEigenvectors_of_invEigenvalueProduct_minimal
+private theorem rrGReciprocalMin_of_invProductMin
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (lambda : r → ℝ) (G : Matrix k r ℝ)
     (h : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
@@ -3791,7 +3830,7 @@ identity `Ẽ = R Ỹ`.
 
 After this factorization, the remaining lower-bound theorem is the ordinary
 identity-denominator product theorem for `M = R'R` over orthonormal columns. -/
-theorem reducedRankAperpDetVariationalBound_of_residual_factor_identity_productLowerBound
+private theorem reducedRankAperpDetVariationalBound_of_residual_factor_identity_productLowerBound
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (R M : Matrix n n ℝ) (eta : s → ℝ)
     (hE : Etilde = R * Ytilde)
@@ -3809,7 +3848,7 @@ omit [DecidableEq m] in
 /-- Hansen `A⊥` determinant/product lower bound from a residual-factor
 identity and an ordinary identity-denominator selected compressed-determinant
 minimum. -/
-theorem
+private theorem
     reducedRankAperpDetVariationalBound_of_residual_factor_identity_selected_compressedDet_minimal
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (R M : Matrix n n ℝ) (eta : s → ℝ) (A0 : Matrix n s ℝ)
@@ -3833,7 +3872,7 @@ orthonormal basis of the whitened ambient space.
 This is the full-basis multi-column ordinary determinant route for the dual
 side. The general Hansen theorem still needs the partial trailing-eigenspace
 determinant theorem when the selected `A⊥` block is not ambient-square. -/
-theorem reducedRankAperpDetVariationalBound_of_residual_factor_identity_equiv_orthonormal_eigenbasis
+private theorem rrAperpBound_of_residualOrthonormalBasis
     (e : n ≃ s)
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (R : Matrix n n ℝ) (eta : s → ℝ) (A0 : Matrix n s ℝ)
@@ -3874,7 +3913,7 @@ omit [DecidableEq m] in
 /-- Residualized Hansen `A⊥` determinant/product lower bound from the ordinary
 selected-compressed-determinant minimum for the concrete residual-factor
 matrix `R'R`, where `R = M_[X,Z]`. -/
-theorem
+private theorem
     reducedRankAperpDetVariationalBound_of_residualized_selected_compressedDet_minimal
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (eta : s → ℝ) (A0 : Matrix n s ℝ)
@@ -3916,7 +3955,7 @@ theorem reducedRankAperpDetVariationalBound_of_residualized_equiv_orthonormal_ei
        (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta) := by
   classical
   exact
-    reducedRankAperpDetVariationalBound_of_residual_factor_identity_equiv_orthonormal_eigenbasis
+    rrAperpBound_of_residualOrthonormalBasis
       e (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y)
       (reducedRankAperpResidualFactor X Z) eta A0
       (reducedRankTildeE_eq_residualFactor_mul_tildeY Z X Y) hA0 hA0Norm
@@ -4345,7 +4384,7 @@ omit [DecidableEq n] [DecidableEq m] in
 products of all normalized generalized-eigenvector competitors, then the
 corresponding columns maximize Hansen's `A⊥` determinant objective on that
 candidate class. -/
-theorem reducedRankAperpGEigenObjectiveMaximizerOnEigenvectors_of_eigenvalueProduct_maximal
+private theorem reducedRankAperpGEigenObjectiveMaximizerOnEigenvectors_of_eigenvalueProduct_maximal
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (lambda : s → ℝ) (Aperp : Matrix m s ℝ)
     (h : reducedRankHansenAperpEigenvectors Etilde Ytilde lambda Aperp)
@@ -4365,7 +4404,7 @@ omit [DecidableEq n] [DecidableEq m] in
 /-- If the selected `A⊥` generalized eigenvalues are product-minimal among
 normalized generalized-eigenvector competitors, then the corresponding columns
 minimize Hansen's direct `A⊥` determinant objective on that candidate class. -/
-theorem reducedRankAperpGEigenObjectiveMinimizerOnEigenvectors_of_eigenvalueProduct_minimal
+private theorem reducedRankAperpGEigenObjectiveMinimizerOnEigenvectors_of_eigenvalueProduct_minimal
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (lambda : s → ℝ) (Aperp : Matrix m s ℝ)
     (h : reducedRankHansenAperpEigenvectors Etilde Ytilde lambda Aperp)
@@ -4385,7 +4424,7 @@ omit [DecidableEq n] [DecidableEq m] in
 /-- If the reciprocal selected-eigenvalue product is minimal over normalized
 `A⊥` generalized-eigenvector competitors, then the corresponding columns
 minimize Hansen's reciprocal determinant objective on that candidate class. -/
-theorem reducedRankAperpReciprocalObjectiveMinimizerOnEigenvectors_of_invEigenvalueProduct_minimal
+private theorem rrAperpReciprocalMin_of_invProductMin
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (lambda : s → ℝ) (Aperp : Matrix m s ℝ)
     (h : reducedRankHansenAperpEigenvectors Etilde Ytilde lambda Aperp)
@@ -4718,11 +4757,12 @@ structure ReducedRankHansenIdentifiedSpectralMaximizerCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta
   aperp_cross_orthogonal : reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp
 
+namespace ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+
 omit [DecidableEq n] in
 /-- Build the canonical identified spectral certificate directly from the two
 objective maxima and cross orthogonality. -/
-theorem
-    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_objective_maximizers_and_cross
+theorem of_objective_maximizers_and_cross
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -4740,8 +4780,7 @@ theorem
 
 omit [DecidableEq n] in
 /-- Add cross orthogonality to an existing max/max spectral certificate. -/
-theorem
-    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_cross
+theorem of_maxMax_and_cross
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
     {Aperp : Matrix m s ℝ} {eta : s → ℝ}
@@ -4751,6 +4790,8 @@ theorem
     ReducedRankHansenIdentifiedSpectralMaximizerCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta :=
   ⟨hMax, hCross⟩
+
+end ReducedRankHansenIdentifiedSpectralMaximizerCertificate
 
 /-- Raw ordered max/min surface for Hansen's inconsistent smallest-root
 summary compatibility.
@@ -4803,28 +4844,6 @@ structure ReducedRankHansenWhitenedPSDLeadingTrailingCertificate
         (Hᵀ * reducedRankAperpResidualWhitenedMatrix R * H).det
 
 namespace ReducedRankHansenWhitenedPSDLeadingTrailingCertificate
-
-/-- The G-side ordinary whitened matrix in the leading/trailing certificate is
-positive semidefinite. -/
-theorem g_posSemidef
-    {Ytilde Etilde : Matrix n m ℝ}
-    {lambda : r → ℝ} {eta : s → ℝ}
-    {R : Matrix n n ℝ} {G0 : Matrix n r ℝ} {A0 : Matrix n s ℝ}
-    (_h : ReducedRankHansenWhitenedPSDLeadingTrailingCertificate
-      Ytilde Etilde lambda eta R G0 A0) :
-    (reducedRankGWhitenedProjection Ytilde).PosSemidef :=
-  reducedRankGWhitenedProjection_posSemidef Ytilde
-
-/-- The `A⊥` ordinary whitened matrix in the leading/trailing certificate is
-positive semidefinite. -/
-theorem aperp_posSemidef
-    {Ytilde Etilde : Matrix n m ℝ}
-    {lambda : r → ℝ} {eta : s → ℝ}
-    {R : Matrix n n ℝ} {G0 : Matrix n r ℝ} {A0 : Matrix n s ℝ}
-    (_h : ReducedRankHansenWhitenedPSDLeadingTrailingCertificate
-      Ytilde Etilde lambda eta R G0 A0) :
-    (reducedRankAperpResidualWhitenedMatrix R).PosSemidef :=
-  reducedRankAperpResidualWhitenedMatrix_posSemidef R
 
 /-- The leading ordinary PSD determinant-extremum gives the identity-
 denominator G-side product bound. -/
@@ -5144,7 +5163,7 @@ end ReducedRankHansenWhitenedPSDLeadingTrailingCertificate
 omit [DecidableEq n] in
 /-- Build the raw Hansen ordered min-max surface from generic product bounds
 for the two generalized pencils. -/
-theorem ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate.of_generalized_product_bounds
+private theorem rrOrderedMinMax_of_productBounds
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -5170,7 +5189,7 @@ theorem ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate.of_generalized
 omit [DecidableEq n] in
 /-- Convert the raw Hansen ordered min-max surface into the existing reusable
 determinant/product min-max certificate. -/
-theorem ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate.to_detProductMinMaxCertificate
+private theorem rrOrderedMinMax_to_detCertificate
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
     {Aperp : Matrix m s ℝ} {eta : s → ℝ}
@@ -5271,7 +5290,7 @@ leading/trailing determinant-extrema inputs.
 Compared with `of_whitened_psd_leading_trailing`, this constructor discharges
 the concrete residual-factor identity internally using
 `reducedRankTildeE_eq_residualFactor_mul_tildeY`. -/
-theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_whitened_psd_leading_trailing
+private theorem rrDetMinMax_of_residualizedWhitened
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -5357,7 +5376,7 @@ Theorem 11.7 matrices from the projection-range route.
 
 Compared with `of_residualized_projection_top_zero`, this constructor derives
 the `λ_j = 1` projection roots from `P G₀ = G₀`. -/
-theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_range_zero
+private theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_range_zero
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -5398,7 +5417,7 @@ Theorem 11.7 matrices from the projection-range/nullspace route.
 Compared with `of_residualized_projection_range_zero`, this constructor derives
 the trailing selected-root product `∏ η_j = 0` from the ordinary nullspace
 identity `R'R A₀ = 0`. -/
-theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_range_null
+private theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_range_null
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -5443,7 +5462,7 @@ The ordinary whitened G block has root `1`, and the ordinary residual block has
 root `0`; the projection-range and residual-nullspace equations are derived by
 `generalizedEigenvectorColumns_range_of_one` and
 `generalizedEigenvectorColumns_null_of_zero`. -/
-theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_fixed_roots
+private theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_fixed_roots
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ)
     (Aperp : Matrix m s ℝ)
@@ -5486,7 +5505,7 @@ The selected ordinary G block is supplied as `G₀ = Ỹ C`, and the selected
 ordinary `A⊥` block is supplied by the raw residual nullspace equation
 `R A₀ = 0`. This derives the projection-range and `R'R A₀ = 0` certificates
 before entering the existing projection-range/nullspace route. -/
-theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_span_residual_null
+private theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_span_residual_null
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ)
     (Aperp : Matrix m s ℝ)
@@ -5526,7 +5545,7 @@ surface as the partial leading/trailing theorem. It intentionally does not
 claim Hansen's general partial-block determinant min-max theorem; that remains
 the ordinary leading/trailing PSD result when `r` and `s` do not span the
 ambient whitened index type. -/
-theorem ReducedRankHansenDetProductMinMaxCertificate.of_residualized_whitened_full_eigenbases
+private theorem rrDetMinMax_of_residualizedEigenbases
     (eG : n ≃ r) (eA : n ≃ s)
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -5804,7 +5823,7 @@ structure ReducedRankHansenIdentifiedSpectralDualityCertificate
 omit [DecidableEq n] in
 /-- Forget the explicit subspace-identification field from the strengthened
 certificate. -/
-theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.to_spectralDualityCertificate
+private theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.to_spectralDualityCertificate
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
     {Aperp : Matrix m s ℝ} {eta : s → ℝ}
@@ -5853,7 +5872,7 @@ theorem ReducedRankHansenSpectralDualityCertificate.to_detProductMinMaxCertifica
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate from determinant/product
 min-max plus the explicit `A⊥'Ỹ'X̃G = 0` subspace identification. -/
-theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_and_cross
+private theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_and_cross
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
     {Aperp : Matrix m s ℝ} {eta : s → ℝ}
@@ -5869,7 +5888,7 @@ theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMa
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate directly from the two
 normal-likelihood objective extrema and the explicit subspace identification. -/
-theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_objective_extrema_and_cross
+private theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_objective_extrema_and_cross
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -5949,7 +5968,7 @@ determinant-extrema inputs.
 The concrete residual factor is fixed to `M_[X,Z]`, so the only remaining
 spectral premise is the ordinary identity-denominator determinant theorem for
 the two positive semidefinite whitened matrices. -/
-theorem ReducedRankHansenSpectralDualityCertificate.of_residualized_whitened_psd_leading_trailing
+private theorem rrSpectralDuality_of_residualizedWhitened
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -5981,7 +6000,7 @@ theorem ReducedRankHansenSpectralDualityCertificate.of_residualized_whitened_psd
     ReducedRankHansenSpectralDualityCertificate
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta :=
-  (ReducedRankHansenDetProductMinMaxCertificate.of_residualized_whitened_psd_leading_trailing
+  (rrDetMinMax_of_residualizedWhitened
     Z X Y G lambda Aperp eta G0 A0
     hG hGNorm hAperp hAperpNorm
     hG0 hG0Norm hG0Max hA0 hA0Norm hA0Min).to_spectralDualityCertificate
@@ -6110,7 +6129,7 @@ theorem ReducedRankHansenObjectiveExtremaCertificate.of_detProductMinMaxCertific
 omit [DecidableEq n] in
 /-- The raw Hansen ordered min-max surface implies the spectral-duality
 certificate used by the theorem-facing endpoint. -/
-theorem ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate.to_spectralDualityCertificate
+private theorem rrOrderedMinMax_to_spectralDuality
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
     {Aperp : Matrix m s ℝ} {eta : s → ℝ}
@@ -6118,12 +6137,12 @@ theorem ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate.to_spectralDua
       Xtilde Ytilde Etilde G lambda Aperp eta) :
     ReducedRankHansenSpectralDualityCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta :=
-  h.to_detProductMinMaxCertificate.to_spectralDualityCertificate
+  (rrOrderedMinMax_to_detCertificate h).to_spectralDualityCertificate
 
 omit [DecidableEq n] in
 /-- The raw Hansen ordered min-max surface implies the objective-extrema
 certificate consumed by the normal-likelihood MLE endpoint. -/
-theorem
+private theorem
     ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate.to_objectiveExtremaCertificate
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
@@ -6133,7 +6152,7 @@ theorem
     ReducedRankHansenObjectiveExtremaCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta :=
   ReducedRankHansenObjectiveExtremaCertificate.of_detProductMinMaxCertificate
-    h.to_detProductMinMaxCertificate
+    (rrOrderedMinMax_to_detCertificate h)
 
 omit [DecidableEq n] in
 /-- Selected compressed-determinant extrema supply the objective-extrema
@@ -6462,12 +6481,7 @@ theorem reducedRankDualEigenvectorBlock_one_aperpEigenvectors_of_complement
       _ = S * W * ((1 : Matrix r r ℝ) - Matrix.diagonal lambda) := by
             rw [Matrix.mul_sub, Matrix.mul_one]
       _ = S * W * Matrix.diagonal (fun j => 1 - lambda j) := by
-            congr 1
-            ext i j
-            by_cases hij : i = j
-            · subst j
-              simp
-            · simp [hij]
+            rw [← Matrix.diagonal_one, Matrix.diagonal_sub]
   change generalizedEigenvectorColumns
     (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
     (fun j => 1 - lambda j) W
@@ -6851,14 +6865,15 @@ theorem reducedRankAperp_cross_orthogonal_of_diagonal_dual_relation
   exact reducedRankAperpAhat_orthogonal_of_diagonal_dual_relation
     Xtilde Ytilde G Aperp W lambda hLambda hDual hOrth
 
+namespace ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+
 omit [DecidableEq n] in
 /-- Add Hansen's displayed dual relation to the canonical max/max spectral
 certificate.
 
 The existing duality algebra derives and stores
 `A⊥'Ỹ'X̃G = 0`; no separate cross-orthogonality premise is needed. -/
-theorem
-    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_dual_relation
+theorem of_maxMax_and_dual_relation
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
@@ -6884,8 +6899,7 @@ residual-pencil eigenblock.
 The positive-definite outcome Gram synthesizes Hansen's displayed dual
 relation, and disjoint residual-pencil roots synthesize dual orthogonality. No
 cross-orthogonality premise is assumed. -/
-theorem
-    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_canonical_dual_eigenblock
+theorem of_maxMax_and_canonical_dual_eigenblock
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
@@ -6925,8 +6939,7 @@ selected `Aperp` family are allowed; only a tie crossing the selected/complement
 boundary is excluded. This conditional bridge remains useful for independently
 supplied blocks; `ReducedRankJointSpectrum` provides the unconditional
 tied-boundary simultaneous construction. -/
-theorem
-    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_complement_pencil_of_separated_roots
+theorem of_maxMax_and_complement_pencil_of_separated_roots
     [DecidableEq k] [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -6952,12 +6965,14 @@ theorem
       hMax.g_max.eigenvectors hMax.g_max.normalized hLambda)
     hSeparated (by simp)
 
+end ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate from the
 determinant/product min-max certificate and Hansen's displayed dual
 generalized-eigenvector relation. The dual relation proves the stored
 subspace identity `A⊥'Ỹ'X̃G = 0`. -/
-theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_and_dual_relation
+private theorem rrIdentifiedDuality_of_detMinMax_dual
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {lambda : r → ℝ}
@@ -6983,7 +6998,7 @@ min-max plus Hansen's displayed diagonal selected-root dual relation.
 This wrapper closes the selected-root nonsingularity bookkeeping: callers give
 `Λ = diagonal λ` and pointwise nonzero selected roots, and the inverse block is
 constructed internally. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
@@ -7011,7 +7026,7 @@ omit [DecidableEq n] in
 
 This matches the common spectral route where nonsingularity is obtained from a
 nonzero product of the selected generalized roots. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_prod_ne_zero
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
@@ -7039,7 +7054,7 @@ omit [DecidableEq n] in
 This matches the raw spectral route where the selected `G` roots are returned
 as positive roots; the nonzero selected-root product required for the diagonal
 duality algebra is derived internally. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_pos
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
@@ -7066,7 +7081,7 @@ omit [DecidableEq n] in
 The normal-likelihood route can supply the two objective extrema and positive
 selected `G` roots; this bridge derives the determinant/product min-max
 certificate and diagonal selected-root nonsingularity internally. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_objective_extrema_diagonalDual_pos
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7095,7 +7110,7 @@ omit [DecidableEq n] in
 
 This is the normal-likelihood bridge when nonsingularity is available as a
 nonzero selected-root product rather than pointwise positive roots. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_objective_extrema_diagonalDual_prod_ne_zero
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7122,7 +7137,7 @@ omit [DecidableEq n] in
 /-- Selected compressed-determinant extrema plus positive selected `G` roots
 give the identified spectral-duality certificate with Hansen's diagonal dual
 relation. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_selectedExtrema_diagonalDual_pos
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7156,7 +7171,7 @@ omit [DecidableEq n] in
 /-- Selected compressed-determinant extrema plus a nonzero selected-root
 product give the identified spectral-duality certificate with Hansen's
 diagonal dual relation. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_selectedExtrema_diagonalDual_prod_ne_zero
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7193,7 +7208,7 @@ omit [DecidableEq n] in
 This is the determinant/product certificate route when the raw spectral
 construction proves nonsingularity of the selected compressed `G` block
 `det(G'AG) ≠ 0` rather than a nonzero selected-root product. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_compressedDet_ne_zero
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
@@ -7226,7 +7241,7 @@ This is the selected-extrema counterpart of
 the determinant/product min-max certificate is synthesized from the selected
 compressed-determinant extrema, while the diagonal inverse block is synthesized
 from `det(G'AG) ≠ 0`. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_selectedExtrema_diagonalDual_compressedDet_ne_zero
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7264,7 +7279,7 @@ This is the fully proved one-column route: scalar generalized Rayleigh bounds
 give the two determinant/product min-max fields, and nonsingularity of the
 unique selected `G` root gives the inverse diagonal block used in the dual
 relation. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_rankOne_rayleigh_bounds_diagonalDual
     [Fintype s] [DecidableEq s] [Unique r] [Unique s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7296,7 +7311,7 @@ theorem
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate directly from the two
 normal-likelihood objective extrema and Hansen's displayed dual relation. -/
-theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_objective_extrema_and_dual_relation
+private theorem rrIdentifiedDuality_of_objective_dual
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -7311,7 +7326,7 @@ theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_objective_extre
     (hLambdaInv : Lambda * LambdaInv = 1) :
     ReducedRankHansenIdentifiedSpectralDualityCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta :=
-  ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_and_dual_relation
+  rrIdentifiedDuality_of_detMinMax_dual
     (ReducedRankHansenDetProductMinMaxCertificate.of_objective_extrema
       Xtilde Ytilde Etilde G lambda Aperp eta hG hGOpt hAperp hAperpOpt)
     W Lambda LambdaInv hDual hOrth hLambdaInv
@@ -7319,7 +7334,7 @@ theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_objective_extre
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate from generic
 generalized-pencil product bounds and Hansen's displayed dual relation. -/
-theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_genericProductBounds_dual
+private theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_genericProductBounds_dual
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -7338,7 +7353,7 @@ theorem ReducedRankHansenIdentifiedSpectralDualityCertificate.of_genericProductB
     (hLambdaInv : Lambda * LambdaInv = 1) :
     ReducedRankHansenIdentifiedSpectralDualityCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta :=
-  ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_and_dual_relation
+  rrIdentifiedDuality_of_detMinMax_dual
     (ReducedRankHansenDetProductMinMaxCertificate.of_generalized_product_bounds
       Xtilde Ytilde Etilde G lambda Aperp eta
       hG hGNorm hGBound hAperp hAperpNorm hAperpBound)
@@ -7352,7 +7367,7 @@ relation.
 Compared with `of_genericProductBounds_dual`, this endpoint asks only for
 pointwise nonzero selected roots instead of a separately supplied inverse for
 the selected-root block. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_genericProductBounds_diagonalDual
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7387,7 +7402,7 @@ omit [DecidableEq n] in
 The product bound route still proves Hansen's two determinant inequalities;
 this wrapper only reduces the selected-root nonsingularity obligation from
 pointwise nonzero roots to a nonzero selected-root product. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_genericProductBounds_diagonalDual_prod_ne_zero
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7422,7 +7437,7 @@ omit [DecidableEq n] in
 This is the generic-product-bound route when the raw pencil construction proves
 nonsingularity of the selected compressed `G` block rather than separately
 returning a nonzero selected-root product. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_genericProductBounds_diagonalDual_compressedDet_ne_zero
     [Fintype s] [DecidableEq s]
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
@@ -7460,7 +7475,7 @@ This is the certificate-level bridge for the expected output of the missing raw
 spectral theorem: the ordered certificate supplies the two product variational
 bounds and normalizations, while the diagonal dual relation supplies the stored
 identity `A⊥'Ỹ'X̃G = 0`. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_orderedGeneralizedEigen_diagonalDual
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
@@ -7476,7 +7491,7 @@ theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta :=
   ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual
-    hOrdered.to_detProductMinMaxCertificate W hLambda hDual hOrth
+    (rrOrderedMinMax_to_detCertificate hOrdered) W hLambda hDual hOrth
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -7486,7 +7501,7 @@ omit [DecidableEq n] in
 The raw ordered spectral theorem can provide a nonzero selected-root product
 instead of pointwise selected-root nonzero assumptions; this bridge derives the
 pointwise hypotheses internally. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
@@ -7513,7 +7528,7 @@ omit [DecidableEq n] in
 This is the certificate bridge for a raw ordered spectral theorem that proves
 the selected `G` roots are positive rather than separately packaging a nonzero
 selected-root product. -/
-theorem
+private theorem
     ReducedRankHansenIdentifiedSpectralDualityCertificate.of_orderedGeneralizedEigen_diagonalDual_pos
     [Fintype s] [DecidableEq s]
     {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
@@ -7960,7 +7975,7 @@ theorem reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificat
 
 omit [DecidableEq n] in
 /-- Direct objective form of the canonical identified Hansen 11.7 endpoint. -/
-theorem reducedRankHansenTheorem11_7_of_objective_maximizers_and_cross
+private theorem reducedRankHansenTheorem11_7_of_objective_maximizers_and_cross
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -7989,7 +8004,7 @@ Hansen's displayed dual relation.
 Cross orthogonality is derived by
 `reducedRankAperp_cross_orthogonal_of_dual_relation` and remains a field of the
 returned theorem conclusion. -/
-theorem reducedRankHansenTheorem11_7_of_maxMax_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_of_maxMax_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8139,7 +8154,7 @@ omit [DecidableEq n] in
 /-- Exact-dimension canonical Hansen 11.7 endpoint from the identified max/max
 spectral certificate. -/
 theorem
-    reducedRankHansenTheorem11_7_exactDimension_of_identified_spectral_maximizer_certificate
+    ReducedRankHansenTheorem11_7.ExactDimension.of_identified_maximizers
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8166,7 +8181,7 @@ The max/max identified certificate is still an explicit premise; in
 particular this wrapper does not claim the unresolved construction of that
 certificate from the raw normal likelihood. -/
 theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_identified_spectral_maximizer_certificate_canonicalAperp
+    ReducedRankHansenTheorem11_7.ResidualizedExact.of_identified_maximizers
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -8187,7 +8202,7 @@ theorem
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  reducedRankHansenTheorem11_7_exactDimension_of_identified_spectral_maximizer_certificate
+  ReducedRankHansenTheorem11_7.ExactDimension.of_identified_maximizers
     Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
     G lambda Aperp eta hSpec reducedRankAperpDimension_canonical
 
@@ -8196,7 +8211,7 @@ set_option linter.style.longLine false in
 endpoint. Its `A⊥` premise is the equation (11.21) maximum and the returned
 conclusion retains `A⊥'Ỹ'X̃G = 0`. -/
 theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_objective_maximizers_and_cross_canonicalAperp
+    ReducedRankHansenTheorem11_7.ResidualizedExact.of_objective_maximizers
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -8224,7 +8239,7 @@ theorem
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  reducedRankHansenTheorem11_7_residualized_exactDimension_of_identified_spectral_maximizer_certificate_canonicalAperp
+  ReducedRankHansenTheorem11_7.ResidualizedExact.of_identified_maximizers
     Z X Y G lambda Aperp eta
     (ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_objective_maximizers_and_cross
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
@@ -8239,7 +8254,7 @@ the `A⊥` minimum reflects Hansen's internally inconsistent final summary, not
 equation (11.21). Use
 `reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate` for
 the canonical theorem-facing result. -/
-theorem reducedRankHansenTheorem11_7_of_spectral_duality_certificate
+private theorem reducedRankHansenTheorem11_7_of_spectral_duality_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8275,7 +8290,7 @@ theorem reducedRankHansenTheorem11_7_of_spectral_duality_certificate
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from the exact spectral-duality certificate, with
 Hansen's complementary-rank condition `dim(A⊥) = m - r` carried explicitly. -/
-theorem reducedRankHansenTheorem11_7_exactDimension_of_spectral_duality_certificate
+private theorem reducedRankHansenTheorem11_7_exactDimension_of_spectral_duality_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8301,7 +8316,7 @@ min-oriented certificate.
 This deliberately returns only the compatibility structure. Canonical
 identified endpoints return `ReducedRankHansenTheorem11_7`, whose public
 `aperp_cross_orthogonal` field retains `A⊥'Ỹ'X̃G = 0`. -/
-theorem reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+private theorem rrSmallestSummary_of_identifiedDuality
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8326,7 +8341,7 @@ Hansen's displayed dual generalized-eigenvector relation.
 The dual relation supplies the strengthened subspace identity
 `A⊥'Ỹ'X̃G = 0`; the determinant/product min-max certificate supplies the exact
 G-side and `A⊥`-side variational bounds. -/
-theorem reducedRankHansenTheorem11_7_of_detProductMinMax_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_of_detProductMinMax_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8344,9 +8359,9 @@ theorem reducedRankHansenTheorem11_7_of_detProductMinMax_and_dual_relation
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+  rrSmallestSummary_of_identifiedDuality
     Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
-    (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_and_dual_relation
+    (rrIdentifiedDuality_of_detMinMax_dual
       hMinMax W Lambda LambdaInv hDual hOrth hLambdaInv)
 
 omit [DecidableEq n] in
@@ -8355,7 +8370,7 @@ omit [DecidableEq n] in
 This endpoint is the theorem-facing spectral route: it assumes selected
 compressed determinant maximality/minimality for Hansen's two generalized
 pencils, not the final spectral-duality product bounds or the MLE conclusion. -/
-theorem reducedRankHansenTheorem11_7_of_detProductMinMax_certificate
+private theorem reducedRankHansenTheorem11_7_of_detProductMinMax_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8377,7 +8392,7 @@ omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from the normal-likelihood objective-extrema
 certificate. This is the theorem-facing route for callers that have already
 proved the exact G-side objective maximum and `A⊥` objective minimum. -/
-theorem reducedRankHansenTheorem11_7_of_objective_extrema_certificate
+private theorem reducedRankHansenTheorem11_7_of_objective_extrema_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8399,7 +8414,7 @@ omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from the normal-likelihood objective extrema for the
 `G` and `A⊥` determinant objectives. The determinant/product min-max bounds are
 derived, not assumed. -/
-theorem reducedRankHansenTheorem11_7_of_objective_extrema
+private theorem reducedRankHansenTheorem11_7_of_objective_extrema
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8426,7 +8441,7 @@ omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from objective extrema plus Hansen's displayed dual
 generalized-eigenvector relation, routed through the identified certificate
 that stores `A⊥'Ỹ'X̃G = 0`. -/
-theorem reducedRankHansenTheorem11_7_of_objective_extrema_certificate_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_of_objective_extrema_certificate_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8451,7 +8466,7 @@ theorem reducedRankHansenTheorem11_7_of_objective_extrema_certificate_and_dual_r
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from normal-likelihood objective extrema plus Hansen's
 displayed dual generalized-eigenvector relation. -/
-theorem reducedRankHansenTheorem11_7_of_objective_extrema_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_of_objective_extrema_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8488,7 +8503,7 @@ This combines the strongest current deterministic route: the min-max
 certificate supplies the G-side and `A⊥` determinant/product variational
 bounds, the dual relation supplies `A⊥'Ỹ'X̃G = 0`, and `hdim` records
 Hansen's `m-r` column count. -/
-theorem reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8521,7 +8536,7 @@ determinant, and a concrete complementary index split.
 This is the exact-dimension route for a raw spectral proof that returns
 selected compressed-determinant nonsingularity instead of an explicit
 selected-root product or inverse diagonal block. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_diagonalDual_compressedDet_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8542,7 +8557,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_compressedDet_ne_zero
         hMinMax W hGdet hDual hOrth))
@@ -8558,7 +8573,7 @@ This is the canonical-complement counterpart of
 `reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_diagonalDual_compressedDet_ne_zero_indexSplit`:
 the selected-root nonsingularity and Hansen's exact `dim(A⊥)=m-r` conclusion
 are both derived internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8579,7 +8594,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_compressedDet_ne_zero
         hMinMax W hGdet hDual hOrth))
@@ -8594,7 +8609,7 @@ the canonical `A⊥` index `Fin (card m - card r)`.
 This removes the separate inverse selected-root block, selected-root
 nonsingularity/product premise, and complementary-dimension proof from the
 determinant/product min-max route. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8615,7 +8630,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_pos
         hMinMax W hLambda hDual hOrth))
@@ -8630,7 +8645,7 @@ This is the direct endpoint for a raw generalized-pencil min-max theorem that
 already proves the two product inequalities in Hansen's notation; the reusable
 determinant/product min-max certificate and objective extrema are derived
 internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8668,7 +8683,7 @@ This is the direct Hansen-notation counterpart of
 `reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_and_dual_relation`
 when `Λ = diagonal λ`; the inverse selected-root block is synthesized from
 pointwise nonzero selected roots. -/
-theorem reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual
+private theorem reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -8707,7 +8722,7 @@ omit [DecidableEq n] in
 The raw spectral theorem may provide only the selected-root product
 nonzero and a concrete finite split `m ≃ r ⊕ s`; this wrapper derives the
 pointwise root nonsingularity and Hansen's complementary-rank dimension. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual_prod_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8746,7 +8761,7 @@ omit [DecidableEq n] in
 This endpoint keeps Hansen's literal determinant/product bounds while deriving
 the selected-root product nonsingularity from the selected compressed
 determinant `det(G'AG) ≠ 0`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual_compressedDet_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8786,7 +8801,7 @@ omit [DecidableEq n] in
 This keeps Hansen's literal determinant/product variational bounds, while the
 canonical complement index supplies the exact `dim(A⊥)=m-r` conclusion
 internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8821,7 +8836,7 @@ set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Canonical-`A⊥` product-bound endpoint where selected-root
 nonsingularity is derived from the nonzero selected compressed determinant. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8863,7 +8878,7 @@ premises reduce to scalar generalized Rayleigh bounds. This wrapper assembles
 those bounds with the diagonal dual relation, derives pointwise selected-root
 nonsingularity from the unique selected root, and then uses the existing
 identified Theorem 11.7 endpoint. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_rankOne_rayleigh_bounds_diagonalDual
     [Unique r] [Unique s]
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
@@ -8893,7 +8908,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_rankOne_rayleigh_bounds_diagonalDual
         Xtilde Ytilde Etilde G lambda Aperp eta
@@ -8909,7 +8924,7 @@ This is the direct endpoint for a raw pencil theorem stated outside the
 Hansen-specific notation: the raw theorem supplies
 `generalizedEigenDetProductUpperBound` for the G pencil and
 `generalizedEigenDetProductLowerBound` for the `A⊥` pencil. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_generalized_product_bounds_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8950,7 +8965,7 @@ This is the same generic-pencil route as
 `reducedRankHansenTheorem11_7_exactDimension_of_generalized_product_bounds_and_dual_relation`,
 but it synthesizes the inverse selected-root block from `λ_j ≠ 0` when
 Hansen's displayed `Λ` is `diagonal λ`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_genericProductBounds_diagonalDual
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -8993,7 +9008,7 @@ This endpoint keeps Hansen's exact determinant/product premises and diagonal
 dual relation, but derives selected-root pointwise nonsingularity from
 `∏ λ_j ≠ 0` and `dim(A⊥)=m-r` from a concrete finite index split
 `m ≃ r ⊕ s`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_genericProductBounds_diagonalDual_prod_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9034,7 +9049,7 @@ omit [DecidableEq n] in
 This is the generic generalized-pencil product-bound route when the raw pencil
 construction proves nonsingularity of the selected compressed `G` determinant,
 rather than positivity or nonzero product of the selected roots. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_genericProductBounds_diagonalDual_compressedDet_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9078,7 +9093,7 @@ diagonal dual relation, positivity of the selected `G` roots, and a concrete
 finite split `m ≃ r ⊕ s`; it derives the nonzero selected-root product,
 pointwise root nonsingularity, and Hansen's complementary-rank equality
 internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_genericProductBounds_diagonalDual_pos_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9118,7 +9133,7 @@ omit [DecidableEq n] in
 This is the generic generalized-pencil product-bound route with Hansen's
 canonical complement index `Fin (card m - card r)`, so the exact `A⊥`
 dimension is derived internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_genericProductBounds_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9155,7 +9170,7 @@ set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Canonical-`A⊥` generic-product endpoint where selected-root
 nonsingularity is derived from the nonzero selected compressed determinant. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_genericProductBounds_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9196,7 +9211,7 @@ omit [DecidableEq n] in
 The objective-extrema certificate is converted through the existing
 determinant/product min-max layer; the raw generalized-pencil variational
 theorem remains the only substantive spectral input. -/
-theorem reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -9232,7 +9247,7 @@ canonical endpoints: a normal-likelihood proof only has to provide the two
 objective extrema, Hansen's diagonal dual relation, and nonsingularity of the
 selected compressed `G` determinant. The inverse selected-root block and exact
 `dim(A⊥)=m-r` conclusion are derived internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_certificate_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9253,7 +9268,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_compressedDet_ne_zero
         hObj.to_detProductMinMaxCertificate W hGdet hDual hOrth))
@@ -9263,7 +9278,7 @@ set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Raw objective-extrema version of
 `reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_certificate_diagonalDual_compressedDet_ne_zero_canonicalAperp`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9300,7 +9315,7 @@ displayed diagonal dual relation and nonzero selected-root product.
 
 This is the product-nonzero counterpart of the compressed-determinant and
 positive-root objective-extrema routes. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_certificate_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9321,7 +9336,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_prod_ne_zero
         hObj.to_detProductMinMaxCertificate W hLambdaProd hDual hOrth))
@@ -9331,7 +9346,7 @@ set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Raw objective-extrema version of
 `reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_certificate_diagonalDual_prod_ne_zero_canonicalAperp`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9369,7 +9384,7 @@ diagonal dual relation and positive selected `G` roots.
 This removes the explicit `det(G'AG) ≠ 0` premise from the normal-likelihood
 route: positivity of the selected roots implies the selected compressed
 determinant is nonsingular. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_certificate_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9390,7 +9405,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_pos
         hObj.to_detProductMinMaxCertificate W hLambda hDual hOrth))
@@ -9400,7 +9415,7 @@ set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Raw objective-extrema version of
 `reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_certificate_diagonalDual_pos_canonicalAperp`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9434,7 +9449,7 @@ omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from selected compressed-determinant extrema for the
 two reduced-rank pencils. These extrema are converted to objective extrema and
 then to the theorem-facing spectral certificate. -/
-theorem reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema
+private theorem reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -9465,7 +9480,7 @@ theorem reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from selected compressed-determinant extrema plus the
 displayed dual generalized-eigenvector relation. -/
-theorem reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -9502,7 +9517,7 @@ omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from selected compressed-determinant extrema plus the
 displayed dual relation, with Hansen's exact complementary dimension
 `dim(A⊥) = m - r` carried explicitly. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_selected_compressedDet_extrema_and_dual_relation
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9543,7 +9558,7 @@ dual relation and a nonzero selected-root product.
 
 This is the product-nonzero counterpart of the compressed-determinant and
 positive-root selected-extrema routes. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_selectedExtrema_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9572,7 +9587,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_selectedExtrema_diagonalDual_prod_ne_zero
         Xtilde Ytilde Etilde G lambda Aperp eta
@@ -9590,7 +9605,7 @@ this wrapper removes the arbitrary inverse selected-root block and the separate
 dimension premise. The inverse block is derived from `det(G'AG) ≠ 0`, and the
 exact `dim(A⊥)=m-r` equality is derived from the canonical
 `reducedRankAperpIndex m r` index. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_selectedExtrema_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9619,7 +9634,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_selectedExtrema_diagonalDual_compressedDet_ne_zero
         Xtilde Ytilde Etilde G lambda Aperp eta
@@ -9634,7 +9649,7 @@ dual relation and positive selected `G` roots.
 This is the selected-compressed-determinant route with the determinant
 nonsingularity premise removed: the selected generalized-eigenvector equations,
 normalization, and positive roots imply `det(G'AG) ≠ 0`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_selectedExtrema_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9677,7 +9692,7 @@ The certificate stores the exact G-side selected compressed-determinant maximum
 and `A⊥` selected compressed-determinant minimum over all normalized
 competitors. These extrema imply the two normal-likelihood objective extrema,
 which are then consumed by `reducedRankHansenTheorem11_7_of_objective_extrema`. -/
-theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_minMax_certificate
+private theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_minMax_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -9701,7 +9716,7 @@ theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_minMax_certifica
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from the ordered generalized-eigenvalue min-max
 certificate, with the exact `A⊥` dimension `m - r` carried explicitly. -/
-theorem reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_minMax_certificate
+private theorem rrExactSmallestSummary_of_orderedMinMax
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -9726,7 +9741,7 @@ surface.
 
 This wrapper consumes the literal ordered product certificate and delegates
 through its determinant/product certificate bridge. -/
-theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_certificate
+private theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -9742,12 +9757,12 @@ theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_certificate
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_minMax_certificate
     Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
-    hOrdered.to_detProductMinMaxCertificate
+    (rrOrderedMinMax_to_detCertificate hOrdered)
 
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from the raw ordered generalized-eigenvalue min-max
 surface, with Hansen's exact `dim(A⊥) = m - r` equality attached. -/
-theorem reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_certificate
+private theorem reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -9776,7 +9791,7 @@ Compared with the generic product-bound endpoint, this wrapper consumes the
 single ordered min-max certificate that the raw spectral theorem is expected to
 produce. It derives pointwise selected-root nonsingularity and Hansen's exact
 `dim(A⊥)=m-r` equality internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9797,7 +9812,7 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero
         hOrdered W hLambdaProd hDual hOrth))
@@ -9811,7 +9826,7 @@ omit [DecidableEq n] in
 The ordered min-max certificate supplies the selected generalized-eigenvector
 equations and normalization, so nonsingularity of `det(G'AG)` is enough to
 derive the nonzero selected-root product used by the diagonal duality step. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_compressedDet_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9833,7 +9848,7 @@ theorem
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_indexSplit
     Z X Xtilde Y Ytilde Etilde G lambda Aperp eta hOrdered W
-    (hOrdered.g_ordered.rootProduct_ne_zero_of_compressedDet_ne_zero hGdet)
+    (geOrderedRootProduct_ne_zero hOrdered.g_ordered hGdet)
     hDual hOrth hIndex
 
 set_option linter.style.longLine false in
@@ -9845,7 +9860,7 @@ roots, and a concrete complementary index split.
 This is the positive-root variant of
 `reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_indexSplit`;
 it derives the nonzero selected-root product internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_pos_indexSplit
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9880,7 +9895,7 @@ Compared with
 `reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_indexSplit`,
 this endpoint removes the separate finite split premise: the exact
 complementary-rank dimension is derived from the chosen `A⊥` index type. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9901,43 +9916,11 @@ theorem
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
+    (rrSmallestSummary_of_identifiedDuality
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero
         hOrdered W hLambdaProd hDual hOrth))
     (reducedRankAperpDimension_canonical (m := m) (r := r))
-
-set_option linter.style.longLine false in
-omit [DecidableEq n] in
-/-- Positive-root canonical-`A⊥` version of
-`reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp`.
-
-The positive selected `G` roots supply the nonzero product, and the canonical
-`A⊥` index supplies Hansen's exact `m-r` dimension. -/
-theorem
-    reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_pos_canonicalAperp
-    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (eta : reducedRankAperpIndex m r → ℝ)
-    (hOrdered : ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate
-      Xtilde Ytilde Etilde G lambda Aperp eta)
-    (W : Matrix m r ℝ)
-    (hLambda : ∀ j, 0 < lambda j)
-    (hDual : reducedRankDualEigenvectorRelation
-      Xtilde Ytilde G W (Matrix.diagonal lambda))
-    (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
-      (Ytildeᵀ * Xtilde * G)
-      (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        (Ytildeᵀ * Ytilde -
-          (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
-      Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp
-    Z X Xtilde Y Ytilde Etilde G lambda Aperp eta hOrdered W
-    (reducedRankSelectedRootProduct_ne_zero_of_pos lambda hLambda)
-    hDual hOrth
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -9948,7 +9931,7 @@ This replaces the explicit positive-root/nonzero-product premise by the
 determinant primitive most directly connected to the ordered generalized-pencil
 product setup: under the selected generalized-eigenvector equations and Hansen
 normalization, `det(G'AG) = ∏ λ_j`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -9970,14 +9953,14 @@ theorem
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
   reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp
     Z X Xtilde Y Ytilde Etilde G lambda Aperp eta hOrdered W
-    (hOrdered.g_ordered.rootProduct_ne_zero_of_compressedDet_ne_zero hGdet)
+    (geOrderedRootProduct_ne_zero hOrdered.g_ordered hGdet)
     hDual hOrth
 
 /-- Residualized Hansen Theorem 11.7 endpoint.
 
 This specializes the theorem-facing conclusion to `X̃ = M_Z X`,
 `Ỹ = M_Z Y`, and `Ẽ = M_[X,Z]Y`. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_spectral_duality_certificate
+private theorem reducedRankHansenTheorem11_7_residualized_of_spectral_duality_certificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -10005,7 +9988,7 @@ theorem reducedRankHansenTheorem11_7_residualized_of_spectral_duality_certificat
 /-- Residualized Hansen Theorem 11.7 from the exact spectral-duality
 certificate, with Hansen's complementary-rank condition `dim(A⊥) = m - r`
 carried explicitly. -/
-theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_spectral_duality_certificate
+private theorem rrResidualExactSmallestSummary_of_spectralDuality
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -10033,7 +10016,7 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_spectral_dua
 
 /-- Residualized Hansen Theorem 11.7 endpoint from the objective-extrema
 certificate for Hansen's two residualized determinant objectives. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_certificate
+private theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_certificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -10059,7 +10042,7 @@ theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_certifica
 
 /-- Residualized Hansen Theorem 11.7 endpoint from the concrete objective
 extrema for Hansen's two residualized determinant objectives. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema
+private theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -10094,7 +10077,7 @@ theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema
 
 /-- Residualized Hansen Theorem 11.7 endpoint from the determinant/product
 min-max certificate for Hansen's two residualized pencils. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_certificate
+private theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_certificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -10122,7 +10105,7 @@ theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_certificat
 /-- Residualized Hansen Theorem 11.7 endpoint from the determinant/product
 min-max certificate and Hansen's displayed dual generalized-eigenvector
 relation. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_and_dual_relation
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -10154,7 +10137,7 @@ theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_and_dual_r
 
 /-- Residualized Hansen Theorem 11.7 endpoint from objective extrema plus
 Hansen's displayed dual generalized-eigenvector relation. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_and_dual_relation
+private theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_and_dual_relation
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -10193,7 +10176,7 @@ theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_and_dual_
 /-- Residualized Hansen Theorem 11.7 from the determinant/product min-max
 certificate and Hansen's displayed dual generalized-eigenvector relation, with
 the exact `A⊥` dimension `m-r` carried explicitly. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_detProductMinMax_and_dual_relation
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10233,7 +10216,7 @@ index.
 This specializes
 `reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_diagonalDual_compressedDet_ne_zero_canonicalAperp`
 to `X̃ = M_ZX`, `Ỹ = M_ZY`, and `Ẽ = M_[X,Z]Y`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_detProductMinMax_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10272,7 +10255,7 @@ dual relation, positive selected `G` roots, and canonical `A⊥` index.
 This specializes
 `reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_diagonalDual_pos_canonicalAperp`
 to `X̃ = M_ZX`, `Ỹ = M_ZY`, and `Ẽ = M_[X,Z]Y`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_detProductMinMax_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10305,60 +10288,6 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Residualized Hansen Theorem 11.7 from a whitened PSD leading/trailing
-certificate, Hansen's displayed diagonal dual relation, a nonzero selected
-compressed determinant, and the canonical `A⊥` index.
-
-This is the compressed-determinant sibling of
-`reducedRankHansenTheorem11_7_residualized_exactDimension_of_whitened_psd_leading_trailing_diagonalDual_pos_canonicalAperp`.
-It avoids strengthening the theorem boundary to positive selected `G` roots
-when the caller already has Hansen's nonzero selected compressed determinant. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_whitened_psd_leading_trailing_diagonalDual_compressedDet_ne_zero_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (eta : reducedRankAperpIndex m r → ℝ)
-    (G0 : Matrix n r ℝ) (A0 : Matrix n (reducedRankAperpIndex m r) ℝ)
-    (hG : reducedRankHansenGEigenvectors
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda G)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hAperp : reducedRankHansenAperpEigenvectors
-      (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta Aperp)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hWhite : ReducedRankHansenWhitenedPSDLeadingTrailingCertificate
-      (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) lambda eta
-      (reducedRankAperpResidualFactor X Z) G0 A0)
-    (W : Matrix m r ℝ)
-    (hGdet :
-      (Gᵀ *
-        reducedRankGPencilA (reducedRankTildeX Z X) (reducedRankTildeY Z Y) *
-          G).det ≠ 0)
-    (hDual : reducedRankDualEigenvectorRelation
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
-    (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  reducedRankHansenTheorem11_7_residualized_exactDimension_of_detProductMinMax_diagonalDual_compressedDet_ne_zero_canonicalAperp
-    Z X Y G lambda Aperp eta
-    (ReducedRankHansenDetProductMinMaxCertificate.of_whitened_psd_leading_trailing
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-      G lambda Aperp eta (reducedRankAperpResidualFactor X Z) G0 A0
-      hG hGNorm hAperp hAperpNorm hWhite)
-    W hGdet hDual hOrth
-
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from a whitened PSD leading/trailing
 certificate, Hansen's displayed diagonal dual relation, positive selected `G`
 roots, and the canonical `A⊥` index.
 
@@ -10367,7 +10296,7 @@ whitened certificate supplies the ordinary determinant extrema after
 residualization, `ReducedRankHansenDetProductMinMaxCertificate` transports
 them to Hansen's two generalized pencils, and the canonical endpoint supplies
 the exact `dim(A⊥)=m-r` conclusion. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_whitened_psd_leading_trailing_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10610,7 +10539,7 @@ end ReducedRankHansenProjectionSpanNullConditions
 /-- Residualized Hansen Theorem 11.7 from the literal determinant/product
 variational bounds, the displayed dual relation, and the exact
 `dim(A⊥) = m-r` condition. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_product_bounds_and_dual_relation
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10659,7 +10588,7 @@ relation.
 This is the residualized Hansen-notation counterpart of
 `reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual`.
 -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_product_bounds_diagonalDual
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10708,7 +10637,7 @@ set_option linter.style.longLine false in
 This is the direct residualized endpoint for a raw spectral theorem stated in
 Hansen's literal determinant/product notation, with selected-root product
 nonsingularity and a concrete `m ≃ r ⊕ s` split. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_product_bounds_diagonalDual_prod_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10757,7 +10686,7 @@ set_option linter.style.longLine false in
 
 This is the literal Hansen product-bound route for the residualized matrices
 when selected-root nonsingularity is supplied as `det(G'AG) ≠ 0`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_product_bounds_diagonalDual_compressedDet_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10811,7 +10740,7 @@ product nonsingularity.
 This specializes
 `reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDual_prod_ne_zero_canonicalAperp`
 to `X̃ = M_ZX`, `Ỹ = M_ZY`, and `Ẽ = M_[X,Z]Y`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_product_bounds_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10856,7 +10785,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Residualized canonical-`A⊥` product-bound endpoint where selected-root
 nonsingularity is derived from the nonzero selected compressed determinant. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_product_bounds_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10908,7 +10837,7 @@ This specializes
 `reducedRankHansenTheorem11_7_exactDimension_of_rankOne_rayleigh_bounds_diagonalDual`
 to the actual residualized matrices `X̃ = M_ZX`, `Ỹ = M_ZY`, and
 `Ẽ = M_[X,Z]Y`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_rankOne_rayleigh_bounds_diagonalDual
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -10955,7 +10884,7 @@ theorem
 
 /-- Residualized Hansen Theorem 11.7 from generic generalized-pencil product
 bounds, the displayed dual relation, and the exact `dim(A⊥)=m-r` condition. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_genericProductBounds_dual
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11000,7 +10929,7 @@ theorem
 /-- Residualized Hansen Theorem 11.7 from generic generalized-pencil product
 bounds, the displayed diagonal selected-root dual relation, pointwise
 selected-root nonsingularity, and the exact `dim(A⊥)=m-r` condition. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_genericProductBounds_diagonalDual
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11050,7 +10979,7 @@ This matches the non-residualized theorem-facing API: it keeps Hansen's exact
 determinant/product premises and diagonal dual relation, while deriving
 selected-root pointwise nonsingularity from `∏ λ_j ≠ 0` and the complementary
 rank from a concrete finite index split `m ≃ r ⊕ s`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_genericProductBounds_diagonalDual_prod_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11100,7 +11029,7 @@ set_option linter.style.longLine false in
 The generic product-bound theorem can now feed the residualized Hansen endpoint
 with a nonzero selected compressed determinant instead of a separate nonzero
 selected-root product. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_genericProductBounds_diagonalDual_compressedDet_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11155,7 +11084,7 @@ It consumes generic generalized-pencil product bounds, Hansen's displayed
 diagonal dual relation, positive selected `G` roots, and a concrete finite
 split `m ≃ r ⊕ s`, deriving the nonzero selected-root product and dimension
 equality internally. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_genericProductBounds_diagonalDual_pos_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11204,7 +11133,7 @@ set_option linter.style.longLine false in
 This is the generic generalized-pencil product-bound route for the actual
 Hansen residualized matrices with canonical complement index
 `Fin (card m - card r)`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_genericProductBounds_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11248,7 +11177,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Residualized canonical-`A⊥` generic-product endpoint where selected-root
 nonsingularity is derived from the nonzero selected compressed determinant. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_genericProductBounds_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11297,7 +11226,7 @@ theorem
 
 /-- Residualized objective-extrema version of the exact-dimension dual-relation
 endpoint. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_objective_extrema_and_dual_relation
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11344,7 +11273,7 @@ and `Ẽ = M_[X,Z]Y`. It removes the separate inverse diagonal block and
 `dim(A⊥)=m-r` premise from the normal-likelihood route, leaving the genuine
 primitive as the proof of the two objective extrema plus the displayed dual
 relation for the selected generalized eigenspaces. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_objective_extrema_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11385,7 +11314,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Residualized canonical-`A⊥` objective-extrema endpoint with Hansen's
 displayed diagonal dual relation and a nonzero selected-root product. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_objective_extrema_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11428,7 +11357,7 @@ displayed diagonal dual relation and positive selected `G` roots.
 This residualized theorem-facing route removes the separate selected
 compressed-determinant nonsingularity premise from the normal-likelihood
 objective-extrema path. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_objective_extrema_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11468,7 +11397,7 @@ theorem
 dual-relation endpoint. The determinant min-max theorem is now available; this
 conditional surface remains useful when callers already have selected extrema
 and a compatible dual relation. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_selectedExtrema_dual_relation
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11514,7 +11443,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Residualized canonical-`A⊥` selected-extrema endpoint with Hansen's
 displayed diagonal dual relation and a nonzero selected-root product. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_selectedExtrema_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11566,7 +11495,7 @@ This is the closest selected-compressed-determinant surface to Hansen Theorem
 proved: selected compressed-determinant extrema provide the objective extrema,
 `det(G'AG) ≠ 0` supplies selected-root nonsingularity, and the canonical
 `A⊥` index supplies the exact `m-r` dimension. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_selectedExtrema_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11617,7 +11546,7 @@ displayed diagonal dual relation and positive selected `G` roots.
 
 This is the residualized selected-extrema route with the determinant
 nonsingularity premise replaced by the more spectral positive-root condition. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_selectedExtrema_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11663,7 +11592,7 @@ theorem
 /-- Residualized Hansen Theorem 11.7 endpoint from the ordered
 generalized-eigenvalue min-max certificate, routed through the objective-extrema
 constructor. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_minMax_certificate
+private theorem rrResidualSmallestSummary_of_orderedMinMax
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -11690,7 +11619,7 @@ theorem reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_min
 
 /-- Residualized Hansen Theorem 11.7 from the raw ordered
 generalized-eigenvalue min-max surface. -/
-theorem reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_certificate
+private theorem reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_certificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -11711,12 +11640,12 @@ theorem reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_cer
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_minMax_certificate
-    Z X Y G lambda Aperp eta hOrdered.to_detProductMinMaxCertificate
+  rrResidualSmallestSummary_of_orderedMinMax
+    Z X Y G lambda Aperp eta (rrOrderedMinMax_to_detCertificate hOrdered)
 
 /-- Residualized Hansen Theorem 11.7 from the ordered min-max certificate, with
 the exact `A⊥` dimension `m - r` carried explicitly. -/
-theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_minMax_certificate
+private theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_minMax_certificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -11738,14 +11667,14 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_minMax_certi
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
   ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_minMax_certificate
+    (rrResidualSmallestSummary_of_orderedMinMax
       Z X Y G lambda Aperp eta hMinMax)
     hdim
 
 set_option linter.style.longLine false in
 /-- Residualized Hansen Theorem 11.7 from the raw ordered generalized-eigenvalue
 min-max surface, with Hansen's exact `dim(A⊥) = m - r` equality attached. -/
-theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_certificate
+private theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_certificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
     [Invertible (Zᵀ * Z)]
@@ -11781,7 +11710,7 @@ This is the residualized counterpart of
 it packages the current closest raw spectral input to Hansen's statement
 without separately asking for product-bound fields, pointwise root
 nonsingularity, or the computed complementary-rank equality. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11819,7 +11748,7 @@ set_option linter.style.longLine false in
 This is the residualized ordered-certificate surface when the raw generalized
 pencil construction proves nonsingularity of the selected compressed `G`
 determinant instead of returning `∏ λ_j ≠ 0` explicitly. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_compressedDet_ne_zero_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11850,7 +11779,7 @@ theorem
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
   reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_indexSplit
     Z X Y G lambda Aperp eta hOrdered W
-    (hOrdered.g_ordered.rootProduct_ne_zero_of_compressedDet_ne_zero hGdet)
+    (geOrderedRootProduct_ne_zero hOrdered.g_ordered hGdet)
     hDual hOrth hIndex
 
 set_option linter.style.longLine false in
@@ -11860,7 +11789,7 @@ concrete finite index split.
 
 This is the residualized positive-root counterpart of
 `reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_pos_indexSplit`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_pos_indexSplit
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11901,7 +11830,7 @@ This is the residualized counterpart of
 `reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp`;
 it removes the explicit finite split premise from the actual Hansen
 residualized matrices. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11935,7 +11864,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Residualized positive-root canonical-`A⊥` version of
 `reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp`. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_pos_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -11970,7 +11899,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Residualized canonical-`A⊥` endpoint where selected-root nonsingularity is
 derived from the nonzero selected compressed determinant. -/
-theorem
+private theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_compressedDet_ne_zero_canonicalAperp
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -12001,7 +11930,7 @@ theorem
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
   reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero_canonicalAperp
     Z X Y G lambda Aperp eta hOrdered W
-    (hOrdered.g_ordered.rootProduct_ne_zero_of_compressedDet_ne_zero hGdet)
+    (geOrderedRootProduct_ne_zero hOrdered.g_ordered hGdet)
     hDual hOrth
 
 end HansenTheorem11_7Conclusion

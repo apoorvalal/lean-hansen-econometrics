@@ -76,7 +76,10 @@
     `Systems.lean`
   - asymptotic LS, exact system moment WLLNs, sandwich CMT assembly, and covariance-consistency
     wrappers live in `Asymptotics.lean`
-  - SUR variance notation and support bridges live in `SUR.lean`
+  - reusable feasible residual-covariance and system-middle substitutions are exposed through
+    `SystemFeasible.*` in `Asymptotics.lean`
+  - SUR Gaussian-limit conditions, efficiency bridges, variance notation, and theorem-facing
+    wrappers live in `SUR.lean`
   - reduced-rank, PCA, factor-model, and matrix-normal material live in separate submodules
 - The current declarations reuse the repo's Chapter 6/7/8 vector CLT, OLS asymptotics,
   Banach-valued WLLN, matrix
@@ -87,22 +90,23 @@
   Chapter 6's iid vector CLT, a derived zero-mean score-covariance bridge to Hansen's
   `E[Xᵢ'eᵢeᵢ'Xᵢ]` middle matrix, and Star/OrZero estimator CLTs. The literal observed-row package
   `SystemObservedResponseFourthMomentConditions` now derives that proof layer, and
-  `systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_equation_blocks` also exposes
+  `SystemLeastSquaresTheorem11_1.orZeroObs_of_equation_blocks` also exposes
   Hansen's equation-specific sparse design and block-diagonal `Q`. The Star totalization remains
   the proof engine, with OrZero wrappers as the textbook-facing surface for singular finite samples.
 - Theorem 11.3 has exact system middle-matrix and sandwich assembly theorems for the true-error
   robust middle and fixed-covariance homoskedastic middle, plus concrete feasible Star residual and
   covariance surfaces. It now has explicit perturbation routes for feasible vector residuals,
   feasible residual covariance, and estimated homoskedastic covariance middles. The theorem-facing
-  package `SystemCovarianceTheorem113Conditions` combines `SystemRegressionMomentConditions` with exact
-  feasible-residual middle consistency premises, and
-  `systemCovariances_theorem11_3_of_middle_consistency` returns both displayed robust and
+  package `SystemCovarianceConsistencyConditions` combines `SystemRegressionMomentConditions` with
+  exact feasible-residual middle consistency premises, while
+  `SystemCovariancePrimitiveRowConditions` packages the compact primitive-row route.
+  `SystemCovarianceTheorem11_3.of_middle_consistency` returns both displayed robust and
   homoskedastic covariance estimator convergences. New true-error covariance wrappers derive
   `systemSigmaHatStarObs ->p E[e₀e₀']` from the true-error outer-product WLLN plus scalar
   residual-covariance substitution WLLNs; row-iid and primitive-row constructors derive the iid
   fields by measurable composition, and compact norm-moment helpers derive the robust cross and
   quadratic integrability fields. The canonical endpoint
-  `systemCovariances_theorem11_3_of_observed_assumption72` derives all of these inputs from the
+  `SystemCovarianceTheorem11_3.of_observed_assumption72` derives all of these inputs from the
   literal observed-row Assumption 7.2 facade and returns both displayed covariance conclusions.
   The existing stacked-scalar feasible theorem remains available as a Chapter 7 HC covariance route.
 - PCA now uses Mathlib's Hermitian spectral theorem, the reusable `covMat_isHermitian` helper, and
@@ -139,19 +143,19 @@ Conventions:
 ## Review Notes
 
 - Theorem 11.1 review: the canonical endpoint
-  `systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_observed_assumption72`
+  `SystemLeastSquaresTheorem11_1.orZeroObs_of_observed_assumption72`
   proves the stated stacked-system Gaussian limit from literal iid observed
   `(X_i,Y_i)` rows, Hansen's fourth moments, score orthogonality, and positive
   definite population Gram matrix. It derives the residual-row package, score
   CLT, Gram WLLN, covariance identity, singular-sample handling, and estimator
   measurability internally. The Hansen-shaped wrapper
-  `systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_equation_blocks`
+  `SystemLeastSquaresTheorem11_1.orZeroObs_of_equation_blocks`
   uses `systemEquationBlockDesign` with equation-dependent coefficient
   dimensions and exposes the printed block-diagonal `Q` through
   `systemPopulationGram_equationBlockDesign_eq` and the coordinate simp lemmas
   for `systemEquationBlockPopulationGram`.
 - Theorem 11.2 review: the canonical endpoint
-  `systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions72_contDiffAt`
+  `SystemDelta.orZeroObs_of_observed_rows_contDiffAt`
   combines the literal observed-row Assumption 7.2 surface with the literal
   `ContDiffAt` Assumption 7.3 surface. The measurable-transform field is the
   formal side condition used to establish plug-in estimator measurability. Its
@@ -159,60 +163,48 @@ Conventions:
   `smoothFunction_asymptoticNormality_gaussian` from the shared delta-method
   layer.
 - Theorem 11.3 review: the canonical endpoint
-  `systemCovariances_theorem11_3_of_observed_assumption72` proves both displayed
+  `SystemCovarianceTheorem11_3.of_observed_assumption72` proves both displayed
   covariance consistency conclusions from the same literal observed-row
   Assumption 7.2 package. Error fourth moments, the mixed feasible-substitution
   moment, residual-row iid, and both finite-sample measurability surfaces are
-  derived internally; the compact primitive-row package remains reusable proof
+  derived internally; `SystemCovariancePrimitiveRowConditions` remains reusable proof
   infrastructure.
 - Theorem 11.4 review: the literal observed-row endpoint
-  `surBetaEstimatorOrZeroObs_tendstoInDistribution_of_observed_assumption72`
+  `SURTheorem11_4.orZeroObs_of_observed_rows`
   gives Hansen's feasible-SUR Gaussian limit with variance
   `(E[X'Σ⁻¹X])⁻¹` for the textbook-facing OrZero estimator. It derives the
-  compact primitive-row facade from
-  `SystemObservedResponseFourthMomentConditions`; the Star estimator and
-  `.betaEstimator_gaussianLimit` remain proof-engine interfaces. The
-  `(11.8)` package states the conditional covariance identity but also carries
-  the measurability, sigma-finiteness, and integrability fields needed by the
-  conditioning bridge. Feasible-weight substitution is not left primitive on
-  this route.
+  compact `SURPrimitiveRowGaussianLimitConditions` facade from
+  `SystemObservedResponseFourthMomentConditions`, conditional mean zero, literal matrix `(11.8)`,
+  and positive-definite `Sigma`. The reusable proof interface is
+  `SURGaussianLimitConditions`, with `SURGaussianLimitConditions.starObs` for the Star estimator
+  and `SURPrimitiveRowGaussianLimitConditions.orZeroObs` for the compact OrZero surface.
+  Feasible-weight substitution is derived internally on the observed-row route.
 - Theorem 11.5 review: the canonical observed-row facade
-  `sur_efficiency_display_of_observed_assumption72` states Hansen's displayed comparison with the least-squares side
+  `SURTheorem11_5.efficiency_of_observed_rows` states Hansen's displayed comparison with the least-squares side
   written as `E[X'ΣX]` and the SUR side written as `(E[X'Σ⁻¹X])⁻¹`, reusing
   `MatrixSystemConditionalHomoskedasticity.scoreCovariance_eq_middle` and the
-  existing population Gauss-Markov proof stack. It starts from
+  population Gauss-Markov proof stack exposed by `SUREfficiency.systemLS_of_population_moments`.
+  It starts from
   `SystemObservedResponseFourthMomentConditions`, the literal matrix `(11.8)` package,
   and `Sigma.PosDef`, then forwards through the primitive-row and population layers.
-- Theorem 11.6 review: `surCovarianceEstimatorStarObs_consistent_of_observed_assumption72`
-  proves Hansen's normalized feasible-SUR covariance consistency, with
-  `surCovarianceEstimatorStarObs` already representing
-  `(n⁻¹∑Xᵢ'Σ̂⁻¹Xᵢ)⁻¹`. The tight route derives residual-covariance,
-  information-WLLN, and design-weight WLLN inputs internally from
-  `SystemPrimitiveRowRegressionMomentConditions`, literal matrix `(11.8)`, `Σ.PosDef`, the
-  linear model, and the observed-row Assumption 7.2 conversion. Hansen prints
-  the limit as the OLS variance `Vβ`, but that is incompatible with both the
-  feasible SUR estimator immediately above Theorem 11.6 and Theorem 11.5's
-  generally strict comparison. Lean therefore uses the corrected SUR target
-  `Vβ* = (E[X'Σ⁻¹X])⁻¹` and documents the correction at the endpoint.
-- Theorem 11.7 review: `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists`
-  is the canonical finite-sample endpoint. Under full residualized Gram
-  regularity, positive-definite unrestricted residual Gram for positive rank
-  (or the separately discharged rank-zero case), Hansen's strict dimension
-  bound, and the necessary exact-rank sample condition, it constructs
-  the leading `G` block and complementary `Aperp` block jointly, proves both
-  generalized-pencil characterizations and normalizations, recovers `A`, `C`,
-  and `Sigma` by least squares, proves the unrestricted exact-rank Gaussian MLE,
-  and identifies the attained corrected raw likelihood. Its
-  `ordered_roots` field exposes the exact leading ordered generalized-root
-  formulas through `ReducedRankHansenOrderedRootWitness`. No spectral-gap or
-  boundary-root separation is assumed. Equation (11.21) and its derivation
-  require the largest residual-pencil roots; the contradictory “smallest” phrase
-  in the final printed summary remains available only through the explicitly
-  non-MLE compatibility surface. A second printed display transposes the
-  loading recovery formula: because `A` is `m × r`, Lean uses the dimensionally
-  valid `A = Ytilde' Xtilde G` (equivalently the printed expression is a formula
-  for `A'`).
-- Theorem 11.8 review: the PCA endpoints `orderedPrincipalComponent_theorem11_8`
+- Theorem 11.6 is not formalized as printed. Its OLS target `Vβ` is false in
+  general for the feasible-SUR covariance estimator and is incompatible with
+  Theorem 11.5's potentially strict comparison. The corrected endpoint
+  `SURCovarianceEstimator.consistent_of_observed_rows` proves convergence to
+  `Vβ* = (E[X'Σ⁻¹X])⁻¹`. The diagnostic
+  `SURTheorem11_6.printed_target_forces_sur_ols_equality` proves that the
+  printed conclusion would force the OLS and SUR variance targets to be equal.
+  The tight route derives residual-covariance, information-WLLN, and
+  design-weight WLLN inputs internally from the literal observed-row
+  Assumption 7.2 package, matrix `(11.8)`, and `Σ.PosDef`.
+- Theorem 11.7 review: the current canonical endpoint is
+  `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists`. It constructs the selected and
+  complementary ordered blocks jointly, proves the residualized generalized-pencil formulas and
+  normalizations, recovers the coefficients and covariance, establishes exact-rank admissibility
+  and covariance positive definiteness, and proves the unrestricted raw Gaussian-likelihood
+  comparison. No boundary spectral gap is assumed. The public API is consolidated around this
+  endpoint, so the inventory intentionally omits lower-level ReducedRank proof-engine names.
+- Theorem 11.8 review: `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`
   and `ordered_covMat_principalComponents_theorem11_8` match Hansen's sequential
   principal-component claim, including `U_j = h_j'X`, eigenvector/eigenvalue
   facts, variance maximization, ordered eigenvalues, the spectral
@@ -243,819 +235,205 @@ Conventions:
   the theorem derives the standard-coordinate whitening, nuisance Gram
   nonsingularity, projection certificate, and `n-m+1` degrees-of-freedom bridge
   internally.
-- Theorem 11.12 review: `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_posDef`
-  and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef`
-  match Hansen's Hotelling `T²` and normalized `F(m,n-m)` laws. The endpoints
-  assume iid normal rows, positive-definite covariance, `0 < card m`, and
-  `0 < card n - card m`; the mean/covariance independence, centered Wishart
-  law, nonzero centered-mean route, inverse-Wishart scalar form, and
-  whitening/alignment inputs are all discharged through the Chapter 11.10--11.11
-  stack.
+- Theorem 11.12 review:
+  `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef` is the sole
+  canonical endpoint and matches Hansen's normalized `F(m,n-m)` law. It assumes iid normal rows,
+  positive-definite covariance, `0 < card m`, and `0 < card n - card m`; the
+  mean/covariance independence, centered Wishart law, inverse-Wishart scalar reduction, and
+  whitening inputs are discharged internally.
 
 ## Crosswalk
 
-| Textbook result | Textbook statement | Lean theorem |
+| Textbook result | Textbook statement | Canonical public Lean endpoint |
 | --- | --- | --- |
-| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | `systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_equation_blocks` is the Hansen-shaped endpoint, including the displayed block-diagonal `Q` for equations with potentially different regressor dimensions. It reuses `systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_observed_assumption72`; `systemPopulationGram_equationBlockDesign_eq` and the `systemEquationBlockPopulationGram_*` simp lemmas prove the diagonal-block and zero-off-block identities. |
-| Theorem 11.2 | Under Assumptions 7.2 and 7.3, smooth functions of system LS have the stated Gaussian limit. | `systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions72_contDiffAt` is the canonical endpoint. It reuses Theorem 11.1 through `SystemObservedResponseFourthMomentConditions` and the Chapter 7 delta method through `SystemDeltaContDiffAtConditions`; global transform measurability is recorded only to discharge the stochastic measurability obligation. |
-| Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. | `systemCovariances_theorem11_3_of_observed_assumption72` is the canonical endpoint and returns both Hansen robust and homoskedastic covariance consistency conclusions. It derives residual iid, error and mixed substitution moments, and both feasible-estimator measurability surfaces from the literal observed-row Assumption 7.2 package, then reuses `systemCovariances_theorem11_3_of_primitive_row_compact_assumption72` and `systemCovariances_theorem11_3_of_middle_consistency`. |
-| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | `surBetaEstimatorOrZeroObs_tendstoInDistribution_of_observed_assumption72` is the canonical textbook-facing endpoint. It starts from `SystemObservedResponseFourthMomentConditions`, conditional mean zero, literal matrix `(11.8)`, and `Sigma.PosDef`, derives `SURTheorem114CompactPrimitiveRowConditions` through `.of_observed_assumption72`, and returns the feasible OrZero SUR Gaussian limit. The Star and `GaussianLimit` surfaces remain reusable proof-engine interfaces. |
-| Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as LS. | Canonical observed-row endpoint: `sur_efficiency_display_of_observed_assumption72`. It derives the displayed variance comparison from `SystemObservedResponseFourthMomentConditions`, matrix conditional homoskedasticity `(11.8)`, and `Sigma.PosDef`, then reuses the primitive-row and population Gauss-Markov layers. Support: `sur_efficiency_vs_olsConditionalVarianceMatrix` instantiates Chapter 4 generalized Gauss-Markov with the OLS linear estimator for finite-dimensional GLS/SUR efficiency. Population support includes `systemPopulationMiddle`, `systemPopulationMiddle_quadratic_eq_integral`, `systemPopulationMiddle_posSemidef`, `systemPopulationMiddle_posDef_of_gram_nonsing_posDef_weight`, `population_generalizedGaussMarkov_variance_gap_posSemidef_of_expansion`, `sur_efficiency_vs_systemAsymptoticVariance_of_population_expansion`, `sur_population_efficiency_gap_expansion_of_moment_identities`, and `sur_efficiency_vs_systemAsymptoticVariance_of_moment_identities`. Hansen's LS-weight specialization is now formalized by `integral_systemGram_isSymm`, `systemPopulationCrossMiddle_olsWeight_eq_one`, `systemPopulationMiddle_olsWeight_eq_systemAsymptoticVariance`, and `sur_efficiency_vs_systemLeastSquares_of_population_moments`, which derive `E[(XQ⁻¹)'X]=I` and the LS variance `Q⁻¹E[X'ΣX]Q⁻¹` internally. Conditional-homoskedastic support is packaged by scalar `SystemConditionalHomoskedasticity` and literal matrix-valued `MatrixSystemConditionalHomoskedasticity`; bridges are `SystemConditionalHomoskedasticity.scoreCovariance_eq_middle`, `MatrixSystemConditionalHomoskedasticity.toSystemConditionalHomoskedasticity`, and `MatrixSystemConditionalHomoskedasticity.scoreCovariance_eq_middle`, with lower-level scalar support `weighted_system_error_second_moment_eq_of_condExp_homoskedastic` and `systemPopulationScoreCovariance_eq_middle_of_condExp_homoskedastic`. Hansen-facing endpoints include `sur_efficiency_vs_systemLeastSquares_of_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_scoreCov_of_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_of_systemAssumption72_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_scoreCov_of_systemAssumption72_condHomoskedastic`, the literal-matrix wrappers `sur_efficiency_vs_systemLeastSquares_of_matrix_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_scoreCov_of_matrix_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_of_systemAssumption72_matrix_condHomoskedastic`, and `sur_efficiency_vs_systemLeastSquares_scoreCov_of_systemAssumption72_matrix_condHomoskedastic`, and final literal-information wrappers `sur_efficiency_vs_systemLeastSquares_of_assumption72_matrix_condHomoskedastic_surInfo` and `sur_efficiency_vs_systemLeastSquares_score_of_assumption72_matrix_condHomoskedastic_surInfo`, plus the explicit scalar-argument `*_condExp_homoskedastic` variants. Square-integrable design wrappers `sur_efficiency_of_systemAssumption72_matrix_condHomoskedastic_memLp`, `sur_efficiency_scoreCov_of_systemAssumption72_matrix_condHomoskedastic_memLp`, `sur_efficiency_of_assumption72_matrix_condHomoskedastic_surInfo_memLp`, and `sur_efficiency_scoreCov_of_assumption72_matrix_condHomoskedastic_surInfo_memLp` derive fixed `E[Xᵢ'Σ⁻¹Xᵢ]` integrability from `MemLp (X 0) 2 μ`. The stronger `_of_gram` wrappers `sur_efficiency_of_systemAssumption72_matrix_condHomoskedastic_of_gram`, `sur_efficiency_scoreCov_of_systemAssumption72_matrix_condHomoskedastic_of_gram`, `sur_efficiency_of_assumption72_matrix_condHomoskedastic_surInfo_of_gram`, and `sur_efficiency_scoreCov_of_assumption72_matrix_condHomoskedastic_surInfo_of_gram` derive that `L²` design moment internally from `SystemRegressionMomentConditions.gram_integrable` and the design-coordinate measurability in the literal matrix `(11.8)` package. Information bridges `surInformation_eq_systemPopulationMiddle` and `surInformation_nonsing_of_systemAssumption72` now derive Hansen's SUR information identity `M = E[Xᵢ'Σ⁻¹Xᵢ]` and its nonsingularity from Assumption 7.2 plus positive-definite `Σ`. |
-| Theorem 11.6 | Under Assumption 7.2 and (11.8), the feasible SUR covariance estimator is consistent for the feasible SUR asymptotic variance. | Canonical corrected endpoint: `surCovarianceEstimatorStarObs_consistent_of_observed_assumption72`. It starts from the literal observed-row Assumption 7.2 surface, matrix conditional homoskedasticity `(11.8)`, and `Sigma.PosDef`, and proves `(n⁻¹∑XᵢᵀΣ̂⁻¹Xᵢ)⁻¹ ->p (E[XᵢᵀΣ⁻¹Xᵢ])⁻¹`. Hansen prints the OLS variance `Vβ`, but the estimator immediately preceding the theorem is feasible SUR and Theorem 11.5 shows that its limit `Vβ*` generally differs; the endpoint documents this correction. The proof reuses `systemSigmaHatStarObs_sub_tendstoInMeasure_zero_of_beta_weight_wlln_of_linear_model` and the Chapter 11.3 weight/WLLN stack through `surResidualCovarianceStarObs_eq_systemSigmaHatStarObs`, then composes the existing feasible-information and inversion theorems. |
-| Theorem 11.7 | The reduced-rank normal MLE is characterized by the residualized generalized pencils, least-squares recovery, covariance recovery, and the maximized likelihood formula. | `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists` is the canonical endpoint. It existentially constructs `G`, the selected roots, canonical-width `Aperp`, and the complementary roots without a boundary-separation assumption, then returns `ReducedRankHansenTheorem11_7GaussianMLE`: exact leading ordered-root formulas, the residualized pencil equations and normalizations, `Aperp' Ahat = 0`, least-squares `Ahat`/`Chat`, covariance recovery, strict dimensions, covariance positive definiteness, universal Gaussian-likelihood optimality over every admissible exact-rank competitor, and the attained corrected raw likelihood. `ReducedRankHansenIdentifiedSpectralMaximizerCertificate.exists_of_complement_pencil` is the tie-safe joint spectral engine; `reducedRankTildeE_crossProduct_eq_complement` and `reducedRankAperpPencilA_tildeE_eq_complement` derive the two-pencil identity from Chapter 3 FWL without a separate residualized-Gram inverse premise. The finite-sample cross-rank premise is necessary for positive exact-rank attainment. Positive-definite unrestricted residual Gram supplies covariance interiority for positive rank; the theorem handles rank zero directly. Lean uses the dimensionally valid `Ahat = Ytilde' Xtilde G`; Hansen's isolated `G'Xtilde'Ytilde` display is the formula for `Ahat'`. |
-| Equation (11.21) and the `A⊥` residual-pencil selection | Maximize `det(A⊥'Ẽ'ẼA⊥) / det(A⊥'Ỹ'ỸA⊥)` and select the largest residual-pencil roots. | Canonical support is `reducedRankAperpObjectiveMaximizer`, `reducedRankAperpObjectiveMaximizer_of_generalized_detObjectiveMaximizer`, `reducedRankAperpObjectiveMaximizer_of_compressed_det_bound`, `reducedRankAperpSelectedCompressedDetMaximal_of_objectiveMaximizer`, `ReducedRankHansenDetProductMaxMaxCertificate`, and `ReducedRankHansenIdentifiedSpectralMaximizerCertificate`. The isolated smallest-root sentence in the final theorem summary is treated as an internal textbook typo. |
-| Theorem 11.7 smallest-root summary compatibility | Preserve the literal final-summary wording without treating it as the MLE complement. | `ReducedRankHansenSmallestSummaryCompatibility` and `ReducedRankHansenSmallestSummaryCompatibilityExactDimension` retain the old `ReducedRankHansenDetProductMinMaxCertificate` / `ReducedRankHansenSpectralDualityCertificate` stack. The compatibility conclusion has no `mle` field; its `reducedRankAperpObjectiveMinimizer` field is explicitly documented as noncanonical and non-MLE. |
-| Theorem 11.7 projection/span/null singular boundary | The fixed-root route has projection roots `λ = 1` and residual-null roots `η = 0`. | Algebraic/spectral support remains through `ReducedRankHansenWhitenedPSDLeadingTrailingCertificate.of_residualized_projection_fixed_roots`, `ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_fixed_roots`, `ReducedRankHansenProjectionSpanNullConditions`, `.to_detProductMinMaxCertificate`, and `.to_identifiedSpectralDualityCertificate`. This is a singular-boundary certificate route only; it no longer has endpoints returning `ReducedRankMLE`, `ReducedRankHansenTheorem11_7`, or a maximized finite-normal likelihood conclusion. |
-| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated ordered covariance eigenvalue. | Preferred optimizer-first endpoint: `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector` starts with an arbitrary `h`, `pcaFeasibleBefore`, and the universal inequality `Var(g'X) ≤ Var(h'X)` over the sequential feasible set, and characterizes this condition by `Σh = λⱼh` with the same feasibility constraints. Its forward direction is `ordered_covMat_eigenvector_of_maximizes_variance_feasibleBefore`; the deterministic core is `SequentialPrincipalComponentOptimizer.eigenvector`, with converse `sequentialPrincipalComponentOptimizer_of_eigenvector` and iff `sequentialPrincipalComponentOptimizer_iff_eigenvector`. This identifies the full `λⱼ` eigenspace and does not assert equality to Mathlib's chosen `orderedPCEigenvector` when eigenvalues are repeated. The canonical construction packages `orderedPrincipalComponent_theorem11_8` and `ordered_covMat_principalComponents_theorem11_8` remain supporting witnesses and supply `Uⱼ = hⱼ'X`, `Var(hⱼ'X)=λⱼ`, ordered eigenvalue facts, `Σ = H D H'`, and `Var(U)=D`. |
-| Theorem 11.9 | The least-squares estimator of the factor model (11.23) under `n⁻¹∑F̂ᵢF̂ᵢ' = I_r` is the leading sample-covariance PCA solution. | Preferred combined endpoint: `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`; `factorPCTheorem11_9_with_jointLSMinimizer_of_leadingPCEigenvectors_positive_eigenvalues` states the equivalent positive-selected-eigenvalue side condition directly. `FactorPCTheorem11_9` contains Hansen's leading eigenspace, orthonormality, trace objective value, concentrated LS minimizer, loading formula, score formula, fixed-loading LS score identity, score normalization, and loading normal equation. The literal normalized joint-LS surface is `FactorLeastSquaresNormalizedMinimizer`; square-completion/profile support is now formalized by `factorLeastSquaresCriterion_eq_trace_sub_cross_gram_add_square`, `trace_sub_cross_gram_le_factorLeastSquaresCriterion`, `FactorLeastSquaresProfileBridge.of_crossCovariance_trace_bound`, `factorPCTheorem11_9_jointLeastSquaresMinimizer_of_crossCovariance_trace_bound`, and `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_crossTraceBound`. Arbitrary normalized-score trace support now includes `factorObservationGram`, `factorObservationGram_posSemidef`, `factorNormalizedScoreFrame`, `factorSampleCrossCovariance_gram_eq_normalizedScoreFrame_observationGram`, `factorSampleCrossCovariance_trace_eq_observationGram_objective`, `factorSampleCrossCovariance_trace_le_sum_observationGram_leadingEigenvalues`, `factorPCTheorem11_9_crossCovariance_trace_bound_of_observationGram_eigenvalue_bound`, and `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_observationGramEigenBound`. Nonzero-spectrum and sorted-leading-eigenvalue bridge support now includes `factorObservationGram_sampleCovariance_charpoly_mul_X`, `factorObservationGram_sampleCovariance_roots_with_zero_padding`, `factorObservationGram_sampleCovariance_padded_eigenvalues₀_eq`, `factorObservationGram_sampleCovariance_eigenvalues₀_sum_eq`, `factorObservationGram_sampleCovariance_leadingEigenvalue_sum_eq`, and `factorObservationGram_rank_eq_sampleCovariance_rank`; `factor_card_observations_le_of_sampleCovariance_rank_ge` derives the formerly separate `r ≤ n` side condition from the selected sample-covariance rank condition. The deterministic spectral transfer from the observation Gram `n⁻¹XX'` to the sample covariance `n⁻¹X'X` is closed, so `factorPCTheorem11_9_crossCovariance_trace_bound` and the normalized joint-LS minimizer no longer require an arbitrary cross-trace or observation-Gram eigenvalue premise. Rank/signal wrappers include `factorPCTheorem11_9_of_sampleCovariance_rank_ge`, `factorPCTheorem11_9_of_dataMatrix_rank_ge`, `factorPCTheorem11_9_of_exactSampleFactorRankCondition`, `factorPCTheorem11_9_of_approxSampleFactorRankCondition`, `factorPCTheorem11_9_of_approxSampleFactorPervasiveCondition`, `factorPCTheorem11_9_of_approxSampleFactorPerturbationCondition`, `factorPCTheorem11_9_of_dataMatrix_columns_linearIndependent`, and `factorPCTheorem11_9_of_sampleCovariance_posDef`. The normalized joint-LS endpoints now also include `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge`, `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_only`, `factorPCTheorem11_9_jointLSMinimizer_of_dataMatrix_rank_ge`, `factorPCTheorem11_9_jointLSMinimizer_of_exactSampleFactorRankCondition`, `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorRankCondition`, `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition`, and `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPerturbationCondition`, which compose rank/signal recovery with the closed spectral-transfer trace bound. The combined theorem-facing surface is `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`, returning both the PCA formula certificate and the literal normalized joint-LS minimizer under the sharp rank condition. The finite-sample facade `ApproximateSampleFactorPervasiveCondition` derives existing recoverability from loading-Gram nonsingularity, sample idiosyncratic orthogonality `UΛ = 0`, and full selected rank of `F`; the broader `ApproximateSampleFactorPerturbationCondition` allows nonzero recovered idiosyncratic scores when the realized recovered cross/noise Gram perturbation is strictly dominated by the normalized factor signal. The asymptotic bridge now names this boundary through `factorRecoveredIdiosyncraticGramRayleighLE`, `factorRecoveredIdiosyncraticGramSmall_of_rayleighLE`, `factorRecoveredIdiosyncraticGramRayleighTendstoZero`, `ApproximateFactorAsymptoticPerturbationBridge`, `ApproximateFactorAsymptoticPerturbationBridge.eventually_perturbationCondition`, `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticPerturbationBridge`, and `factorPCTheorem11_9_jointLSMinimizer_eventually_of_approxFactorAsymptoticPerturbationBridge`; `ApproximateFactorAssumption.pervasive_loadings` is also concrete via `factorLoadingPervasiveness`. That separate stochastic bridge concerns the later dimension-growing Assumption 11.1 discussion, not the finite-sample least-squares characterization in Theorem 11.9. Tied selected eigenvalues use Mathlib's canonical basis within the tied leading eigenspace. |
-| Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. | Preferred canonical endpoint: `sampleCovarianceMatrix_hasLaw_theorem11_10_wishart`, which states the literal Hansen `wishartLaw (((card n - 1 : ℝ)⁻¹) • Sigma)` target and starts from Hansen's iid normal row assumptions and uses Mathlib's orthonormal eigenbasis of the `1`-eigenspace of `sampleCenteringMatrix`; `sampleCenteringMatrix_card_eigenvalues_eq_one` identifies that canonical row index with Hansen's `n-1` degrees of freedom. Hansen's displayed statistic is the `1 < card n` case; for `card n = 1`, Lean's total inverse gives a documented degenerate-zero extension on both sides. Support: `rowGaussianLaw`, `rowGaussianLaw_isGaussian`, coordinate facts `rowGaussianLaw_integral_eval` and `rowGaussianLaw_covariance_eval`, generic Gaussian ext bridges `hasLaw_multivariateGaussian_of_hasGaussianLaw_eval` and `hasLaw_rowGaussianLaw_of_hasGaussianLaw_eval`, `iidRows_hasLaw_pi_rowGaussianLaw`, matrix-law bridge `iidRows_hasLaw_iidMatrixGaussianLaw`, `iidMatrixGaussianLaw`, `wishartLaw`, `scaledWishartLaw`, `sampleRowMatrix`, `sampleMeanMatrix`, `centeredSampleMatrix`, `sampleCenteringMatrix`, `sampleCenteringMatrix_isHermitian`, `sampleCenteringMatrix_isIdempotentElem`, `sampleCenteringMatrix_rank`, `sampleCenteringMatrix_card_eigenvalues_eq_one`, `sampleCenteringEigenContrast`, `sampleCenteringEigenContrast_mul_transpose`, `sampleCenteringEigenContrast_transpose_mul`, `sampleCovarianceMatrix`, `sampleCovarianceMatrix_apply`, `sampleContrastRows`, centering/contrast identities `sampleCenteringMatrix_mulVec_one`, `sampleCenteringMatrix_mulVec_const`, `orthogonalContrast_mulVec_one_eq_zero_of_centering`, `orthogonalContrast_mulVec_const_eq_zero_of_centering`, `sampleContrastRows_const_eq_zero_of_centering`, `sampleContrastRows_add_const_eq_of_centering`, `sampleCenteringMatrix_mul_eq_centeredSampleMatrix`, `matrixCrossProduct_sampleContrastRows`, `matrixCrossProduct_centeredSampleMatrix_eq_contrast`, and `sampleCovarianceMatrix_eq_scaled_contrast_crossProduct`; stochastic contrast support `sampleContrastRows_hasGaussianLaw_of_iid_normal_rows`, `iidNormalRows_memLp_eval`, `iidNormalRows_covariance_eval_same`, `iidNormalRows_covariance_eval_ne`, `sampleContrastRows_covariance_eval`, `sampleContrastRows_iIndepFun_of_orthogonal_iid_normal_rows`, `sampleContrastRows_integral_eval`, `sampleContrastRows_integral_eval_zero_of_centering`, `sampleContrastRows_row_hasLaw_iid_normal`, and `sampleContrastRows_hasLaw_iidMatrixGaussianLaw_of_orthogonal_iid_normal_rows`; law bridges `matrixCrossProduct_hasLaw_wishartMatrixLaw`, `scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw`, `matrixCrossProduct_hasLaw_wishartLaw`, `scaledMatrixCrossProduct_hasLaw_scaledWishartLaw`, `sampleCovariance_hasLaw_scaledWishartMatrixLaw_of_crossProduct`, `sampleCovarianceMatrix_hasLaw_scaledWishartMatrixLaw_of_centeredRows`, `sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_centeredRows`, `sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_centeredRows_df`, `sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_contrastRows`, compatibility contrast-law bridges `sampleContrastRows_hasLaw_iidMatrixGaussianLaw_of_map_eq` and `sampleContrastRows_hasLaw_iidMatrixGaussianLaw_of_iid_normal_rows_map_eq`, theorem-shaped endpoint `sampleCovarianceMatrix_hasLaw_theorem11_10`, orthogonal-contrast endpoint `sampleCovarianceMatrix_hasLaw_theorem11_10_of_orthogonalContrast`, iid-row/map compatibility endpoint `sampleCovarianceMatrix_hasLaw_theorem11_10_of_iid_normal_rows_map_eq`, and explicit-contrast endpoint `sampleCovarianceMatrix_hasLaw_theorem11_10_of_iid_normal_rows`. The deterministic cross-product identity, iid row-to-matrix product-law bridge, Gaussian push-forward law for orthonormal centered contrasts, and canonical centered contrast construction are now formalized. |
-| Theorem 11.11 | The displayed inverse-Wishart linear form has the stated chi-squared scaling. | Support: `inverseWishartLinearForm`, `inverseWishartScaledLinearForm` for the chi-square-normalized statistic `(α'Σ⁻¹α) * (α'W⁻¹α)⁻¹` (equivalently Hansen's raw `(α'W⁻¹α)⁻¹` has law `χ²/(α'Σ⁻¹α)`), map/law bridges `inverseWishartLinearForm_hasLaw_map`, `inverseWishartScaledLinearForm_hasLaw_map`, `inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq`, theorem-shaped endpoints `inverseWishartScaledLinearForm_hasLaw_theorem11_11`, `inverseWishartLinearForm_hasLaw_theorem11_11_raw`, `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef`, projection-certificate endpoints `inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_projection_certificate`, `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_projection_certificate`, law-level fixed-`α` push-forward bridge `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_projection_certificate`, raw Gaussian-matrix bridge `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_matrixGaussian_projection_certificate`, law-level coordinate-congruence bridge `inverseWishartScaledLinearForm_hasLaw_of_congr_inverse`, type-changing congruence/transport bridges `inverseWishartScaledLinearForm_congr_of_inverse_rect`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_of_congr_inverse_rect`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_transport`, matrix-Gaussian transport bridges `wishartLaw_congr_map_of_iidMatrixGaussianLaw_map`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_matrixGaussian_transport`, and `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_transport`, scaled transport endpoint `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_transport`, raw transport endpoints `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_transport` and `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_matrixGaussian_transport`, and reusable random-projection bridge `hasLaw_quadForm_random_symmIdem_chiSquared_of_indep`. Standard-coordinate Schur-boundary support includes `standardCoordinateFirstColumn`, `standardCoordinateRestColumns`, first-column Gaussian law bridges `rowGaussianLaw_standardCoordinate_inl_map` and `standardCoordinateFirstColumn_hasLaw_iidMatrixGaussianLaw`, nuisance-coordinate row law `rowGaussianLaw_standardCoordinate_inr_map`, nuisance-column matrix-law lift `iidMatrixGaussianLaw_standardCoordinateRestColumns_map` and random-matrix wrapper `standardCoordinateRestColumns_hasLaw_iidMatrixGaussianLaw`, independence endpoints `standardCoordinateFirstColumn_indepFun_standardCoordinateRestColumns_iidMatrixGaussianLaw` and `standardCoordinateFirstColumn_indepFun_gaussianResidualProjection_iidMatrixGaussianLaw`, coordinate apply/cross-product lemmas `standardCoordinateFirstColumn_apply`, `standardCoordinateRestColumns_apply`, `matrixCrossProduct_standardCoordinate_inl_inl`, `matrixCrossProduct_standardCoordinate_inl_inr`, `matrixCrossProduct_standardCoordinate_inr_inr`, block identity `matrixCrossProduct_standardCoordinate_eq_fromBlocks`, deterministic Schur bridges `standardCoordinate_schurComplement_eq_residualProjection`, `standardCoordinate_schurComplement_invOf_eq_residualProjection`, `inverseWishartScaledLinearForm_one_standardCoordinate_eq_residualProjection_of_invertible`, and a.e. wrapper `inverseWishartScaledLinearForm_one_standardCoordinate_ae_eq_residualProjection_of_invertible`, plus `gaussianResidualProjection`, `gaussianResidualProjection_eq_annihilatorMatrix`, `gaussianResidualProjection_isHermitian`, `gaussianResidualProjection_idempotent`, `gaussianResidualProjection_rank`, standard-coordinate rank/certificate bridges `gaussianResidualProjection_rank_standardCoordinate`, `gaussianResidualProjection_standardCoordinate_props`, `gaussianResidualProjection_standardCoordinateRestColumns_props`, `standardCoordinate_residualProjection_props_of_nonsingular_preimage`, and residual-projection law `standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular`, residual-projection certificate `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residual_projection_certificate`, nonsingular-preimage variant `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residual_projection_nonsingular_certificate`, first-coordinate deterministic rewrites `inverseWishartScale_one_standardCoordinate` and `inverseWishartScaledLinearForm_one_standardCoordinate`, first-coordinate block specialization `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_projection_certificate`, and standard-coordinate theorem endpoints `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nonsingular_congr`, `inverseWishartScaledLinearForm_hasLaw_theorem11_11_one_standardCoordinate_of_nonsingular`, `inverseWishartLinearForm_hasLaw_theorem11_11_one_standardCoordinate_raw_of_nonsingular`, and `inverseWishartScaledLinearForm_hasLaw_theorem11_11_of_standardCoordinate_nonsingular_congr`. The scale positivity/nonzero facts are `inverseWishartScale_pos_of_posDef` and `inverseWishartScale_ne_of_posDef`. Whitening/nonsingularity support now includes `wishartLaw_nonsingular_of_standardCoordinate_whitening_transport`, `standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular`, `standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_nuisance_nonsingular`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular`, and the sharper canonical-Gram wrapper `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular`, plus raw-law wrappers `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular`, `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_nuisance_nonsingular`, and `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_card_eq_of_standard_gram_nonsingular`. Thus the full standard-coordinate Gram nonsingularity, rest-column nuisance nonsingularity, and original-Wishart nonsingularity premises are derived from the canonical rectangular iid standard-Gaussian Gram certificate `iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae`, and the `n-m+1` degrees of freedom are derived from the standard-coordinate dimension match. The positive-definite, nonzero-`α` theorem-facing endpoint is `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le`, with deterministic whitening/alignment supplied by `standardCoordinate_whitening_alignment_exists_of_posDef`; it derives `0 < card m` from `α ≠ 0`, so the displayed dimension-positivity premise is not separate. |
-| Theorem 11.12 | Hotelling's T² statistic has the stated scaled F law. | Support: `hotellingT2`, `hotellingT2Sample`, `hotellingT2HansenScale`, sample-mean Gaussian support through `sampleMeanMatrix_centered_scaled_hasLaw_multivariateGaussian`, mean component theorem `hotellingMeanChiSqComponent_hasLaw_chiSquared_of_iid_normal_rows`, and a.s.-nonzero parameter theorem `sampleMeanMatrix_sub_ne_zero_ae_of_iid_normal_rows`; mean/contrast independence support `sampleMeanMatrix_indepFun_contrastCrossProduct_of_orthogonal_iid_normal_rows`; centered Wishart cross-product wrappers `centeredContrastCrossProduct_hasLaw_wishartLaw_of_iid_normal_rows` and `centeredContrastCrossProduct_hasLaw_wishartLaw_canonical`; random-parameter inverse-Wishart bridges including nonzero-parameter endpoints `hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_indep_wishart_nonzero` and `hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered_wishart_nonzero`; component-independence bridge `hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid_normal_rows_centered_wishart_nonzero`; deterministic ratio bridge `hotellingT2Sample_eq_hansen_scaled_ratio_of_components`; component bridge `hotellingT2Sample_hasLaw_theorem11_12_of_components`; theorem-shaped iid/canonical centered-Wishart bridge `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero`; fixed-inverse-Wishart and standard-coordinate bridges `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_fixed_inverseWishart` and `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_standardCoordinate_congr`; and compatibility endpoint `hotellingT2Sample_hasLaw_theorem11_12`. The sample mean law, mean chi-square component, a.s. nonzero centered mean, mean/centered-cross-product independence, centered `n-1` Wishart instantiation, random-`α` law transfer from fixed nonzero `α`, induced component independence, deterministic scaled-ratio algebra, and standard-coordinate inverse-Wishart bridge are now formalized. Whitening transport endpoints `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular` and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport_of_standard_nuisance_nonsingular`, existential endpoints `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular` and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`, global-family endpoints `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular` and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_nuisance_nonsingular`, positive-definite fixed-inverse-Wishart constructor `hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_posDef_card_eq`, and canonical-Gram endpoints `hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular`, `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular`, and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_forall_card_eq_of_standard_gram_nonsingular` are closed by `iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae` and `standardCoordinate_whitening_alignment_exists_of_posDef`. The Hansen-facing positive-definite endpoints are `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_posDef` and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef`; they derive sample nonemptiness from `0 < card n - card m` and `0 < card m`. |
+| Theorem 11.1 | Under Assumption 7.2, system least squares has Hansen's stacked Gaussian limit. | `SystemLeastSquaresTheorem11_1.orZeroObs_of_equation_blocks`. This equation-block wrapper exposes Hansen's block-diagonal population Gram and reuses `SystemLeastSquaresTheorem11_1.orZeroObs_of_observed_assumption72`. |
+| Theorem 11.2 | Under Assumptions 7.2 and 7.3, a smooth function of system least squares has the delta-method Gaussian limit. | `SystemDelta.orZeroObs_of_observed_rows_contDiffAt`. The reusable primitive-row/smoothness bridge is `SystemDelta.betaOrZeroObs_of_primitive_rows`, based on the shared `SmoothFunctionCondition` package. |
+| Theorem 11.3 | Under Assumption 7.2, the robust and homoskedastic system covariance estimators are consistent. | `SystemCovarianceTheorem11_3.of_observed_assumption72`. It returns both displayed covariance convergence statements from the observed-row fourth-moment package. |
+| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), feasible SUR has Hansen's Gaussian limit. | `SURTheorem11_4.orZeroObs_of_observed_rows`. This is the textbook-facing OrZero surface. |
+| Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as system least squares. | `SURTheorem11_5.efficiency_of_observed_rows`. Its conclusion is the displayed positive-semidefinite variance gap. |
+| Theorem 11.6 | Under Assumption 7.2 and (11.8), the normalized feasible-SUR covariance estimator converges to the OLS variance `V_beta`. |  |
+| Theorem 11.7 | The reduced-rank normal MLE is characterized by the residualized generalized pencils, least-squares recovery, covariance recovery, and maximized likelihood. | `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists`. This is the sole canonical theorem-facing surface: it constructs the selected and complementary ordered blocks jointly, handles cross-boundary ties, proves exact-rank admissibility and covariance positive definiteness, and compares the raw Gaussian likelihood against every admissible competitor. |
+| Theorem 11.8 | Principal components are sequential variance maximizers, eigenvector projections, and have diagonal score covariance. | `ordered_covMat_principalComponents_theorem11_8` packages Hansen's ordered scores, variances, covariance reconstruction, and diagonal score covariance. The optimizer-first characterization is `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`, which correctly returns the whole eigenspace when eigenvalues are tied. |
+| Theorem 11.9 | Under score normalization, the least-squares factor estimator is the leading sample-covariance PCA solution. | `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`. It returns both the PCA formula certificate and the literal normalized joint least-squares minimizer. The selected-rank condition is the finite-sample content needed for Hansen's inverse-square-root score formula. |
+| Theorem 11.10 | The bias-corrected covariance of iid multivariate-normal rows has Hansen's Wishart law. | `sampleCovarianceMatrix_hasLaw_theorem11_10_wishart`. The canonical centering contrast has `n - 1` rows; the one-row case is the documented degenerate-zero totalization. |
+| Theorem 11.11 | If `W` is Wishart, then Hansen's inverse-Wishart linear form has the scaled chi-squared law. | `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le`. This sole canonical surface assumes positive-definite covariance, a nonzero direction, and dimension no larger than the Wishart degrees of freedom, and concludes the exact raw `(alpha' W^-1 alpha)^-1` law with `n - m + 1` degrees of freedom. |
+| Theorem 11.12 | Hotelling's normalized `T^2` statistic has the `F(m,n-m)` law. | `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef`. This sole canonical surface starts from iid normal rows and positive-definite covariance, with the exact positive-dimension assumptions `0 < m` and `0 < n - m`. |
 
-- Theorem 11.12 a.e. centered-mean route: `hotellingCenteredMeanParameterLaw` and `sampleMeanMatrix_sub_hasLaw_hotellingCenteredMeanParameterLaw` name and prove the law of `Ȳ - μ₀`; `hotellingInverseWishartChiSqComponent_hasLaw_of_iid_normal_rows_centered_wishart_ae`, `hotellingMeanChiSqComponent_indepFun_inverseWishartChiSqComponent_of_iid_normal_rows_centered_wishart_ae`, `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart`, and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_fixed_inverseWishart` now require the fixed inverse-Wishart identity only a.e. under that centered-mean law. `hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_transport`, `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport`, and the `_of_standard_nuisance_nonsingular` endpoints feed the standard-coordinate whitening transport into that route after deriving the nonzero centered-mean condition from positive-definite `Σ`. The `standard_gram_nonsingular` endpoints additionally derive the rest-column event from `standardCoordinateRestColumns_gram_nonsingular_ae_of_iidMatrixGaussianLaw`; the canonical rectangular iid standard-Gaussian Gram theorem is now `iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae`, and the global whitening/alignment family is supplied by `standardCoordinate_whitening_alignment_exists_of_posDef`.
-- Theorem 11.11/11.12 existential whitening update: the new endpoints
-  `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`,
-  `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`,
-  `hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`,
-  `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`,
-  and
-  `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_exists_of_standard_nuisance_nonsingular`
-  package the standard-coordinate whitening/alignment data existentially. The
-  `_card_eq_` and `_forall_card_eq_` wrappers remove the finite-cardinality and
-  a.e.-support bookkeeping once a global nonzero-direction whitening family is
-  available. The constructor
-  `hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_posDef_card_eq`
-  now derives that a.e. fixed inverse-Wishart input directly from
-  positive-definiteness and the standard-coordinate dimension match, while the
-  `_standard_gram_nonsingular` wrappers derive the
-  rest-column nuisance event from the canonical rectangular iid
-  standard-Gaussian Gram certificate. The canonical Gram certificate is now
-  `iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae`, deterministic
-  orthogonal alignment is `standardCoordinate_orthogonal_alignment_exists`, and
-  the positive-definite whitening/alignment existence theorem is
-  `standardCoordinate_whitening_alignment_exists_of_posDef`.
+### Theorem 11.4 notes
 
-### Theorem 11.4 progress notes
+- The observed-row endpoint derives the compact primitive-row facade, residual-covariance
+  consistency, weighted-score CLT, and finite-sample measurability from the same Assumption 7.2
+  package.
+- `SURGaussianLimitConditions.PrimitiveRow.of_score_exog_covariance` constructs the Gaussian-limit
+  package from primitive-row moments, transformed conditional homoskedasticity, score exogeneity,
+  covariance consistency, and score-weight tightness.
+  `SURGaussianLimitConditions.PrimitiveRow.of_raw_exog_scalarCLT` derives that tightness from raw
+  conditional exogeneity and scalar second moments. Residual covariance uses the canonical
+  system-level surface `systemSigmaHatStarObs`.
 
-- Feasible SUR layer: `surBetaEstimatorStarObs` is the displayed feasible SUR estimator using `Σ̂⁻¹`; measurability support is `surWeightedScoreMean_estimated_aestronglyMeasurable`, `surBetaFromEstimatedInverseCovStar_aestronglyMeasurable`, `surBetaFromEstimatedInverseCovStar_scaled_aemeasurable`, `surBetaEstimatorStarObs_aestronglyMeasurable`, and `surBetaEstimatorStarObs_scaled_aemeasurable`. The raw `(11.8)` route transports conditional homoskedasticity from `e` to `Σ⁻¹e`, derives the weighted score covariance identity, discharges feasible residual-covariance consistency/rank through the primitive-row `(11.8)` covariance route, and now discharges the arbitrary mixed weighted-product integrability surface from compact row-fourth moments via `surMixedFourthProduct_integrable_of_rowNorm_fourth`. The Hansen-facing facade `SURTheorem114CompactPrimitiveRowConditions` packages conditional exogeneity and compact fourth moments with primitive-row Assumption 7.2 and raw `(11.8)`, then exposes the direct Gaussian-limit endpoint.
+### Theorem 11.5 notes
 
-- Textbook totalization: `surBetaEstimatorOrZeroObs` is the explicit OrZero
-  feasible-SUR primitive, with the Star estimator retained as the proof engine.
-  `SURTheorem114CompactPrimitiveRowConditions.betaEstimatorOrZero_tendstoInDistribution`
-  and `.betaEstimatorOrZero_gaussianLimit` expose Theorem 11.4 through that
-  textbook-facing surface.
+- `MatrixSystemConditionalHomoskedasticity` is the literal matrix-valued form of (11.8).
+  Its score-covariance bridge feeds the existing population Gauss-Markov comparison, so the
+  theorem-facing endpoint does not duplicate that proof.
+- `SUREfficiency.fromGLSVarianceGap` is the deterministic Chapter 4 Gauss-Markov specialization;
+  `SUREfficiency.systemLS_of_population_moments` identifies Hansen's system-LS and SUR population
+  variance matrices before the observed-row wrapper is applied.
 
-- Feasible beta-substitution reduction: `surBetaFromEstimatedInverseCovStar_linearization` handles the totalized normal-equation remainder for random SUR weights once the estimated information matrix converges to a nonsingular limit. `surBetaFromEstimatedInverseCovStar_substitution_of_inverseCovariance_linearized` reduces the beta-level feasible substitution to a linearized random-weight score gap, and `surBetaEstimatorStarObs_substitution_of_residualCovariance_linearized` specializes this to Hansen's actual residual covariance `Σ̂`. The score gap and Assumption 7.2/exogeneity/fourth-moment facade are discharged by the scalar weighted-score and compact primitive-row layers described below.
-- Score-level feasible substitution update: `randomMatrix_mulVec_substitution_tendstoInMeasure_zero` is now the reusable Chapter 8 stochastic-order bridge for two matrix-vector products with a common matrix probability limit. SUR uses it in `surLinearizedScore_substitution_of_inverseCovariance_score_substitution`, `surBetaFromEstimatedInverseCovStar_substitution_of_inverseCovariance_score`, and `surBetaEstimatorStarObs_substitution_of_residualCovariance_score`. These theorems discharge the linearized leading-term gap from `Σ̂⁻¹ ->p Σ⁻¹`, bounded empirical design weights, coordinatewise `Oₚ(1)` fixed-`Σ⁻¹` scores, and the sharper score-level premise `√n(ĝ_{Σ̂⁻¹}-ĝ_{Σ⁻¹}) = oₚ(1)`. The facade decision is closed by `SURTheorem114CompactPrimitiveRowConditions`, which exposes the compact row-fourth primitive package and final feasible-SUR Gaussian limit directly.
-- Scalar weighted-score substitution update: `surWeightedScoreScalarWeight`, `surWeightedScoreMean_apply_eq_sum_weight`, `surWeightedScoreMean_sub_apply_eq_sum_weight`, and `surWeightedScoreMean_scaled_sub_apply_eq_sum_weight` expose the finite-sum scalar decomposition of the random-weight score difference. `surWeightedScoreMean_substitution_of_residualCovariance_bounded_score_weights` now derives `√n(ĝ_{Σ̂⁻¹}-ĝ_{Σ⁻¹}) = oₚ(1)` from residual-covariance consistency, nonsingular `Σ`, observation measurability, and coordinatewise bounded scaled cross scores `√n n⁻¹∑ X_iaj e_ib = Oₚ(1)`. `surBetaEstimatorStarObs_substitution_of_residualCovariance_bounded_score_weights` composes this with fixed-score CLT tightness, so the feasible beta substitution no longer assumes the score-substitution premise directly.
-- Primitive feasible-weight update: `surWeightedScoreScalarWeight_sqrt_eq_inv_sqrt_sum` identifies each scaled scalar cross score with the centered iid scalar-CLT statistic; `SystemConditionalMeanZero.scalar_cross_mean_zero` gives the mean-zero input; and `surWeightedScoreScalarWeight_boundedInProbability_of_iid_row_condMeanZero` derives scalar cross-score tightness from joint-row iid, raw conditional exogeneity, and coordinatewise `L²` moments. The constructor `surBetaEstimatorStarObs_feasible_weight_substitution_of_covariance_consistency_bounded_score_weights` packages the beta-level feasible substitution from the covariance-consistency package plus those scalar score weights. The theorem-facing constructors `SURBetaEstimatorTheorem114Conditions.scoreCLTConditions_of_primitive_row_assumption72_weighted_error_condHomoskedasticity_score_exog`, `SURBetaEstimatorTheorem114Conditions.of_primitive_row_assumption72_weighted_error_condHomoskedasticity_score_exog_covariance_consistency`, and `SURBetaEstimatorTheorem114Conditions.of_primitive_row_assumption72_weighted_error_condHomoskedasticity_raw_exog_covariance_consistency_scalar_clt` now derive Hansen's feasible SUR CLT from primitive-row Assumption 7.2, transformed-error matrix homoskedasticity, raw conditional exogeneity, covariance consistency, and scalar cross-score `L²` moments. The row-fourth constructors replace the earlier mixed-product and scalar `L²` primitives with compact moments `Integrable ‖X₀‖⁴` and `Integrable ‖e₀‖⁴`; residual-covariance consistency/rank inputs are derived by the primitive-row `(11.8)` route.
+### Theorem 11.6 notes
 
-### Theorem 11.5 progress notes
+- Hansen's printed OLS target is false in general and appears to omit the star
+  on `V_beta`. The estimator converges instead to
+  `V_beta* = (E[X_i' Sigma^-1 X_i])^-1`. Equality with OLS `V_beta` requires
+  additional restrictions, such as common regressors or diagonal error
+  covariance for Hansen's equation-block design.
+- `SURCovarianceEstimator.consistent_of_observed_rows` is the corrected
+  covariance-consistency result. It is listed as Lean-only support rather than
+  as the endpoint for the false printed claim.
+- `SURTheorem11_6.printed_target_forces_sur_ols_equality` formalizes the
+  obstruction: uniqueness of convergence in measure forces the two targets to
+  agree if the printed conclusion is assumed for the same estimator.
+- `SystemFeasible.sigmaHat_sub_zero_of_beta_weight_wlln` derives feasible residual-covariance
+  substitution from coefficient consistency and scalar WLLNs.
+  `SystemFeasible.middle_sub_zero_of_covariance_bounded_weights` and
+  `SystemFeasible.middle_of_covariance_bounded_weights` provide the reusable covariance-to-middle
+  perturbation step used by feasible covariance estimation.
 
-- Hansen-facing efficiency wrappers: `systemPopulationMiddle_one_eq_systemPopulationGram` identifies the LS-weight population middle with `systemPopulationGram μ X`; `sur_efficiency_vs_systemLeastSquares_of_system_population_moments` states the SUR-vs-LS efficiency comparison with LS variance written as `systemPopulationScoreCovariance μ X e`; and `sur_efficiency_vs_systemLeastSquares_of_score_covariance` exposes the same result through `covMat μ (fun ω => systemScore (X 0 ω) (e 0 ω))`, reusing `systemScore_covMat_eq_populationScoreCovariance` and the existing population Gauss-Markov expansion. `SystemConditionalHomoskedasticity` is the scalar `(11.8)` package, while `MatrixSystemConditionalHomoskedasticity` states the literal matrix condition `condExpOn μ (fun ω => Matrix.vecMulVec (e 0 ω) (e 0 ω)) Z =ᵐ[μ] fun _ => Σ`. The matrix bridge `MatrixSystemConditionalHomoskedasticity.toSystemConditionalHomoskedasticity` and theorem `MatrixSystemConditionalHomoskedasticity.scoreCovariance_eq_middle` reuse the scalar proof. Packaged endpoints `sur_efficiency_vs_systemLeastSquares_of_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_scoreCov_of_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_of_systemAssumption72_conditionalHomoskedasticity`, `sur_efficiency_vs_systemLeastSquares_scoreCov_of_systemAssumption72_condHomoskedastic`, and the `*_matrix_conditionalHomoskedasticity` / `*_matrix_condHomoskedastic` wrappers sit on top of the explicit scalar-argument `*_condExp_homoskedastic` variants. `surInformation_eq_systemPopulationMiddle` and `surInformation_nonsing_of_systemAssumption72` derive the SUR information identity `M = E[Xᵢ'Σ⁻¹Xᵢ]` and nonsingularity from Assumption 7.2 plus positive-definite `Σ`; the `*_memLp` wrappers derive fixed-information integrability from `MemLp (X 0) 2 μ`, and the stronger `_of_gram` wrappers derive that `MemLp` premise internally from `SystemRegressionMomentConditions.gram_integrable` plus the design-coordinate measurability in the literal matrix `(11.8)` package.
+### Theorem 11.7 notes
 
-### Theorem 11.7 progress notes
+- Only `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists` is inventoried as the
+  theorem-facing endpoint. Reduced-rank proof-engine and compatibility names are intentionally
+  omitted because the public surface is consolidated around that endpoint.
+- Lean follows equation (11.21): the complementary block maximizes the determinant objective and
+  selects the largest residual-pencil roots. Hansen's isolated "smallest" summary is inconsistent
+  with that display. Lean also uses the dimensionally valid loading recovery
+  `Ahat = Ytilde' Xtilde G`; the transposed printed expression is a formula for `Ahat'`.
 
-- **Correct objective direction.** Equation (11.21), the complement derivation, and the equivalent residual-pencil display maximize the direct `A⊥` determinant ratio and select the largest residual-pencil roots. The canonical Lean surface therefore uses `reducedRankAperpObjectiveMaximizer`. The old minimum follows only the isolated smallest-root sentence in the final theorem summary, which conflicts with the preceding displays and is documented as Hansen's internal typo compatibility.
-- **Canonical identified certificate stack.** `ReducedRankHansenDetProductMaxMaxCertificate` contains selected compressed-determinant maxima for both residualized pencils. `ReducedRankHansenIdentifiedSpectralMaximizerCertificate` adds `reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp`. Constructors `.of_objective_maximizers_and_cross`, `.of_maxMax_and_cross`, and `.of_maxMax_and_dual_relation` expose the direct-objective, direct-cross, and Hansen dual-relation routes; the last reuses `reducedRankAperp_cross_orthogonal_of_dual_relation`. `hermitian_compression_ordered_eigenvalue_le`, `prod_one_sub_ordered_eigenvalues_le_det_one_sub_compression`, and `generalizedEigenLeadingComplementDetMinimal_of_whitening` prove the multi-column Ritz/product bounds in both the direct and complement-determinant directions. `generalizedEigenLeadingComplementDetMinimal_exists_of_posSemidef_posDef` constructs one leading generalized-eigenblock that retains its exact ordered-root formula and minimizes `det(I-G'AG)` over every normalized competitor; `reducedRankGLeadingComplementDetMinimal_exists` is the Hansen-pencil specialization. `ReducedRankHansenIdentifiedSpectralMaximizerCertificate.exists_of_complement_pencil` constructs the primal and dual blocks jointly from one ordered rectangular-Gram spectral basis. It proves the leading-root formulas, both global determinant maxima, cross orthogonality, positive selected roots, roots below one, and the complement determinant minimum without excluding a tied boundary. The older `.of_maxMax_and_complement_pencil_of_separated_roots` remains a useful conditional bridge for independently supplied blocks.
-- **Formula conclusion and complete MLE theorem.** `ReducedRankHansenTheorem11_7` publicly returns the two objective maximizers, `A⊥'Ỹ'X̃G = 0`, and Hansen's displayed recovery and likelihood formulas. Its legacy `ReducedRankMLE` component is exposed honestly as `mle_formula_certificate : ReducedRankMLEFormulaCertificate`; it contains no covariance-positive-definiteness or global likelihood-comparison assertion. `ReducedRankHansenTheorem11_7ExactDimension` adds `card s = card m - card r`. The stronger `ReducedRankHansenTheorem11_7GaussianMLE` adds `ordered_roots : ReducedRankHansenOrderedRootWitness`, covariance interiority, the unrestricted Gaussian MLE predicate, and equality with the raw attained likelihood; `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists` constructs this full certificate under explicit finite-sample regularity, with a direct rank-zero branch.
-- **Actual likelihood layer.** `reducedRankGaussianLogLikelihood` encodes the raw trace/log-determinant Gaussian likelihood, `reducedRankGaussianAdmissible` records positive-definite covariance and exact coefficient rank without restricting competitors by the identifying normalization, and `reducedRankGaussianMLE` states the universal comparison against all admissible competitors. The fixed-`G` square-completion theorems optimize coefficients and controls, then covariance, over arbitrary competitors. `generalizedEigenBNormalized_factorization_exists_of_rank` refactorizes every exact-rank competing coefficient as a normalized block without changing its product. `reducedRankSigmaHat_det_eq_complementCompression` and `reducedRankSigmaHat_det_minimal_of_complementDetMinimal` transfer the leading spectral comparison to the covariance profile. `reducedRankGaussianMLE_of_normalized_profileDet_minimal` proves the unrestricted global MLE predicate, and the positive-root/complement-minimal wrappers derive candidate exact rank. `reducedRankSigmaHat_posDef_of_fullResidual_posDef` derives every normalized covariance's positive definiteness from one positive-definite full-model OLS residual Gram. `reducedRankFullResidual_eq_tildeE` reuses Chapter 3 FWL to identify that residual with Hansen's `Etilde`; `reducedRankTildeE_crossProduct_eq_complement` and `reducedRankAperpPencilA_tildeE_eq_complement` derive Hansen's exact residual-pencil complement identity. `reducedRankGaussianMLE_residualized_of_positive_roots_of_complementDet_minimal` concludes that the displayed residualized `Ahat`, `Chat`, and `Sigmahat` are the actual unrestricted Gaussian MLE from `Etilde'Etilde > 0`. `reducedRankGaussianLogLikelihood_at_recovery_eq_maximizedLogLikelihood` proves the attained raw value, `reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertificate` assembles a supplied identified certificate, and `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists` supplies that certificate via the unconditional joint spectral construction. The canonical `reducedRankMaximizedLogLikelihood` uses the algebraically correct raw-Gaussian constant `(nm/2)(log n - log(2*pi) - 1)`; the incompatible printed constant is retained only as `reducedRankMaximizedLogLikelihood_textbookLiteralCompatibility`.
-- **Preferred formula endpoints.** Use `reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate`, `reducedRankHansenTheorem11_7_of_maxMax_and_dual_relation`, or the direct `reducedRankHansenTheorem11_7_of_objective_maximizers_and_cross` when only the formula/spectral certificate is needed. For residualized matrices and the canonical `Fin (m-r)` complement, use `reducedRankHansenTheorem11_7_residualized_exactDimension_of_identified_spectral_maximizer_certificate_canonicalAperp` or `reducedRankHansenTheorem11_7_residualized_exactDimension_of_objective_maximizers_and_cross_canonicalAperp`.
-- **Smallest-summary compatibility only.** `ReducedRankHansenSmallestSummaryCompatibility` and its exact-dimension wrapper preserve the old minimum-oriented theorem stack for callers that need the literal final-summary wording. They have no MLE field. The old `ReducedRankHansenSpectralDualityCertificate`, `ReducedRankHansenIdentifiedSpectralDualityCertificate`, `ReducedRankHansenObjectiveExtremaCertificate`, and `ReducedRankHansenDetProductMinMaxCertificate` are compatibility/algebraic surfaces, not the canonical MLE complement.
-- **Projection boundary demotion.** The projection/image/span/null construction has fixed roots `λ = 1` and `η = 0`; it is an algebraic singular-boundary route, not a finite normal MLE. `ReducedRankHansenProjectionSpanNullConditions` now documents that restriction, and its public endpoints stop at `.to_detProductMinMaxCertificate` or `.to_identifiedSpectralDualityCertificate` (including rank-inequality facades). The former projection-to-Theorem-11.7 wrappers were removed.
-- **Closure and compatibility boundaries.** The general determinant variational theorems, joint tied-boundary spectral construction, exact FWL complement identity, fixed-`G` profiling, unrestricted exact-rank competitor comparison, covariance-profile interiority reduction, residualized global MLE, corrected raw likelihood value, and final existential certificate are closed. The printed maximized-likelihood constant is mathematically inconsistent with the raw Gaussian likelihood, so exact formalization necessarily distinguishes the corrected canonical formula from literal-text compatibility. Likewise, the final summary's “smallest” residual roots conflict with equation (11.21)'s maximization; the literal wording is preserved only in the non-MLE compatibility surface. The `lambda = 1`, `eta = 0` projection route remains singular-boundary algebra only.
+### Theorem 11.8 notes
 
-### Theorem 11.8 progress notes
+- `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector` states the exact
+  optimizer/eigenspace equivalence. It does not force equality with one chosen eigenvector when
+  the ordered eigenvalue is repeated.
+- `ordered_covMat_principalComponents_theorem11_8` packages the canonical ordered construction,
+  including `U = H'X`, the ordered score variances, `Sigma = H D H'`, and diagonal score
+  covariance.
 
-- The preferred Hansen-facing endpoint is the optimizer-first equivalence
-  `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`. For an
-  arbitrary feasible `h`, it derives the matrix-vector equation
-  `Σh = λⱼh` from the universal score-variance maximization inequality, and its
-  converse shows that every feasible vector in that eigenspace is an optimizer.
-  Thus repeated eigenvalues yield the correct eigenspace conclusion rather than
-  equality with the canonical `orderedPCEigenvector`.
-- `OrderedPrincipalComponentTheorem11_8`, `orderedPrincipalComponent_theorem11_8`,
-  `OrderedCovMatPrincipalComponentsTheorem11_8`, and
-  `ordered_covMat_principalComponents_theorem11_8` retain the canonical Mathlib
-  eigenbasis construction as support. They provide Hansen notation
-  `H = [h₁,...,hₖ]`, `U = H'X`, the maximum value `λⱼ`,
-  `Var(hⱼ'X)=λⱼ`, ordered nonnegative eigenvalues, `Σ = H D H'`, and
-  diagonal score covariance `Var(U)=D`.
+### Theorem 11.9 notes
 
-### Theorem 11.9 progress notes
+- The finite-sample theorem-facing endpoint is
+  `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`.
+  It returns both `FactorPCTheorem11_9` and `FactorLeastSquaresNormalizedMinimizer`.
+  The equivalent Hansen-facing positive-selected-eigenvalue wrapper is
+  `FactorPCTheorem11_9.withJointLS_of_positiveEigenvalues`.
+- The rank condition is not an accidental strengthening: Hansen's displayed score estimator uses
+  the inverse square root of the selected eigenvalue block. The selected-rank premise supplies
+  exactly that nonsingularity and also implies the required number of observations.
 
-- The theorem-facing concentrated factor-PCA surface is now deterministic-theorem
-  complete for Hansen Theorem 11.9. `FactorPCTheorem11_9` includes both the global
-  concentrated trace-objective maximizer and the equivalent concentrated
-  least-squares criterion minimizer. The literal normalized joint least-squares
-  surface is represented by `FactorLeastSquaresNormalizedMinimizer` and
-  `FactorLeastSquaresProfileBridge`; the preferred finite-sample theorem face is
-  `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`,
-  `factor_rank_ge_of_leadingPCEigenvalues_pos`,
-  `factorSampleCovariance_rank_ge_of_leadingPCEigenvalues_pos`, and
-  `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_positive_eigenvalues`,
-  which returns both the PCA formula certificate and Hansen's literal normalized
-  joint-LS minimizer under Hansen's displayed positive selected-eigenvalue
-  condition, internally translating it to the sharp selected sample-covariance
-  rank condition when the older rank route is reused.
-  In this formalization `X` denotes Hansen's already centered sample matrix for
-  (11.23). Raw least-squares algebra now includes
-  `factorLeastSquaresCriterion_eq_sum_expand`,
-  `factorLeastSquaresCriterion_nonneg`,
-  `trace_transpose_mul_self_nonneg`,
-  `trace_loading_transpose_mul_factorSampleCrossCovariance_eq_sum_dot`,
-  `trace_loading_gram_eq_sum_fitted_dot_of_normalized`,
-  `factorLeastSquaresCriterion_eq_trace_sub_two_cross_add_loading_gram`,
-  `trace_sub_transpose_mul_sub`,
-  `factorLeastSquaresCriterion_eq_trace_sub_cross_gram_add_square`,
-  `factorLeastSquaresCriterion_profiled_eq_trace_sub_cross_gram`,
-  `trace_sub_cross_gram_le_factorLeastSquaresCriterion`,
-  `FactorLeastSquaresProfileBridge.of_crossCovariance_trace_bound`,
-  `factorPCTheorem11_9_jointLeastSquaresMinimizer_of_crossCovariance_trace_bound`,
-  and
-  `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_crossTraceBound`,
-  with the arbitrary-score reduction now narrowed by `factorObservationGram`,
-  `factorNormalizedScoreFrame`,
-  `factorSampleCrossCovariance_gram_eq_normalizedScoreFrame_observationGram`,
-  `factorSampleCrossCovariance_trace_eq_observationGram_objective`,
-  `factorSampleCrossCovariance_trace_le_sum_observationGram_leadingEigenvalues`,
-  `factorPCTheorem11_9_crossCovariance_trace_bound_of_observationGram_eigenvalue_bound`,
-  and
-  `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_observationGramEigenBound`,
-  plus
-  `factorSampleCrossCovariance_left_linearMap`,
-  `factorSampleCrossCovariance_fitted_self_of_normalized`,
-  `factorSampleCrossCovariance_sub_left`, and
-  `factorSampleCrossCovariance_residual_of_crossCovariance_normalized`, so the
-  fixed-score loading normal equation and square-completion profile algebra are
-  formalized. The deterministic profile theorem is now closed through the
-  finite-dimensional leading-eigenvalue transfer from the observation Gram
-  `n⁻¹XX'` to the sample covariance `n⁻¹X'X`; this replaces the earlier broad
-  arbitrary-normalized-score/Eckart-Young gap with a concrete, compiled spectral
-  bridge. The spectral support includes
-  `factorObservationGram_sampleCovariance_charpoly_mul_X`,
-  `factorObservationGram_sampleCovariance_roots_with_zero_padding`,
-  `factorObservationGram_sampleCovariance_padded_eigenvalues₀_eq`,
-  `factorObservationGram_sampleCovariance_eigenvalues₀_sum_eq`,
-  `factorObservationGram_sampleCovariance_leadingEigenvalue_sum_eq`, and the
-  rank-level consequences `factorObservationGram_rank_eq_dataMatrix_rank` and
-  `factorObservationGram_rank_eq_sampleCovariance_rank`. The helper
-  `factor_card_observations_le_of_sampleCovariance_rank_ge` derives the
-  normalized-score observation-count side condition from selected
-  sample-covariance rank. The no-extra-premise
-  endpoint is `factorPCTheorem11_9_crossCovariance_trace_bound`.
-  The sample-covariance endpoint
-  `factorPCTheorem11_9_of_sampleCovariance_leadingPCEigenvectors_positive_eigenvalues`
-  derives Hermitianity from `factorSampleCovariance_isHermitian`, derives the leading
-  eigenspace and optimizer from the ordered PCA/Ky Fan layer, and uses
-  `factorPCScaling_diagonal_of_pos` for Hansen's canonical `D^{1/2}` and
-  `D^{-1/2}` scaling. `factorSampleCovariance_posSemidef` now supplies the
-  deterministic nonnegativity engine, so the canonical scaling endpoint can be
-  driven by the sharp selected-diagonal nonsingularity condition via
-  `factorPCTheorem11_9_of_sampleCovariance_selected_diagonal_isUnit`; the
-  positive-definite sample-covariance endpoint is retained only as a stronger
-  convenience route. The rank-based bridges
-  `factorLeadingPCEigenvalues_pos_of_posSemidef_rank_ge`,
-  `factorLeadingPCEigenvalues_selected_diagonal_isUnit_of_posSemidef_rank_ge`,
-  `factorLeadingPCEigenvalues_pos_of_sampleCovariance_rank_ge`,
-  `factorLeadingPCEigenvalues_sampleCovariance_selected_diagonal_isUnit_of_rank_ge`,
-  and `factorPCTheorem11_9_of_sampleCovariance_rank_ge` now derive selected
-  eigenvalue positivity and diagonal nonsingularity from the concrete condition
-  `Fintype.card r ≤ (factorSampleCovariance X).rank`. The raw-data bridge
-  `factorDataMatrix` with
-  `factorSampleCovariance_eq_card_inv_smul_transpose_mul` and
-  `factorSampleCovariance_rank_eq_dataMatrix_rank` proves
-  `rank(n⁻¹X'X)=rank(X)` for nonempty samples. The raw exact-factor bridge
-  `factorScoreDataMatrix`, `factorCommonComponentDataMatrix`,
-  `factorExactSampleFactorModel`, and `ExactSampleFactorRankCondition` derives
-  data-matrix selected rank from `X = FΛ'`, a left inverse for `Λ`, and full
-  selected rank of the sample factor matrix, with endpoint
-  `factorPCTheorem11_9_of_exactSampleFactorRankCondition`. The additive noisy
-  bridge `factorApproxSampleFactorModel` and
-  `ApproximateSampleFactorRankCondition` allow `X = FΛ' + U` when a loading
-  left inverse also annihilates the sample idiosyncratic component (`U L' = 0`);
-  `factorDataMatrix_rank_ge_of_factor_recovery`,
-  `factorDataMatrix_rank_ge_of_approx_factor_leftInverse_annihilates_noise`,
-  `factorDataMatrix_rank_ge_of_approxSampleFactorRankCondition`, and
-  `factorPCTheorem11_9_of_approxSampleFactorRankCondition` route that noisy
-  recoverability condition to the same selected-rank PCA endpoint. The tighter
-  finite-sample pervasiveness facade `ApproximateSampleFactorPervasiveCondition`
-  replaces the existential recoverer with the concrete loading-Gram recoverer
-  `factorLoadingGramRecoverer = (Λ'Λ)⁻¹Λ'`: `factorLoadingGramRecoverer_leftInverse`
-  derives the left inverse from `IsUnit (Λ'Λ).det`, and
-  `factorLoadingGramRecoverer_annihilates_idiosyncratic` derives `U L' = 0`
-  from sample idiosyncratic orthogonality `UΛ = 0`. Its constructor
-  `ApproximateSampleFactorPervasiveCondition.toApproximateSampleFactorRankCondition`
-  feeds the existing rank package, with rank endpoints
-  `factorDataMatrix_rank_ge_of_approxSampleFactorPervasiveCondition` and
-  `factorSampleCovariance_rank_ge_of_approxSampleFactorPervasiveCondition`, and
-  theorem endpoints `factorPCTheorem11_9_of_approxSampleFactorPervasiveCondition`
-  and `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition`.
-  The stronger finite-sample primitive facade `ApproximateSampleFactorPrimitiveCondition`
-  derives this pervasiveness facade from exact `X = FΛ' + U`, score normalization
-  `n⁻¹F'F = I`, quantitative loading pervasiveness
-  `factorLoadingPervasiveness`, and row-wise idiosyncratic-loading orthogonality
-  `factorIdiosyncraticLoadingOrthogonality`. Supporting bridges include
-  `factorScoreDataMatrix_rank_eq_card_of_scoreNormalization`,
-  `factorLoadingGram_posDef_of_pervasiveness`,
-  `factorLoadingGram_nonsingular_of_pervasiveness`,
-  `factorIdiosyncraticLoadingOrthogonality_matrix_eq_zero`,
-  `factorDataMatrix_rank_ge_of_approxSampleFactorPrimitiveCondition`, and
-  `factorSampleCovariance_rank_ge_of_approxSampleFactorPrimitiveCondition`;
-  theorem endpoints are `factorPCTheorem11_9_of_approxSampleFactorPrimitiveCondition`
-  and `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPrimitiveCondition`.
-  The theorem endpoints
-  `factorPCTheorem11_9_of_dataMatrix_rank_ge` and
-  `factorPCTheorem11_9_of_dataMatrix_columns_linearIndependent` route
-  data-matrix selected rank or full column independence all the way to Hansen's
-  canonical PCA estimator. The new normalized joint-LS endpoints
-	  `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_only`,
-	  `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_dataMatrix_rank_ge`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_dataMatrix_rank_ge_only`,
-	  `factorPCTheorem11_9_with_jointLSMinimizer_of_dataMatrix_rank_ge`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_exactSampleFactorRankCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_exactSampleFactorRankCondition_only`,
-	  `factorPCTheorem11_9_with_jointLSMinimizer_of_exactSampleFactorRankCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorRankCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorRankCondition_only`,
-	  `factorPCTheorem11_9_with_jointLSMinimizer_of_approxSampleFactorRankCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition_only`,
-	  `factorPCTheorem11_9_with_jointLSMinimizer_of_approxSampleFactorPervasiveCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPrimitiveCondition_only`,
-	  `factorPCTheorem11_9_with_jointLSMinimizer_of_approxSampleFactorPrimitiveCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPerturbationCondition_only`,
-	  `factorPCTheorem11_9_with_jointLSMinimizer_of_approxSampleFactorPerturbationCondition`,
-	  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticPerturbationBridge`,
-	  and
-	  `factorPCTheorem11_9_jointLSMinimizer_eventually_of_approxFactorAsymptoticPerturbationBridge`
-	  compose those rank/signal routes with the closed spectral-transfer trace
-	  bound, so the LS-minimizer conclusion no longer needs a caller-supplied
-	  profile bridge, cross-covariance trace premise, or separate `r ≤ n` premise
-	  on the finite-sample selected-rank routes. The original asymptotic
-	  boundary is `ApproximateFactorAsymptoticPerturbationBridge`: it combines
-	  eventual exact sample model algebra, eventual loading pervasiveness, eventual
-	  score normalization, and `factorRecoveredIdiosyncraticGramRayleighTendstoZero`,
-	  with `ApproximateFactorAsymptoticPerturbationBridge.eventually_perturbationCondition`
-	  converting the uniform Rayleigh `o(1)` condition into the finite-sample
-	  perturbation facade. The joint-LS endpoint
-	  `factorPCTheorem11_9_jointLSMinimizer_eventually_of_approxFactorAsymptoticPerturbationBridge_only`
-	  now derives the finite-sample `r ≤ n` side condition internally from that
-	  eventual selected-rank facade. The preferred normalized stochastic boundaries are now
-	  `ApproximateFactorAsymptoticNormalizedRayleighBridge` and
-	  `ApproximateFactorAsymptoticNormalizedEnvelopeBridge`, with bridge theorems
-	  `ApproximateFactorAsymptoticNormalizedRayleighBridge.toPerturbationBridge`,
-	  `ApproximateFactorAsymptoticNormalizedEnvelopeBridge.toNormalizedRayleighBridge`,
-	  `ApproximateFactorAsymptoticNormalizedEnvelopeBridge.toPerturbationBridge`,
-	  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticNormalizedRayleighBridge`,
-	  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorNormalizedRayleighBridge`,
-	  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorNormalizedRayleighBridge_only`,
-	  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticNormalizedEnvelopeBridge`,
-	  and `factorPCTheorem11_9_jointLS_eventually_of_approxFactorNormalizedEnvelopeBridge`.
-  The coordinatewise-WLLN-facing boundary is now split into two layers:
-  `ApproximateFactorAsymptoticCoordinateWLLNBridge` consumes coordinate
-  convergence of every entry of the normalized recovered perturbation, while
-  `ApproximateFactorAsymptoticEntrywiseEnvelopeBridge` consumes a scalar
-  envelope. The finite-coordinate glue is
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseAbsSum`,
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseAbsSum_nonneg`,
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseEnvelopeLE_absSum`, and
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseAbsSum_tendsto_zero`;
-  namespace bridges
-  `ApproximateFactorAsymptoticCoordinateWLLNBridge.toEntrywiseEnvelopeBridge`,
-  `.toNormalizedRayleighBridge`, and `.toPerturbationBridge` feed the same
-  theorem path. The entrywise-envelope layer uses
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseEnvelopeLE`,
-  `factorRecoveredIdiosyncraticGramNormalizedRayleighEnvelopeLE_of_entrywise`,
-  `factorRecoveredIdiosyncraticGramNormalizedRayleighTendstoZero_of_entrywise_envelope`,
-  and `factorRecoveredIdiosyncraticGramRayleighTendstoZero_of_entrywise_envelope`
-  to feed the same normalized-Rayleigh route. The theorem-facing endpoints are
-  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticEntrywiseEnvelopeBridge`,
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorEntrywiseEnvelopeBridge`,
-  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticCoordinateWLLNBridge`,
-  and `factorPCTheorem11_9_jointLS_eventually_of_approxFactorCoordinateWLLNBridge`.
-  The recovered perturbation is now decomposed into Hansen's three primitive
-  terms by `factorRecoveredIdiosyncraticCrossLeftNormalized`,
-  `factorRecoveredIdiosyncraticCrossRightNormalized`,
-  `factorRecoveredIdiosyncraticNoiseGramNormalized`,
-  `factorRecoveredIdiosyncraticGramNormalizedPerturbation_eq_cross_add_noise`,
-  and the coordinate rewrite
-  `factorRecoveredIdiosyncraticGramNormalizedPerturbation_apply_eq_cross_add_noise`.
-  Raw pre-recovery moment support is now explicit through
-  `factorRawFactorIdiosyncraticCrossNormalized`,
-  `factorRawIdiosyncraticFactorCrossNormalized`,
-  `factorRawIdiosyncraticGramNormalized`,
-  `factorRecoveredIdiosyncraticCrossLeftNormalized_eq_raw_mul_recoverer`,
-  `factorRecoveredIdiosyncraticCrossRightNormalized_eq_recoverer_mul_raw`, and
-  `factorRecoveredIdiosyncraticNoiseGramNormalized_eq_recoverer_mul_raw_mul`;
-  these identify Hansen's recovered terms with `(n⁻¹F'U)L'`, `L(n⁻¹U'F)`,
-  and `L(n⁻¹U'U)L'` for `L = (Λ'Λ)⁻¹Λ'`.
-  Operator/matrix and primitive cross/noise WLLN facades are
-  `ApproximateFactorAsymptoticMatrixWLLNBridge`,
-  `ApproximateFactorAsymptoticMatrixWLLNBridge.toCoordinateWLLNBridge`,
-  `ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge`,
-  `ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge.toMatrixWLLNBridge`,
-  `.toNormalizedRayleighBridge`, `.toPerturbationBridge`,
-  `ApproximateFactorAsymptoticCrossNoiseWLLNBridge`,
-  `ApproximateFactorAsymptoticCrossNoiseWLLNBridge.normalized_entry_tendsto_zero`,
-  `.toCoordinateWLLNBridge`, `.toMatrixWLLNBridge`, and theorem endpoints
-  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticMatrixWLLNBridge`,
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorMatrixWLLNBridge`,
-  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticCrossNoiseWLLNBridge`,
-  and `factorPCTheorem11_9_jointLS_eventually_of_approxFactorCrossNoiseWLLNBridge`.
-  The Hansen-facing Assumption 11.1 facade has been split so the tightest route
-  no longer requires three scalar WLLN families. `ApproximateFactorAssumptionNormalizedRayleighBridge`
-  carries bounded idiosyncratic covariance, loading pervasiveness, score
-  normalization, and the single uniform normalized-Rayleigh `o(1)` primitive;
-	  its namespace exposes `.toNormalizedRayleighBridge`, `.toPerturbationBridge`,
-	  and `.eventually_scoreVariance_bound`, and theorem endpoints are
-	  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge`
-	  and
-	  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge`,
-	  with no-extra-observation-count companion
-	  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge_only`.
-	  The combined Hansen-facing endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge`
-  returns the PCA formula certificate, literal normalized joint-LS minimizer,
-  and bounded score-variance consequence in a single eventual statement; its
-  `_only` companion
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge_only`
-  derives the observation-count side condition internally.
-  `ApproximateFactorAssumptionMatrixWLLNBridge` is the preferred WLLN-facing
-  constructor when the probability proof gives the whole matrix convergence
-  `n⁻¹(F'E + E'F + E'E) -> 0`; it feeds the normalized-Rayleigh facade through
-  `.toMatrixWLLNBridge`, `.toNormalizedRayleighBridge`,
-  `.toNormalizedRayleighAssumptionBridge`, and `.toPerturbationBridge`, with
-  theorem endpoints
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge`
-  and
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge`,
-  plus combined endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge`.
-  `ApproximateFactorAssumptionRawMomentMatrixWLLNBridge` is the raw-moment
-  Hansen-facing constructor: it retains Assumption 11.1 and score normalization
-  but replaces the single recovered-perturbation WLLN with matrix WLLNs for
-  `(n⁻¹F'U)L'`, `L(n⁻¹U'F)`, and `L(n⁻¹U'U)L'`. Its bridges
-  `.toRawMomentMatrixWLLNBridge`, `.toMatrixWLLNAssumptionBridge`,
-  `.toNormalizedRayleighAssumptionBridge`, and `.eventually_scoreVariance_bound`
-  feed theorem endpoints
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge`
-  and
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge`,
-  plus combined endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge`.
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge` is the narrower
-  Hansen-facing raw-moment route. It retains Assumption 11.1 and score
-  normalization but assumes WLLNs for the unrecovered raw moments `n⁻¹F'U`,
-  `n⁻¹U'F`, and centered `n⁻¹U'U - Ψ`, together with convergence of `Ψ` and
-  shrinkage of the loading-Gram recoverer `(Λ'Λ)^{-1}Λ' -> 0`. The deterministic
-  continuity bridge
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.raw_idiosyncratic_gram_tendsto_covariance`
-  derives the uncentered raw-noise limit, and
-  `.toRawMomentMatrixWLLNBridge`, `.toMatrixWLLNAssumptionBridge`,
-  `.toNormalizedRayleighAssumptionBridge`, and `.eventually_scoreVariance_bound`
-  feed theorem endpoints
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge`
-  and
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge`,
-  plus combined endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge`.
-  The entrywise variant
-  `ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge` now derives that
-  unrecovered matrix-WLLN route from coordinatewise convergence of
-  `(Λ'Λ)⁻¹Λ'`, `Ψ`, `n⁻¹F'U`, `n⁻¹U'F`, and centered `n⁻¹U'U - Ψ`; its theorem
-  endpoints are
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge`
-  and
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge`,
-  plus combined endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge`.
-  The scalar-envelope variant
-  `ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge` lets callers
-  prove one scalar envelope convergence for each primitive family
-  `(Λ'Λ)⁻¹Λ'`, `Ψ`, `n⁻¹F'U`, `n⁻¹U'F`, and centered `n⁻¹U'U - Ψ`, then derives
-  the entrywise and matrix WLLN packages through
-  `.toUnrecoveredEntrywiseWLLNBridge`, `.toUnrecoveredMomentWLLNBridge`,
-  `.toNormalizedRayleighAssumptionBridge`, and `.eventually_scoreVariance_bound`.
-  The theorem endpoints are
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseEnvelopeWLLNBridge`
-  and
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseEnvelopeWLLNBridge`,
-  plus combined endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseEnvelopeWLLNBridge`.
-  The older `ApproximateFactorAssumptionCrossNoiseWLLNBridge` is now a
-  compatibility facade for term-by-term probability arguments; it still exposes
-  `.eventually_scoreVariance_bound`, `.toCrossNoiseWLLNBridge`,
-  `.toMatrixWLLNBridge`, `.toMatrixWLLNAssumptionBridge`, and
-  `.toNormalizedRayleighAssumptionBridge`, with theorem endpoints
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1CrossNoiseWLLNBridge`
-  and
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1CrossNoiseWLLNBridge`,
-  plus combined endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1CrossNoiseWLLNBridge`.
-  Canonical scaling also proves
-  `factorPCDiagonalSqrtD_mul_factorPCDiagonalInvSqrtD` and the fitted-value
-  identity `factorLoadingEstimator_mulVec_factorScoreEstimator_diagonal`, i.e.
-  `Λ̂F̂_i = H H'X_i`, plus
-  `factorLoadingEstimator_diagonal_trace_gram_eq_concentratedObjective` for the
-  loading-Gram trace equality used by the literal profile bridge. The optional
-  approximate-factor asymptotic extension is reduced to a normalized operator/WLLN handoff:
-  `factorRecoveredIdiosyncraticGramNormalizedPerturbation`,
-  `factorRecoveredIdiosyncraticGramNormalizedRayleighLE`,
-  `factorRecoveredIdiosyncraticGramRayleighLE_of_normalizedRayleighLE`,
-  `factorRecoveredIdiosyncraticGramNormalizedRayleighTendstoZero`,
-  `factorRecoveredIdiosyncraticGramRayleighTendstoZero_of_normalized`,
-  `factorRecoveredIdiosyncraticGramNormalizedRayleighEnvelopeLE`,
-  `factorRecoveredIdiosyncraticGramNormalizedRayleighTendstoZero_of_envelope`,
-  and `factorRecoveredIdiosyncraticGramRayleighTendstoZero_of_normalized_envelope`
-  reduce the old unnormalized Rayleigh condition and its theorem-facing endpoints
-  to proving an `o(1)` scalar envelope, equivalent operator/Rayleigh norm WLLN,
-  the matrix WLLN for `n⁻¹(F'E + E'F + E'E)` after loading-Gram recovery, or the
-  raw recovered moment WLLNs for `(n⁻¹F'U)L'`, `L(n⁻¹U'F)`, and `L(n⁻¹U'U)L'`;
-  the unrecovered-moment, unrecovered-entrywise, and unrecovered-entrywise-envelope
-  routes now derive those recovered raw moment WLLNs from primitive raw
-  cross/centered-noise convergence and recoverer shrinkage; the three coordinate
-  WLLNs for the recovered terms remain only a sufficient term-by-term route. The
-  resulting scalar-envelope and recoverer-shrinkage obligations concern that
-  optional dimension-growing extension, not the complete finite-sample Theorem
-  11.9 endpoint. They would require additional consequences of
-  Hansen's weaker asymptotic approximate-factor assumptions: row dependence,
-  centering/cross-term conditions, integrability/uniform-integrability, and a
-  dimension-growing pervasiveness result that makes the recoverer vanish.
-  Assumption 11.1's bounded idiosyncratic covariance/pervasiveness is retained
-  in the theorem-facing facade, but bounded covariance alone still is not a WLLN.
-  Arbitrary supplied scaling remains
-  available through the non-positive-eigenvalue compatibility endpoints. Repeated selected eigenvalues are represented by Mathlib's canonical
-  ordered orthonormal basis within the tied leading eigenspace, so the formalized
-  loadings are one valid Hansen rotation rather than a uniquely identified basis in
-  a tie.
+#### Assumption 11.1 and factor-score variance
 
-### Theorem 11.11 progress notes
+- `factorScoreErrorCovariance` is Hansen's score-error covariance. The theorem
+  `factorScoreErrorCovariance_eq_loadingGram` proves the exact identity
+  `D^-1 Lambda' Psi Lambda D^-1`, where `D = Lambda' Lambda`.
+- `factorScoreErrorCovariance_quadratic_le` proves the finite Rayleigh bound
+  `x' Var(error) x <= (B / c) x'x` from the idiosyncratic-covariance bound `B` and loading-Gram
+  lower bound `c`. The packaged conclusion is `approximateFactor_scoreVariance_bound`, with
+  proposition surface `factorScoreVarianceBound`.
+- `ApproximateFactorAsymptoticConditions` formalizes Hansen's `k -> infinity` statement with a
+  varying observed-variable dimension `kappa i -> infinity`, positive-semidefinite idiosyncratic
+  covariance matrices sharing one Rayleigh bound, and a loading-Gram lower bound tending to
+  infinity. `ApproximateFactorAsymptoticConditions.scoreErrorCovariance_norm_tendsto_zero` proves
+  that the Euclidean operator norm of the exact covariance matrix tends to zero.
 
-- Update: the matrix-Gaussian whitening/coordinate-column transport is now closed by `iidMatrixGaussianLaw_standardCoordinate_whiten_map`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_whitening_transport`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_whitening_transport`, and `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_whitening_transport`; `standardCoordinate_full_nuisance_nonsingular_of_nuisance_nonsingular` and `wishartLaw_nonsingular_of_standardCoordinate_whitening_transport` derive the full standard-coordinate and original-Wishart nonsingularity requirements from the nuisance-column Gram certificate. The `standard_gram_nonsingular` wrappers derive that nuisance-column event from the canonical rectangular iid standard-Gaussian Gram certificate, now supplied by `iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae`; `standardCoordinate_whitening_alignment_exists_of_posDef` constructs the whitening/alignment data for general positive-definite `Σ` and nonzero `α`, yielding `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le`.
-- New standard-coordinate residualized-law bridge: `inverseWishartScaledLinearForm_one_standardCoordinate_hasLaw_of_residualProjection_law` derives the raw Gaussian-matrix inverse-Wishart scalar law from explicit a.s. full/nuisance Gram nonsingularity plus the chi-square law of the residualized first-column quadratic form. The law-level wrapper `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_residualProjection_law` pushes that result through `Y ↦ YᵀY` to the named `wishartLaw` for `Σ = I` and `α = e₁`. The raw first-column law is closed by `rowGaussianLaw_standardCoordinate_inl_map` and `standardCoordinateFirstColumn_hasLaw_iidMatrixGaussianLaw`; nuisance row coordinates are closed by `rowGaussianLaw_standardCoordinate_inr_map`; the nuisance matrix law is closed by `iidMatrixGaussianLaw_standardCoordinateRestColumns_map` with random-matrix wrapper `standardCoordinateRestColumns_hasLaw_iidMatrixGaussianLaw`; first-column/residual-projection independence is closed by `standardCoordinateFirstColumn_indepFun_standardCoordinateRestColumns_iidMatrixGaussianLaw` and `standardCoordinateFirstColumn_indepFun_gaussianResidualProjection_iidMatrixGaussianLaw`; and the residualized projection chi-square law is closed by `standardCoordinate_residualProjection_quadratic_hasLaw_chiSquared_of_nuisance_nonsingular`. The raw iid standard-Gaussian full Gram and nuisance Gram a.s. nonsingularity inputs are closed by `iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae` and its standard-coordinate rest-column wrapper.
-- Scale normalization support: `inverseWishartScaledLinearForm_smul_alpha` proves the chi-square-normalized inverse-Wishart scalar is invariant under nonzero rescaling of `α`, and `standardCoordinate_orthogonal_alignment_exists` supplies the standard-coordinate rotation after whitening.
-- Coordinate-congruence support: `inverseWishartScaledLinearForm_congr_of_inverse` proves the deterministic whitening algebra for any explicit two-sided inverse transform, with the orthogonal wrappers `inverseWishartLinearForm_orthogonal_congr`, `inverseWishartScaledLinearForm_orthogonal_congr`, and `hotellingT2_orthogonal_congr` as special cases. `wishartLaw_congr_map_of_iidMatrixGaussianLaw_map` derives the named Wishart congruence from the primitive iid matrix-Gaussian column-map identity; `standardCoordinate_whitening_alignment_exists_of_posDef` now supplies the positive-definite whitening/rotation data used by the theorem-facing endpoints.
-- Raw standard-coordinate Hansen endpoint: `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_congr` now packages the textbook raw law `(α'W⁻¹α)⁻¹ ∼ χ²/(α'Σ⁻¹α)` from the completed standard-coordinate scaled theorem plus scale positivity, and `inverseWishartLinearForm_wishartLaw_map_eq_theorem11_11_raw_of_standardCoordinate_congr` records the corresponding named-law push-forward identity. The matrix-Gaussian transport wrappers `inverseWishartScaledLinearForm_wishartLaw_map_eq_of_standardCoordinate_matrixGaussian_transport`, `inverseWishartScaledLinearForm_wishartLaw_map_eq_chiSquared_of_standardCoordinate_matrixGaussian_transport`, and `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_standardCoordinate_matrixGaussian_transport` remove the direct Wishart congruence premise from theorem-facing call sites.
+#### Namespaced finite-bound endpoints
 
-### Theorem 11.12 progress notes
+The combined endpoints below are namespaced under `FactorPCTheorem11_9`. Each eventually packages
+the finite-sample PCA result, the normalized joint least-squares result, and a per-index
+`factorScoreVarianceBound`. These endpoints do not assert covariance convergence; the separate
+varying-dimension theorem above is the asymptotic vanishing result.
 
-- Update: `hotellingCenteredMeanParameter_fixedInverseWishart_ae_of_standardCoordinate_whitening_transport`, `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport`, and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_ae_standardCoordinate_whitening_transport` now supply the a.e. standard-coordinate matrix-Gaussian transport; the `_of_standard_nuisance_nonsingular` variants derive centered-Wishart and full-standard-coordinate nonsingularity from the nuisance-column Gram certificate, and the `_standard_gram_nonsingular` variants derive that event from the canonical rectangular iid standard-Gaussian Gram certificate. The canonical Gram input is now `iidMatrixGaussianLaw_standard_crossProduct_nonsingular_ae`, the per-parameter whitening/alignment data comes from `standardCoordinate_whitening_alignment_exists_of_posDef`, and the theorem-facing endpoints are `hotellingT2Sample_hasLaw_theorem11_12_of_iid_normal_rows_posDef` and `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef`.
-- Normalized Hotelling F-statistic surface: `hotellingT2HansenFStatistic` exposes Hansen's unscaled `F(m,n-m)` statistic, with scale nonzero lemma `hotellingT2HansenScale_ne`. The theorem-facing endpoints `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_chiSquared_ratio`, `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_components`, `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_fixed_inverseWishart`, `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_centered_wishart_nonzero_of_standardCoordinate_congr`, and `hotellingT2HansenFStatistic_hasLaw_theorem11_12` reuse the existing scaled-`T²`, centered-Wishart, and inverse-Wishart proof surfaces. The fixed nonzero-parameter inverse-Wishart push-forward for the centered `W_m(n-1,Σ)` law is now supplied through the positive-definite standard-coordinate route, and the Hansen F-law normalization is packaged by `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef`.
+| Input route | Public endpoint |
+| --- | --- |
+| Normalized Rayleigh, explicit observation count | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh` |
+| Normalized Rayleigh, observation count derived | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh_only` |
+| Matrix WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_matrixWLLN` |
+| Raw-moment matrix WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_rawMomentWLLN` |
+| Unrecovered-moment WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_unrecoveredMomentWLLN` |
+| Unrecovered entrywise WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_unrecoveredEntrywiseWLLN` |
+| Entrywise envelope | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_entrywiseEnvelope` |
+| Inverse-loading envelope | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_inverseLoadingEnvelope` |
+| Cross/noise WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_crossNoiseWLLN` |
+
+### Theorem 11.11 notes
+
+- `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le` is the sole
+  theorem-facing endpoint. It states Hansen's raw inverse-Wishart scalar law, derives positivity
+  of the variable dimension from the nonzero direction, and derives all whitening,
+  Schur-complement, nuisance-Gram, and projection-law inputs internally.
+
+### Theorem 11.12 notes
+
+- `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef` is the sole
+  theorem-facing endpoint. It states Hansen's normalized `F(m,n-m)` law directly from iid
+  multivariate-normal rows and positive-definite covariance; the mean/covariance independence,
+  centered Wishart law, inverse-Wishart reduction, and scale algebra are proof infrastructure.
 
 ## Lean-Only Support Results
 
-- System regression support: `systemDelta_gaussianLimit_from_interface`,
-  `systemDelta_tendstoInDistribution_from_interface`,
-  `systemCovariance_consistent_from_interfaces`, and `systemDeltaCovariance_consistent`.
-- System-regression asymptotic wrappers and exact covariance assembly:
-  `SystemScoreCLTConditions`, `systemAsymptoticVariance_posSemidef`,
-  `systemStackOutcomes_linear_model`, `systemScore_sum_outcomes_linear_model`,
-  `systemScoreMean_outcomes_linear_model`, `systemLeastSquaresBetaStarObs_eq_sum_moments`,
-  `systemLeastSquaresBetaStarObs_eq_normalized_moments`,
-  `systemLeastSquaresBetaStarObs_sub_identity`,
-  `systemLeastSquaresBetaStarObs_sub_identity_normalized`,
-  `systemFittedStarObs`, `systemResidualStarObs`, `systemResidualStarObs_apply`,
-  `systemResidualStarObs_linear_model_apply`, `systemSigmaHatStarObs`,
-  `systemRobustCovarianceStarObs`, `systemHomoskedasticCovarianceStarObs`,
-  `systemLinearizedScore_tendstoInDistribution`,
-  `systemLeastSquaresBetaStarObs_linearization_of_nonsingular`,
-  `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_nonsingular`,
-  `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`,
-  `scalarResponseSystemLeastSquaresBetaStar_tendstoInDistribution`,
-  `scalarResponseSystemLeastSquaresBetaStar_linearTransform_tendstoInDistribution`,
-  `systemLeastSquaresBetaOrZeroObs_tendstoInMeasure_beta`,
-  `SystemDeltaRemainderConditions`, `systemDeltaTaylorRemainder`,
-  `SystemDeltaRemainderConditions.taylorRemainder_isLittleO`,
-  `SystemDeltaRemainderConditions.taylorExpansion_eq_linear_plus_remainder`,
-  `systemDeltaLinearization_of_scaled_taylor_remainder`,
-  `SystemDeltaLinearization`,
-  `systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization`,
-  `systemDelta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit`,
-  `systemNormalizedGram_tendstoInMeasure`,
-  `systemRobustMiddle_ideal_tendstoInMeasure`,
-  `systemHomoskedasticMiddle_fixed_tendstoInMeasure`,
-  `systemRobustMiddle_feasible_tendstoInMeasure_of_substitution`,
-  `systemHomoskedasticMiddle_feasible_tendstoInMeasure_of_substitution`,
-  `systemSandwichCovariance_tendstoInMeasure`,
-  `systemRobustCovariance_tendstoInMeasure_of_ideal_wlln`,
-  `systemRobustCovariance_tendstoInMeasure_of_feasible_wlln_substitution`,
-  `systemHomoskedasticCovariance_tendstoInMeasure_of_fixed_wlln`, and
-  `systemHomoskedasticCovariance_tendstoInMeasure_of_feasible_wlln_substitution`.
-- Shared covariance helper: `covMat_isHermitian`.
-- Non-tautological SUR support includes
-  `surWeightedScoreMean`, `surWeightedScoreMean_outcomes_linear_model`,
-  `surBetaFromInverseCovStar`, `surBetaFromInverseCovStar_sub_identity`,
-  `SURScoreCLTConditions`, `surLinearizedScore_tendstoInDistribution`,
-  `SURScoreCLTConditions.of_weighted_score_moments`,
-  `measure_surInformation_singular_tendsto_zero`,
-  `surBetaFromInverseCovStar_linearization`,
-  `surBetaFromInverseCovStar_tendstoInDistribution`,
-  `surBetaFromInverseCovStar_linearization_of_nonsingular`,
-  `surBetaFromInverseCovStar_tendstoInDistribution_of_nonsingular`,
-  `surResidualCovariance`, `surResidualCovarianceStarObs`,
-  `surResidualCovarianceStarObs_eq_systemSigmaHatStarObs`, `surBetaStar`,
-  `surBetaStar_eq_glsBeta`, `sur_efficiency_from_gls_variance_gap`,
-  `sur_efficiency_vs_olsConditionalVarianceMatrix`,
-  `systemPopulationMiddle`, `systemPopulationMiddle_quadratic_eq_integral`,
-  `systemPopulationMiddle_posSemidef`,
-  `population_generalizedGaussMarkov_variance_gap_posSemidef_of_expansion`,
-  `sur_efficiency_vs_systemAsymptoticVariance_of_population_expansion`,
-  `surVarianceEstimator_tendstoInMeasure`,
-  `surCovariance_consistent_of_information_tendsto`, and
-  `surCovariance_consistent_of_fixed_inverse_cov_wlln`,
-  `surResidualCovarianceStarObs_inverse_tendstoInMeasure`,
-  `surResidualCovarianceStarObs_inverse_aestronglyMeasurable`,
-  `systemHomoskedasticMiddle_estimated_aestronglyMeasurable`,
-  `surResidualCovarianceStarObs_information_aestronglyMeasurable`,
-  `surCovariance_consistent_of_estimated_inverse_cov_substitution`,
-  `surCovariance_consistent_of_estimated_inverse_cov_weight_wlln`,
-  `systemHomoskedasticMiddleWeight_bounded_of_wlln`,
-  `surCovariance_consistent_of_residualCovarianceStarObs_substitution`,
-  `surCovarianceEstimatorStarObs_consistent_of_residualCovariance_weight_wlln`.
-- PCA and factor-model support: `principalComponent_eigenvector_of_solution`,
-  `principalComponentVariance_eq_eigenvalue`, `principalComponent_variance_eq_covMat_quadratic`,
-  `principalComponent_variance_eq_eigenvalue`,
-  `principalComponent_variance_eq_hermitian_eigenvalue`,
-  `principalComponent_variance_eq_covMat_eigenvalue`, `orderedPCEigenIndex`,
-  `orderedPCEigenvalue`, `orderedPCEigenvector`, `pcaFeasibleBefore`,
-  `SequentialPrincipalComponentOptimizer`,
-  `SequentialPrincipalComponentOptimizer.eigenvector`,
-  `sequentialPrincipalComponentOptimizer_of_eigenvector`,
-  `sequentialPrincipalComponentOptimizer_iff_eigenvector`,
-  `SequentialPrincipalComponentSolution`, `orderedPCEigenvector_eigenvector`,
-  `orderedPCEigenvector_unit`, `orderedPCLoadingMatrix_mul_transpose`,
-  `orderedPCEigenvalue_antitone`, `orderedPCLoadingMatrix_eigenspace`,
-  `orderedPCLoadingMatrix_mul_diagonal_mul_transpose`,
-  `orderedPCEigenvector_feasibleBefore`,
-  `orderedPCEigenvector_maximizes_variance_feasibleBefore`,
-  `orderedPCEigenvector_sequentialPrincipalComponentOptimizer`,
-  `orderedPCEigenvector_sequentialPrincipalComponentSolution`,
-  `ordered_covMat_PCEigenvector_sequentialPrincipalComponentSolution`,
-  `principalComponentVariance_eq_orderedPCEigenvalue`,
-  `ordered_covMat_eigenvector_of_maximizes_variance_feasibleBefore`,
-  `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`,
-  `principalComponent_variance_eq_ordered_covMat_eigenvalue`,
-  `ordered_covMat_PCEigenvalue_antitone`,
-  `OrderedPrincipalComponentTheorem11_8`, `orderedPrincipalComponent_theorem11_8`,
-  `factorSampleCovariance`,
-  `factorSampleCovariance_transpose`, `factorSampleCrossCovariance`,
-  `factorScoreSampleCovariance`, `factorScoreNormalization`, `factorLeadingEigenspace`,
-  `factorLeadingEigenspace_col_diagonal`, `factorPCDiagonalSqrtD`,
-  `factorPCDiagonalInvSqrtD`, `factorPCDiagonalInvSqrtD_mul_diagonal_mul_transpose`,
-  `diagonal_mul_factorPCDiagonalInvSqrtD_transpose`,
-  `factorPCDiagonalSqrtD_leastSquares_score_scale`, `factorPCScaling_diagonal_of_pos`,
-  `FactorPCScaling`, `factorScoreLeastSquares`, `factorScoreDataMatrix`,
-  `factorCommonComponentDataMatrix`, `factorExactSampleFactorModel`,
-  `ExactSampleFactorRankCondition`,
-  `factorLoadingEstimator_diagonal_apply`, `factorScoreEstimator_diagonal_apply`,
-  `trace_transpose_mul_self_nonneg`,
-  `factorLeastSquaresCriterion_eq_sum_expand`,
-  `factorLeastSquaresCriterion_nonneg`,
-  `factorSampleCovariance_trace_eq_sum_dotProduct`,
-  `trace_loading_transpose_mul_factorSampleCrossCovariance_eq_sum_dot`,
-  `trace_loading_gram_eq_sum_fitted_dot_of_normalized`,
-  `factorLeastSquaresCriterion_eq_trace_sub_two_cross_add_loading_gram`,
-  `trace_sub_transpose_mul_sub`,
-  `factorLeastSquaresCriterion_eq_trace_sub_cross_gram_add_square`,
-  `factorLeastSquaresCriterion_profiled_eq_trace_sub_cross_gram`,
-  `trace_sub_cross_gram_le_factorLeastSquaresCriterion`,
-  `FactorLeastSquaresProfileBridge.of_crossCovariance_trace_bound`,
-  `FactorLeastSquaresProfileBridge.of_factorPCTheorem11_9_crossCovariance_trace_bound`,
-  `factorPCTheorem11_9_jointLeastSquaresMinimizer_of_crossCovariance_trace_bound`,
-  `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_crossTraceBound`,
-  `factorObservationGram`,
-  `factorNormalizedScoreFrame`,
-  `factorSampleCrossCovariance_gram_eq_normalizedScoreFrame_observationGram`,
-  `factorSampleCrossCovariance_trace_eq_observationGram_objective`,
-  `factorSampleCrossCovariance_trace_le_sum_observationGram_leadingEigenvalues`,
-  `factorObservationGram_posSemidef`,
-  `factorObservationGram_sampleCovariance_charpoly_mul_X`,
-  `factorObservationGram_sampleCovariance_roots_with_zero_padding`,
-  `factorObservationGram_sampleCovariance_padded_eigenvalues₀_eq`,
-  `factorObservationGram_sampleCovariance_eigenvalues₀_sum_eq`,
-  `factorObservationGram_sampleCovariance_leadingEigenvalue_sum_eq`,
-  `factorObservationGram_rank_eq_dataMatrix_rank`,
-  `factorObservationGram_rank_eq_sampleCovariance_rank`,
-  `factorPCTheorem11_9_crossCovariance_trace_bound_of_observationGram_eigenvalue_bound`,
-  `factorPCTheorem11_9_crossCovariance_trace_bound`,
-  `factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_observationGramEigenBound`,
-  `factorSampleCrossCovariance_linearMap`, `factorScoreSampleCovariance_linearMap`,
-  `factorSampleCrossCovariance_left_linearMap`,
-  `factorSampleCrossCovariance_fitted_self_of_normalized`,
-  `factorSampleCrossCovariance_sub_left`,
-  `factorSampleCrossCovariance_residual_of_crossCovariance_normalized`,
-  `factorScoreEstimator_eq_leastSquaresScore`,
-  `factorScoreNormalization_of_eigenspace_scores`,
-  `factorSampleCrossCovariance_eq_loading_of_eigenspace_scores`,
-  `factorPCSolution_of_certificate`,
-  `factorPCSolution_sample_covariance_eq`, `factorPCSolution_loading_eq`,
-  `factorPCSolution_factor_eq`, `factorPCSolution_of_eigenspace_certificate`,
-  `factorPCSolution_leadingEigenspace_eq`,
-  `factorPCSolution_of_normalized_eigenspace_certificate`,
-  `factorConcentratedObjective`, `FactorConcentratedObjectiveMaximizer`,
-  `factorConcentratedLeastSquaresCriterion`,
-  `FactorConcentratedLeastSquaresCriterionMinimizer`,
-  `factorConcentratedObjective_eq_trace_eigenvalues_of_normalized`,
-  `factorConcentratedObjective_eq_sum_eigenvalues_of_normalized`,
-  `factorConcentratedObjectiveMaximizer_of_trace_maximal`,
-  `factorConcentratedLeastSquaresCriterionMinimizer_of_objectiveMaximizer`,
-  `factorConcentratedObjective_le_sum_leadingPCEigenvalues`,
-  `factorLeadingPCEigenvectors_concentratedObjectiveMaximizer`,
-  `factorLeadingPCEigenvectors_concentratedLeastSquaresCriterionMinimizer`,
-  `factorPCSolution_of_eigenspace_scaling_certificate`,
-  `factorPCSolution_of_concentratedObjective_optimizer`,
-  `factorPCSolution_of_leadingPCEigenvectors`,
-  `FactorPCTheorem11_9`, `factorPCTheorem11_9_of_concentratedObjective_optimizer`,
-  `factorPCTheorem11_9_of_leadingPCEigenvectors`,
-  `factorPCTheorem11_9_of_sampleCovariance_leadingPCEigenvectors`,
-  `factorPCTheorem11_9_of_leadingPCEigenvectors_positive_eigenvalues`,
-  `factorPCTheorem11_9_of_sampleCovariance_leadingPCEigenvectors_positive_eigenvalues`,
-  `factorApproxSampleFactorModel`, `ApproximateSampleFactorRankCondition`,
-  `factorLoadingGramRecoverer`, `factorLoadingGramRecoverer_leftInverse`,
-  `factorLoadingGramRecoverer_annihilates_idiosyncratic`,
-  `ApproximateSampleFactorPervasiveCondition`,
-  `ApproximateSampleFactorPervasiveCondition.toApproximateSampleFactorRankCondition`,
-  `ApproximateSampleFactorPerturbationCondition`,
-  `factorRecoveredIdiosyncraticGramPerturbation`,
-  `factorRawFactorIdiosyncraticCrossNormalized`,
-  `factorRawIdiosyncraticFactorCrossNormalized`,
-  `factorRawIdiosyncraticGramNormalized`,
-  `factorRecoveredIdiosyncraticCrossLeftNormalized_eq_raw_mul_recoverer`,
-  `factorRecoveredIdiosyncraticCrossRightNormalized_eq_recoverer_mul_raw`,
-  `factorRecoveredIdiosyncraticNoiseGramNormalized_eq_recoverer_mul_raw_mul`,
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseAbsSum`,
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseAbsSum_nonneg`,
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseEnvelopeLE_absSum`,
-  `factorRecoveredIdiosyncraticGramNormalizedEntrywiseAbsSum_tendsto_zero`,
-  `ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge`,
-  `ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge.toMatrixWLLNBridge`,
-  `ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge.toNormalizedRayleighBridge`,
-  `ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge.toPerturbationBridge`,
-  `ApproximateFactorAssumptionRawMomentMatrixWLLNBridge`,
-  `ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toRawMomentMatrixWLLNBridge`,
-  `ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toMatrixWLLNAssumptionBridge`,
-  `ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge`,
-  `ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.eventually_scoreVariance_bound`,
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge`,
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.raw_idiosyncratic_gram_tendsto_covariance`,
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toRawMomentMatrixWLLNBridge`,
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toMatrixWLLNAssumptionBridge`,
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toNormalizedRayleighAssumptionBridge`,
-  `ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.eventually_scoreVariance_bound`,
-  `ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toMatrixWLLNAssumptionBridge`,
-  `ApproximateFactorAsymptoticCoordinateWLLNBridge`,
-  `ApproximateFactorAsymptoticCoordinateWLLNBridge.toEntrywiseEnvelopeBridge`,
-  `ApproximateFactorAsymptoticCoordinateWLLNBridge.toNormalizedRayleighBridge`,
-  `ApproximateFactorAsymptoticCoordinateWLLNBridge.toPerturbationBridge`,
-  `factorRecoveredIdiosyncraticGramDominated_of_scoreNormalization`,
-  `factorDataMatrix_rank_ge_of_factor_recovery`,
-  `factorDataMatrix_rank_ge_of_exact_factor_leftInverse`,
-  `factorDataMatrix_rank_ge_of_exactSampleFactorRankCondition`,
-  `factorDataMatrix_rank_ge_of_approx_factor_leftInverse_annihilates_noise`,
-  `factorDataMatrix_rank_ge_of_approxSampleFactorRankCondition`,
-  `factorDataMatrix_rank_ge_of_approxSampleFactorPervasiveCondition`,
-  `factorDataMatrix_rank_ge_of_approxSampleFactorPerturbationCondition`,
-  `factorSampleCovariance_rank_ge_of_approxSampleFactorPervasiveCondition`,
-  `factorSampleCovariance_rank_ge_of_approxSampleFactorPerturbationCondition`,
-  `factorPCTheorem11_9_of_exactSampleFactorRankCondition`,
-  `factorPCTheorem11_9_of_approxSampleFactorRankCondition`,
-  `factorPCTheorem11_9_of_approxSampleFactorPervasiveCondition`,
-  `factorPCTheorem11_9_of_approxSampleFactorPerturbationCondition`,
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge`,
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge`,
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge`,
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge`,
-  `factorPCTheorem11_9_eventually_of_approxFactorAsymptoticCoordinateWLLNBridge`,
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorCoordinateWLLNBridge`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition`,
-	  `factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPerturbationCondition`,
-	  `factorPCSolution_factor_eq_leastSquaresScore`,
-  `factorPCSolution_loading_normalEquation`, and
-	  `approximateFactor_scoreVariance_bound`.
-  The newest envelope bridge
-  `ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toMatrixWLLNAssumptionBridge`
-  exposes the unrecovered entrywise-envelope route at the same matrix-WLLN
-  Assumption 11.1 facade as the existing raw/unrecovered moment bridges. The
-  inverse/loading-envelope facade
-  `ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge.toUnrecoveredEntrywiseWLLNBridge`
-  and its matrix/normalized-Rayleigh conversions derive that entrywise route
-  from primitive `(Λ'Λ)⁻¹` and `Λ` envelopes. The theorem-facing wrappers
-  `factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredInverseLoadingEnvelopeWLLNBridge`
-  and
-  `factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredInverseLoadingEnvelopeWLLNBridge`
-  now feed that inverse-loading route directly into Hansen Theorem 11.9's PCA
-  and normalized joint-LS conclusions. The combined endpoint
-  `factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredInverseLoadingEnvelopeWLLNBridge`
-  additionally carries the Assumption 11.1 bounded score-variance conclusion
-  with those two PCA/joint-LS conclusions. The deterministic
-  loading-recoverer reduction is now explicit via
-  `factorLoadingGramRecoverer_entry_abs_le_of_inverse_loading_entry_bounds`,
-  `factorLoadingGramRecoverer_entry_abs_bound_eventually_of_inverse_loading_entry_bounds`,
-  and
-  `factorLoadingGramRecoverer_entry_tendsto_zero_of_inverse_loading_entry_bounds`:
-  uniform entry envelopes for `(Λ'Λ)⁻¹` and `Λ`, with
-  `(# factors)ρInvρΛ → 0`, supply the recoverer shrinkage used by the WLLN
-  bridge. Deriving those inverse/loading envelopes plus the covariance-target,
-  raw `n⁻¹F'U`, raw `n⁻¹U'F`, and centered `n⁻¹U'U - Ψ` envelope WLLNs is an
-  optional dimension-growing approximate-factor extension and is not an open
-  obligation in the finite-sample Theorem 11.9 crosswalk.
-	- Reduced-rank and distributional certificate helpers: `generalizedEigenvector`,
-  `generalizedEigenvectorColumns`, `generalizedEigenvectorColumns_apply`,
-  `generalizedEigenvectorColumns_mul_eq_mul_diagonal`,
-  `generalizedEigenvectorColumns_crossGram_eq_mul_diagonal`,
-  `generalizedEigenvectorBNormalized`, `generalizedEigenCompression`,
-  `generalizedEigenCompression_diagonal_of_columns`,
-  `generalizedEigenDetObjective_eq_det_compression_of_normalized`,
-  `generalizedEigenDetReciprocalObjective_eq_inv_det_compression_of_normalized`,
-  `generalizedEigenDetObjective_eq_compressed_det_of_normalized`,
-  `generalizedEigenDetReciprocalObjective_eq_inv_compressed_det_of_normalized`,
-  `generalizedEigenDetObjective`,
-  `generalizedEigenDetObjective_eq_prod_eigenvalues_of_normalized`, `ReducedRankMLE`,
-  `reducedRankMLE_of_certificate`, `reducedRankMLE_of_generalizedEigenvectors`,
-  `reducedRankTildeY`, `reducedRankTildeX`, `reducedRankGPencilA`,
-  `reducedRankGPencilB`, `reducedRankHansenGEigenvectors`, `reducedRankGNormalized`,
-  `reducedRankConcentratedEigenObjective`, `reducedRankConcentratedObjectiveMaximizer`,
-  `reducedRankConcentratedObjectiveMaximizer_of_compressed_det_bound`,
-  `reducedRankConcentratedObjectiveMaximizer_of_compression_det_bound`,
-  `reducedRankGEigenObjectiveMaximizerOnEigenvectors`,
-  `reducedRankConcentratedObjective_eq_prod_eigenvalues_of_normalized`,
-  `reducedRankGEigenObjectiveMaximizerOnEigenvectors_of_eigenvalueProduct_maximal`,
-  `reducedRankAperpObjectiveMaximizer`,
-  `reducedRankAperpObjectiveMaximizer_of_generalized_detObjectiveMaximizer`,
-  `reducedRankAperpObjectiveMaximizer_of_compressed_det_bound`,
-  `reducedRankAperpSelectedCompressedDetMaximal_of_objectiveMaximizer`,
-  `reducedRankAhat`, `reducedRankChat`, `reducedRankSigmaHat`,
-  `reducedRankMaximizedLogLikelihood`, `reducedRankLeastSquaresRecovery`,
-  `reducedRankCovarianceRecovery`, `reducedRankLikelihoodValue`,
-  `reducedRankMLE_of_hansen_generalizedEigenvectors`,
-  `reducedRankMLE_of_hansen_compressed_det_bound`,
-  `reducedRankMLE_of_hansen_compression_bound`,
-  `reducedRankMLE_of_hansen_objective_optimizer`,
-  `ReducedRankHansenDetProductMaxMaxCertificate`,
-  `ReducedRankHansenIdentifiedSpectralMaximizerCertificate`,
-  `ReducedRankHansenTheorem11_7`,
-  `reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate`,
-  `reducedRankHansenTheorem11_7_of_maxMax_and_dual_relation`,
-  `sampleRowMatrix`, `sampleMeanMatrix`, `centeredSampleMatrix`,
-  `sampleCenteringMatrix`, `sampleCovarianceMatrix`, `sampleCovarianceMatrix_apply`,
-  `sampleContrastRows`, `sampleCenteringMatrix_mul_eq_centeredSampleMatrix`,
-  `matrixCrossProduct_sampleContrastRows`,
-  `matrixCrossProduct_centeredSampleMatrix_eq_contrast`,
-  `sampleCovarianceMatrix_eq_scaled_contrast_crossProduct`, `rowGaussianLaw`,
-  `iidMatrixGaussianLaw`, `wishartLaw`, `scaledWishartLaw`,
-  `matrixCrossProduct_hasLaw_wishartMatrixLaw`,
-  `scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw`,
-  `matrixCrossProduct_hasLaw_wishartLaw`,
-  `scaledMatrixCrossProduct_hasLaw_scaledWishartLaw`,
-  `sampleCovariance_hasLaw_scaledWishartMatrixLaw_of_crossProduct`,
-  `sampleCovarianceMatrix_hasLaw_scaledWishartMatrixLaw_of_centeredRows`,
-  `sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_centeredRows`,
-  `sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_centeredRows_df`,
-  `sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_contrastRows`,
-  `sampleContrastRows_hasLaw_iidMatrixGaussianLaw_of_map_eq`,
-  `sampleContrastRows_hasLaw_iidMatrixGaussianLaw_of_iid_normal_rows_map_eq`,
-  `sampleCovarianceMatrix_hasLaw_theorem11_10_of_orthogonalContrast`,
-  `sampleCovarianceMatrix_hasLaw_theorem11_10_of_iid_normal_rows_map_eq`,
-  `inverseWishartLinearForm_hasLaw_map`, `inverseWishartScaledLinearForm_hasLaw_map`,
-  `inverseWishartLinearForm_hasLaw_chiSquared_of_map_eq`,
-  `inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq`,
-  `inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq`,
-  `inverseWishartLinearForm_hasLaw_scaled_chiSquared_of_scaled`,
-  `inverseWishartScaledLinearForm_hasLaw_theorem11_11`,
-  `inverseWishartLinearForm_hasLaw_theorem11_11_raw`, `hotellingT2Sample`,
-  `hotellingT2HansenScale`, `hotellingT2_hasLaw_map`, `hotellingT2Sample_hasLaw_map`,
-  `hotellingT2_hasLaw_scaledFDist_of_chiSquared_ratio`,
-  `hotellingT2Sample_hasLaw_hansen_scaledFDist_of_chiSquared_ratio`,
-  `hotellingMeanChiSqComponent`, `hotellingInverseWishartChiSqComponent`,
-  `hotellingT2Sample_hasLaw_theorem11_12_of_components`.
+Only public, reusable bridges are listed here. Same-file private proof scaffolding is intentionally
+absent.
+
+- [Systems](../HansenEconometrics/Chapter11MultivariateRegression/Systems.lean) supplies the
+  canonical stacked-system notation `systemStackRegressors`, `systemStackOutcomes`,
+  `systemLeastSquaresBetaStar`, and `systemSigmaHatStarObs`. The bridge
+  `systemSandwichCovariance_eq_asymptoticVariance` keeps one covariance formula surface.
+- [Asymptotics](../HansenEconometrics/Chapter11MultivariateRegression/Asymptotics.lean) supplies
+  `SystemPrimitiveRowRegressionMomentConditions`,
+  `SystemObservedResponseFourthMomentConditions`,
+  `SystemCovarianceConsistencyConditions`, `SystemCovariancePrimitiveRowConditions`,
+  `SystemDeltaMeasurableRemainderConditions`, and `SystemDeltaContDiffAtConditions`.
+  The delta layer reuses `SmoothFunctionCondition`; the old chapter-local remainder package
+  and duplicate delta-covariance wrapper are not part of the API.
+  Its reusable feasible-estimation API is
+  `SystemFeasible.sigmaHat_sub_zero_of_beta_weight_wlln`,
+  `SystemFeasible.middle_sub_zero_of_covariance_bounded_weights`, and
+  `SystemFeasible.middle_of_covariance_bounded_weights`.
+- [SUR](../HansenEconometrics/Chapter11MultivariateRegression/SUR.lean) uses
+  `systemSigmaHatStarObs` as its residual-covariance surface. The reusable Gaussian-limit API is
+  `SURGaussianLimitConditions`, `SURGaussianLimitConditions.starObs`,
+  `SURGaussianLimitConditions.PrimitiveRow.of_score_exog_covariance`, and
+  `SURGaussianLimitConditions.PrimitiveRow.of_raw_exog_scalarCLT`; the compact observed-row proof
+  surface is `SURPrimitiveRowGaussianLimitConditions.orZeroObs`. Efficiency support is exposed by
+  `SUREfficiency.fromGLSVarianceGap` and `SUREfficiency.systemLS_of_population_moments`.
+  `SURCovarianceEstimator.consistent_of_observed_rows` proves the corrected
+  feasible-SUR covariance limit associated with the misprinted Theorem 11.6;
+  `SURTheorem11_6.printed_target_forces_sur_ols_equality` records why the
+  printed OLS target cannot hold without an additional variance-equality
+  restriction.
+- [ReducedRank](../HansenEconometrics/Chapter11MultivariateRegression/ReducedRank.lean),
+  [ReducedRankJointSpectrum](../HansenEconometrics/Chapter11MultivariateRegression/ReducedRankJointSpectrum.lean),
+  and [ReducedRankLikelihood](../HansenEconometrics/Chapter11MultivariateRegression/ReducedRankLikelihood.lean)
+  implement Theorem 11.7 through a consolidated public surface. Their proof-engine and compatibility
+  declarations are deliberately not duplicated in this inventory.
+- [PCA](../HansenEconometrics/Chapter11MultivariateRegression/PCA.lean) exposes
+  `SequentialPrincipalComponentOptimizer`, `SequentialPrincipalComponentSolution`,
+  `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`, and
+  `ordered_covMat_principalComponents_theorem11_8`.
+- [FactorModels](../HansenEconometrics/Chapter11MultivariateRegression/FactorModels.lean) exposes
+  the finite-sample Theorem 11.9 endpoint and the exact factor-score covariance, finite Rayleigh,
+  and asymptotic vanishing surfaces documented above.
+- [MatrixNormal](../HansenEconometrics/Chapter11MultivariateRegression/MatrixNormal.lean) exposes
+  the three canonical law endpoints for Theorems 11.10--11.12 listed in the crosswalk. Internal
+  whitening, projection, and transport lemmas are not chapter crosswalk endpoints.
 
 ## Notes
 
-- The main Chapter 11 public API is in namespace `HansenEconometrics`.
-- System-regression bridge definitions include `systemLeastSquaresBeta`, `systemResidual`,
-  `systemLeastSquaresBetaStarObs`, `systemFittedStarObs`, `systemResidualStarObs`,
-  `systemStackRegressors`, `systemStackOutcomes`,
-  `systemAsymptoticVariance`, `systemDeltaVariance`, `systemScore`, `systemScoreMean`,
-  `systemMiddleTerm`,
-  `systemRobustMiddleTerm`, `systemNormalizedGram`, `systemRobustMiddle`,
-  `systemHomoskedasticMiddle`, `systemSigmaHat`, `systemSigmaHatStarObs`,
-  `systemRobustCovariance`, `systemHomoskedasticCovariance`,
-  `systemRobustCovarianceStarObs`, `systemHomoskedasticCovarianceStarObs`,
-  `commonRegressorMoment`, and `commonRegressorHomoskedasticVariance`.
-- SUR bridge definitions include `surAsymptoticVariance`, `surVarianceEstimator`, and
-  `surBetaStar`, plus observation-level feasible surfaces `surWeightedScoreMean`,
-  `surBetaFromInverseCovStar`, `surResidualCovariance`, and `surResidualCovarianceStarObs`.
-- PCA/factor-model bridge definitions include `principalComponent`, `principalComponentVariance`,
-  `orderedPCEigenvalue`, `orderedPCEigenvector`, `pcaFeasibleBefore`, `factorLoadingEstimator`,
-  `factorScoreEstimator`, `factorConcentratedObjective`,
-  `FactorConcentratedObjectiveMaximizer`, `PrincipalComponentSolution`,
-  `FactorPCSolution`, `ApproximateSampleFactorPervasiveCondition`, and
-  `ApproximateFactorAssumption`.
-- Matrix-normal bridge definitions include `sampleMeanMatrix`, `centeredSampleMatrix`,
-  `sampleCovarianceMatrix`, `rowGaussianLaw`, `iidMatrixGaussianLaw`,
-  `wishartMatrixLaw`, `scaledWishartMatrixLaw`, `wishartLaw`, `scaledWishartLaw`,
-  `inverseWishartLinearForm`, `inverseWishartScaledLinearForm`, `hotellingT2`,
-  `hotellingT2Sample`, and `hotellingT2HansenScale`.
+- The Chapter 11 public API is in namespace `HansenEconometrics`.
+- Star estimators remain the asymptotic proof engine; OrZero estimators are used for
+  textbook-facing coefficient and inference statements where the finite-sample design may be
+  singular.
+- The crosswalk names one canonical endpoint per sound numbered Hansen theorem.
+  The false printed target in Theorem 11.6 is intentionally blank and its
+  corrected result is listed under Lean-only support. Compatibility and
+  same-file proof-engine declarations are not alternate theorem endpoints.
+- The Theorem 11.7 endpoint named above remains public in `ReducedRankLikelihood`. The ReducedRank
+  API is consolidated around that endpoint; no lower-level proof-engine names are frozen here.

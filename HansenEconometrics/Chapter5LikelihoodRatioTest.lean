@@ -7,6 +7,15 @@ import HansenEconometrics.Chapter3FWL
 import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.Chapter5NormalRegression
 
+/-! # Chapter 5 likelihood-ratio and F tests
+
+This module develops the projection increment `fTestProjectionMatrix = P - P₁`, the scaled
+chi-square numerator and residual-variance denominator, and their Gaussian independence. The
+chapter-facing Hansen Theorem 5.13 surface is `olsFStatistic_hasLaw_fDist`, its classical
+Fisher-Snedecor wrapper `olsFStatistic_hasLaw_classicalFDist`, and the corresponding exact-size
+rejection-probability theorems.
+-/
+
 open MeasureTheory ProbabilityTheory
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory
 
@@ -56,14 +65,14 @@ noncomputable def olsFStatistic
     (olsResidualSumSquares (Matrix.fromCols X₁ X₂) y /
       (Fintype.card n - Fintype.card (Sum k₁ k₂) : ℝ))
 
-lemma fromCols_nullRightBlock_mulVec
+private lemma fromCols_nullRightBlock_mulVec
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) :
     Matrix.fromCols X₁ X₂ *ᵥ (Sum.elim β₁ (fun _ : k₂ => 0)) = X₁ *ᵥ β₁ := by
   rw [Matrix.fromCols_mulVec]
   change X₁ *ᵥ β₁ + X₂ *ᵥ (0 : k₂ → ℝ) = X₁ *ᵥ β₁
   rw [Matrix.mulVec_zero, add_zero]
 
-theorem hatMatrix_fromCols_mul_left
+private theorem hatMatrix_fromCols_mul_left
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ)
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
     hatMatrix (Matrix.fromCols X₁ X₂) * X₁ = X₁ := by
@@ -71,7 +80,7 @@ theorem hatMatrix_fromCols_mul_left
   ext i j
   simpa using congrFun (congrFun hPX i) (Sum.inl j)
 
-theorem leftBlock_transpose_mul_fullAnnihilator
+private theorem leftBlock_transpose_mul_fullAnnihilator
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ)
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
     X₁ᵀ * annihilatorMatrix (Matrix.fromCols X₁ X₂) = 0 := by
@@ -97,7 +106,7 @@ theorem fullHat_mul_leftHat
     _ = hatMatrix X₁ := by
           rfl
 
-theorem leftHat_mul_fullHat
+private theorem leftHat_mul_fullHat
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ)
     [Invertible (X₁ᵀ * X₁)]
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
@@ -166,7 +175,7 @@ theorem fTestProjectionMatrix_mul_fullAnnihilator
 
 /-- Generic spectral rewrite for quadratic forms of symmetric idempotent matrices: the quadratic
 form is a sum of squared eigenbasis coordinates over the `1`-eigenspace. -/
-theorem quadForm_eq_sum_sq_eigCoords_of_isHermitian_idempotent
+private theorem quadForm_eq_sum_sq_eigCoords_of_isHermitian_idempotent
     (A : Matrix n n ℝ)
     (hA : A.IsHermitian) (hI : IsIdempotentElem A) (e : n → ℝ) :
     let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hA.eigenvectorBasis
@@ -178,7 +187,7 @@ theorem quadForm_eq_sum_sq_eigCoords_of_isHermitian_idempotent
 /-- The chi-square numerator in Hansen's F statistic is the squared norm of the projection
 increment `P - P₁`, divided by `σ²`. -/
 theorem scaledOlsFNumeratorStatistic_eq_projection_norm_sq_div
-    {Ω : Type*} [MeasurableSpace Ω]
+    {Ω : Type*}
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) (σ2 : ℝ)
     (ε : Ω → EuclideanSpace ℝ n)
     [Invertible (X₁ᵀ * X₁)]
@@ -222,8 +231,8 @@ theorem scaledOlsFNumeratorStatistic_eq_projection_norm_sq_div
     _ = dotProduct (D *ᵥ e) (D *ᵥ e) / σ2 := by
           rw [hquad]
 
-theorem scaledOlsFNumeratorStatistic_eq_sum_sq_eigenvector_coords
-    {Ω : Type*} [MeasurableSpace Ω]
+private theorem scaledOlsFNumeratorStatistic_eq_sum_sq_eigenvector_coords
+    {Ω : Type*}
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
     (hσ2 : 0 < σ2)
     (ε : Ω → EuclideanSpace ℝ n)
@@ -308,8 +317,6 @@ theorem scaledOlsFNumeratorStatistic_hasLaw_chiSquared
   · rw [← hRankEqCard, rank_fTestProjectionMatrix X₁ X₂]
   · simp [W]
 
-set_option maxHeartbeats 800000 in
--- The independence proof expands large Gaussian covariance and projection identities.
 theorem scaledOlsFNumStat_indep_scaledOlsResVarStat
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
@@ -324,115 +331,16 @@ theorem scaledOlsFNumStat_indep_scaledOlsResVarStat
   classical
   let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols X₁ X₂
   let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)
-  let D : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ n :=
-    (Matrix.toEuclideanLin (fTestProjectionMatrix X₁ X₂)).toContinuousLinearMap
-  let M : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ n :=
-    (Matrix.toEuclideanLin (annihilatorMatrix fullX)).toContinuousLinearMap
-  let numeratorE : Ω → EuclideanSpace ℝ n := fun ω => D (ε ω)
-  let residualE : Ω → EuclideanSpace ℝ n := fun ω => M (ε ω)
-  have hε_gauss : HasGaussianLaw ε μ := hε.hasGaussianLaw
-  have hJoint : HasGaussianLaw (fun ω => (numeratorE ω, residualE ω)) μ := by
-    simpa [numeratorE, residualE, D, M] using hε_gauss.map_fun (D.prod M)
-  have hCov :
-      ∀ x y,
-        cov[fun ω => inner ℝ x (numeratorE ω),
-          fun ω => inner ℝ y (residualE ω); μ] = 0 := by
-    intro x y
-    have hDadjointLin :
-        (Matrix.toEuclideanLin (fTestProjectionMatrix X₁ X₂)).adjoint =
-          Matrix.toEuclideanLin (fTestProjectionMatrix X₁ X₂) := by
-      simpa [Matrix.conjTranspose_eq_transpose_of_trivial, fTestProjectionMatrix_transpose] using
-        (Matrix.toEuclideanLin_conjTranspose_eq_adjoint
-          (A := fTestProjectionMatrix X₁ X₂)).symm
-    have hMadjointLin :
-        (Matrix.toEuclideanLin (annihilatorMatrix fullX)).adjoint =
-          Matrix.toEuclideanLin (annihilatorMatrix fullX) := by
-      simpa [Matrix.conjTranspose_eq_transpose_of_trivial, annihilatorMatrix_transpose] using
-        (Matrix.toEuclideanLin_conjTranspose_eq_adjoint (A := annihilatorMatrix fullX)).symm
-    have hDadjoint : D.adjoint = D := by
-      simpa [D, LinearMap.adjoint_toContinuousLinearMap] using
-        congrArg LinearMap.toContinuousLinearMap hDadjointLin
-    have hMadjoint : M.adjoint = M := by
-      simpa [M, LinearMap.adjoint_toContinuousLinearMap] using
-        congrArg LinearMap.toContinuousLinearMap hMadjointLin
-    have hcomp : D ∘L M = 0 := by
-      ext z i
-      simpa [D, M, Matrix.ofLp_toEuclideanLin_apply, Matrix.mulVec_mulVec] using
-        congrArg (fun A : Matrix n n ℝ => (A *ᵥ (WithLp.ofLp z)) i)
-          (fTestProjectionMatrix_mul_fullAnnihilator X₁ X₂)
-    have hcomp_apply : D (M y) = 0 := by
-      simpa using congrArg (fun T : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ n => T y) hcomp
-    have hcov :=
-      hε.covariance_fun_comp
-        (f := fun z : EuclideanSpace ℝ n => inner ℝ x (D z))
-        (g := fun z : EuclideanSpace ℝ n => inner ℝ y (M z))
-        (by fun_prop) (by fun_prop)
-    have hDfun :
-        (fun z : EuclideanSpace ℝ n => inner ℝ x (D z)) =
-          fun z => inner ℝ (D.adjoint x) z := by
-      ext z
-      simpa [D] using (D.adjoint_inner_left z x).symm
-    have hMfun :
-        (fun z : EuclideanSpace ℝ n => inner ℝ y (M z)) =
-          fun z => inner ℝ (M y) z := by
-      ext z
-      simpa [hMadjoint] using (M.adjoint_inner_left z y).symm
-    have hmem :
-        MemLp id 2 (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) :=
-      IsGaussian.memLp_two_id
-    calc
-      cov[fun ω => inner ℝ x (numeratorE ω),
-        fun ω => inner ℝ y (residualE ω); μ]
-          = cov[fun z : EuclideanSpace ℝ n => inner ℝ (D.adjoint x) z,
-              fun z : EuclideanSpace ℝ n => inner ℝ (M y) z;
-                multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))] := by
-              simpa [numeratorE, residualE, hDfun, hMfun] using hcov
-      _ = covarianceBilin (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
-            (D.adjoint x) (M y) := by
-              symm
-              exact covarianceBilin_apply_eq_cov hmem (D.adjoint x) (M y)
-      _ = (D.adjoint x) ⬝ᵥ (((σ2 : ℝ) • (1 : Matrix n n ℝ)) *ᵥ (M y)) := by
-              rw [covarianceBilin_multivariateGaussian
-                (by
-                  simpa [smul_one_eq_diagonal] using
-                    (Matrix.PosSemidef.diagonal (n := n) (d := fun _ => σ2) fun _ => hσ2.le))]
-      _ = (σ2 : ℝ) * ((D.adjoint x : EuclideanSpace ℝ n) ⬝ᵥ (M y)) := by
-              simp [smul_mulVec, one_mulVec, dotProduct_smul, smul_eq_mul]
-      _ = 0 := by
-              have hinner :
-                  inner ℝ (D.adjoint x) (M y) = 0 := by
-                calc
-                  inner ℝ (D.adjoint x) (M y) = inner ℝ x (D (M y)) := by
-                    simpa [D] using D.adjoint_inner_left (M y) x
-                  _ = 0 := by simp [hcomp_apply]
-              have hdot :
-                  ((D.adjoint x : EuclideanSpace ℝ n) ⬝ᵥ (M y)) = 0 := by
-                have hdot' :
-                    (M y).ofLp ⬝ᵥ star (((D.adjoint x : EuclideanSpace ℝ n)).ofLp) = 0 := by
-                  simpa [EuclideanSpace.inner_eq_star_dotProduct] using hinner
-                simpa [dotProduct, Pi.star_apply, conj_trivial, mul_comm] using hdot'
-              rw [hdot, mul_zero]
-  have hIndProj : numeratorE ⟂ᵢ[μ] residualE :=
-    hJoint.indepFun_of_covariance_inner hCov
+  let D : Matrix n n ℝ := fTestProjectionMatrix X₁ X₂
+  let M : Matrix n n ℝ := annihilatorMatrix fullX
+  have hDM : D * Mᵀ = 0 := by
+    rw [show Mᵀ = M by simp [M, annihilatorMatrix_transpose]]
+    simpa [D, M, fullX] using fTestProjectionMatrix_mul_fullAnnihilator X₁ X₂
   have hIndFunctions :
       (fun ω => fTestProjectionMatrix X₁ X₂ *ᵥ WithLp.ofLp (ε ω)) ⟂ᵢ[μ]
         (fun ω => annihilatorMatrix fullX *ᵥ WithLp.ofLp (ε ω)) := by
-    have hIndEuclid :
-        (fun ω => WithLp.toLp 2 (fTestProjectionMatrix X₁ X₂ *ᵥ WithLp.ofLp (ε ω))) ⟂ᵢ[μ]
-          (fun ω => WithLp.toLp 2 (annihilatorMatrix fullX *ᵥ WithLp.ofLp (ε ω))) := by
-      refine (IndepFun.congr hIndProj ?_ ?_)
-      · filter_upwards with ω
-        simpa [numeratorE, D] using
-          (Matrix.toLpLin_apply (p := 2) (q := 2) (fTestProjectionMatrix X₁ X₂) (ε ω))
-      · filter_upwards with ω
-        simpa [residualE, M] using
-          (Matrix.toLpLin_apply (p := 2) (q := 2) (annihilatorMatrix fullX) (ε ω))
-    have hmeasN : Measurable (WithLp.ofLp : EuclideanSpace ℝ n → n → ℝ) :=
-      WithLp.measurable_ofLp (p := 2) (X := n → ℝ)
-    simpa using
-      (IndepFun.comp (φ := (WithLp.ofLp : EuclideanSpace ℝ n → n → ℝ))
-        (ψ := (WithLp.ofLp : EuclideanSpace ℝ n → n → ℝ))
-        hIndEuclid hmeasN hmeasN)
+    simpa [D, M] using
+      matrixMulVec_indepFun_of_mul_transpose_eq_zero D M hDM hσ2 ε hε
   let q : (n → ℝ) → ℝ := fun r => dotProduct r r / σ2
   have hq : Measurable q := by
     simpa [q] using (Continuous.dotProduct continuous_id continuous_id).div_const σ2 |>.measurable
@@ -442,7 +350,11 @@ theorem scaledOlsFNumStat_indep_scaledOlsResVarStat
     exact IndepFun.comp (μ := μ) (φ := q) (ψ := q) hIndFunctions hq hq
   refine IndepFun.congr hIndStat ?_ ?_
   · filter_upwards with ω
-    simp [Function.comp, q]
+    change
+      dotProduct
+          (fTestProjectionMatrix X₁ X₂ *ᵥ WithLp.ofLp (ε ω))
+          (fTestProjectionMatrix X₁ X₂ *ᵥ WithLp.ofLp (ε ω)) / σ2 =
+        scaledOlsFNumeratorStatistic X₁ X₂ β₁ σ2 ε ω
     exact (congrFun (scaledOlsFNumeratorStatistic_eq_projection_norm_sq_div
       X₁ X₂ β₁ σ2 ε) ω).symm
   · filter_upwards with ω
@@ -451,8 +363,8 @@ theorem scaledOlsFNumStat_indep_scaledOlsResVarStat
       congrArg (fun r : n → ℝ => dotProduct r r / σ2)
         ((residual_linear_model fullX βfull (WithLp.ofLp (ε ω))).symm)
 
-theorem olsFStatistic_eq_ratio_of_scaled_chiSquared_statistics
-    {Ω : Type*} [MeasurableSpace Ω]
+private theorem olsFStatistic_eq_ratio_of_scaled_chiSquared_statistics
+    {Ω : Type*}
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
     (hσ2 : 0 < σ2) (hdf : Fintype.card (Sum k₁ k₂) < Fintype.card n)
     (ε : Ω → EuclideanSpace ℝ n)
@@ -594,15 +506,8 @@ theorem olsFStatistic_rejection_probability_eq_alpha
       HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
         (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
     olsFStatistic_hasLaw_fDist X₁ X₂ β₁ hσ2 hq hdf ε hε
-  have hPre :
-      μ.real {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
-        (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))).real (Set.Ioi c) := by
-    rw [show {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
-        (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))) ⁻¹' Set.Ioi c by
-          ext ω
-          simp [Set.mem_Ioi]]
-    exact HasLaw.real_preimage_eq hF measurableSet_Ioi
-  rw [hPre, hcrit]
+  rw [← hcrit]
+  exact HasLaw.real_preimage_eq hF measurableSet_Ioi
 
 /-- Hansen Theorem 5.13 rejection statement in classical form. -/
 theorem olsFStatistic_rejection_probability_eq_alpha_classical
@@ -618,20 +523,9 @@ theorem olsFStatistic_rejection_probability_eq_alpha_classical
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
     (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
     μ.real {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} = α := by
-  have hF :
-      HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
-        (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
-    olsFStatistic_hasLaw_classicalFDist X₁ X₂ β₁ hσ2 hq hdf ε hε
-  have hPre :
-      μ.real {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
-        (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))).real
-          (Set.Ioi c) := by
-    rw [show {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
-        (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))) ⁻¹' Set.Ioi c by
-          ext ω
-          simp [Set.mem_Ioi]]
-    exact HasLaw.real_preimage_eq hF measurableSet_Ioi
-  rw [hPre, hcrit]
+  rw [← fDist_eq_classicalFDist hq (Nat.sub_pos_of_lt hdf)] at hcrit
+  exact olsFStatistic_rejection_probability_eq_alpha
+    X₁ X₂ β₁ c hcrit hσ2 hq hdf ε hε
 
 end LikelihoodRatioTest
 

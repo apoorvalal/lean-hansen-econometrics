@@ -1,4 +1,5 @@
 import HansenEconometrics.Chapter7Asymptotics.Basic
+import Mathlib.LinearAlgebra.Matrix.Kronecker
 
 /-!
 # Chapter 11 — multivariate regression systems
@@ -9,7 +10,7 @@ its stacked least-squares representation; equation-specific block structure is
 recorded by thin matrix wrappers when Hansen writes common-regressor formulas.
 -/
 
-open scoped Matrix
+open scoped Kronecker Matrix
 
 namespace HansenEconometrics
 
@@ -18,11 +19,6 @@ open Matrix
 variable {n k q m : Type*}
 variable [Fintype n] [Fintype k] [Fintype q] [Fintype m]
 variable [DecidableEq n] [DecidableEq k] [DecidableEq q] [DecidableEq m]
-
-/-- Stacked systems least-squares coefficient estimator. -/
-noncomputable def systemLeastSquaresBeta
-    (X : Matrix n k ℝ) (Y : n → ℝ) [Invertible (Xᵀ * X)] : k → ℝ :=
-  olsBeta X Y
 
 /-- Stacked systems residual. -/
 noncomputable def systemResidual
@@ -96,6 +92,19 @@ observation and equation. -/
 def systemStackOutcomes (Y : n → m → ℝ) : n × m → ℝ :=
   fun im => Y im.1 im.2
 
+omit [Fintype n] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+/-- Observation/equation stacking preserves the system linear model
+`Yᵢ = Xᵢ β + eᵢ`. -/
+theorem systemStackOutcomes_linear_model
+    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    systemStackOutcomes Y =
+      systemStackRegressors X *ᵥ β + systemStackOutcomes e := by
+  ext im
+  simp [systemStackOutcomes, systemStackRegressors, Matrix.mulVec, dotProduct,
+    hmodel im.1 im.2]
+
 omit [Fintype q] [DecidableEq q] in
 /-- Hansen observation-level systems least-squares estimator, totalized through
 the Chapter 7 Star convention after stacking observation/equation rows. -/
@@ -151,12 +160,10 @@ theorem systemResidualStarObs_linear_model_apply
     (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
     systemResidualStarObs X Y i j =
       e i j - X i j ⬝ᵥ (systemLeastSquaresBetaStarObs X Y - β) := by
+  have hstack := systemStackOutcomes_linear_model X e Y β hmodel
   unfold systemResidualStarObs systemLeastSquaresBetaStarObs systemLeastSquaresBetaStar
-    olsResidualStar systemStackOutcomes systemStackRegressors
-  simp only [Pi.sub_apply, dotProduct_sub]
-  rw [hmodel i j]
-  simp only [Matrix.mulVec, dotProduct]
-  ring_nf
+  rw [hstack, olsResidualStar_linear_model_apply]
+  rfl
 
 omit [DecidableEq n] in
 /-- The system Star estimator is the totalized OLS estimator on the stacked system. -/
@@ -165,14 +172,6 @@ theorem systemLeastSquaresBetaStar_eq
     (X : Matrix n k ℝ) (Y : n → ℝ) :
     systemLeastSquaresBetaStar X Y = olsBetaStar X Y :=
   rfl
-
-omit [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
-/-- Stacked systems least squares has the usual linear-model decomposition. -/
-theorem systemLeastSquaresBeta_linear_model
-    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
-    systemLeastSquaresBeta X (X *ᵥ β + e) =
-      β + (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ e) := by
-  exact olsBeta_linear_decomposition X β e
 
 omit [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
 /-- Stacked systems residuals are ordinary OLS residuals in the stacked system. -/
@@ -228,10 +227,8 @@ theorem systemRobustMiddleTerm_eq_vecMulVec_score
     (Xi : Matrix m k ℝ) (ei : m → ℝ) :
     systemRobustMiddleTerm Xi ei =
       Matrix.vecMulVec (systemScore Xi ei) (systemScore Xi ei) := by
-  ext a b
-  simp [systemRobustMiddleTerm, systemMiddleTerm, systemScore, Matrix.mul_apply,
-    Matrix.mulVec, Matrix.vecMulVec_apply, dotProduct, Finset.mul_sum,
-    mul_comm, mul_left_comm]
+  rw [systemRobustMiddleTerm, systemMiddleTerm, systemScore, Matrix.mul_vecMulVec,
+    Matrix.vecMulVec_mul, Matrix.mulVec_transpose]
 
 omit [Fintype q] [DecidableEq q] in
 /-- Observation-level residual covariance `n⁻¹∑ êᵢêᵢ'` used in Hansen's
@@ -269,19 +266,6 @@ theorem systemStackRegressors_transpose_mulVec_stackOutcomes_eq_sum
   ext a
   simp [systemStackRegressors, systemStackOutcomes, systemScore, Matrix.mulVec,
     dotProduct, ← Finset.univ_product_univ, Finset.sum_product]
-
-omit [Fintype n] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq k]
-  [DecidableEq q] [DecidableEq m] in
-/-- Observation/equation stacking preserves the system linear model
-`Yᵢ = Xᵢ β + eᵢ`. -/
-theorem systemStackOutcomes_linear_model
-    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
-    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
-    systemStackOutcomes Y =
-      systemStackRegressors X *ᵥ β + systemStackOutcomes e := by
-  ext im
-  simp [systemStackOutcomes, systemStackRegressors, Matrix.mulVec, dotProduct,
-    hmodel im.1 im.2]
 
 omit [Fintype q] [DecidableEq n] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
 /-- Observation-level system scores split into Gram times coefficient plus error score
@@ -405,7 +389,7 @@ omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k]
   [DecidableEq q] [DecidableEq m] in
 /-- Coordinate expansion of the homoskedastic system middle as a finite sum of
 error-covariance entries times empirical design weights. -/
-theorem systemHomoskedasticMiddle_apply_eq_sum_weight
+private theorem systemHomoskedasticMiddle_apply_eq_sum_weight
     (X : n → Matrix m k ℝ) (SigmaHat : Matrix m m ℝ) (c d : k) :
     systemHomoskedasticMiddle X SigmaHat c d =
       ∑ a : m, ∑ b : m,
@@ -459,7 +443,17 @@ omit [Fintype n] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq q]
 `Q̂⁻¹ Ω̂ Q̂⁻¹`. This is the normalized form of Hansen's `n V̂_β`. -/
 noncomputable def systemSandwichCovariance
     (Qhat Omegahat : Matrix k k ℝ) : Matrix k k ℝ :=
-  Qhat⁻¹ * Omegahat * Qhat⁻¹
+  systemAsymptoticVariance Qhat Omegahat
+
+omit [Fintype n] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq q]
+  [DecidableEq m] in
+/-- The sandwich-estimator notation is the chapter's canonical asymptotic-variance formula. -/
+@[simp]
+theorem systemSandwichCovariance_eq_asymptoticVariance
+    (Qhat Omegahat : Matrix k k ℝ) :
+    systemSandwichCovariance Qhat Omegahat =
+      systemAsymptoticVariance Qhat Omegahat :=
+  rfl
 
 omit [Fintype q] [DecidableEq q] in
 /-- Normalized robust covariance estimator `Q̂⁻¹ Ω̂_HC Q̂⁻¹`, the matrix
@@ -491,7 +485,7 @@ noncomputable def systemHomoskedasticCovarianceStarObs
 omit [Fintype n] [Fintype q] [DecidableEq n] [DecidableEq q] in
 /-- Common-regressor block moment `I_m ⊗ Q`, written on product indices. -/
 def commonRegressorMoment (Q : Matrix k k ℝ) : Matrix (m × k) (m × k) ℝ :=
-  fun a b => if a.1 = b.1 then Q a.2 b.2 else 0
+  (1 : Matrix m m ℝ) ⊗ₖ Q
 
 omit [Fintype n] [Fintype k] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq k]
   [DecidableEq q] in
@@ -513,7 +507,7 @@ omit [Fintype n] [Fintype q] [DecidableEq n] [DecidableEq q] in
 /-- Common-regressor homoskedastic variance `Σ ⊗ Q⁻¹`, written on product indices. -/
 noncomputable def commonRegressorHomoskedasticVariance
     (Sigma : Matrix m m ℝ) (Q : Matrix k k ℝ) : Matrix (m × k) (m × k) ℝ :=
-  fun a b => Sigma a.1 b.1 * Q⁻¹ a.2 b.2
+  Sigma ⊗ₖ Q⁻¹
 
 omit [Fintype n] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq q]
   [DecidableEq m] in

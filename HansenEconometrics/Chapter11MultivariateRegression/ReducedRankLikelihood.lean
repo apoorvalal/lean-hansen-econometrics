@@ -177,6 +177,24 @@ theorem generalizedEigenBNormalized_factorization_exists_of_rank
 
 end ExactRankNormalization
 
+section PencilCompression
+
+variable [Fintype n] [Fintype k] [Fintype m] [DecidableEq m]
+
+/-- The cross-product coefficient block compresses the reduced-rank pencil
+numerator. This is the common algebra behind candidate rank and covariance
+determinant calculations. -/
+private theorem reducedRankCross_inv_cross_eq_pencilA_compression
+    (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ) (G : Matrix k r ℝ) :
+    (Ytildeᵀ * Xtilde * G)ᵀ * (Ytildeᵀ * Ytilde)⁻¹ *
+        (Ytildeᵀ * Xtilde * G) =
+      Gᵀ * reducedRankGPencilA Xtilde Ytilde * G := by
+  simp only [reducedRankGPencilA, Matrix.transpose_mul,
+    Matrix.transpose_transpose]
+  simp [Matrix.mul_assoc]
+
+end PencilCompression
+
 section CandidateRank
 
 variable [Fintype n] [Fintype k] [Fintype r] [Fintype m]
@@ -189,7 +207,7 @@ Normalization gives a left inverse for `G`.  The eigenvector compression with
 positive diagonal roots gives a left inverse for `reducedRankAhat`; combining
 them proves the matching lower rank bound, while the factorization through the
 `r`-dimensional index gives the upper bound. -/
-theorem reducedRankCoefficient_rank_eq_card_of_positive_roots
+private theorem reducedRankCoefficient_rank_eq_card_of_positive_roots
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (hEigenvectors :
@@ -218,15 +236,12 @@ theorem reducedRankCoefficient_rank_eq_card_of_positive_roots
           Gᵀ * reducedRankGPencilA Xtilde Ytilde * G := by
         rw [show Ahat = Ytildeᵀ * Xtilde * G from
           reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm]
-        simp only [YGram, reducedRankGPencilA, Matrix.transpose_mul,
-          Matrix.transpose_transpose]
-        simp [Matrix.mul_assoc]
-      _ = (Gᵀ * B * G) * Lambda := by
+        exact reducedRankCross_inv_cross_eq_pencilA_compression Xtilde Ytilde G
+      _ = Lambda := by
         simpa [B, Lambda] using
-          generalizedEigenvectorColumns_crossGram_eq_mul_diagonal
+          generalizedEigenvectorColumns_compression_eq_diagonal
             (reducedRankGPencilA Xtilde Ytilde)
-            (reducedRankGPencilB Xtilde) lambda G hEigenvectors
-      _ = Lambda := by rw [hGLeft]; simp
+            (reducedRankGPencilB Xtilde) lambda G hEigenvectors hNorm
   let R : Matrix r m ℝ := Lambda⁻¹ * Ahatᵀ * YGram⁻¹
   have hRLeft : R * Ahat = (1 : Matrix r r ℝ) := by
     calc
@@ -271,7 +286,7 @@ For positive-definite `S` and `Sigma`, whitening `S` by the positive square
 root of `Sigma⁻¹` and applying `log x ≤ x - 1` to the whitened
 eigenvalues gives
 `log det S + m ≤ log det Sigma + tr(Sigma⁻¹ S)`. -/
-theorem log_det_add_card_le_log_det_add_trace_inv_mul
+private theorem log_det_add_card_le_log_det_add_trace_inv_mul
     (S Sigma : Matrix m m ℝ) (hS : S.PosDef) (hSigma : Sigma.PosDef) :
     Real.log S.det + (Fintype.card m : ℝ) ≤
       Real.log Sigma.det + Matrix.trace (Sigma⁻¹ * S) := by
@@ -339,7 +354,7 @@ quadratic trace term is exactly `n * m`.
 This is the covariance-profile algebra behind the constant term in the raw
 Gaussian log-likelihood.  It deliberately proves no log-determinant inequality
 against a competing covariance. -/
-theorem trace_profiledCovariance_inv_mul_crossProduct
+private theorem trace_profiledCovariance_inv_mul_crossProduct
     (E : Matrix n m ℝ) (hn : 0 < Fintype.card n)
     (hSigma : (((Fintype.card n : ℝ)⁻¹) • (Eᵀ * E)).PosDef) :
     Matrix.trace
@@ -374,7 +389,7 @@ fixed residual matrix.
 The comparison is derived from the positive-definite log-determinant/trace
 inequality and ranges over every positive-definite covariance `Sigma`.  It
 makes no claim about optimizing any regression coefficient. -/
-theorem gaussianLogLikelihood_fixedResidual_profiledCovariance_globalMaximizer
+private theorem gaussianLogLikelihood_fixedResidual_profiledCovariance_globalMaximizer
     (E : Matrix n m ℝ) (hn : 0 < Fintype.card n)
     (hProfile :
       (((Fintype.card n : ℝ)⁻¹) • (Eᵀ * E)).PosDef) :
@@ -477,7 +492,7 @@ The quadratic term becomes `-nm/2`; the determinant term is intentionally left
 as `log det(n⁻¹ E'E)`.  This theorem records the exact value implied by the raw
 likelihood definition and keeps it separate from Hansen's displayed
 maximized-value formula. -/
-theorem reducedRankGaussianLogLikelihood_at_profiledCovariance
+private theorem reducedRankGaussianLogLikelihood_at_profiledCovariance
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Acoef : Matrix m r ℝ) (C : Matrix ell m ℝ)
     (hn : 0 < Fintype.card n)
@@ -538,10 +553,8 @@ private theorem reducedRankAhat_normal_equations_of_normalized
         (Ytilde -
           (Xtilde * G) * (reducedRankAhat Xtilde Ytilde G)ᵀ) = 0 := by
   have hGram :
-      (Xtilde * G)ᵀ * (Xtilde * G) = (1 : Matrix r r ℝ) := by
-    simpa [Matrix.transpose_mul, reducedRankGNormalized,
-      generalizedEigenvectorBNormalized, reducedRankGPencilB,
-      Matrix.mul_assoc] using hNorm
+      (Xtilde * G)ᵀ * (Xtilde * G) = (1 : Matrix r r ℝ) :=
+    reducedRankG_image_orthonormal_of_normalized Xtilde G hNorm
   rw [reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm]
   rw [Matrix.mul_sub, ← Matrix.mul_assoc, hGram, Matrix.one_mul]
   simp [Matrix.transpose_mul, Matrix.mul_assoc]
@@ -612,6 +625,19 @@ private theorem reducedRankSampleResidual_recovery_normal_equations_of_normalize
       _ = 0 := hTildeNormal
   simpa [Ahat, Ehat] using And.intro hRawNormal hZNormal
 
+omit [Fintype k] [Fintype r] [Fintype m] [Fintype ell]
+    [DecidableEq n] [DecidableEq r] [DecidableEq m] [DecidableEq ell] in
+/-- Matrix Pythagoras: orthogonal summands have additive Gram matrices. -/
+private theorem transpose_mul_add_self_of_orthogonal
+    (E D : Matrix n m ℝ) (hCross : Eᵀ * D = 0) :
+    (E + D)ᵀ * (E + D) = Eᵀ * E + Dᵀ * D := by
+  have hCrossTranspose : Dᵀ * E = 0 := by
+    have hTranspose := congrArg Matrix.transpose hCross
+    simpa [Matrix.transpose_mul] using hTranspose
+  rw [Matrix.transpose_add, Matrix.add_mul, Matrix.mul_add, Matrix.mul_add,
+    hCross, hCrossTranspose]
+  simp
+
 omit [Fintype m] [DecidableEq n] [DecidableEq r] [DecidableEq m]
     [DecidableEq ell] in
 /-- Exact residual cross-product decomposition at any fixed-`G` coefficient
@@ -621,7 +647,7 @@ The competing `Acoef` and `C` are arbitrary.  Their residual cross product is
 the candidate residual cross product plus the Gram matrix of the fitted-value
 difference.  No normalization or rank condition is imposed on a competitor;
 normalization only enters the recovery-formula specialization below. -/
-theorem reducedRankSampleResidual_crossProduct_eq_profiled_add_of_normalEquations
+private theorem reducedRankSampleResidual_crossProduct_eq_profiled_add_of_normalEquations
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Ahat : Matrix m r ℝ) (Chat : Matrix ell m ℝ)
     (hXNormal :
@@ -646,18 +672,14 @@ theorem reducedRankSampleResidual_crossProduct_eq_profiled_add_of_normalEquation
     simpa [Ehat, Matrix.transpose_mul] using hTranspose
   have hCross : Ehatᵀ * D = 0 := by
     simp [D, Matrix.mul_add, ← Matrix.mul_assoc, hXCross, hZCross]
-  have hCrossTranspose : Dᵀ * Ehat = 0 := by
-    have hTranspose := congrArg Matrix.transpose hCross
-    simpa [Matrix.transpose_mul] using hTranspose
   have hResidual :
       reducedRankSampleResidual Z X Y G Acoef C = Ehat + D := by
     simp only [Ehat, D, reducedRankSampleResidual, Matrix.transpose_sub,
       Matrix.mul_sub]
     abel
-  rw [hResidual, Matrix.transpose_add, Matrix.add_mul]
-  rw [Matrix.mul_add Ehatᵀ Ehat D, Matrix.mul_add Dᵀ Ehat D]
-  rw [hCross, hCrossTranspose]
-  simp [Ehat, D]
+  rw [hResidual]
+  simpa [Ehat, D] using
+    transpose_mul_add_self_of_orthogonal Ehat D hCross
 
 omit [Fintype m] [DecidableEq m] in
 /-- Hansen's fixed-`G` recovery formulas give an exact least-squares
@@ -737,10 +759,8 @@ private theorem reducedRankAhat_residual_crossProduct_of_normalized
       Ytildeᵀ * Ytilde -
         (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ := by
   have hP :
-      (Xtilde * G)ᵀ * (Xtilde * G) = (1 : Matrix r r ℝ) := by
-    simpa [Matrix.transpose_mul, reducedRankGNormalized,
-      generalizedEigenvectorBNormalized, reducedRankGPencilB,
-      Matrix.mul_assoc] using hNorm
+      (Xtilde * G)ᵀ * (Xtilde * G) = (1 : Matrix r r ℝ) :=
+    reducedRankG_image_orthonormal_of_normalized Xtilde G hNorm
   rw [reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm]
   simpa [Matrix.mul_assoc] using
     residual_crossProduct_eq_sub_crossGram_of_orthonormal
@@ -753,7 +773,7 @@ at the recovered fixed-`G` coefficients.
 The assumptions identify `Xtilde` and `Ytilde` with their raw-sample FWL
 residualizations and require Hansen's normalization only for the fixed
 candidate `G`. -/
-theorem reducedRankSigmaHat_eq_profiledResidual_crossProduct_of_recovery
+private theorem reducedRankSigmaHat_eq_profiledResidual_crossProduct_of_recovery
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Ahat : Matrix m r ℝ) (Chat : Matrix ell m ℝ)
@@ -787,8 +807,8 @@ competing `Acoef` and `C`.
 The covariance is held fixed on both sides.  Only the candidate `G` is
 Hansen-normalized; the quantified coefficient and control competitors are
 arbitrary. -/
-theorem
-    reducedRankGaussianLogLikelihood_fixedG_fixedCovariance_coefficients_globalMaximizer
+private theorem
+    fixedG_fixedCovariance_coefficients_max
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Ahat : Matrix m r ℝ) (Chat : Matrix ell m ℝ)
@@ -877,7 +897,7 @@ theorem reducedRankGaussianLogLikelihood_fixedG_profiled_globalMaximizer
   calc
     reducedRankGaussianLogLikelihood Z X Y G Acoef C Sigma ≤
         reducedRankGaussianLogLikelihood Z X Y G Ahat Chat Sigma :=
-      reducedRankGaussianLogLikelihood_fixedG_fixedCovariance_coefficients_globalMaximizer
+      fixedG_fixedCovariance_coefficients_max
         Z X Y Xtilde Ytilde G Ahat Chat hXtilde hYtilde hNorm hRecovery
           Sigma hSigma Acoef C
     _ ≤ reducedRankGaussianLogLikelihood Z X Y G Ahat Chat
@@ -930,6 +950,45 @@ theorem reducedRankGaussianLogLikelihood_fixedG_recovery_globalMaximizer
       Z X Y Xtilde Ytilde G Ahat Chat hXtilde hYtilde hNorm
         hLeastSquaresRecovery hn hProfile
 
+/-- The raw likelihood at any recovered interior covariance has the universal
+profiled value expressed in terms of that covariance determinant. -/
+private theorem reducedRankGaussianLogLikelihood_at_recovery_value
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (Ahat : Matrix m r ℝ) (Chat : Matrix ell m ℝ)
+    (Sigmahat : Matrix m m ℝ) [Invertible (Zᵀ * Z)]
+    (hXtilde : Xtilde = reducedRankTildeX Z X)
+    (hYtilde : Ytilde = reducedRankTildeY Z Y)
+    (hNorm : reducedRankGNormalized Xtilde G)
+    (hLeastSquaresRecovery :
+      reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G Ahat Chat)
+    (hCovarianceRecovery :
+      reducedRankCovarianceRecovery Xtilde Ytilde G Sigmahat)
+    (hn : 0 < Fintype.card n) (hSigmahat : Sigmahat.PosDef) :
+    reducedRankGaussianLogLikelihood Z X Y G Ahat Chat Sigmahat =
+      -((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) *
+          Real.log (2 * Real.pi)
+        - ((Fintype.card n : ℝ) / 2) * Real.log Sigmahat.det
+        - ((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) := by
+  have hSigmahatEq :
+      Sigmahat = ((Fintype.card n : ℝ)⁻¹) •
+        ((reducedRankSampleResidual Z X Y G Ahat Chat)ᵀ *
+          reducedRankSampleResidual Z X Y G Ahat Chat) :=
+    hCovarianceRecovery.trans
+      (reducedRankSigmaHat_eq_profiledResidual_crossProduct_of_recovery
+        Z X Y Xtilde Ytilde G Ahat Chat hXtilde hYtilde hNorm
+          hLeastSquaresRecovery)
+  have hProfilePos :
+      (((Fintype.card n : ℝ)⁻¹) •
+        ((reducedRankSampleResidual Z X Y G Ahat Chat)ᵀ *
+          reducedRankSampleResidual Z X Y G Ahat Chat)).PosDef := by
+    rw [← hSigmahatEq]
+    exact hSigmahat
+  have hValue := reducedRankGaussianLogLikelihood_at_profiledCovariance
+    Z X Y G Ahat Chat hn hProfilePos
+  rw [← hSigmahatEq] at hValue
+  exact hValue
+
 end FixedGCoefficientProfile
 
 section ProfileDeterminant
@@ -964,9 +1023,7 @@ theorem reducedRankSigmaHat_det_eq_complementCompression
   have hAcomp :
       Ahatᵀ * YGram⁻¹ * Ahat =
         Gᵀ * reducedRankGPencilA Xtilde Ytilde * G := by
-    simp only [Ahat, YGram, reducedRankGPencilA, Matrix.transpose_mul,
-      Matrix.transpose_transpose]
-    simp [Matrix.mul_assoc]
+    exact reducedRankCross_inv_cross_eq_pencilA_compression Xtilde Ytilde G
   have hResidualFactor :
       YGram - Ahat * Ahatᵀ =
         YGram * (1 - YGram⁻¹ * Ahat * Ahatᵀ) := by
@@ -1020,18 +1077,10 @@ theorem reducedRankSigmaHat_det_eq_eigenvalueProduct
   classical
   have hCompression :
       Gᵀ * reducedRankGPencilA Xtilde Ytilde * G =
-        Matrix.diagonal lambda := by
-    calc
-      Gᵀ * reducedRankGPencilA Xtilde Ytilde * G =
-          (Gᵀ * reducedRankGPencilB Xtilde * G) *
-          Matrix.diagonal lambda :=
-        generalizedEigenvectorColumns_crossGram_eq_mul_diagonal
-          (reducedRankGPencilA Xtilde Ytilde)
-          (reducedRankGPencilB Xtilde) lambda G hEigenvectors
-      _ = Matrix.diagonal lambda := by
-        change Gᵀ * reducedRankGPencilB Xtilde * G = 1 at hNorm
-        rw [hNorm]
-        simp
+        Matrix.diagonal lambda :=
+    generalizedEigenvectorColumns_compression_eq_diagonal
+      (reducedRankGPencilA Xtilde Ytilde)
+      (reducedRankGPencilB Xtilde) lambda G hEigenvectors hNorm
   have hComplementDet :
       (1 - Gᵀ * reducedRankGPencilA Xtilde Ytilde * G).det =
         ∏ j, (1 - lambda j) := by
@@ -1153,56 +1202,24 @@ theorem reducedRankGaussianMLE_of_normalized_profileDet_minimal
     reducedRankGaussianLogLikelihood_fixedG_recovery_globalMaximizer
       Z X Y Xtilde Ytilde H AH CH SigmaH hXtilde hYtilde hHNormalized
         hHRecovery hHCovarianceRecovery hn hSigmaH D C' Sigma' hSigma'
-  have hGProfileEq :
-      Sigmahat = ((Fintype.card n : ℝ)⁻¹) •
-        ((reducedRankSampleResidual Z X Y G Ahat Chat)ᵀ *
-          reducedRankSampleResidual Z X Y G Ahat Chat) :=
-    hCovarianceRecovery.trans
-      (reducedRankSigmaHat_eq_profiledResidual_crossProduct_of_recovery
-        Z X Y Xtilde Ytilde G Ahat Chat hXtilde hYtilde hNorm
-          hLeastSquaresRecovery)
-  have hHProfileEq :
-      SigmaH = ((Fintype.card n : ℝ)⁻¹) •
-        ((reducedRankSampleResidual Z X Y H AH CH)ᵀ *
-          reducedRankSampleResidual Z X Y H AH CH) :=
-    hHCovarianceRecovery.trans
-      (reducedRankSigmaHat_eq_profiledResidual_crossProduct_of_recovery
-        Z X Y Xtilde Ytilde H AH CH hXtilde hYtilde hHNormalized
-          hHRecovery)
   have hGProfileValue :
       reducedRankGaussianLogLikelihood Z X Y G Ahat Chat Sigmahat =
         -((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) *
             Real.log (2 * Real.pi)
           - ((Fintype.card n : ℝ) / 2) * Real.log Sigmahat.det
-          - ((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) := by
-    have hProfilePos :
-        (((Fintype.card n : ℝ)⁻¹) •
-          ((reducedRankSampleResidual Z X Y G Ahat Chat)ᵀ *
-            reducedRankSampleResidual Z X Y G Ahat Chat)).PosDef := by
-      rw [← hGProfileEq]
-      exact hSigmahat
-    have hValue :=
-      reducedRankGaussianLogLikelihood_at_profiledCovariance
-        Z X Y G Ahat Chat hn hProfilePos
-    rw [← hGProfileEq] at hValue
-    exact hValue
+          - ((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) :=
+    reducedRankGaussianLogLikelihood_at_recovery_value
+      Z X Y Xtilde Ytilde G Ahat Chat Sigmahat hXtilde hYtilde hNorm
+        hLeastSquaresRecovery hCovarianceRecovery hn hSigmahat
   have hHProfileValue :
       reducedRankGaussianLogLikelihood Z X Y H AH CH SigmaH =
         -((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) *
             Real.log (2 * Real.pi)
           - ((Fintype.card n : ℝ) / 2) * Real.log SigmaH.det
-          - ((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) := by
-    have hProfilePos :
-        (((Fintype.card n : ℝ)⁻¹) •
-          ((reducedRankSampleResidual Z X Y H AH CH)ᵀ *
-            reducedRankSampleResidual Z X Y H AH CH)).PosDef := by
-      rw [← hHProfileEq]
-      exact hSigmaH
-    have hValue :=
-      reducedRankGaussianLogLikelihood_at_profiledCovariance
-        Z X Y H AH CH hn hProfilePos
-    rw [← hHProfileEq] at hValue
-    exact hValue
+          - ((Fintype.card n : ℝ) * (Fintype.card m : ℝ) / 2) :=
+    reducedRankGaussianLogLikelihood_at_recovery_value
+      Z X Y Xtilde Ytilde H AH CH SigmaH hXtilde hYtilde hHNormalized
+        hHRecovery hHCovarianceRecovery hn hSigmaH
   have hDet : Sigmahat.det ≤ SigmaH.det := by
     calc
       Sigmahat.det = (reducedRankSigmaHat Xtilde Ytilde G).det :=
@@ -1234,7 +1251,7 @@ rank of the recovered candidate coefficient product internally.  The
 determinant-minimality and universal profile-positive-definiteness assumptions
 remain explicit, and likelihood competitors remain unrestricted by Hansen's
 normalization. -/
-theorem reducedRankGaussianMLE_of_positive_roots_of_normalized_profileDet_minimal
+private theorem gaussianMLE_of_positive_roots_profile_min
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Ahat : Matrix m r ℝ) (Chat : Matrix ell m ℝ)
@@ -1311,7 +1328,7 @@ theorem reducedRankGaussianMLE_of_positive_roots_of_complementDet_minimal
     reducedRankSigmaHat_det_minimal_of_complementDetMinimal
       Xtilde Ytilde G hYGram hNorm hComplementMin
   exact
-    reducedRankGaussianMLE_of_positive_roots_of_normalized_profileDet_minimal
+    gaussianMLE_of_positive_roots_profile_min
       Z X Y Xtilde Ytilde G Ahat Chat Sigmahat lambda hXtilde hYtilde hn
         hXGram hNorm hEigenvectors hLambda hLeastSquaresRecovery
         hCovarianceRecovery hSigmahat hProfileMin hAllProfilePos
@@ -1385,9 +1402,6 @@ theorem reducedRankGaussianLogLikelihood_at_recovery_eq_maximizedLogLikelihood
         (reducedRankSigmaHat_eq_profiledResidual_crossProduct_of_recovery
           Z X Y Xtilde Ytilde G Ahat Chat hXtilde hYtilde hNorm
             hLeastSquaresRecovery)
-  have hSigmaProfile : SigmaProfile.PosDef := by
-    rw [← hSigmahatEq]
-    exact hSigmahat
   have hProfileDet :
       SigmaProfile.det =
         N⁻¹ ^ Fintype.card m * (Ytildeᵀ * Ytilde).det *
@@ -1407,17 +1421,22 @@ theorem reducedRankGaussianLogLikelihood_at_recovery_eq_maximizedLogLikelihood
     simpa [M] using
       log_scaled_det_product N (Ytildeᵀ * Ytilde).det
         (Fintype.card m) (fun j => 1 - lambda j) hN hYGram.det_pos hFactors
+  have hLogDetSigmahat :
+      Real.log Sigmahat.det =
+        -M * Real.log N + Real.log (Ytildeᵀ * Ytilde).det +
+          ∑ j, Real.log (1 - lambda j) := by
+    rw [hSigmahatEq]
+    exact hLogDet
   calc
     reducedRankGaussianLogLikelihood Z X Y G Ahat Chat Sigmahat =
-        reducedRankGaussianLogLikelihood Z X Y G Ahat Chat SigmaProfile := by
-      rw [hSigmahatEq]
-    _ = -(N * M / 2) * Real.log (2 * Real.pi)
-          - (N / 2) * Real.log SigmaProfile.det - N * M / 2 := by
-      simpa [SigmaProfile, N, M] using
-        reducedRankGaussianLogLikelihood_at_profiledCovariance
-          Z X Y G Ahat Chat hn hSigmaProfile
+        -(N * M / 2) * Real.log (2 * Real.pi)
+          - (N / 2) * Real.log Sigmahat.det - N * M / 2 := by
+      simpa [N, M] using
+        reducedRankGaussianLogLikelihood_at_recovery_value
+          Z X Y Xtilde Ytilde G Ahat Chat Sigmahat hXtilde hYtilde hNorm
+            hLeastSquaresRecovery hCovarianceRecovery hn hSigmahat
     _ = reducedRankMaximizedLogLikelihood Ytilde lambda := by
-      rw [hLogDet]
+      rw [hLogDetSigmahat]
       simp only [reducedRankMaximizedLogLikelihood]
       dsimp [N, M]
       ring
@@ -1438,7 +1457,7 @@ The proof rewrites `reducedRankSigmaHat` using
 `reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized`, identifies the
 cross-product subtraction with `R'R`, and applies
 `Matrix.PosDef.conjTranspose_mul_self`. -/
-theorem reducedRankSigmaHat_posDef_of_normalized_of_residual_injective
+private theorem reducedRankSigmaHat_posDef_of_normalized_of_residual_injective
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ) (G : Matrix k r ℝ)
     (hn : 0 < Fintype.card n)
     (hNorm : reducedRankGNormalized Xtilde G)
@@ -1620,18 +1639,14 @@ private theorem profileResidual_crossProduct_posDef_of_fullResidual
     have hEX : Efullᵀ * X = 0 := by
       simpa [Matrix.transpose_mul] using hTranspose
     simp [D, ← Matrix.mul_assoc, hEX]
-  have hCrossTranspose : Dᵀ * Efull = 0 := by
-    have hTranspose := congrArg Matrix.transpose hCross
-    simpa [Matrix.transpose_mul] using hTranspose
   have hResidual : Y - (X * H) * Aᵀ = Efull + D := by
     simp only [Efull, D, Bfull, Matrix.mul_sub]
     simp [Matrix.mul_assoc]
   have hGram :
       (Y - (X * H) * Aᵀ)ᵀ * (Y - (X * H) * Aᵀ) =
         Efullᵀ * Efull + Dᵀ * D := by
-    rw [hResidual, Matrix.transpose_add, Matrix.add_mul, Matrix.mul_add,
-      Matrix.mul_add, hCross, hCrossTranspose]
-    simp
+    rw [hResidual]
+    exact transpose_mul_add_self_of_orthogonal Efull D hCross
   have hEfull : (Efullᵀ * Efull).PosDef := by
     simpa [Efull, Bfull, K] using hFull
   have hD : (Dᵀ * D).PosSemidef := by
@@ -1692,7 +1707,7 @@ Compared with `reducedRankGaussianMLE_of_positive_roots_of_complementDet_minimal
 this theorem derives both candidate covariance positivity and positivity of
 every normalized covariance profile from the positive-definite unrestricted
 OLS residual Gram. -/
-theorem reducedRankGaussianMLE_of_positive_roots_of_complementDet_minimal_of_fullResidual_posDef
+private theorem gaussianMLE_of_positive_roots_complement_min_fullResidual
     [Fintype ell] [DecidableEq ell]
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
@@ -1743,7 +1758,7 @@ Grams. Positive definiteness of Hansen's unrestricted residual Gram
 Thus a complement-minimizing normalized generalized-eigenblock with positive
 selected roots makes the displayed `Ahat`, `Chat`, and `Sigmahat` the actual
 Gaussian MLE against every admissible exact-rank competitor. -/
-theorem reducedRankGaussianMLE_residualized_of_positive_roots_of_complementDet_minimal
+private theorem residualized_gaussianMLE_of_positive_roots_complement_min
     [Fintype ell] [DecidableEq ell]
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -1797,7 +1812,7 @@ theorem reducedRankGaussianMLE_residualized_of_positive_roots_of_complementDet_m
   have hCovarianceRecovery :
       reducedRankCovarianceRecovery Xtilde Ytilde G Sigmahat := rfl
   have hResult :=
-    reducedRankGaussianMLE_of_positive_roots_of_complementDet_minimal_of_fullResidual_posDef
+    gaussianMLE_of_positive_roots_complement_min_fullResidual
       Z X Y Xtilde Ytilde G Ahat Chat Sigmahat lambda rfl rfl hn hXGram
         hYGram (by simpa [Xtilde] using hNorm)
         (by simpa [Xtilde, Ytilde] using hEigenvectors) hLambda hRecovery
@@ -1856,7 +1871,7 @@ the positive-definite residualized outcome Gram. Roots below one identify the
 corrected displayed likelihood with the raw Gaussian likelihood. The joint
 tie-safe spectral construction in `ReducedRankJointSpectrum` supplies this
 theorem's identified certificate and its exact ordered-root witness. -/
-theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertificate
+private theorem hansen11_7_gaussianMLE_of_identified
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
@@ -1917,7 +1932,7 @@ theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertif
   have hMLE : reducedRankGaussianMLE Z X Y G Acoef C Sigma := by
     rcases hResidualRegular with hEGram | hEmpty
     · have hMLE0 :=
-        reducedRankGaussianMLE_residualized_of_positive_roots_of_complementDet_minimal
+        residualized_gaussianMLE_of_positive_roots_complement_min
           Z X Y G lambda hn (by simpa [Xtilde] using hNorm)
             (by simpa [Xtilde, Ytilde, Etilde] using
               hSpec.spectral_maximizers.g_max.eigenvectors)
@@ -1957,7 +1972,7 @@ theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertif
               (reducedRankSigmaHat Xtilde Ytilde H).det := by
         intro H hHNorm
         rw [hSigmaEq G hNorm, hSigmaEq H hHNorm]
-      exact reducedRankGaussianMLE_of_positive_roots_of_normalized_profileDet_minimal
+      exact gaussianMLE_of_positive_roots_profile_min
         Z X Y Xtilde Ytilde G Acoef C Sigma lambda rfl rfl hn hXGram hNorm
           (by simpa [Xtilde, Ytilde, Etilde] using
             hSpec.spectral_maximizers.g_max.eigenvectors)
@@ -2040,7 +2055,7 @@ theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_exists
       (reducedRankTildeE X Z Y) hXGram hYGram hResidualRegular hComplement hrk hrm
       (reducedRankAperpDimension_canonical (m := m) (r := r)) hSelectedRank
   refine ⟨G, lambda, Aperp, eta, ?_⟩
-  exact reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertificate
+  exact hansen11_7_gaussianMLE_of_identified
     Z X Y G lambda Aperp eta hn hSpec hLambdaPos hLambdaLtOne
       hComplementMin hResidualRegular
       (reducedRankAperpDimension_canonical (m := m) (r := r)) hRankDimension

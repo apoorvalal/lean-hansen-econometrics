@@ -1479,6 +1479,14 @@ theorem aestronglyMeasurable_matrix_inv
   rw [heq]
   exact hrinv.smul hadj
 
+/-- Matrix inversion is continuous at a matrix with unit determinant. -/
+theorem continuousAt_matrix_inv_of_isUnit
+    (A : Matrix k k ℝ) (hA : IsUnit A.det) :
+    ContinuousAt Inv.inv A := by
+  refine continuousAt_matrix_inv _ ?_
+  rw [Ring.inverse_eq_inv']
+  exact continuousAt_inv₀ hA.ne_zero
+
 /-- **CMT for matrix inversion.** If `A n →ₚ A'` in measure and `A' ω` is nonsingular
 for every `ω`, then `(A n)⁻¹ →ₚ (A')⁻¹` in measure.
 
@@ -1500,10 +1508,8 @@ theorem tendstoInMeasure_matrix_inv
     (exists_seq_tendstoInMeasure_atTop_iff hmeas).mp hconv ns hns
   refine ⟨ns', hns', ?_⟩
   filter_upwards [hae] with ω hω
-  have hcont : ContinuousAt Inv.inv (A' ω) := by
-    refine continuousAt_matrix_inv _ ?_
-    rw [Ring.inverse_eq_inv']
-    exact continuousAt_inv₀ ((hinv ω).ne_zero)
+  have hcont : ContinuousAt Inv.inv (A' ω) :=
+    continuousAt_matrix_inv_of_isUnit (A' ω) (hinv ω)
   exact hcont.tendsto.comp hω
 
 end MatrixInverse
@@ -1926,10 +1932,11 @@ theorem TendstoInMeasure.mul_limits_real
     ring
   exact TendstoInMeasure.of_sub_limit_zero_real hcenter
 
-/-- A deterministic real sequence converging to a scalar also converges in
-measure when viewed as a constant random variable sequence. -/
-theorem tendstoInMeasure_const_real
-    {r : ℕ → ℝ} {c : ℝ} (hr : Tendsto r atTop (𝓝 c)) :
+/-- A convergent deterministic sequence also converges in measure when viewed as
+a sequence of constant random variables. -/
+theorem tendstoInMeasure_const_of_tendsto
+    {E : Type*} [PseudoMetricSpace E] {r : ℕ → E} {c : E}
+    (hr : Tendsto r atTop (𝓝 c)) :
     TendstoInMeasure μ (fun n (_ : α) => r n) atTop (fun _ => c) := by
   rw [tendstoInMeasure_iff_dist]
   intro ε hε
@@ -1944,6 +1951,13 @@ theorem tendstoInMeasure_const_real
     simp [not_le_of_gt (hN n hn)]
   rw [hempty, measure_empty]
   exact le_of_lt hδ
+
+/-- A deterministic real sequence converging to a scalar also converges in
+measure when viewed as a constant random variable sequence. -/
+theorem tendstoInMeasure_const_real
+    {r : ℕ → ℝ} {c : ℝ} (hr : Tendsto r atTop (𝓝 c)) :
+    TendstoInMeasure μ (fun n (_ : α) => r n) atTop (fun _ => c) :=
+  tendstoInMeasure_const_of_tendsto hr
 
 /-- If a real sequence of random variables converges in probability to a positive
 constant, then the bad event where the sequence is nonpositive has probability

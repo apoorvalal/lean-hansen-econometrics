@@ -1,5 +1,8 @@
 import Mathlib.Algebra.Order.Group.Multiset
+import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Analysis.Normed.Ring.Basic
+import Mathlib.Analysis.InnerProductSpace.Positive
+import Mathlib.Analysis.InnerProductSpace.Rayleigh
 import Mathlib.Analysis.Matrix.PosDef
 import Mathlib.Data.Fin.Tuple.Take
 import Mathlib.Data.Real.Sqrt
@@ -8,6 +11,7 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+import Mathlib.Topology.Algebra.Order.Field
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter11MultivariateRegression.PCA
 
@@ -122,7 +126,7 @@ noncomputable def factorSampleCrossCovariance
 /-- Sample second-moment matrix of estimated factors. -/
 noncomputable def factorScoreSampleCovariance
     (Fhat : n → r → ℝ) : Matrix r r ℝ :=
-  (Fintype.card n : ℝ)⁻¹ • ∑ i : n, Matrix.vecMulVec (Fhat i) (Fhat i)
+  factorSampleCovariance Fhat
 
 /-- Hansen Theorem 11.9 normalization `n⁻¹∑ Fhat_i Fhat_i' = I_r`. -/
 def factorScoreNormalization (Fhat : n → r → ℝ) : Prop :=
@@ -189,8 +193,7 @@ theorem factorScoreSampleCovariance_apply
     (Fhat : n → r → ℝ) (a b : r) :
     factorScoreSampleCovariance Fhat a b =
       (Fintype.card n : ℝ)⁻¹ * ∑ i : n, Fhat i a * Fhat i b := by
-  rw [factorScoreSampleCovariance]
-  simp only [Matrix.smul_apply, smul_eq_mul, Matrix.sum_apply, Matrix.vecMulVec_apply]
+  simp [factorScoreSampleCovariance]
 
 omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 private theorem vecMulVec_mulVec_right
@@ -224,14 +227,22 @@ theorem factorSampleCrossCovariance_linearMap
   rw [← Matrix.sum_mul, Matrix.smul_mul]
 
 omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Score covariance after applying a fixed linear score map. -/
+/-- Sample covariance after applying a fixed linear map. -/
+theorem factorSampleCovariance_linearMap
+    (X : n → k → ℝ) (A : Matrix r k ℝ) :
+    factorSampleCovariance (fun i => A *ᵥ X i) =
+      A * factorSampleCovariance X * Aᵀ := by
+  rw [factorSampleCovariance, factorSampleCovariance]
+  simp_rw [vecMulVec_mulVec_both]
+  rw [← Matrix.sum_mul, ← Matrix.mul_sum, Matrix.mul_smul, Matrix.smul_mul]
+
+omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
+/-- Hansen-facing score-covariance wrapper around covariance linearity. -/
 theorem factorScoreSampleCovariance_linearMap
     (X : n → k → ℝ) (A : Matrix r k ℝ) :
     factorScoreSampleCovariance (fun i => A *ᵥ X i) =
       A * factorSampleCovariance X * Aᵀ := by
-  rw [factorScoreSampleCovariance, factorSampleCovariance]
-  simp_rw [vecMulVec_mulVec_both]
-  rw [← Matrix.sum_mul, ← Matrix.mul_sum, Matrix.mul_smul, Matrix.smul_mul]
+  simpa [factorScoreSampleCovariance] using factorSampleCovariance_linearMap X A
 
 omit [Fintype k] [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 /-- The factor-model sample second-moment matrix is symmetric. -/
@@ -361,21 +372,11 @@ theorem factorObservationGram_sampleCovariance_roots_with_zero_padding
 
 omit [Fintype n] [Fintype k] [Fintype r] [DecidableEq n] [DecidableEq k]
   [DecidableEq r] in
-private lemma factorList_sum_ofFn_eq_finset_sum {m : ℕ} (f : Fin m → ℝ) :
-    (List.ofFn f).sum = ∑ i : Fin m, f i := by
-  induction m with
-  | zero => simp
-  | succ m ih =>
-      rw [List.ofFn_succ, Fin.sum_univ_succ]
-      simp [ih]
-
-omit [Fintype n] [Fintype k] [Fintype r] [DecidableEq n] [DecidableEq k]
-  [DecidableEq r] in
 private lemma factorList_sum_take_ofFn_eq_finset_sum_castLE
     {m n : ℕ} (h : m ≤ n) (f : Fin n → ℝ) :
     ((List.ofFn f).take m).sum = ∑ i : Fin m, f (Fin.castLE h i) := by
   rw [← Fin.ofFn_take_eq_take_ofFn h f]
-  exact factorList_sum_ofFn_eq_finset_sum (Fin.take m h f)
+  exact List.sum_ofFn
 
 omit [Fintype n] [Fintype k] [Fintype r] [DecidableEq n] [DecidableEq k]
   [DecidableEq r] in
@@ -431,10 +432,8 @@ theorem factorScoreSampleCovariance_eq_card_inv_smul_transpose_mul
     factorScoreSampleCovariance F =
       (Fintype.card n : ℝ)⁻¹ • ((factorScoreDataMatrix F)ᵀ *
         factorScoreDataMatrix F) := by
-  ext a b
-  rw [factorScoreSampleCovariance_apply]
-  simp only [Matrix.smul_apply, smul_eq_mul, Matrix.mul_apply, Matrix.transpose_apply,
-    factorScoreDataMatrix_apply]
+  simpa [factorScoreSampleCovariance, factorScoreDataMatrix, factorDataMatrix] using
+    factorSampleCovariance_eq_card_inv_smul_transpose_mul F
 
 omit [Fintype k] [DecidableEq n] [DecidableEq k] in
 /-- Hansen sample factor normalization implies full selected rank of the raw
@@ -488,34 +487,11 @@ theorem factorObservationGram_isHermitian
 
 omit [Fintype k] [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 private theorem inv_sqrt_card_mul_self
-    [Nonempty n] :
-    (Real.sqrt (Fintype.card n : ℝ))⁻¹ *
+    : (Real.sqrt (Fintype.card n : ℝ))⁻¹ *
         (Real.sqrt (Fintype.card n : ℝ))⁻¹ =
       (Fintype.card n : ℝ)⁻¹ := by
-  have hpos : 0 < (Fintype.card n : ℝ) := by
-    exact_mod_cast Fintype.card_pos
-  have hsqrt_ne : Real.sqrt (Fintype.card n : ℝ) ≠ 0 :=
-    (Real.sqrt_pos_of_pos hpos).ne'
-  have hsqrt_sq :
-      Real.sqrt (Fintype.card n : ℝ) *
-          Real.sqrt (Fintype.card n : ℝ) =
-        (Fintype.card n : ℝ) :=
-    Real.mul_self_sqrt hpos.le
-  calc
-    (Real.sqrt (Fintype.card n : ℝ))⁻¹ *
-        (Real.sqrt (Fintype.card n : ℝ))⁻¹ =
-        ((Real.sqrt (Fintype.card n : ℝ)) *
-          (Real.sqrt (Fintype.card n : ℝ)))⁻¹ := by
-          exact
-            (show (((Real.sqrt (Fintype.card n : ℝ)) *
-                (Real.sqrt (Fintype.card n : ℝ)))⁻¹ : ℝ) =
-              (Real.sqrt (Fintype.card n : ℝ))⁻¹ *
-                (Real.sqrt (Fintype.card n : ℝ))⁻¹ from
-              _root_.mul_inv_rev
-                (Real.sqrt (Fintype.card n : ℝ))
-                (Real.sqrt (Fintype.card n : ℝ))).symm
-    _ = (Fintype.card n : ℝ)⁻¹ := by
-          rw [hsqrt_sq]
+  rw [← Real.sqrt_inv]
+  exact Real.mul_self_sqrt (inv_nonneg.mpr (Nat.cast_nonneg _))
 
 omit [Fintype k] [Fintype r] [DecidableEq n] [DecidableEq k] in
 /-- Hansen-normalized scores become an orthonormal observation-space frame
@@ -806,7 +782,7 @@ omit [Fintype n] [DecidableEq n] [DecidableEq k] in
 `factorLoadingGramRecoverer_entry_abs_le_of_inverse_loading_entry_bounds`.
 It turns uniform entry envelopes for `(Λ'Λ)^{-1}` and `Λ` into the loading
 recoverer envelope consumed by the approximate-factor WLLN bridges. -/
-theorem factorLoadingGramRecoverer_entry_abs_bound_eventually_of_inverse_loading_entry_bounds
+theorem factorLoadingGramRecoverer_entry_abs_bound_eventually
     {ι : Type*} {l : Filter ι}
     {Λ : ι → Matrix k r ℝ} {ρInv ρΛ ρL : ι → ℝ}
     (hInv : Filter.Eventually
@@ -1438,7 +1414,7 @@ theorem factorRecoveredIdiosyncraticGramRayleighTendstoZero_of_normalized_envelo
 omit [DecidableEq n] [DecidableEq k] in
 /-- Entrywise `o(1)` control of the normalized recovered perturbation supplies
 the normalized Rayleigh `o(1)` primitive. -/
-theorem factorRecoveredIdiosyncraticGramNormalizedRayleighTendstoZero_of_entrywise_envelope
+theorem factorRecoveredGramRayleighTendstoZero_of_entrywiseEnvelope
     {ι : Type*} {l : Filter ι}
     {Λ : ι → Matrix k r ℝ} {F : ι → n → r → ℝ}
     {U : ι → Matrix n k ℝ} {η : ι → ℝ}
@@ -1477,7 +1453,7 @@ theorem factorRecoveredIdiosyncraticGramRayleighTendstoZero_of_entrywise_envelop
     (hη : Filter.Tendsto η l (nhds 0)) :
     factorRecoveredIdiosyncraticGramRayleighTendstoZero l Λ F U :=
   factorRecoveredIdiosyncraticGramRayleighTendstoZero_of_normalized
-    (factorRecoveredIdiosyncraticGramNormalizedRayleighTendstoZero_of_entrywise_envelope
+    (factorRecoveredGramRayleighTendstoZero_of_entrywiseEnvelope
       hη_nonneg hentry hη)
 
 omit [Fintype k] [DecidableEq n] [DecidableEq k] in
@@ -1664,7 +1640,7 @@ namespace ApproximateSampleFactorPrimitiveCondition
 omit [DecidableEq n] [DecidableEq k] in
 /-- Convert the primitive sample-factor/pervasiveness/idiosyncratic package
 into the existing finite-sample pervasiveness facade. -/
-theorem toApproximateSampleFactorPervasiveCondition
+theorem toPervasive
     {X : n → k → ℝ} {Λ : Matrix k r ℝ} {F : n → r → ℝ}
     {U : Matrix n k ℝ}
     (h : ApproximateSampleFactorPrimitiveCondition X Λ F U) :
@@ -1688,7 +1664,7 @@ theorem toApproximateSampleFactorRankCondition
     (h : ApproximateSampleFactorPrimitiveCondition X Λ F U) :
     ApproximateSampleFactorRankCondition X Λ F U :=
   ApproximateSampleFactorPervasiveCondition.toApproximateSampleFactorRankCondition
-    (ApproximateSampleFactorPrimitiveCondition.toApproximateSampleFactorPervasiveCondition h)
+    (ApproximateSampleFactorPrimitiveCondition.toPervasive h)
 
 end ApproximateSampleFactorPrimitiveCondition
 
@@ -1713,7 +1689,7 @@ namespace ApproximateSampleFactorPerturbationCondition
 omit [DecidableEq n] [DecidableEq k] in
 /-- The normalized perturbation package gives the raw domination condition
 needed by the recovered-score rank bridge. -/
-theorem recovered_idiosyncratic_gram_dominated
+theorem recoveredGram_dominated
     [Nonempty n] {X : n → k → ℝ} {Λ : Matrix k r ℝ} {F : n → r → ℝ}
     {U : Matrix n k ℝ}
     (h : ApproximateSampleFactorPerturbationCondition X Λ F U) :
@@ -1919,7 +1895,7 @@ theorem toNormalizedRayleighBridge
   eventually_loading_pervasiveness := h.eventually_loading_pervasiveness
   eventually_score_normalization := h.eventually_score_normalization
   normalized_rayleigh_tendsto_zero :=
-    factorRecoveredIdiosyncraticGramNormalizedRayleighTendstoZero_of_entrywise_envelope
+    factorRecoveredGramRayleighTendstoZero_of_entrywiseEnvelope
       h.eventually_entrywise_envelope_nonneg h.eventually_entrywise_envelope
       h.entrywise_envelope_tendsto_zero
 
@@ -2145,7 +2121,7 @@ theorem factorLoadingGramRecoverer_entry_tendsto_zero_of_inverse_loading_entry_b
   intro a b
   exact
     tendsto_zero_of_eventually_abs_le
-      (factorLoadingGramRecoverer_entry_abs_bound_eventually_of_inverse_loading_entry_bounds
+      (factorLoadingGramRecoverer_entry_abs_bound_eventually
         hInv hΛ hρInv (Filter.Eventually.of_forall fun _ => le_rfl) a b)
       hprod
 
@@ -2435,6 +2411,30 @@ theorem factorDataMatrix_rank_ge_of_factor_recovery
   simpa [hFrank] using hrank_le
 
 omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+private theorem factorDataMatrix_rank_ge_of_approx_factor_leftInverse_core
+    (X : n → k → ℝ) (Λ : Matrix k r ℝ) (F : n → r → ℝ)
+    (U : Matrix n k ℝ) (L : Matrix r k ℝ)
+    (hApprox : factorApproxSampleFactorModel X Λ F U)
+    (hLeft : L * Λ = 1) (hNoise : U * Lᵀ = 0)
+    (hFrank : (factorScoreDataMatrix F).rank = Fintype.card r) :
+    Fintype.card r ≤ (factorDataMatrix X).rank := by
+  have hrecover : factorDataMatrix X * Lᵀ = factorScoreDataMatrix F := by
+    calc
+      factorDataMatrix X * Lᵀ
+          = (factorScoreDataMatrix F * Λᵀ + U) * Lᵀ := by
+              rw [hApprox]
+              rfl
+      _ = (factorScoreDataMatrix F * Λᵀ) * Lᵀ + U * Lᵀ := by
+              rw [Matrix.add_mul]
+      _ = factorScoreDataMatrix F * (Λᵀ * Lᵀ) + U * Lᵀ := by
+              rw [Matrix.mul_assoc]
+      _ = factorScoreDataMatrix F * (L * Λ)ᵀ + U * Lᵀ := by
+              rw [Matrix.transpose_mul]
+      _ = factorScoreDataMatrix F := by
+              rw [hLeft, Matrix.transpose_one, Matrix.mul_one, hNoise, add_zero]
+  exact factorDataMatrix_rank_ge_of_factor_recovery X F L hrecover hFrank
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
 /-- If the raw data are exactly `F Λ'`, the loading matrix has a left inverse,
 and the sample factor score matrix has rank `r`, then the observed data matrix
 has the selected rank needed by Hansen Theorem 11.9. -/
@@ -2444,19 +2444,10 @@ theorem factorDataMatrix_rank_ge_of_exact_factor_leftInverse
     (hLeft : L * Λ = 1)
     (hFrank : (factorScoreDataMatrix F).rank = Fintype.card r) :
     Fintype.card r ≤ (factorDataMatrix X).rank := by
-  have hrecover : factorDataMatrix X * Lᵀ = factorScoreDataMatrix F := by
-    calc
-      factorDataMatrix X * Lᵀ
-          = (factorScoreDataMatrix F * Λᵀ) * Lᵀ := by
-              rw [hExact]
-              rfl
-      _ = factorScoreDataMatrix F * (Λᵀ * Lᵀ) := by
-              rw [Matrix.mul_assoc]
-      _ = factorScoreDataMatrix F * (L * Λ)ᵀ := by
-              rw [Matrix.transpose_mul]
-      _ = factorScoreDataMatrix F := by
-              rw [hLeft, Matrix.transpose_one, Matrix.mul_one]
-  exact factorDataMatrix_rank_ge_of_factor_recovery X F L hrecover hFrank
+  apply factorDataMatrix_rank_ge_of_approx_factor_leftInverse_core X Λ F 0 L
+      (hLeft := hLeft) (hFrank := hFrank)
+  · simpa [factorApproxSampleFactorModel] using hExact
+  · exact Matrix.zero_mul _
 
 omit [Fintype n] [DecidableEq n] [DecidableEq k] in
 /-- Bundled version of
@@ -2483,22 +2474,9 @@ theorem factorDataMatrix_rank_ge_of_approx_factor_leftInverse_annihilates_noise
     (hApprox : factorApproxSampleFactorModel X Λ F U)
     (hLeft : L * Λ = 1) (hNoise : U * Lᵀ = 0)
     (hFrank : (factorScoreDataMatrix F).rank = Fintype.card r) :
-    Fintype.card r ≤ (factorDataMatrix X).rank := by
-  have hrecover : factorDataMatrix X * Lᵀ = factorScoreDataMatrix F := by
-    calc
-      factorDataMatrix X * Lᵀ
-          = (factorScoreDataMatrix F * Λᵀ + U) * Lᵀ := by
-              rw [hApprox]
-              rfl
-      _ = (factorScoreDataMatrix F * Λᵀ) * Lᵀ + U * Lᵀ := by
-              rw [Matrix.add_mul]
-      _ = factorScoreDataMatrix F * (Λᵀ * Lᵀ) + U * Lᵀ := by
-              rw [Matrix.mul_assoc]
-      _ = factorScoreDataMatrix F * (L * Λ)ᵀ + U * Lᵀ := by
-              rw [Matrix.transpose_mul]
-      _ = factorScoreDataMatrix F := by
-              rw [hLeft, Matrix.transpose_one, Matrix.mul_one, hNoise, add_zero]
-  exact factorDataMatrix_rank_ge_of_factor_recovery X F L hrecover hFrank
+    Fintype.card r ≤ (factorDataMatrix X).rank :=
+  factorDataMatrix_rank_ge_of_approx_factor_leftInverse_core
+    X Λ F U L hApprox hLeft hNoise hFrank
 
 omit [Fintype n] [DecidableEq n] [DecidableEq k] in
 /-- Bundled additive noisy-factor rank bridge for Hansen-facing approximate
@@ -2547,7 +2525,7 @@ theorem factorDataMatrix_rank_ge_of_approxSampleFactorPrimitiveCondition
     Fintype.card r ≤ (factorDataMatrix X).rank :=
   factorDataMatrix_rank_ge_of_approxSampleFactorPervasiveCondition
     X Λ F U
-    (ApproximateSampleFactorPrimitiveCondition.toApproximateSampleFactorPervasiveCondition hraw)
+    (ApproximateSampleFactorPrimitiveCondition.toPervasive hraw)
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Primitive finite-sample sample-factor/pervasiveness/idiosyncratic
@@ -2560,7 +2538,7 @@ theorem factorSampleCovariance_rank_ge_of_approxSampleFactorPrimitiveCondition
     Fintype.card r ≤ (factorSampleCovariance X).rank :=
   factorSampleCovariance_rank_ge_of_approxSampleFactorPervasiveCondition
     X Λ F U
-    (ApproximateSampleFactorPrimitiveCondition.toApproximateSampleFactorPervasiveCondition hraw)
+    (ApproximateSampleFactorPrimitiveCondition.toPervasive hraw)
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Primitive finite-sample perturbation conditions imply the raw data-matrix
@@ -2577,7 +2555,7 @@ theorem factorDataMatrix_rank_ge_of_approxSampleFactorPerturbationCondition
   factorDataMatrix_rank_ge_of_approx_factor_recovered_perturbation X Λ F U
     hraw.approximate_factor
     (factorLoadingGram_nonsingular_of_pervasiveness Λ hraw.loading_pervasiveness)
-    hraw.recovered_idiosyncratic_gram_dominated
+    hraw.recoveredGram_dominated
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Primitive finite-sample perturbation conditions imply the sample-covariance
@@ -2596,6 +2574,17 @@ columns of `H` diagonalize the sample covariance with eigenvalue matrix `D`. -/
 def factorLeadingEigenspace
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (D : Matrix r r ℝ) : Prop :=
   Shat * H = H * D
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+private theorem factorLeadingEigenspace_conj_eq
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (D : Matrix r r ℝ)
+    (hLead : factorLeadingEigenspace Shat H D) (hOrth : Hᵀ * H = 1) :
+    Hᵀ * Shat * H = D := by
+  calc
+    Hᵀ * Shat * H = Hᵀ * (Shat * H) := by rw [Matrix.mul_assoc]
+    _ = Hᵀ * (H * D) := by rw [hLead]
+    _ = Hᵀ * H * D := by rw [Matrix.mul_assoc]
+    _ = D := by rw [hOrth, Matrix.one_mul]
 
 /-- The first `r` ordered PCA eigenvectors, written as factor-loading columns.
 The cardinality hypothesis is the deterministic rank condition needed to choose
@@ -2873,22 +2862,10 @@ theorem factorLeadingPCEigenvalues_selected_diagonal_isUnit_of_pos
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hpos : ∀ j, 0 < factorLeadingPCEigenvalues (r := r) hShat hcard j) :
     IsUnit (Matrix.diagonal
-      (factorLeadingPCEigenvalues (r := r) hShat hcard)).det := by
-  have hright :
-      Matrix.diagonal (factorLeadingPCEigenvalues (r := r) hShat hcard) *
-          Matrix.diagonal
-            (fun j => (factorLeadingPCEigenvalues (r := r) hShat hcard j)⁻¹) =
-        1 := by
-    ext i j
-    by_cases hij : i = j
-    · subst j
-      simp [(hpos i).ne']
-    · simp [hij]
-  exact Matrix.isUnit_det_of_right_inverse
-    (A := Matrix.diagonal (factorLeadingPCEigenvalues (r := r) hShat hcard))
-    (B := Matrix.diagonal
-      (fun j => (factorLeadingPCEigenvalues (r := r) hShat hcard j)⁻¹))
-    hright
+      (factorLeadingPCEigenvalues (r := r) hShat hcard)).det :=
+  (Matrix.isUnit_iff_isUnit_det _).mp
+    (Matrix.isUnit_diagonal.mpr
+      (Pi.isUnit_iff.mpr fun j => (hpos j).ne'.isUnit))
 
 omit [Fintype n] [DecidableEq n] in
 /-- A positive semidefinite sample/objective matrix with rank at least `r`
@@ -2998,20 +2975,13 @@ noncomputable def factorLeastSquaresCriterion
     (fun a : k => X i a - (Λ *ᵥ Fhat i) a) ⬝ᵥ
       (fun a : k => X i a - (Λ *ᵥ Fhat i) a)
 
-omit [DecidableEq k] in
-private theorem dotProduct_self_nonneg_real (x : k → ℝ) : 0 ≤ x ⬝ᵥ x := by
-  rw [dotProduct]
-  exact Finset.sum_nonneg (fun i _ => mul_self_nonneg (x i))
-
 omit [Fintype n] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 /-- Frobenius-square nonnegativity in trace form. This is the nonnegative
 remainder used by the least-squares completion-of-squares profile argument. -/
-theorem trace_transpose_mul_self_nonneg (A : Matrix k r ℝ) :
+private theorem trace_transpose_mul_self_nonneg (A : Matrix k r ℝ) :
     0 ≤ Matrix.trace (Aᵀ * A) := by
-  rw [Matrix.trace]
-  exact Finset.sum_nonneg (fun j _ => by
-    simpa [Matrix.diag, Matrix.mul_apply, Matrix.transpose_apply, dotProduct] using
-      dotProduct_self_nonneg_real (fun a : k => A a j))
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    (Matrix.posSemidef_conjTranspose_mul_self A).trace_nonneg
 
 omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 /-- Raw finite-sample expansion of Hansen Theorem 11.9's unprofiled
@@ -3041,8 +3011,9 @@ theorem factorLeastSquaresCriterion_nonneg
     0 ≤ factorLeastSquaresCriterion X Λ Fhat := by
   unfold factorLeastSquaresCriterion
   exact mul_nonneg (inv_nonneg.mpr (Nat.cast_nonneg _))
-    (Finset.sum_nonneg (fun i _ =>
-      dotProduct_self_nonneg_real (fun a : k => X i a - (Λ *ᵥ Fhat i) a)))
+    (Finset.sum_nonneg (fun i _ => by
+      simpa using
+        dotProduct_star_self_nonneg (fun a : k => X i a - (Λ *ᵥ Fhat i) a)))
 
 omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 /-- Trace form of the first term in the raw least-squares expansion:
@@ -3066,6 +3037,7 @@ theorem factorSampleCrossCovariance_left_linearMap
     factorSampleCrossCovariance (fun i => Λ *ᵥ Fhat i) Fhat =
       Λ * factorScoreSampleCovariance Fhat := by
   rw [factorSampleCrossCovariance, factorScoreSampleCovariance]
+  rw [factorSampleCovariance]
   simp_rw [← Matrix.mul_vecMulVec]
   rw [← Matrix.mul_sum, Matrix.mul_smul]
 
@@ -3104,86 +3076,19 @@ theorem factorSampleCrossCovariance_residual_of_crossCovariance_normalized
 omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 /-- Trace form of the sample cross term in Hansen Theorem 11.9's normalized
 least-squares criterion. -/
-theorem trace_loading_transpose_mul_factorSampleCrossCovariance_eq_sum_dot
+private theorem trace_loading_transpose_mul_factorSampleCrossCovariance_eq_sum_dot
     (X : n → k → ℝ) (Λ : Matrix k r ℝ) (Fhat : n → r → ℝ) :
     Matrix.trace (Λᵀ * factorSampleCrossCovariance X Fhat) =
       (Fintype.card n : ℝ)⁻¹ * ∑ i : n, (X i) ⬝ᵥ (Λ *ᵥ Fhat i) := by
-  classical
-  rw [Matrix.trace]
-  simp only [Matrix.diag, Matrix.mul_apply, Matrix.transpose_apply,
-    factorSampleCrossCovariance_apply, dotProduct, Matrix.mulVec]
-  calc
-    ∑ j : r, ∑ a : k,
-        Λ a j * ((Fintype.card n : ℝ)⁻¹ * ∑ i : n, X i a * Fhat i j)
-        =
-      ∑ j : r, ∑ a : k,
-        (Fintype.card n : ℝ)⁻¹ *
-          ∑ i : n, X i a * (Λ a j * Fhat i j) := by
-        refine Finset.sum_congr rfl ?_
-        intro j _
-        refine Finset.sum_congr rfl ?_
-        intro a _
-        calc
-          Λ a j * ((Fintype.card n : ℝ)⁻¹ * ∑ i : n, X i a * Fhat i j)
-              = (Fintype.card n : ℝ)⁻¹ *
-                  (Λ a j * ∑ i : n, X i a * Fhat i j) := by
-                  ring
-          _ = (Fintype.card n : ℝ)⁻¹ *
-                  ∑ i : n, Λ a j * (X i a * Fhat i j) := by
-                  rw [Finset.mul_sum]
-          _ = (Fintype.card n : ℝ)⁻¹ *
-                  ∑ i : n, X i a * (Λ a j * Fhat i j) := by
-                  congr 1
-                  refine Finset.sum_congr rfl ?_
-                  intro i _
-                  ring
-    _ =
-      (Fintype.card n : ℝ)⁻¹ *
-        ∑ j : r, ∑ a : k, ∑ i : n, X i a * (Λ a j * Fhat i j) := by
-        calc
-          ∑ j : r, ∑ a : k,
-              (Fintype.card n : ℝ)⁻¹ *
-                ∑ i : n, X i a * (Λ a j * Fhat i j)
-              =
-            ∑ j : r, (Fintype.card n : ℝ)⁻¹ *
-              ∑ a : k, ∑ i : n, X i a * (Λ a j * Fhat i j) := by
-              refine Finset.sum_congr rfl ?_
-              intro j _
-              rw [Finset.mul_sum]
-          _ =
-            (Fintype.card n : ℝ)⁻¹ *
-              ∑ j : r, ∑ a : k, ∑ i : n,
-                X i a * (Λ a j * Fhat i j) := by
-              rw [Finset.mul_sum]
-    _ =
-      (Fintype.card n : ℝ)⁻¹ *
-        ∑ i : n, ∑ a : k, ∑ j : r, X i a * (Λ a j * Fhat i j) := by
-        congr 1
-        calc
-          ∑ j : r, ∑ a : k, ∑ i : n, X i a * (Λ a j * Fhat i j)
-              =
-            ∑ a : k, ∑ i : n, ∑ j : r, X i a * (Λ a j * Fhat i j) := by
-              rw [Finset.sum_comm]
-              refine Finset.sum_congr rfl ?_
-              intro a _
-              rw [Finset.sum_comm]
-          _ =
-            ∑ i : n, ∑ a : k, ∑ j : r, X i a * (Λ a j * Fhat i j) := by
-              rw [Finset.sum_comm]
-    _ =
-      (Fintype.card n : ℝ)⁻¹ *
-        ∑ i : n, ∑ a : k, X i a * ∑ j : r, Λ a j * Fhat i j := by
-        congr 1
-        refine Finset.sum_congr rfl ?_
-        intro i _
-        refine Finset.sum_congr rfl ?_
-        intro a _
-        rw [Finset.mul_sum]
+  rw [factorSampleCrossCovariance, Matrix.mul_smul, Matrix.trace_smul,
+    Matrix.mul_sum, Matrix.trace_sum]
+  simp only [Matrix.mul_vecMulVec, Matrix.mulVec_transpose,
+    Matrix.dotProduct_mulVec, Matrix.trace_vecMulVec, smul_eq_mul]
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- With Hansen-normalized scores, the fitted-value square term in the raw
 least-squares criterion is the loading Gram trace. -/
-theorem trace_loading_gram_eq_sum_fitted_dot_of_normalized
+private theorem trace_loading_gram_eq_sum_fitted_dot_of_normalized
     (Λ : Matrix k r ℝ) (Fhat : n → r → ℝ)
     (hF : factorScoreNormalization Fhat) :
     Matrix.trace (Λᵀ * Λ) =
@@ -3217,7 +3122,7 @@ theorem factorLeastSquaresCriterion_eq_trace_sub_two_cross_add_loading_gram
 
 omit [Fintype n] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 /-- Matrix completion of squares for finite-dimensional loadings. -/
-theorem trace_sub_transpose_mul_sub
+private theorem trace_sub_transpose_mul_sub
     (A B : Matrix k r ℝ) :
     Matrix.trace ((A - B)ᵀ * (A - B)) =
       Matrix.trace (Aᵀ * A) - 2 * Matrix.trace (Aᵀ * B) +
@@ -3448,31 +3353,13 @@ noncomputable def factorPCDiagonalInvSqrtD (d : r → ℝ) : Matrix r r ℝ :=
 
 private theorem inv_sqrt_mul_self_mul_inv_sqrt {x : ℝ} (hx : 0 < x) :
     (Real.sqrt x)⁻¹ * x * (Real.sqrt x)⁻¹ = 1 := by
-  have hsqrt_ne : Real.sqrt x ≠ 0 := (Real.sqrt_pos_of_pos hx).ne'
-  have hsqrt_sq : Real.sqrt x * Real.sqrt x = x :=
-    Real.mul_self_sqrt hx.le
-  calc
-    (Real.sqrt x)⁻¹ * x * (Real.sqrt x)⁻¹ =
-        (Real.sqrt x)⁻¹ * (Real.sqrt x * Real.sqrt x) * (Real.sqrt x)⁻¹ := by
-          rw [hsqrt_sq]
-    _ = ((Real.sqrt x)⁻¹ * Real.sqrt x) * Real.sqrt x * (Real.sqrt x)⁻¹ := by
-          rw [← mul_assoc]
-    _ = 1 := by
-          rw [inv_mul_cancel₀ hsqrt_ne, one_mul, mul_inv_cancel₀ hsqrt_ne]
+  rw [mul_assoc, ← div_eq_mul_inv, Real.div_sqrt,
+    inv_mul_cancel₀ (Real.sqrt_ne_zero'.mpr hx)]
 
-private theorem mul_inv_sqrt_eq_sqrt {x : ℝ} (hx : 0 < x) :
+private theorem mul_inv_sqrt_eq_sqrt {x : ℝ} :
     x * (Real.sqrt x)⁻¹ = Real.sqrt x := by
-  have hsqrt_ne : Real.sqrt x ≠ 0 := (Real.sqrt_pos_of_pos hx).ne'
-  have hsqrt_sq : Real.sqrt x * Real.sqrt x = x :=
-    Real.mul_self_sqrt hx.le
-  calc
-    x * (Real.sqrt x)⁻¹ =
-        (Real.sqrt x * Real.sqrt x) * (Real.sqrt x)⁻¹ := by
-          rw [hsqrt_sq]
-    _ = Real.sqrt x * (Real.sqrt x * (Real.sqrt x)⁻¹) := by
-          rw [mul_assoc]
-    _ = Real.sqrt x := by
-          rw [mul_inv_cancel₀ hsqrt_ne, mul_one]
+  rw [← div_eq_mul_inv]
+  exact Real.div_sqrt
 
 omit [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k] in
 /-- Canonical diagonal `D^{-1/2}` normalizes a positive diagonal eigenvalue matrix. -/
@@ -3488,17 +3375,17 @@ theorem factorPCDiagonalInvSqrtD_mul_diagonal_mul_transpose
   · simp [factorPCDiagonalInvSqrtD, hij]
 
 omit [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k] in
-/-- Canonical diagonal `D^{-1/2}` converts positive diagonal eigenvalues to
-`D^{1/2}`. -/
+/-- Canonical diagonal `D^{-1/2}` converts a diagonal matrix to `D^{1/2}`
+under Mathlib's totalized real square-root inverse. -/
 theorem diagonal_mul_factorPCDiagonalInvSqrtD_transpose
-    (d : r → ℝ) (hpos : ∀ j, 0 < d j) :
+    (d : r → ℝ) :
     Matrix.diagonal d * (factorPCDiagonalInvSqrtD d)ᵀ =
       factorPCDiagonalSqrtD d := by
   ext i j
   by_cases hij : i = j
   · subst j
     simp [factorPCDiagonalSqrtD, factorPCDiagonalInvSqrtD,
-      mul_inv_sqrt_eq_sqrt (hpos i)]
+      mul_inv_sqrt_eq_sqrt]
   · simp [factorPCDiagonalSqrtD, factorPCDiagonalInvSqrtD, hij]
 
 omit [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k] in
@@ -3579,16 +3466,8 @@ theorem factorLoadingEstimator_diagonal_trace_gram_eq_concentratedObjective
                 · subst j
                   simp [factorPCDiagonalSqrtD, Real.mul_self_sqrt (hpos i).le]
                 · simp [factorPCDiagonalSqrtD, hij]
-  have hmiddle : Hᵀ * Shat * H = Matrix.diagonal d := by
-    calc
-      Hᵀ * Shat * H = Hᵀ * (Shat * H) := by
-        rw [Matrix.mul_assoc]
-      _ = Hᵀ * (H * Matrix.diagonal d) := by
-        rw [hLead]
-      _ = Hᵀ * H * Matrix.diagonal d := by
-        rw [Matrix.mul_assoc]
-      _ = Matrix.diagonal d := by
-        rw [hOrth, Matrix.one_mul]
+  have hmiddle := factorLeadingEigenspace_conj_eq
+    Shat H (Matrix.diagonal d) hLead hOrth
   simp [factorConcentratedObjective, hgram, hmiddle]
 
 omit [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k] in
@@ -3620,7 +3499,7 @@ theorem factorPCDiagonalSqrtD_leastSquares_score_scale
       Matrix.diagonal d * factorPCDiagonalInvSqrtD d =
         factorPCDiagonalSqrtD d := by
     simpa [factorPCDiagonalInvSqrtD] using
-      diagonal_mul_factorPCDiagonalInvSqrtD_transpose d hpos
+      diagonal_mul_factorPCDiagonalInvSqrtD_transpose d
   calc
     ((factorPCDiagonalSqrtD d)ᵀ * factorPCDiagonalSqrtD d)⁻¹ *
         (factorPCDiagonalSqrtD d)ᵀ =
@@ -3644,7 +3523,7 @@ theorem factorPCScaling_diagonal_of_pos
   score_scale_normalizes :=
     factorPCDiagonalInvSqrtD_mul_diagonal_mul_transpose d hpos
   loading_scale :=
-    diagonal_mul_factorPCDiagonalInvSqrtD_transpose d hpos
+    diagonal_mul_factorPCDiagonalInvSqrtD_transpose d
   leastSquares_score_scale :=
     factorPCDiagonalSqrtD_leastSquares_score_scale d hpos
 
@@ -3655,12 +3534,7 @@ theorem factorConcentratedObjective_eq_trace_eigenvalues_of_normalized
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (D : Matrix r r ℝ)
     (hLead : factorLeadingEigenspace Shat H D) (hOrth : Hᵀ * H = 1) :
     factorConcentratedObjective Shat H = Matrix.trace D := by
-  have hmiddle : Hᵀ * Shat * H = D := by
-    calc
-      Hᵀ * Shat * H = Hᵀ * (Shat * H) := by rw [Matrix.mul_assoc]
-      _ = Hᵀ * (H * D) := by rw [hLead]
-      _ = Hᵀ * H * D := by rw [Matrix.mul_assoc]
-      _ = D := by rw [hOrth, Matrix.one_mul]
+  have hmiddle := factorLeadingEigenspace_conj_eq Shat H D hLead hOrth
   simp [factorConcentratedObjective, hmiddle]
 
 omit [DecidableEq k] in
@@ -3779,7 +3653,7 @@ spectral transfer from the observation-space Gram `n⁻¹XX'` to the sample
 covariance `n⁻¹X'X`. The no-extra-premise wrapper below supplies this transfer
 from the zero-padded spectrum bridge. -/
 theorem
-    factorPCTheorem11_9_crossCovariance_trace_bound_of_observationGram_eigenvalue_bound
+    FactorPCTheorem11_9.crossCovarianceTraceBound_of_observationGram
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n) (X : n → k → ℝ)
     (hObsToSample :
@@ -3819,7 +3693,7 @@ theorem factorPCTheorem11_9_crossCovariance_trace_bound
             (factorSampleCovariance_isHermitian X) hcard) := by
   classical
   refine
-    factorPCTheorem11_9_crossCovariance_trace_bound_of_observationGram_eigenvalue_bound
+    FactorPCTheorem11_9.crossCovarianceTraceBound_of_observationGram
       (r := r) hcard hcardObs X ?_
   have hsum :=
     factorObservationGram_sampleCovariance_leadingEigenvalue_sum_eq
@@ -3928,12 +3802,8 @@ theorem factorScoreNormalization_of_eigenspace_scores
             rw [Matrix.transpose_mul, Matrix.transpose_transpose]
             simp only [Matrix.mul_assoc]
     _ = invSqrtD * D * invSqrtDᵀ := by
-            rw [show Hᵀ * Shat * H = D by
-              calc
-                Hᵀ * Shat * H = Hᵀ * (Shat * H) := by rw [Matrix.mul_assoc]
-                _ = Hᵀ * (H * D) := by rw [hLead]
-                _ = Hᵀ * H * D := by rw [Matrix.mul_assoc]
-                _ = D := by rw [hscale.eigenvectors_orthonormal, Matrix.one_mul]]
+            rw [factorLeadingEigenspace_conj_eq Shat H D hLead
+              hscale.eigenvectors_orthonormal]
     _ = 1 := hscale.score_scale_normalizes
 
 omit [DecidableEq n] [DecidableEq k] in
@@ -3958,339 +3828,6 @@ theorem factorSampleCrossCovariance_eq_loading_of_eigenspace_scores
             rw [Matrix.transpose_mul, Matrix.transpose_transpose, Matrix.mul_assoc]
     _ = H * D * invSqrtDᵀ := by rw [hLead]
     _ = H * sqrtD := by rw [Matrix.mul_assoc, hscale.loading_scale]
-
-/-- Principal-component least-squares factor solution from Hansen Theorem 11.9. -/
-structure FactorPCSolution
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    (leadingEigenspace normalization : Prop) : Prop where
-  sample_covariance_eq : Shat = factorSampleCovariance X
-  leading_eigenspace : leadingEigenspace
-  loading_eq : Λhat = factorLoadingEstimator H sqrtD
-  factor_eq : ∀ i, Fhat i = factorScoreEstimator H invSqrtD (X i)
-  normalization : normalization
-
-omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Assemble a principal-component factor-solution certificate. -/
-theorem factorPCSolution_of_certificate
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {leadingEigenspace normalization : Prop}
-    (hSample : Shat = factorSampleCovariance X)
-    (hLead : leadingEigenspace)
-    (hLoad : Λhat = factorLoadingEstimator H sqrtD)
-    (hFactor : ∀ i, Fhat i = factorScoreEstimator H invSqrtD (X i))
-    (hNorm : normalization) :
-    FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat leadingEigenspace normalization where
-  sample_covariance_eq := hSample
-  leading_eigenspace := hLead
-  loading_eq := hLoad
-  factor_eq := hFactor
-  normalization := hNorm
-
-omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Sample-covariance equality component of Hansen Theorem 11.9. -/
-theorem factorPCSolution_sample_covariance_eq
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {leadingEigenspace normalization : Prop}
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat leadingEigenspace normalization) :
-    Shat = factorSampleCovariance X :=
-  h.sample_covariance_eq
-
-omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Loading equality component of Hansen Theorem 11.9. -/
-theorem factorPCSolution_loading_eq
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {leadingEigenspace normalization : Prop}
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat leadingEigenspace normalization) :
-    Λhat = factorLoadingEstimator H sqrtD :=
-  h.loading_eq
-
-omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Factor-score equality component of Hansen Theorem 11.9. -/
-theorem factorPCSolution_factor_eq
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {leadingEigenspace normalization : Prop}
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat leadingEigenspace normalization) :
-    ∀ i, Fhat i = factorScoreEstimator H invSqrtD (X i) :=
-  h.factor_eq
-
-omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Factor-PCA certificate with a concrete eigenspace equation
-`Shat * H = H * D`. -/
-theorem factorPCSolution_of_eigenspace_certificate
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
-    (D sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {normalization : Prop}
-    (hSample : Shat = factorSampleCovariance X)
-    (hLead : factorLeadingEigenspace Shat H D)
-    (hLoad : Λhat = factorLoadingEstimator H sqrtD)
-    (hFactor : ∀ i, Fhat i = factorScoreEstimator H invSqrtD (X i))
-    (hNorm : normalization) :
-    FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat
-      (factorLeadingEigenspace Shat H D) normalization :=
-  factorPCSolution_of_certificate Shat H sqrtD invSqrtD Λhat X Fhat
-    hSample hLead hLoad hFactor hNorm
-
-omit [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Concrete eigenspace equation extracted from a factor-PCA certificate. -/
-theorem factorPCSolution_leadingEigenspace_eq
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
-    (D sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {normalization : Prop}
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat
-      (factorLeadingEigenspace Shat H D) normalization) :
-    Shat * H = H * D :=
-  h.leading_eigenspace
-
-omit [DecidableEq n] [DecidableEq k] in
-/-- Factor-PCA certificate with Hansen's concrete score normalization. -/
-theorem factorPCSolution_of_normalized_eigenspace_certificate
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
-    (D sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    (hSample : Shat = factorSampleCovariance X)
-    (hLead : factorLeadingEigenspace Shat H D)
-    (hLoad : Λhat = factorLoadingEstimator H sqrtD)
-    (hFactor : ∀ i, Fhat i = factorScoreEstimator H invSqrtD (X i))
-    (hNorm : factorScoreNormalization Fhat) :
-    FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat
-      (factorLeadingEigenspace Shat H D) (factorScoreNormalization Fhat) :=
-  factorPCSolution_of_eigenspace_certificate Shat H D sqrtD invSqrtD Λhat X Fhat
-    hSample hLead hLoad hFactor hNorm
-
-omit [DecidableEq n] [DecidableEq k] in
-/-- Hansen Theorem 11.9 certificate assembled directly from the eigenspace and
-PCA scaling equations. Unlike `factorPCSolution_of_normalized_eigenspace_certificate`,
-the score normalization is proved from the eigenspace/scaling hypotheses rather
-than supplied as an input. -/
-theorem factorPCSolution_of_eigenspace_scaling_certificate
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
-    (D sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
-    (hSample : Shat = factorSampleCovariance X)
-    (hLead : factorLeadingEigenspace Shat H D)
-    (hscale : FactorPCScaling H D sqrtD invSqrtD) :
-    FactorPCSolution Shat H sqrtD invSqrtD
-      (factorLoadingEstimator H sqrtD) X
-      (fun i => factorScoreEstimator H invSqrtD (X i))
-      (factorLeadingEigenspace Shat H D)
-      (factorScoreNormalization (fun i => factorScoreEstimator H invSqrtD (X i))) :=
-  factorPCSolution_of_eigenspace_certificate Shat H D sqrtD invSqrtD
-    (factorLoadingEstimator H sqrtD) X
-    (fun i => factorScoreEstimator H invSqrtD (X i))
-    hSample hLead rfl (fun _ => rfl)
-    (factorScoreNormalization_of_eigenspace_scores Shat H D sqrtD invSqrtD X
-      hSample hLead hscale)
-
-omit [DecidableEq n] [DecidableEq k] in
-/-- Hansen Theorem 11.9 certificate assembled from the global concentrated
-objective optimizer, eigenspace equation, and PCA scaling equations.
-
-This is the theorem-facing endpoint for the factor-PCA route: the remaining
-spectral theorem must provide `FactorConcentratedObjectiveMaximizer` for the
-leading `r` eigenspace, rather than only sequential one-column optimality. -/
-theorem factorPCSolution_of_concentratedObjective_optimizer
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
-    (D sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
-    (hSample : Shat = factorSampleCovariance X)
-    (hLead : factorLeadingEigenspace Shat H D)
-    (hscale : FactorPCScaling H D sqrtD invSqrtD)
-    (hOpt : FactorConcentratedObjectiveMaximizer Shat H) :
-    FactorPCSolution Shat H sqrtD invSqrtD
-      (factorLoadingEstimator H sqrtD) X
-      (fun i => factorScoreEstimator H invSqrtD (X i))
-      (factorLeadingEigenspace Shat H D ∧
-        FactorConcentratedObjectiveMaximizer Shat H)
-      (factorScoreNormalization (fun i => factorScoreEstimator H invSqrtD (X i))) :=
-  factorPCSolution_of_certificate Shat H sqrtD invSqrtD
-    (factorLoadingEstimator H sqrtD) X
-    (fun i => factorScoreEstimator H invSqrtD (X i))
-    hSample ⟨hLead, hOpt⟩ rfl (fun _ => rfl)
-    (factorScoreNormalization_of_eigenspace_scores Shat H D sqrtD invSqrtD X
-      hSample hLead hscale)
-
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.9, ordered leading-eigenspace route.
-
-Once the Ky Fan trace inequality is supplied for the leading ordered PCA
-eigenvectors, the principal-component factor estimator satisfies the sample
-covariance equation, leading-eigenspace/global-optimizer certificate, loading
-formula, score formula, and Hansen factor-score normalization. -/
-theorem factorPCSolution_of_leadingPCEigenvectors_kyFan_trace_bound
-    {Shat : Matrix k k ℝ} (hShat : Shat.IsHermitian)
-    (hcard : Fintype.card r ≤ Fintype.card k)
-    (sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
-    (hSample : Shat = factorSampleCovariance X)
-    (hscale : FactorPCScaling
-      (factorLeadingPCEigenvectors (r := r) hShat hcard)
-      (Matrix.diagonal (factorLeadingPCEigenvalues (r := r) hShat hcard))
-      sqrtD invSqrtD)
-    (hKyFan : ∀ G : Matrix k r ℝ, Gᵀ * G = 1 →
-      factorConcentratedObjective Shat G ≤
-        ∑ j : r, factorLeadingPCEigenvalues (r := r) hShat hcard j) :
-    FactorPCSolution Shat
-      (factorLeadingPCEigenvectors (r := r) hShat hcard)
-      sqrtD invSqrtD
-      (factorLoadingEstimator
-        (factorLeadingPCEigenvectors (r := r) hShat hcard) sqrtD)
-      X
-      (fun i =>
-        factorScoreEstimator
-          (factorLeadingPCEigenvectors (r := r) hShat hcard)
-          invSqrtD (X i))
-      (factorLeadingEigenspace Shat
-          (factorLeadingPCEigenvectors (r := r) hShat hcard)
-          (Matrix.diagonal
-            (factorLeadingPCEigenvalues (r := r) hShat hcard)) ∧
-        FactorConcentratedObjectiveMaximizer Shat
-          (factorLeadingPCEigenvectors (r := r) hShat hcard))
-      (factorScoreNormalization
-        (fun i =>
-          factorScoreEstimator
-            (factorLeadingPCEigenvectors (r := r) hShat hcard)
-            invSqrtD (X i))) := by
-  exact factorPCSolution_of_concentratedObjective_optimizer Shat
-    (factorLeadingPCEigenvectors (r := r) hShat hcard)
-    (Matrix.diagonal (factorLeadingPCEigenvalues (r := r) hShat hcard))
-    sqrtD invSqrtD X hSample
-    (factorLeadingPCEigenvectors_eigenspace (r := r) hShat hcard)
-    hscale
-    (factorLeadingPCEigenvectors_concentratedObjectiveMaximizer_of_kyFan_trace_bound
-      (r := r) hShat hcard hKyFan)
-
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.9, ordered leading-eigenspace route.
-
-The leading ordered PCA eigenvectors satisfy the sample-covariance eigenspace
-equation, globally maximize the concentrated factor-PCA objective by Ky Fan's
-trace inequality, and assemble the loading formula, score formula, and Hansen
-factor-score normalization under the deterministic PCA scaling equations. -/
-theorem factorPCSolution_of_leadingPCEigenvectors
-    {Shat : Matrix k k ℝ} (hShat : Shat.IsHermitian)
-    (hcard : Fintype.card r ≤ Fintype.card k)
-    (sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
-    (hSample : Shat = factorSampleCovariance X)
-    (hscale : FactorPCScaling
-      (factorLeadingPCEigenvectors (r := r) hShat hcard)
-      (Matrix.diagonal (factorLeadingPCEigenvalues (r := r) hShat hcard))
-      sqrtD invSqrtD) :
-    FactorPCSolution Shat
-      (factorLeadingPCEigenvectors (r := r) hShat hcard)
-      sqrtD invSqrtD
-      (factorLoadingEstimator
-        (factorLeadingPCEigenvectors (r := r) hShat hcard) sqrtD)
-      X
-      (fun i =>
-        factorScoreEstimator
-          (factorLeadingPCEigenvectors (r := r) hShat hcard)
-          invSqrtD (X i))
-      (factorLeadingEigenspace Shat
-          (factorLeadingPCEigenvectors (r := r) hShat hcard)
-          (Matrix.diagonal
-            (factorLeadingPCEigenvalues (r := r) hShat hcard)) ∧
-        FactorConcentratedObjectiveMaximizer Shat
-          (factorLeadingPCEigenvectors (r := r) hShat hcard))
-      (factorScoreNormalization
-        (fun i =>
-          factorScoreEstimator
-            (factorLeadingPCEigenvectors (r := r) hShat hcard)
-            invSqrtD (X i))) :=
-  factorPCSolution_of_leadingPCEigenvectors_kyFan_trace_bound
-    (r := r) hShat hcard sqrtD invSqrtD X hSample hscale
-    (fun G hG =>
-      factorConcentratedObjective_le_sum_leadingPCEigenvalues
-        (r := r) hShat hcard G hG)
-
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.9, ordered leading-eigenspace route specialized to the
-sample second-moment matrix `Ŝ = n⁻¹∑ X_iX_i'`.
-
-This wrapper derives the Hermitian premise from
-`factorSampleCovariance_isHermitian`, leaving only the deterministic PCA scaling
-equations explicit. -/
-theorem factorPCSolution_of_sampleCovariance_leadingPCEigenvectors
-    (hcard : Fintype.card r ≤ Fintype.card k)
-    (sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
-    (hscale : FactorPCScaling
-      (factorLeadingPCEigenvectors (r := r)
-        (factorSampleCovariance_isHermitian X) hcard)
-      (Matrix.diagonal
-        (factorLeadingPCEigenvalues (r := r)
-          (factorSampleCovariance_isHermitian X) hcard))
-      sqrtD invSqrtD) :
-    FactorPCSolution (factorSampleCovariance X)
-      (factorLeadingPCEigenvectors (r := r)
-        (factorSampleCovariance_isHermitian X) hcard)
-      sqrtD invSqrtD
-      (factorLoadingEstimator
-        (factorLeadingPCEigenvectors (r := r)
-          (factorSampleCovariance_isHermitian X) hcard) sqrtD)
-      X
-      (fun i =>
-        factorScoreEstimator
-          (factorLeadingPCEigenvectors (r := r)
-            (factorSampleCovariance_isHermitian X) hcard)
-          invSqrtD (X i))
-      (factorLeadingEigenspace (factorSampleCovariance X)
-          (factorLeadingPCEigenvectors (r := r)
-            (factorSampleCovariance_isHermitian X) hcard)
-          (Matrix.diagonal
-            (factorLeadingPCEigenvalues (r := r)
-              (factorSampleCovariance_isHermitian X) hcard)) ∧
-        FactorConcentratedObjectiveMaximizer (factorSampleCovariance X)
-          (factorLeadingPCEigenvectors (r := r)
-            (factorSampleCovariance_isHermitian X) hcard))
-      (factorScoreNormalization
-        (fun i =>
-          factorScoreEstimator
-            (factorLeadingPCEigenvectors (r := r)
-              (factorSampleCovariance_isHermitian X) hcard)
-            invSqrtD (X i))) :=
-  factorPCSolution_of_leadingPCEigenvectors
-    (r := r) (hShat := factorSampleCovariance_isHermitian X)
-    hcard sqrtD invSqrtD X rfl hscale
-
-omit [DecidableEq n] [DecidableEq k] in
-/-- A factor-PCA certificate satisfying the scaling equations uses the
-fixed-loading least-squares score `(Λhat'Λhat)^{-1}Λhat'X_i`. -/
-theorem factorPCSolution_factor_eq_leastSquaresScore
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
-    (D sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {normalization : Prop}
-    (hscale : FactorPCScaling H D sqrtD invSqrtD)
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat
-      (factorLeadingEigenspace Shat H D) normalization) :
-    ∀ i, Fhat i = factorScoreLeastSquares Λhat (X i) := by
-  intro i
-  rw [h.factor_eq i, h.loading_eq]
-  exact factorScoreEstimator_eq_leastSquaresScore H D sqrtD invSqrtD (X i) hscale
-
-omit [DecidableEq n] [DecidableEq k] in
-/-- A factor-PCA certificate satisfying the scaling equations solves the loading
-normal equation under Hansen's factor normalization:
-`n⁻¹∑ X_i Fhat_i' = Λhat`. -/
-theorem factorPCSolution_loading_normalEquation
-    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
-    (D sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
-    {normalization : Prop}
-    (hscale : FactorPCScaling H D sqrtD invSqrtD)
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat
-      (factorLeadingEigenspace Shat H D) normalization) :
-    factorSampleCrossCovariance X Fhat = Λhat := by
-  rw [h.loading_eq]
-  have hF :
-      Fhat = fun i => factorScoreEstimator H invSqrtD (X i) :=
-    funext h.factor_eq
-  rw [hF]
-  exact factorSampleCrossCovariance_eq_loading_of_eigenspace_scores Shat H
-    D sqrtD invSqrtD X h.sample_covariance_eq h.leading_eigenspace hscale
 
 /-- Hansen Theorem 11.9, theorem-facing least-squares factor-PCA certificate.
 
@@ -4338,7 +3875,7 @@ omit [DecidableEq n] [DecidableEq k] in
 normalized joint least-squares minimizer from the exact cross-covariance trace
 bound. This is the completed deterministic
 square-completion half of the literal Theorem 11.9 surface. -/
-theorem FactorLeastSquaresProfileBridge.of_factorPCTheorem11_9_crossCovariance_trace_bound
+theorem FactorLeastSquaresProfileBridge.of_factorPC_crossCovarianceTraceBound
     {Shat : Matrix k k ℝ} {H : Matrix k r ℝ}
     {D sqrtD invSqrtD : Matrix r r ℝ}
     {Λhat : Matrix k r ℝ} {X : n → k → ℝ} {Fhat : n → r → ℝ}
@@ -4373,7 +3910,7 @@ theorem factorPCTheorem11_9_jointLeastSquaresMinimizer_of_crossCovariance_trace_
         factorConcentratedObjective Shat H) :
     FactorLeastSquaresNormalizedMinimizer X Λhat Fhat :=
   factorPCTheorem11_9_jointLeastSquaresMinimizer_of_profileBridge h
-    (FactorLeastSquaresProfileBridge.of_factorPCTheorem11_9_crossCovariance_trace_bound
+    (FactorLeastSquaresProfileBridge.of_factorPC_crossCovarianceTraceBound
       h hLoadingTrace hBound)
 
 omit [DecidableEq n] [DecidableEq k] in
@@ -4528,7 +4065,7 @@ theorem factorPCTheorem11_9_of_leadingPCEigenvectors_positive_eigenvalues
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 specialized to the sample second-moment matrix with
 canonical diagonal PCA scaling under positive selected eigenvalues. -/
-theorem factorPCTheorem11_9_of_sampleCovariance_leadingPCEigenvectors_positive_eigenvalues
+theorem FactorPCTheorem11_9.of_sampleCovariance_positiveEigenvalues
     (hcard : Fintype.card r ≤ Fintype.card k) (X : n → k → ℝ)
     (hpos : ∀ j,
       0 < factorLeadingPCEigenvalues (r := r)
@@ -4666,7 +4203,7 @@ theorem factorPCTheorem11_9_of_sampleCovariance_rank_ge
           (factorPCDiagonalInvSqrtD
             (factorLeadingPCEigenvalues (r := r)
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
-  factorPCTheorem11_9_of_sampleCovariance_leadingPCEigenvectors_positive_eigenvalues
+  FactorPCTheorem11_9.of_sampleCovariance_positiveEigenvalues
     (r := r) hcard X
     (factorLeadingPCEigenvalues_pos_of_sampleCovariance_rank_ge
       (r := r) hcard X hrank)
@@ -4780,7 +4317,7 @@ spectral transfer as the one-sided inequality needed by the minimization proof;
 `factorPCTheorem11_9_crossCovariance_trace_bound` now derives that transfer
 internally. -/
 theorem
-    factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_observationGramEigenBound
+    FactorPCTheorem11_9.jointLS_of_rankAndObservationGram
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n) (X : n → k → ℝ)
     (hrank : Fintype.card r ≤ (factorSampleCovariance X).rank)
@@ -4806,7 +4343,7 @@ theorem
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
   factorPCTheorem11_9_jointLSMinimizer_of_sampleCovariance_rank_ge_crossTraceBound
     (r := r) hcard X hrank
-    (factorPCTheorem11_9_crossCovariance_trace_bound_of_observationGram_eigenvalue_bound
+    (FactorPCTheorem11_9.crossCovarianceTraceBound_of_observationGram
       (r := r) hcard hcardObs X hObsToSample)
 
 omit [DecidableEq n] in
@@ -4940,7 +4477,7 @@ set_option linter.style.longLine false in
 /-- Citeable Hansen Theorem 11.9 surface from the displayed positive selected
 PCA eigenvalues: the PCA formula certificate and the literal normalized joint
 least-squares minimizer hold together. -/
-theorem factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_positive_eigenvalues
+theorem FactorPCTheorem11_9.withJointLS_of_positiveEigenvalues
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (X : n → k → ℝ)
     (hpos : ∀ j,
@@ -5361,7 +4898,7 @@ theorem factorPCTheorem11_9_of_approxSampleFactorPrimitiveCondition
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
   factorPCTheorem11_9_of_approxSampleFactorPervasiveCondition
     (r := r) hcard X Λ F U
-    (ApproximateSampleFactorPrimitiveCondition.toApproximateSampleFactorPervasiveCondition hraw)
+    (ApproximateSampleFactorPrimitiveCondition.toPervasive hraw)
 
 omit [DecidableEq n] in
 set_option linter.style.longLine false in
@@ -5396,7 +4933,7 @@ theorem
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
   factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition
     (r := r) hcard hcardObs X Λ F U
-    (ApproximateSampleFactorPrimitiveCondition.toApproximateSampleFactorPervasiveCondition hraw)
+    (ApproximateSampleFactorPrimitiveCondition.toPervasive hraw)
 
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 from primitive finite-sample perturbation conditions.
@@ -5565,7 +5102,7 @@ set_option linter.style.longLine false in
 finite-sample pervasiveness and idiosyncratic orthogonality, with the
 observation-count side condition derived internally. -/
 theorem
-    factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition_only
+    FactorPCTheorem11_9.jointLS_of_pervasiveCondition_only
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (X : n → k → ℝ) (Λ : Matrix k r ℝ) (F : n → r → ℝ)
     (U : Matrix n k ℝ)
@@ -5593,7 +5130,7 @@ set_option linter.style.longLine false in
 finite-sample sample-factor/pervasiveness/idiosyncratic conditions, with the
 observation-count side condition derived internally. -/
 theorem
-    factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPrimitiveCondition_only
+    FactorPCTheorem11_9.jointLS_of_primitiveCondition_only
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (X : n → k → ℝ) (Λ : Matrix k r ℝ) (F : n → r → ℝ)
     (U : Matrix n k ℝ)
@@ -5612,9 +5149,9 @@ theorem
           (factorPCDiagonalInvSqrtD
             (factorLeadingPCEigenvalues (r := r)
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
-  factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition_only
+  FactorPCTheorem11_9.jointLS_of_pervasiveCondition_only
     (r := r) hcard X Λ F U
-    (ApproximateSampleFactorPrimitiveCondition.toApproximateSampleFactorPervasiveCondition hraw)
+    (ApproximateSampleFactorPrimitiveCondition.toPervasive hraw)
 
 omit [DecidableEq n] in
 set_option linter.style.longLine false in
@@ -5622,7 +5159,7 @@ set_option linter.style.longLine false in
 finite-sample perturbation conditions, with the observation-count side condition
 derived internally from the selected-rank signal. -/
 theorem
-    factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPerturbationCondition_only
+    FactorPCTheorem11_9.jointLS_of_perturbationCondition_only
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (X : n → k → ℝ) (Λ : Matrix k r ℝ) (F : n → r → ℝ)
     (U : Matrix n k ℝ)
@@ -5814,7 +5351,7 @@ set_option linter.style.longLine false in
 idiosyncratic orthogonality: the PCA formula certificate and normalized joint
 least-squares minimizer hold together. -/
 theorem
-    factorPCTheorem11_9_with_jointLSMinimizer_of_approxSampleFactorPervasiveCondition
+    FactorPCTheorem11_9.withJointLS_of_pervasiveCondition
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (X : n → k → ℝ) (Λ : Matrix k r ℝ) (F : n → r → ℝ)
     (U : Matrix n k ℝ)
@@ -5861,7 +5398,7 @@ theorem
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
   ⟨factorPCTheorem11_9_of_approxSampleFactorPervasiveCondition
       (r := r) hcard X Λ F U hraw,
-    factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPervasiveCondition_only
+    FactorPCTheorem11_9.jointLS_of_pervasiveCondition_only
       (r := r) hcard X Λ F U hraw⟩
 
 omit [DecidableEq n] in
@@ -5870,7 +5407,7 @@ set_option linter.style.longLine false in
 sample-factor/pervasiveness/idiosyncratic conditions: the PCA formula
 certificate and normalized joint least-squares minimizer hold together. -/
 theorem
-    factorPCTheorem11_9_with_jointLSMinimizer_of_approxSampleFactorPrimitiveCondition
+    FactorPCTheorem11_9.withJointLS_of_primitiveCondition
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (X : n → k → ℝ) (Λ : Matrix k r ℝ) (F : n → r → ℝ)
     (U : Matrix n k ℝ)
@@ -5917,7 +5454,7 @@ theorem
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
   ⟨factorPCTheorem11_9_of_approxSampleFactorPrimitiveCondition
       (r := r) hcard X Λ F U hraw,
-    factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPrimitiveCondition_only
+    FactorPCTheorem11_9.jointLS_of_primitiveCondition_only
       (r := r) hcard X Λ F U hraw⟩
 
 omit [DecidableEq n] in
@@ -5926,7 +5463,7 @@ set_option linter.style.longLine false in
 perturbation conditions: the PCA formula certificate and normalized joint
 least-squares minimizer hold together. -/
 theorem
-    factorPCTheorem11_9_with_jointLSMinimizer_of_approxSampleFactorPerturbationCondition
+    FactorPCTheorem11_9.withJointLS_of_perturbationCondition
     [Nonempty n] (hcard : Fintype.card r ≤ Fintype.card k)
     (X : n → k → ℝ) (Λ : Matrix k r ℝ) (F : n → r → ℝ)
     (U : Matrix n k ℝ)
@@ -5973,7 +5510,7 @@ theorem
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
   ⟨factorPCTheorem11_9_of_approxSampleFactorPerturbationCondition
       (r := r) hcard X Λ F U hraw,
-    factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPerturbationCondition_only
+    FactorPCTheorem11_9.jointLS_of_perturbationCondition_only
       (r := r) hcard X Λ F U hraw⟩
 
 omit [DecidableEq n] in
@@ -6032,7 +5569,7 @@ set_option linter.style.longLine false in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from the concrete asymptotic perturbation bridge. -/
 theorem
-    factorPCTheorem11_9_jointLSMinimizer_eventually_of_approxFactorAsymptoticPerturbationBridge
+    FactorPCTheorem11_9.eventually_jointLS_of_perturbation
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
@@ -6072,7 +5609,7 @@ For each sufficiently large index the perturbation bridge gives the selected
 rank condition, which already implies the `r ≤ n` score-normalization dimension
 side condition. -/
 theorem
-    factorPCTheorem11_9_jointLSMinimizer_eventually_of_approxFactorAsymptoticPerturbationBridge_only
+    FactorPCTheorem11_9.eventually_jointLS_of_perturbation_only
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
@@ -6098,7 +5635,7 @@ theorem
     (ApproximateFactorAsymptoticPerturbationBridge.eventually_perturbationCondition
       h).mono
       (fun i hi =>
-        factorPCTheorem11_9_jointLSMinimizer_of_approxSampleFactorPerturbationCondition_only
+        FactorPCTheorem11_9.jointLS_of_perturbationCondition_only
           (r := r) hcard (X i) (Λ i) (F i) (U i) hi)
 
 set_option linter.style.longLine false in
@@ -6172,7 +5709,7 @@ theorem
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLSMinimizer_eventually_of_approxFactorAsymptoticPerturbationBridge
+  FactorPCTheorem11_9.eventually_jointLS_of_perturbation
     hcard hcardObs X Λ F U
     (ApproximateFactorAsymptoticNormalizedRayleighBridge.toPerturbationBridge h)
 
@@ -6182,7 +5719,7 @@ omit [DecidableEq n] in
 follows from the normalized recovered-Gram Rayleigh bridge, with the
 observation-count side condition derived internally. -/
 theorem
-    factorPCTheorem11_9_jointLS_eventually_of_approxFactorNormalizedRayleighBridge_only
+    FactorPCTheorem11_9.eventually_jointLS_of_normalizedRayleigh_only
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
@@ -6204,7 +5741,7 @@ theorem
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLSMinimizer_eventually_of_approxFactorAsymptoticPerturbationBridge_only
+  FactorPCTheorem11_9.eventually_jointLS_of_perturbation_only
     hcard X Λ F U
     (ApproximateFactorAsymptoticNormalizedRayleighBridge.toPerturbationBridge h)
 
@@ -6627,7 +6164,7 @@ theorem factorPCTheorem11_9_of_sampleCovariance_selected_diagonal_isUnit
           (factorPCDiagonalInvSqrtD
             (factorLeadingPCEigenvalues (r := r)
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
-  factorPCTheorem11_9_of_sampleCovariance_leadingPCEigenvectors_positive_eigenvalues
+  FactorPCTheorem11_9.of_sampleCovariance_positiveEigenvalues
     (r := r) hcard X
     (factorLeadingPCEigenvalues_pos_of_posSemidef_selected_diagonal_isUnit
       (r := r) (factorSampleCovariance_isHermitian X) hcard
@@ -6667,17 +6204,233 @@ theorem factorPCTheorem11_9_of_sampleCovariance_posDef
           (factorPCDiagonalInvSqrtD
             (factorLeadingPCEigenvalues (r := r)
               (factorSampleCovariance_isHermitian X) hcard)) (X i)) :=
-  factorPCTheorem11_9_of_sampleCovariance_leadingPCEigenvectors_positive_eigenvalues
+  FactorPCTheorem11_9.of_sampleCovariance_positiveEigenvalues
     (r := r) hcard X
     (factorLeadingPCEigenvalues_pos_of_posDef
       (r := r) (factorSampleCovariance_isHermitian X) hcard hposDef)
 
-/-- Hansen Assumption 11.1, in a finite-dimensional theorem-facing package. -/
+/-- The fixed-index Rayleigh consequences used from Hansen Assumption 11.1. -/
 structure ApproximateFactorAssumption
     (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) where
+  covariance_posSemidef : Ψ.PosSemidef
   bounded_idiosyncratic_covariance : ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
     x ⬝ᵥ (Ψ *ᵥ x) ≤ B * (x ⬝ᵥ x)
   pervasive_loadings : factorLoadingPervasiveness Λ
+
+/-- Hansen Assumption 11.1 for a fixed factor space and an observed-variable
+dimension `κ i` tending to infinity. The idiosyncratic covariance matrices are
+positive semidefinite, share one Rayleigh upper bound, and the loading-Gram
+lower bound diverges. -/
+structure ApproximateFactorAsymptoticConditions
+    {ι : Type*} (l : Filter ι) (κ : ι → ℕ)
+    (Λ : (i : ι) → Matrix (Fin (κ i)) r ℝ)
+    (Ψ : (i : ι) → Matrix (Fin (κ i)) (Fin (κ i)) ℝ) where
+  dimension_tendsto_atTop : Filter.Tendsto κ l Filter.atTop
+  covariance_bound : ℝ
+  loading_lower_bound : ι → ℝ
+  covariance_bound_nonneg : 0 ≤ covariance_bound
+  covariance_posSemidef : ∀ i, (Ψ i).PosSemidef
+  eventually_bounded_idiosyncratic_covariance :
+    Filter.Eventually (fun i => ∀ x : Fin (κ i) → ℝ,
+      x ⬝ᵥ (Ψ i *ᵥ x) ≤ covariance_bound * (x ⬝ᵥ x)) l
+  eventually_loading_gram_lower_bound :
+    Filter.Eventually (fun i => ∀ x : r → ℝ,
+      loading_lower_bound i * (x ⬝ᵥ x) ≤
+        x ⬝ᵥ (((Λ i)ᵀ * Λ i) *ᵥ x)) l
+  loading_lower_bound_tendsto_atTop :
+    Filter.Tendsto loading_lower_bound l Filter.atTop
+
+/-- Covariance of Hansen's idealized principal-component factor-score error
+`(Λ'Λ)⁻¹Λ'u`, written using the loading-Gram recoverer. -/
+noncomputable def factorScoreErrorCovariance
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) : Matrix r r ℝ :=
+  factorLoadingGramRecoverer Λ * Ψ * (factorLoadingGramRecoverer Λ)ᵀ
+
+/-- Hansen's covariance norm, defined as the Euclidean operator norm on the
+fixed factor space. -/
+noncomputable def factorScoreErrorCovarianceOperatorNorm
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) : ℝ :=
+  ‖(Matrix.toEuclideanLin (factorScoreErrorCovariance Λ Ψ)).toContinuousLinearMap‖
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- Hansen's displayed score-error covariance formula
+`D⁻¹Λ'ΨΛD⁻¹`, where `D = Λ'Λ`. -/
+theorem factorScoreErrorCovariance_eq_loadingGram
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) :
+    factorScoreErrorCovariance Λ Ψ =
+      ((Λᵀ * Λ)⁻¹ * Λᵀ) * Ψ * Λ * (Λᵀ * Λ)⁻¹ := by
+  have hGram : (Λᵀ * Λ)ᵀ = Λᵀ * Λ := by
+    rw [Matrix.transpose_mul, Matrix.transpose_transpose]
+  simp only [factorScoreErrorCovariance, factorLoadingGramRecoverer,
+    Matrix.transpose_mul, Matrix.transpose_transpose, Matrix.transpose_nonsing_inv,
+    hGram, Matrix.mul_assoc]
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- A valid idiosyncratic covariance induces a valid factor-score error
+covariance. -/
+theorem factorScoreErrorCovariance_posSemidef
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) (hΨ : Ψ.PosSemidef) :
+    (factorScoreErrorCovariance Λ Ψ).PosSemidef := by
+  simpa only [factorScoreErrorCovariance,
+    Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hΨ.mul_mul_conjTranspose_same (factorLoadingGramRecoverer Λ)
+
+/-- Rayleigh-quotient form of Hansen's bound
+`||Var[Fhat_i - F_i]|| ≤ B / λ_min(Λ'Λ)`. The witness `c` is the
+pervasiveness lower bound for the loading Gram matrix. -/
+def factorScoreVarianceBound
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) : Prop :=
+  ∃ B c : ℝ, 0 ≤ B ∧ 0 < c ∧ ∀ x : r → ℝ,
+    x ⬝ᵥ (factorScoreErrorCovariance Λ Ψ *ᵥ x) ≤
+      (B / c) * (x ⬝ᵥ x)
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+private theorem factorLoadingGramRecoverer_transpose_sq_le
+    (Λ : Matrix k r ℝ) {c : ℝ} (hc : 0 < c)
+    (hGramLower : ∀ z : r → ℝ,
+      c * (z ⬝ᵥ z) ≤ z ⬝ᵥ ((Λᵀ * Λ) *ᵥ z))
+    (x : r → ℝ) :
+    ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x) ⬝ᵥ
+        ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x) ≤
+      c⁻¹ * (x ⬝ᵥ x) := by
+  let G : Matrix r r ℝ := Λᵀ * Λ
+  let z : r → ℝ := G⁻¹ *ᵥ x
+  have hPervasive : factorLoadingPervasiveness Λ :=
+    ⟨c, hc, hGramLower⟩
+  have hGunit : IsUnit G.det := by
+    simpa [G] using factorLoadingGram_nonsingular_of_pervasiveness Λ hPervasive
+  have hGsymm : Gᵀ = G := by
+    simp [G, Matrix.transpose_mul]
+  have hGinvSymm : (G⁻¹)ᵀ = G⁻¹ := by
+    rw [Matrix.transpose_nonsing_inv, hGsymm]
+  have hGz : G *ᵥ z = x := by
+    dsimp [z]
+    rw [Matrix.mulVec_mulVec, Matrix.mul_nonsing_inv G hGunit, Matrix.one_mulVec]
+  have hrecover :
+      (factorLoadingGramRecoverer Λ)ᵀ *ᵥ x = Λ *ᵥ z := by
+    calc
+      (factorLoadingGramRecoverer Λ)ᵀ *ᵥ x
+          = (Λ * G⁻¹) *ᵥ x := by
+              change ((G⁻¹ * Λᵀ)ᵀ) *ᵥ x = _
+              rw [Matrix.transpose_mul, Matrix.transpose_transpose, hGinvSymm]
+      _ = Λ *ᵥ (G⁻¹ *ᵥ x) := by
+              rw [Matrix.mulVec_mulVec]
+      _ = Λ *ᵥ z := rfl
+  have hGramIdentity :
+      z ⬝ᵥ (G *ᵥ z) = (Λ *ᵥ z) ⬝ᵥ (Λ *ᵥ z) := by
+    dsimp [G]
+    rw [← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec,
+      vecMul_eq_mulVec_transpose, Matrix.transpose_transpose]
+  have hzSqNonneg : 0 ≤ z ⬝ᵥ z := by
+    simpa using dotProduct_star_self_nonneg z
+  have hxSqNonneg : 0 ≤ x ⬝ᵥ x := by
+    simpa using dotProduct_star_self_nonneg x
+  have hLower : c * (z ⬝ᵥ z) ≤ z ⬝ᵥ x := by
+    simpa [G, hGz] using hGramLower z
+  have hzxNonneg : 0 ≤ z ⬝ᵥ x :=
+    (mul_nonneg hc.le hzSqNonneg).trans hLower
+  have hCauchy :
+      (z ⬝ᵥ x) ^ 2 ≤ (z ⬝ᵥ z) * (x ⬝ᵥ x) := by
+    simpa [dotProduct, pow_two] using
+      (Finset.sum_mul_sq_le_sq_mul_sq (R := ℝ) Finset.univ z x)
+  have hzxBound : z ⬝ᵥ x ≤ c⁻¹ * (x ⬝ᵥ x) := by
+    apply (le_inv_mul_iff₀ hc).2
+    by_cases hzx : z ⬝ᵥ x = 0
+    · simp [hzx, hxSqNonneg]
+    · have hzxPos : 0 < z ⬝ᵥ x := lt_of_le_of_ne hzxNonneg (Ne.symm hzx)
+      have hCauchyScaled := mul_le_mul_of_nonneg_left hCauchy hc.le
+      have hLowerScaled := mul_le_mul_of_nonneg_right hLower hxSqNonneg
+      nlinarith
+  calc
+    ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x) ⬝ᵥ
+        ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x)
+        = (Λ *ᵥ z) ⬝ᵥ (Λ *ᵥ z) := by rw [hrecover]
+    _ = z ⬝ᵥ (G *ᵥ z) := hGramIdentity.symm
+    _ = z ⬝ᵥ x := by rw [hGz]
+    _ ≤ c⁻¹ * (x ⬝ᵥ x) := hzxBound
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+private theorem factorScoreErrorCovariance_quadratic_eq
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) (x : r → ℝ) :
+    x ⬝ᵥ (factorScoreErrorCovariance Λ Ψ *ᵥ x) =
+      ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x) ⬝ᵥ
+        (Ψ *ᵥ ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x)) := by
+  unfold factorScoreErrorCovariance
+  rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec,
+    Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- Hansen's score-error covariance inequality for explicit covariance and
+loading-Gram Rayleigh bounds. -/
+theorem factorScoreErrorCovariance_quadratic_le
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) {B c : ℝ}
+    (hB : 0 ≤ B) (hc : 0 < c)
+    (hΨ : ∀ y : k → ℝ, y ⬝ᵥ (Ψ *ᵥ y) ≤ B * (y ⬝ᵥ y))
+    (hGramLower : ∀ z : r → ℝ,
+      c * (z ⬝ᵥ z) ≤ z ⬝ᵥ ((Λᵀ * Λ) *ᵥ z)) :
+    ∀ x : r → ℝ,
+      x ⬝ᵥ (factorScoreErrorCovariance Λ Ψ *ᵥ x) ≤
+        (B / c) * (x ⬝ᵥ x) := by
+  intro x
+  calc
+    x ⬝ᵥ (factorScoreErrorCovariance Λ Ψ *ᵥ x) =
+        ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x) ⬝ᵥ
+          (Ψ *ᵥ ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x)) :=
+      factorScoreErrorCovariance_quadratic_eq Λ Ψ x
+    _ ≤ B * (((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x) ⬝ᵥ
+          ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x)) :=
+      hΨ ((factorLoadingGramRecoverer Λ)ᵀ *ᵥ x)
+    _ ≤ B * (c⁻¹ * (x ⬝ᵥ x)) :=
+      mul_le_mul_of_nonneg_left
+        (factorLoadingGramRecoverer_transpose_sq_le Λ hc hGramLower x) hB
+    _ = (B / c) * (x ⬝ᵥ x) := by
+      rw [div_eq_mul_inv]
+      ring
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+private theorem factorScoreErrorCovariance_operatorNorm_le
+    (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ) {B c : ℝ}
+    (hΨpsd : Ψ.PosSemidef) (hB : 0 ≤ B) (hc : 0 < c)
+    (hΨ : ∀ y : k → ℝ, y ⬝ᵥ (Ψ *ᵥ y) ≤ B * (y ⬝ᵥ y))
+    (hGramLower : ∀ z : r → ℝ,
+      c * (z ⬝ᵥ z) ≤ z ⬝ᵥ ((Λᵀ * Λ) *ᵥ z)) :
+    factorScoreErrorCovarianceOperatorNorm Λ Ψ ≤ B / c := by
+  let C : Matrix r r ℝ := factorScoreErrorCovariance Λ Ψ
+  let T : EuclideanSpace ℝ r →L[ℝ] EuclideanSpace ℝ r :=
+    (Matrix.toEuclideanLin C).toContinuousLinearMap
+  have hCpsd : C.PosSemidef := by
+    exact factorScoreErrorCovariance_posSemidef Λ Ψ hΨpsd
+  have hTpos : T.IsPositive := by
+    rw [LinearMap.isPositive_toContinuousLinearMap_iff]
+    exact Matrix.isPositive_toEuclideanLin_iff.mpr hCpsd
+  change ‖T‖ ≤ B / c
+  rw [T.norm_eq_iSup_rayleighQuotient hTpos.isSymmetric]
+  refine ciSup_le fun x => ?_
+  by_cases hx : x = 0
+  · simp [hx, div_nonneg hB hc.le]
+  let y : r → ℝ := x.ofLp
+  have hnormSq : 0 < ‖x‖ ^ 2 := sq_pos_of_pos (norm_pos_iff.mpr hx)
+  have hyNorm : y ⬝ᵥ y = ‖x‖ ^ 2 := by
+    rw [EuclideanSpace.real_norm_sq_eq]
+    simp [y, dotProduct, pow_two]
+  have hinner : T.reApplyInnerSelf x = y ⬝ᵥ (C *ᵥ y) := by
+    change inner ℝ (Matrix.toEuclideanLin C x) x = _
+    calc
+      inner ℝ (Matrix.toEuclideanLin C x) x =
+          x.ofLp ⬝ᵥ star (Matrix.toEuclideanLin C x).ofLp :=
+        EuclideanSpace.inner_eq_star_dotProduct _ _
+      _ = y ⬝ᵥ (C *ᵥ y) := by
+        simp [y]
+  have hquad :
+      T.reApplyInnerSelf x ≤ (B / c) * ‖x‖ ^ 2 := by
+    rw [hinner, ← hyNorm]
+    exact factorScoreErrorCovariance_quadratic_le
+      Λ Ψ hB hc hΨ hGramLower y
+  have hRayleighNonneg : 0 ≤ T.rayleighQuotient x :=
+    div_nonneg (hTpos.2 x) hnormSq.le
+  rw [abs_of_nonneg hRayleighNonneg, ContinuousLinearMap.rayleighQuotient,
+    div_le_iff₀ hnormSq]
+  exact hquad
 
 omit [Fintype n] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
 /-- Concrete loading-pervasiveness consequence of Hansen Assumption 11.1. -/
@@ -6687,14 +6440,66 @@ theorem approximateFactor_loading_pervasiveness
     factorLoadingPervasiveness Λ :=
   h.pervasive_loadings
 
-omit [Fintype n] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
-/-- Variance bound for the idealized factor-score error, exposed as the reusable
-consequence of Assumption 11.1 used in the chapter prose. -/
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- Hansen's idealized factor-score variance bound from Assumption 11.1.
+
+The conclusion uses the exact covariance `D⁻¹Λ'ΨΛD⁻¹` and bounds every
+Rayleigh quotient by `B / c`, where `c` is the loading-Gram lower bound. -/
 theorem approximateFactor_scoreVariance_bound
     (Λ : Matrix k r ℝ) (Ψ : Matrix k k ℝ)
     (h : ApproximateFactorAssumption Λ Ψ) :
-    ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ, x ⬝ᵥ (Ψ *ᵥ x) ≤ B * (x ⬝ᵥ x) :=
-  h.bounded_idiosyncratic_covariance
+    factorScoreVarianceBound Λ Ψ := by
+  rcases h.bounded_idiosyncratic_covariance with ⟨B, hB, hΨ⟩
+  rcases h.pervasive_loadings with ⟨c, hc, hGramLower⟩
+  exact ⟨B, c, hB, hc,
+    factorScoreErrorCovariance_quadratic_le Λ Ψ hB hc hΨ hGramLower⟩
+
+omit [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k] in
+private theorem approximateFactor_scoreErrorCovariance_operatorNorm_tendsto_zero
+    {ι : Type*} {l : Filter ι} (κ : ι → ℕ)
+    (Λ : (i : ι) → Matrix (Fin (κ i)) r ℝ)
+    (Ψ : (i : ι) → Matrix (Fin (κ i)) (Fin (κ i)) ℝ)
+    (h : ApproximateFactorAsymptoticConditions l κ Λ Ψ) :
+    Filter.Tendsto
+      (fun i => factorScoreErrorCovarianceOperatorNorm (Λ i) (Ψ i))
+      l (nhds 0) := by
+  let q : ι → ℝ := fun i => h.covariance_bound / h.loading_lower_bound i
+  have hq : Filter.Tendsto q l (nhds 0) := by
+    simpa [q] using
+      h.loading_lower_bound_tendsto_atTop.const_div_atTop h.covariance_bound
+  apply squeeze_zero'
+    (Filter.Eventually.of_forall fun i => norm_nonneg
+      (Matrix.toEuclideanLin
+        (factorScoreErrorCovariance (Λ i) (Ψ i))).toContinuousLinearMap)
+  · filter_upwards [
+      h.eventually_bounded_idiosyncratic_covariance,
+      h.eventually_loading_gram_lower_bound,
+      h.loading_lower_bound_tendsto_atTop.eventually_gt_atTop 0
+    ] with i hΨ hGram hc
+    exact factorScoreErrorCovariance_operatorNorm_le
+      (Λ i) (Ψ i) (h.covariance_posSemidef i)
+      h.covariance_bound_nonneg hc hΨ hGram
+  · exact hq
+
+omit [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- Hansen's Assumption 11.1 conclusion for the idealized factor-score error:
+the Euclidean operator norm of the exact displayed covariance
+`D⁻¹Λ'ΨΛD⁻¹`, with `D = Λ'Λ`, converges to zero as the observed-variable
+dimension tends to infinity. -/
+theorem ApproximateFactorAsymptoticConditions.scoreErrorCovariance_norm_tendsto_zero
+    {ι : Type*} {l : Filter ι} {κ : ι → ℕ}
+    {Λ : (i : ι) → Matrix (Fin (κ i)) r ℝ}
+    {Ψ : (i : ι) → Matrix (Fin (κ i)) (Fin (κ i)) ℝ}
+    (h : ApproximateFactorAsymptoticConditions l κ Λ Ψ) :
+    Filter.Tendsto
+      (fun i =>
+        ‖(Matrix.toEuclideanLin
+          ((((Λ i)ᵀ * Λ i)⁻¹ * (Λ i)ᵀ) * Ψ i * Λ i *
+            ((Λ i)ᵀ * Λ i)⁻¹)).toContinuousLinearMap‖)
+      l (nhds 0) := by
+  simpa only [factorScoreErrorCovarianceOperatorNorm,
+    factorScoreErrorCovariance_eq_loadingGram] using
+    approximateFactor_scoreErrorCovariance_operatorNorm_tendsto_zero κ Λ Ψ h
 
 /-- Hansen-facing Assumption 11.1 plus the single stochastic primitive needed
 for the rank/signal part of Theorem 11.9.
@@ -6705,7 +6510,7 @@ recovered idiosyncratic Gram
 coordinate WLLN families for `n⁻¹F'E`, `n⁻¹E'F`, and `n⁻¹E'E`, while keeping
 Assumption 11.1's bounded covariance and pervasiveness data on the theorem
 surface. -/
-structure ApproximateFactorAssumptionNormalizedRayleighBridge
+structure ApproxFactorNormalizedRayleigh
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -6713,14 +6518,14 @@ structure ApproximateFactorAssumptionNormalizedRayleighBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
   normalized_rayleigh_tendsto_zero :
     factorRecoveredIdiosyncraticGramNormalizedRayleighTendstoZero l Λ F U
 
-namespace ApproximateFactorAssumptionNormalizedRayleighBridge
+namespace ApproxFactorNormalizedRayleigh
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Assumption 11.1 plus the normalized recovered-Gram Rayleigh primitive
@@ -6730,11 +6535,11 @@ theorem toNormalizedRayleighBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
     ApproximateFactorAsymptoticNormalizedRayleighBridge l X Λ F U where
   eventually_approximate_factor := h.eventually_approximate_factor
   eventually_loading_pervasiveness :=
-    h.eventually_assumption11_1.mono fun _ hi => hi.pervasive_loadings
+    h.eventually_factor_conditions.mono fun _ hi => hi.pervasive_loadings
   eventually_score_normalization := h.eventually_score_normalization
   normalized_rayleigh_tendsto_zero := h.normalized_rayleigh_tendsto_zero
 
@@ -6747,28 +6552,25 @@ theorem toPerturbationBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
     ApproximateFactorAsymptoticPerturbationBridge l X Λ F U :=
   ApproximateFactorAsymptoticNormalizedRayleighBridge.toPerturbationBridge
-    (ApproximateFactorAssumptionNormalizedRayleighBridge.toNormalizedRayleighBridge h)
+    (ApproxFactorNormalizedRayleigh.toNormalizedRayleighBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the normalized-Rayleigh Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The normalized-Rayleigh bridge retains Hansen's derived idealized
+factor-score variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  h.eventually_factor_conditions.mono fun _ hi =>
+    approximateFactor_scoreVariance_bound _ _ hi
 
-end ApproximateFactorAssumptionNormalizedRayleighBridge
+end ApproxFactorNormalizedRayleigh
 
 /-- Hansen-facing Assumption 11.1 plus a whole-matrix WLLN for the normalized
 recovered idiosyncratic perturbation.
@@ -6777,7 +6579,7 @@ This replaces the three separate scalar cross/noise WLLN families with one
 matrix statement
 `n⁻¹(F'E + E'F + E'E) -> 0`, then derives the uniform Rayleigh `o(1)` bridge
 by the existing finite-dimensional matrix-to-Rayleigh machinery. -/
-structure ApproximateFactorAssumptionMatrixWLLNBridge
+structure ApproxFactorMatrixWLLN
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -6785,7 +6587,7 @@ structure ApproximateFactorAssumptionMatrixWLLNBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
@@ -6795,7 +6597,7 @@ structure ApproximateFactorAssumptionMatrixWLLNBridge
         factorRecoveredIdiosyncraticGramNormalizedPerturbation
           (Λ i) (F i) (U i)) l (nhds 0)
 
-namespace ApproximateFactorAssumptionMatrixWLLNBridge
+namespace ApproxFactorMatrixWLLN
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Assumption 11.1 plus one whole-matrix recovered-perturbation WLLN supplies
@@ -6805,11 +6607,11 @@ theorem toMatrixWLLNBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
     ApproximateFactorAsymptoticMatrixWLLNBridge l X Λ F U where
   eventually_approximate_factor := h.eventually_approximate_factor
   eventually_loading_pervasiveness :=
-    h.eventually_assumption11_1.mono fun _ hi => hi.pervasive_loadings
+    h.eventually_factor_conditions.mono fun _ hi => hi.pervasive_loadings
   eventually_score_normalization := h.eventually_score_normalization
   normalized_perturbation_tendsto_zero := h.normalized_perturbation_tendsto_zero
 
@@ -6820,10 +6622,10 @@ theorem toNormalizedRayleighBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
     ApproximateFactorAsymptoticNormalizedRayleighBridge l X Λ F U :=
   ApproximateFactorAsymptoticMatrixWLLNBridge.toNormalizedRayleighBridge
-    (ApproximateFactorAssumptionMatrixWLLNBridge.toMatrixWLLNBridge h)
+    (ApproxFactorMatrixWLLN.toMatrixWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- The matrix-WLLN facade can be viewed as the weaker normalized-Rayleigh
@@ -6833,14 +6635,14 @@ theorem toNormalizedRayleighAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
-    ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ where
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
+    ApproxFactorNormalizedRayleigh l X Λ F U Ψ where
   eventually_approximate_factor := h.eventually_approximate_factor
-  eventually_assumption11_1 := h.eventually_assumption11_1
+  eventually_factor_conditions := h.eventually_factor_conditions
   eventually_score_normalization := h.eventually_score_normalization
   normalized_rayleigh_tendsto_zero := by
     have hbridge :=
-      ApproximateFactorAssumptionMatrixWLLNBridge.toNormalizedRayleighBridge h
+      ApproxFactorMatrixWLLN.toNormalizedRayleighBridge h
     exact hbridge.normalized_rayleigh_tendsto_zero
 
 omit [DecidableEq n] [DecidableEq k] in
@@ -6851,28 +6653,25 @@ theorem toPerturbationBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
     ApproximateFactorAsymptoticPerturbationBridge l X Λ F U :=
   ApproximateFactorAsymptoticMatrixWLLNBridge.toPerturbationBridge
-    (ApproximateFactorAssumptionMatrixWLLNBridge.toMatrixWLLNBridge h)
+    (ApproxFactorMatrixWLLN.toMatrixWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the matrix-WLLN Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The matrix-WLLN bridge retains Hansen's derived idealized factor-score
+variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound
+    (ApproxFactorMatrixWLLN.toNormalizedRayleighAssumptionBridge h)
 
-end ApproximateFactorAssumptionMatrixWLLNBridge
+end ApproxFactorMatrixWLLN
 
 /-- Hansen-facing Assumption 11.1 plus raw cross/noise moment WLLNs.
 
@@ -6883,7 +6682,7 @@ loading-Gram recoverer. The remaining probability work is to derive these
 matrix WLLNs from row dependence, centering/cross-term, and integrability
 conditions; bounded covariance/pervasiveness alone is retained but not treated
 as sufficient. -/
-structure ApproximateFactorAssumptionRawMomentMatrixWLLNBridge
+structure ApproxFactorRawMomentWLLN
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -6891,7 +6690,7 @@ structure ApproximateFactorAssumptionRawMomentMatrixWLLNBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
@@ -6912,7 +6711,7 @@ structure ApproximateFactorAssumptionRawMomentMatrixWLLNBridge
           factorRawIdiosyncraticGramNormalized (U i) *
             (factorLoadingGramRecoverer (Λ i))ᵀ) l (nhds 0)
 
-namespace ApproximateFactorAssumptionRawMomentMatrixWLLNBridge
+namespace ApproxFactorRawMomentWLLN
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Assumption 11.1 plus raw moment WLLNs supplies the raw-moment bridge used
@@ -6922,11 +6721,11 @@ theorem toRawMomentMatrixWLLNBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorRawMomentWLLN l X Λ F U Ψ) :
     ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge l X Λ F U where
   eventually_approximate_factor := h.eventually_approximate_factor
   eventually_loading_pervasiveness :=
-    h.eventually_assumption11_1.mono fun _ hi => hi.pervasive_loadings
+    h.eventually_factor_conditions.mono fun _ hi => hi.pervasive_loadings
   eventually_score_normalization := h.eventually_score_normalization
   raw_cross_left_recovered_tendsto_zero :=
     h.raw_cross_left_recovered_tendsto_zero
@@ -6942,14 +6741,14 @@ theorem toMatrixWLLNAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ) :
-    ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ where
+    (h : ApproxFactorRawMomentWLLN l X Λ F U Ψ) :
+    ApproxFactorMatrixWLLN l X Λ F U Ψ where
   eventually_approximate_factor := h.eventually_approximate_factor
-  eventually_assumption11_1 := h.eventually_assumption11_1
+  eventually_factor_conditions := h.eventually_factor_conditions
   eventually_score_normalization := h.eventually_score_normalization
   normalized_perturbation_tendsto_zero := by
     have hbridge :=
-      ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toRawMomentMatrixWLLNBridge h
+      ApproxFactorRawMomentWLLN.toRawMomentMatrixWLLNBridge h
     have hmatrix :=
       ApproximateFactorAsymptoticRawMomentMatrixWLLNBridge.toMatrixWLLNBridge hbridge
     exact hmatrix.normalized_perturbation_tendsto_zero
@@ -6962,28 +6761,25 @@ theorem toNormalizedRayleighAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ) :
-    ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge
-    (ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toMatrixWLLNAssumptionBridge h)
+    (h : ApproxFactorRawMomentWLLN l X Λ F U Ψ) :
+    ApproxFactorNormalizedRayleigh l X Λ F U Ψ :=
+  ApproxFactorMatrixWLLN.toNormalizedRayleighAssumptionBridge
+    (ApproxFactorRawMomentWLLN.toMatrixWLLNAssumptionBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the raw-moment Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The raw-moment bridge retains Hansen's derived idealized factor-score
+variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    (h : ApproxFactorRawMomentWLLN l X Λ F U Ψ) :
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound
+    (ApproxFactorRawMomentWLLN.toNormalizedRayleighAssumptionBridge h)
 
-end ApproximateFactorAssumptionRawMomentMatrixWLLNBridge
+end ApproxFactorRawMomentWLLN
 
 /-- Hansen-facing Assumption 11.1 plus unrecovered raw moment WLLNs.
 
@@ -6994,7 +6790,7 @@ raw cross moments `n⁻¹F'U`, `n⁻¹U'F`, a centered raw idiosyncratic Gram WL
 the concrete recoverer `(Λ'Λ)^{-1}Λ'`. The deterministic matrix-continuity
 bridge below then derives the recovered raw moment WLLNs consumed by the
 existing Theorem 11.9 route. -/
-structure ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+structure ApproxFactorUnrecoveredMomentWLLN
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -7002,7 +6798,7 @@ structure ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
@@ -7023,7 +6819,7 @@ structure ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
       (fun i => factorRawIdiosyncraticGramNormalized (U i) - Ψ i) l
       (nhds 0)
 
-namespace ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+namespace ApproxFactorUnrecoveredMomentWLLN
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- The centered raw idiosyncratic Gram WLLN plus covariance-target convergence
@@ -7033,7 +6829,7 @@ theorem raw_idiosyncratic_gram_tendsto_covariance
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Tendsto
       (fun i => factorRawIdiosyncraticGramNormalized (U i)) l
@@ -7050,11 +6846,11 @@ theorem toRawMomentMatrixWLLNBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
-    ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ where
+    ApproxFactorRawMomentWLLN l X Λ F U Ψ where
   eventually_approximate_factor := h.eventually_approximate_factor
-  eventually_assumption11_1 := h.eventually_assumption11_1
+  eventually_factor_conditions := h.eventually_factor_conditions
   eventually_score_normalization := h.eventually_score_normalization
   raw_cross_left_recovered_tendsto_zero := by
     have hLtr :
@@ -7098,11 +6894,11 @@ theorem toMatrixWLLNAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
-    ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toMatrixWLLNAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toRawMomentMatrixWLLNBridge h)
+    ApproxFactorMatrixWLLN l X Λ F U Ψ :=
+  ApproxFactorRawMomentWLLN.toMatrixWLLNAssumptionBridge
+    (ApproxFactorUnrecoveredMomentWLLN.toRawMomentMatrixWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- The unrecovered-moment bridge supplies the normalized-Rayleigh Assumption
@@ -7112,40 +6908,37 @@ theorem toNormalizedRayleighAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
-    ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toMatrixWLLNAssumptionBridge h)
+    ApproxFactorNormalizedRayleigh l X Λ F U Ψ :=
+  ApproxFactorMatrixWLLN.toNormalizedRayleighAssumptionBridge
+    (ApproxFactorUnrecoveredMomentWLLN.toMatrixWLLNAssumptionBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the unrecovered-moment Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The unrecovered-moment bridge retains Hansen's derived idealized
+factor-score variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound
+    (ApproxFactorUnrecoveredMomentWLLN.toNormalizedRayleighAssumptionBridge h)
 
-end ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+end ApproxFactorUnrecoveredMomentWLLN
 
 /-- Hansen-facing Assumption 11.1 plus entrywise unrecovered raw moment WLLNs.
 
 This is the scalar-coordinate version of
-`ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge`. It asks for entrywise
+`ApproxFactorUnrecoveredMomentWLLN`. It asks for entrywise
 convergence of the loading recoverer `(Λ'Λ)^{-1}Λ'`, the covariance target, and
 the raw unrecovered cross/noise moments. Finite dimensionality then reconstructs
 the matrix convergence hypotheses consumed by the existing Theorem 11.9 route.
 -/
-structure ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+structure ApproxFactorUnrecoveredEntrywiseWLLN
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -7153,7 +6946,7 @@ structure ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
@@ -7175,7 +6968,7 @@ structure ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
       (fun i => (factorRawIdiosyncraticGramNormalized (U i) - Ψ i) a b)
       l (nhds 0)
 
-namespace ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+namespace ApproxFactorUnrecoveredEntrywiseWLLN
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Entrywise shrinkage of the concrete loading recoverer gives matrix
@@ -7185,7 +6978,7 @@ theorem loading_recoverer_tendsto_zero
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Tendsto (fun i => factorLoadingGramRecoverer (Λ i)) l (nhds 0) :=
   tendsto_matrix_of_entries fun a b => by
@@ -7199,7 +6992,7 @@ theorem covariance_target_tendsto
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Tendsto Ψ l (nhds Ψlim) :=
   tendsto_matrix_of_entries h.covariance_target_entry_tendsto
@@ -7212,7 +7005,7 @@ theorem raw_cross_left_tendsto_zero
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Tendsto
       (fun i => factorRawFactorIdiosyncraticCrossNormalized (F i) (U i)) l
@@ -7228,7 +7021,7 @@ theorem raw_cross_right_tendsto_zero
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Tendsto
       (fun i => factorRawIdiosyncraticFactorCrossNormalized (F i) (U i)) l
@@ -7244,7 +7037,7 @@ theorem raw_noise_centered_tendsto_zero
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Tendsto
       (fun i => factorRawIdiosyncraticGramNormalized (U i) - Ψ i) l
@@ -7260,12 +7053,12 @@ theorem toUnrecoveredMomentWLLNBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
-    ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim where
   eventually_approximate_factor := h.eventually_approximate_factor
-  eventually_assumption11_1 := h.eventually_assumption11_1
+  eventually_factor_conditions := h.eventually_factor_conditions
   eventually_score_normalization := h.eventually_score_normalization
   loading_recoverer_tendsto_zero := loading_recoverer_tendsto_zero h
   covariance_target_tendsto := covariance_target_tendsto h
@@ -7280,11 +7073,11 @@ theorem toRawMomentMatrixWLLNBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
-    ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toRawMomentMatrixWLLNBridge
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    ApproxFactorRawMomentWLLN l X Λ F U Ψ :=
+  ApproxFactorUnrecoveredMomentWLLN.toRawMomentMatrixWLLNBridge
+    (ApproxFactorUnrecoveredEntrywiseWLLN.toUnrecoveredMomentWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Entrywise unrecovered WLLNs supply the whole-matrix recovered perturbation
@@ -7294,11 +7087,11 @@ theorem toMatrixWLLNAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
-    ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toMatrixWLLNAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    ApproxFactorMatrixWLLN l X Λ F U Ψ :=
+  ApproxFactorUnrecoveredMomentWLLN.toMatrixWLLNAssumptionBridge
+    (ApproxFactorUnrecoveredEntrywiseWLLN.toUnrecoveredMomentWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Entrywise unrecovered WLLNs supply the normalized-Rayleigh Assumption 11.1
@@ -7308,42 +7101,39 @@ theorem toNormalizedRayleighAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
-    ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toNormalizedRayleighAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    ApproxFactorNormalizedRayleigh l X Λ F U Ψ :=
+  ApproxFactorUnrecoveredMomentWLLN.toNormalizedRayleighAssumptionBridge
+    (ApproxFactorUnrecoveredEntrywiseWLLN.toUnrecoveredMomentWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the entrywise unrecovered-moment Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The entrywise unrecovered-moment bridge retains Hansen's derived
+idealized factor-score variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound
+    (toNormalizedRayleighAssumptionBridge h)
 
-end ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+end ApproxFactorUnrecoveredEntrywiseWLLN
 
 /-- Hansen-facing Assumption 11.1 plus envelope-controlled unrecovered raw
 moment WLLNs.
 
 This is a scalar-envelope version of
-`ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge`. Instead of asking
+`ApproxFactorUnrecoveredEntrywiseWLLN`. Instead of asking
 for each entrywise limit directly, it asks for five scalar envelopes tending to
 zero: one each for the loading-Gram recoverer, the covariance target, the raw
 `n⁻¹F'U` cross moment, the raw `n⁻¹U'F` cross moment, and the centered raw
 `n⁻¹U'U - Ψ` moment. This matches the usual Hansen proof shape where a single
 maximal or uniform bound is proved for each displayed matrix family. -/
-structure ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+structure ApproxFactorEntrywiseEnvelopeWLLN
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -7352,7 +7142,7 @@ structure ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
@@ -7387,7 +7177,7 @@ structure ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
   raw_noise_centered_envelope_tendsto_zero :
     Filter.Tendsto ρUU l (nhds 0)
 
-namespace ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+namespace ApproxFactorEntrywiseEnvelopeWLLN
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Envelope-controlled unrecovered WLLNs supply the existing entrywise
@@ -7398,12 +7188,12 @@ theorem toUnrecoveredEntrywiseWLLNBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρL ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim where
   eventually_approximate_factor := h.eventually_approximate_factor
-  eventually_assumption11_1 := h.eventually_assumption11_1
+  eventually_factor_conditions := h.eventually_factor_conditions
   eventually_score_normalization := h.eventually_score_normalization
   loading_recoverer_entry_tendsto_zero := fun a b =>
     tendsto_zero_of_eventually_abs_le
@@ -7436,12 +7226,12 @@ theorem toUnrecoveredMomentWLLNBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρL ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim :=
-  ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toUnrecoveredMomentWLLNBridge
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toUnrecoveredEntrywiseWLLNBridge h)
+  ApproxFactorUnrecoveredEntrywiseWLLN.toUnrecoveredMomentWLLNBridge
+    (ApproxFactorEntrywiseEnvelopeWLLN.toUnrecoveredEntrywiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] [DecidableEq k] in
@@ -7455,11 +7245,11 @@ theorem toMatrixWLLNAssumptionBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρL ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toMatrixWLLNAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    ApproxFactorMatrixWLLN l X Λ F U Ψ :=
+  ApproxFactorUnrecoveredMomentWLLN.toMatrixWLLNAssumptionBridge
+    (ApproxFactorEntrywiseEnvelopeWLLN.toUnrecoveredMomentWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] [DecidableEq k] in
@@ -7471,31 +7261,28 @@ theorem toNormalizedRayleighAssumptionBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρL ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toNormalizedRayleighAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    ApproxFactorNormalizedRayleigh l X Λ F U Ψ :=
+  ApproxFactorUnrecoveredMomentWLLN.toNormalizedRayleighAssumptionBridge
+    (ApproxFactorEntrywiseEnvelopeWLLN.toUnrecoveredMomentWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the envelope unrecovered-moment Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The envelope unrecovered-moment bridge retains Hansen's derived idealized
+factor-score variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρL ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound
+    (toNormalizedRayleighAssumptionBridge h)
 
-end ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+end ApproxFactorEntrywiseEnvelopeWLLN
 
 /-- Hansen-facing Assumption 11.1 plus inverse-loading-envelope unrecovered raw
 moment WLLNs.
@@ -7504,8 +7291,8 @@ This is the entrywise-envelope route with the loading-recoverer envelope
 derived from more primitive Hansen-style bounds: entries of `(Λ'Λ)⁻¹`, entries
 of `Λ`, and the product condition `(# factors)ρInvρΛ → 0`. The other raw
 moment envelopes are the same covariance-target and idiosyncratic moment
-envelopes used by `ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge`. -/
-structure ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+envelopes used by `ApproxFactorEntrywiseEnvelopeWLLN`. -/
+structure ApproxFactorInverseLoadingEnvelopeWLLN
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -7514,7 +7301,7 @@ structure ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
@@ -7554,7 +7341,7 @@ structure ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
   raw_noise_centered_envelope_tendsto_zero :
     Filter.Tendsto ρUU l (nhds 0)
 
-namespace ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+namespace ApproxFactorInverseLoadingEnvelopeWLLN
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Inverse/loading-envelope unrecovered WLLNs supply the existing entrywise
@@ -7565,12 +7352,12 @@ theorem toUnrecoveredEntrywiseWLLNBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim where
   eventually_approximate_factor := h.eventually_approximate_factor
-  eventually_assumption11_1 := h.eventually_assumption11_1
+  eventually_factor_conditions := h.eventually_factor_conditions
   eventually_score_normalization := h.eventually_score_normalization
   loading_recoverer_entry_tendsto_zero :=
     factorLoadingGramRecoverer_entry_tendsto_zero_of_inverse_loading_entry_bounds
@@ -7604,12 +7391,12 @@ theorem toUnrecoveredMomentWLLNBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim :=
-  ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toUnrecoveredMomentWLLNBridge
-    (ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge.toUnrecoveredEntrywiseWLLNBridge h)
+  ApproxFactorUnrecoveredEntrywiseWLLN.toUnrecoveredMomentWLLNBridge
+    (ApproxFactorInverseLoadingEnvelopeWLLN.toUnrecoveredEntrywiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] [DecidableEq k] in
@@ -7621,11 +7408,11 @@ theorem toMatrixWLLNAssumptionBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toMatrixWLLNAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    ApproxFactorMatrixWLLN l X Λ F U Ψ :=
+  ApproxFactorUnrecoveredMomentWLLN.toMatrixWLLNAssumptionBridge
+    (ApproxFactorInverseLoadingEnvelopeWLLN.toUnrecoveredMomentWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] [DecidableEq k] in
@@ -7637,31 +7424,28 @@ theorem toNormalizedRayleighAssumptionBridge
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
-    ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toNormalizedRayleighAssumptionBridge
-    (ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    ApproxFactorNormalizedRayleigh l X Λ F U Ψ :=
+  ApproxFactorUnrecoveredMomentWLLN.toNormalizedRayleighAssumptionBridge
+    (ApproxFactorInverseLoadingEnvelopeWLLN.toUnrecoveredMomentWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the inverse/loading-envelope Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The inverse/loading-envelope bridge retains Hansen's derived idealized
+factor-score variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ} {Ψlim : Matrix k k ℝ}
     {ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ}
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound
+    (toNormalizedRayleighAssumptionBridge h)
 
-end ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+end ApproxFactorInverseLoadingEnvelopeWLLN
 
 /-- Hansen-facing Assumption 11.1 plus cross/noise WLLN bridge.
 
@@ -7670,7 +7454,7 @@ pervasiveness. This compatibility facade keeps the three scalar WLLN fields
 explicit; newer normalized-Rayleigh and matrix-WLLN facades above replace those
 three fields by one stochastic primitive when that is what the probability
 argument proves directly. -/
-structure ApproximateFactorAssumptionCrossNoiseWLLNBridge
+structure ApproxFactorCrossNoiseWLLN
     {ι : Type*} (l : Filter ι)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
@@ -7678,7 +7462,7 @@ structure ApproximateFactorAssumptionCrossNoiseWLLNBridge
   eventually_approximate_factor :
     Filter.Eventually
       (fun i => factorApproxSampleFactorModel (X i) (Λ i) (F i) (U i)) l
-  eventually_assumption11_1 :
+  eventually_factor_conditions :
     Filter.Eventually (fun i => ApproximateFactorAssumption (Λ i) (Ψ i)) l
   eventually_score_normalization :
     Filter.Eventually (fun i => factorScoreNormalization (F i)) l
@@ -7698,7 +7482,7 @@ structure ApproximateFactorAssumptionCrossNoiseWLLNBridge
         factorRecoveredIdiosyncraticNoiseGramNormalized
           (Λ i) (U i) a b) l (nhds 0)
 
-namespace ApproximateFactorAssumptionCrossNoiseWLLNBridge
+namespace ApproxFactorCrossNoiseWLLN
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Assumption 11.1 plus scalar cross/noise WLLNs supplies the cross/noise
@@ -7708,11 +7492,11 @@ theorem toCrossNoiseWLLNBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
     ApproximateFactorAsymptoticCrossNoiseWLLNBridge l X Λ F U where
   eventually_approximate_factor := h.eventually_approximate_factor
   eventually_loading_pervasiveness :=
-    h.eventually_assumption11_1.mono fun _ hi => hi.pervasive_loadings
+    h.eventually_factor_conditions.mono fun _ hi => hi.pervasive_loadings
   eventually_score_normalization := h.eventually_score_normalization
   cross_left_entry_tendsto_zero := h.cross_left_entry_tendsto_zero
   cross_right_entry_tendsto_zero := h.cross_right_entry_tendsto_zero
@@ -7726,10 +7510,10 @@ theorem toMatrixWLLNBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
     ApproximateFactorAsymptoticMatrixWLLNBridge l X Λ F U :=
   ApproximateFactorAsymptoticCrossNoiseWLLNBridge.toMatrixWLLNBridge
-    (ApproximateFactorAssumptionCrossNoiseWLLNBridge.toCrossNoiseWLLNBridge h)
+    (ApproxFactorCrossNoiseWLLN.toCrossNoiseWLLNBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
 /-- Assumption 11.1 plus scalar cross/noise WLLNs supplies the Assumption 11.1
@@ -7740,14 +7524,14 @@ theorem toMatrixWLLNAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
-    ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ where
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
+    ApproxFactorMatrixWLLN l X Λ F U Ψ where
   eventually_approximate_factor := h.eventually_approximate_factor
-  eventually_assumption11_1 := h.eventually_assumption11_1
+  eventually_factor_conditions := h.eventually_factor_conditions
   eventually_score_normalization := h.eventually_score_normalization
   normalized_perturbation_tendsto_zero := by
     have hbridge :=
-      ApproximateFactorAssumptionCrossNoiseWLLNBridge.toMatrixWLLNBridge h
+      ApproxFactorCrossNoiseWLLN.toMatrixWLLNBridge h
     exact hbridge.normalized_perturbation_tendsto_zero
 
 omit [DecidableEq n] [DecidableEq k] in
@@ -7758,28 +7542,25 @@ theorem toNormalizedRayleighAssumptionBridge
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
-    ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ :=
-  ApproximateFactorAssumptionMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge
-    (ApproximateFactorAssumptionCrossNoiseWLLNBridge.toMatrixWLLNAssumptionBridge h)
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
+    ApproxFactorNormalizedRayleigh l X Λ F U Ψ :=
+  ApproxFactorMatrixWLLN.toNormalizedRayleighAssumptionBridge
+    (ApproxFactorCrossNoiseWLLN.toMatrixWLLNAssumptionBridge h)
 
 omit [DecidableEq n] [DecidableEq k] in
-/-- The bounded-covariance half of Assumption 11.1 is retained explicitly by
-the Hansen-facing bridge. -/
-theorem eventually_scoreVariance_bound
+/-- The cross/noise bridge retains Hansen's derived idealized factor-score
+variance bound. -/
+theorem eventually_scoreVarianceBound
     {ι : Type*} {l : Filter ι}
     {X : ι → n → k → ℝ} {Λ : ι → Matrix k r ℝ}
     {F : ι → n → r → ℝ} {U : ι → Matrix n k ℝ}
     {Ψ : ι → Matrix k k ℝ}
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
-    Filter.Eventually
-      (fun i =>
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  h.eventually_assumption11_1.mono fun _ hi =>
-    hi.bounded_idiosyncratic_covariance
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
+    Filter.Eventually (fun i => factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound
+    (ApproxFactorCrossNoiseWLLN.toNormalizedRayleighAssumptionBridge h)
 
-end ApproximateFactorAssumptionCrossNoiseWLLNBridge
+end ApproxFactorCrossNoiseWLLN
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -7791,13 +7572,13 @@ This is the tightest theorem-facing stochastic facade in this file: the
 probability argument only has to prove that
 `n⁻¹(F'E + E'F + E'E)` is uniformly negligible in Rayleigh quotient after
 loading-Gram recovery. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+theorem FactorPCTheorem11_9.eventually_of_normalizedRayleigh
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -7828,21 +7609,21 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1NormalizedRa
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
   factorPCTheorem11_9_eventually_of_approxFactorAsymptoticNormalizedRayleighBridge
     hcard X Λ F U
-    (ApproximateFactorAssumptionNormalizedRayleighBridge.toNormalizedRayleighBridge h)
+    (ApproxFactorNormalizedRayleigh.toNormalizedRayleighBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from Assumption 11.1 plus the single uniform Rayleigh `o(1)` primitive
 for the normalized recovered idiosyncratic Gram. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_normalizedRayleigh
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorLeastSquaresNormalizedMinimizer (X i)
@@ -7861,7 +7642,7 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Norm
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
   factorPCTheorem11_9_jointLS_eventually_of_approxFactorNormalizedRayleighBridge
     hcard hcardObs X Λ F U
-    (ApproximateFactorAssumptionNormalizedRayleighBridge.toNormalizedRayleighBridge h)
+    (ApproxFactorNormalizedRayleigh.toNormalizedRayleighBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -7869,13 +7650,13 @@ omit [DecidableEq n] in
 follows from Assumption 11.1 plus the single normalized-Rayleigh primitive, with
 the observation-count side condition derived internally. -/
 theorem
-    factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge_only
+    FactorPCTheorem11_9.eventually_jointLS_of_normalizedRayleigh_onlyAssumption
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorLeastSquaresNormalizedMinimizer (X i)
@@ -7892,24 +7673,24 @@ theorem
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLS_eventually_of_approxFactorNormalizedRayleighBridge_only
+  FactorPCTheorem11_9.eventually_jointLS_of_normalizedRayleigh_only
     hcard X Λ F U
-    (ApproximateFactorAssumptionNormalizedRayleighBridge.toNormalizedRayleighBridge h)
+    (ApproxFactorNormalizedRayleigh.toNormalizedRayleighBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint from Assumption 11.1 plus
-the normalized-Rayleigh primitive. It returns the PCA formula certificate, the
-literal normalized joint least-squares minimizer, and the bounded score-variance
-consequence of Assumption 11.1 in one theorem-facing package. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+/-- Hansen Theorem 11.9's PCA and normalized joint-LS certificates, combined
+with the eventual finite-index `factorScoreVarianceBound` consequence of the
+normalized-Rayleigh assumptions. The last conjunct is a per-index `B / c`
+bound; it does not assert covariance convergence. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -7952,30 +7733,28 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l := by
+        factorScoreVarianceBound (Λ i) (Ψ i)) l := by
   filter_upwards [
-    factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+    FactorPCTheorem11_9.eventually_of_normalizedRayleigh
       hcard X Λ F U Ψ h,
-    factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+    FactorPCTheorem11_9.eventually_jointLS_of_normalizedRayleigh
       hcard hcardObs X Λ F U Ψ h,
-    ApproximateFactorAssumptionNormalizedRayleighBridge.eventually_scoreVariance_bound h
+    ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound h
   ] with _ hpc hjoint hvar
   exact ⟨hpc, hjoint, hvar⟩
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint from Assumption 11.1 plus
-the normalized-Rayleigh primitive, with the observation-count side condition
-derived internally. -/
-theorem
-    factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge_only
+/-- The normalized-Rayleigh route with the observation-count side condition
+derived internally. Its last conjunct is the eventual finite-index
+`factorScoreVarianceBound`, not a covariance-convergence claim. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh_only
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionNormalizedRayleighBridge l X Λ F U Ψ) :
+    (h : ApproxFactorNormalizedRayleigh l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -8018,14 +7797,13 @@ theorem
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l := by
+        factorScoreVarianceBound (Λ i) (Ψ i)) l := by
   filter_upwards [
-    factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+    FactorPCTheorem11_9.eventually_of_normalizedRayleigh
       hcard X Λ F U Ψ h,
-    factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge_only
+    FactorPCTheorem11_9.eventually_jointLS_of_normalizedRayleigh_onlyAssumption
       hcard X Λ F U Ψ h,
-    ApproximateFactorAssumptionNormalizedRayleighBridge.eventually_scoreVariance_bound h
+    ApproxFactorNormalizedRayleigh.eventually_scoreVarianceBound h
   ] with _ hpc hjoint hvar
   exact ⟨hpc, hjoint, hvar⟩
 
@@ -8033,13 +7811,13 @@ set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 eventually follows from Assumption 11.1 plus a single
 whole-matrix WLLN for the normalized recovered idiosyncratic perturbation. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge
+theorem FactorPCTheorem11_9.eventually_of_matrixWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -8068,23 +7846,23 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1MatrixWLLNBr
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+  FactorPCTheorem11_9.eventually_of_normalizedRayleigh
     hcard X Λ F U Ψ
-    (ApproximateFactorAssumptionMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorMatrixWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from Assumption 11.1 plus a single whole-matrix WLLN for the normalized
 recovered idiosyncratic perturbation. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_matrixWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorLeastSquaresNormalizedMinimizer (X i)
@@ -8101,21 +7879,21 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Matr
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+  FactorPCTheorem11_9.eventually_jointLS_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorMatrixWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 eventually follows from Assumption 11.1 plus raw
 cross/noise moment WLLNs after deterministic loading-Gram recovery. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge
+theorem FactorPCTheorem11_9.eventually_of_rawMomentWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorRawMomentWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -8144,23 +7922,23 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1RawMomentMat
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge
+  FactorPCTheorem11_9.eventually_of_matrixWLLN
     hcard X Λ F U Ψ
-    (ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toMatrixWLLNAssumptionBridge h)
+    (ApproxFactorRawMomentWLLN.toMatrixWLLNAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from Assumption 11.1 plus raw cross/noise moment WLLNs after
 deterministic loading-Gram recovery. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_rawMomentWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorRawMomentWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorLeastSquaresNormalizedMinimizer (X i)
@@ -8177,9 +7955,9 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1RawM
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge
+  FactorPCTheorem11_9.eventually_jointLS_of_matrixWLLN
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toMatrixWLLNAssumptionBridge h)
+    (ApproxFactorRawMomentWLLN.toMatrixWLLNAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -8190,13 +7968,13 @@ This is the narrower Hansen-facing route below the recovered raw-moment facade:
 the caller supplies WLLNs for `n⁻¹F'U`, `n⁻¹U'F`, and centered `n⁻¹U'U - Ψ`,
 plus convergence of `Ψ` and `(Λ'Λ)^{-1}Λ' -> 0`. The recovered raw moment
 WLLNs are then derived deterministically. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge
+theorem FactorPCTheorem11_9.eventually_of_unrecoveredMomentWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Eventually
       (fun i =>
@@ -8226,23 +8004,23 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredM
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge
+  FactorPCTheorem11_9.eventually_of_rawMomentWLLN
     hcard X Λ F U Ψ
-    (ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toRawMomentMatrixWLLNBridge h)
+    (ApproxFactorUnrecoveredMomentWLLN.toRawMomentMatrixWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from Assumption 11.1 plus unrecovered raw moment WLLNs and
 loading-recoverer shrinkage. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_unrecoveredMomentWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Eventually
       (fun i =>
@@ -8260,9 +8038,9 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Unre
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge
+  FactorPCTheorem11_9.eventually_jointLS_of_rawMomentWLLN
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toRawMomentMatrixWLLNBridge h)
+    (ApproxFactorUnrecoveredMomentWLLN.toRawMomentMatrixWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -8274,13 +8052,13 @@ matrix unrecovered-moment route: the caller proves entrywise limits for
 `(Λ'Λ)^{-1}Λ'`, `Ψ`, `n⁻¹F'U`, `n⁻¹U'F`, and centered `n⁻¹U'U - Ψ`; finite
 dimensionality upgrades them to the matrix bridge already used by the PCA
 theorem. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge
+theorem FactorPCTheorem11_9.eventually_of_unrecoveredEntrywiseWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Eventually
       (fun i =>
@@ -8310,23 +8088,23 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredE
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge
+  FactorPCTheorem11_9.eventually_of_unrecoveredMomentWLLN
     hcard X Λ F U Ψ Ψlim
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    (ApproxFactorUnrecoveredEntrywiseWLLN.toUnrecoveredMomentWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from Assumption 11.1 plus entrywise unrecovered raw moment WLLNs and
 entrywise loading-recoverer shrinkage. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_unrecoveredEntrywiseWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Eventually
       (fun i =>
@@ -8344,9 +8122,9 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Unre
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge
+  FactorPCTheorem11_9.eventually_jointLS_of_unrecoveredMomentWLLN
     hcard hcardObs X Λ F U Ψ Ψlim
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toUnrecoveredMomentWLLNBridge h)
+    (ApproxFactorUnrecoveredEntrywiseWLLN.toUnrecoveredMomentWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -8356,14 +8134,14 @@ envelope-controlled unrecovered raw moment WLLNs.
 This narrows the entrywise-unrecovered route by allowing the probability proof
 to provide one scalar envelope for each primitive matrix family:
 `(Λ'Λ)^{-1}Λ'`, `Ψ`, `n⁻¹F'U`, `n⁻¹U'F`, and centered `n⁻¹U'U - Ψ`. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseEnvelopeWLLNBridge
+theorem FactorPCTheorem11_9.eventually_of_entrywiseEnvelope
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
     (ρL ρΨ ρFU ρUF ρUU : ι → ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
     Filter.Eventually
       (fun i =>
@@ -8393,16 +8171,16 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredE
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge
+  FactorPCTheorem11_9.eventually_of_unrecoveredEntrywiseWLLN
     hcard X Λ F U Ψ Ψlim
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toUnrecoveredEntrywiseWLLNBridge h)
+    (ApproxFactorEntrywiseEnvelopeWLLN.toUnrecoveredEntrywiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from Assumption 11.1 plus envelope-controlled unrecovered raw moment
 WLLNs. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseEnvelopeWLLNBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_entrywiseEnvelope
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
@@ -8410,7 +8188,7 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Unre
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
     (ρL ρΨ ρFU ρUF ρUU : ι → ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
     Filter.Eventually
       (fun i =>
@@ -8428,9 +8206,9 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Unre
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge
+  FactorPCTheorem11_9.eventually_jointLS_of_unrecoveredEntrywiseWLLN
     hcard hcardObs X Λ F U Ψ Ψlim
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toUnrecoveredEntrywiseWLLNBridge h)
+    (ApproxFactorEntrywiseEnvelopeWLLN.toUnrecoveredEntrywiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -8440,14 +8218,14 @@ inverse-loading-envelope unrecovered raw moment WLLNs.
 This is the theorem-facing endpoint for the Hansen-style route where the
 loading-recoverer envelope is derived from bounds on `(Λ'Λ)⁻¹`, `Λ`, and
 `(# factors)ρInvρΛ → 0`, rather than supplied directly. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredInverseLoadingEnvelopeWLLNBridge
+theorem FactorPCTheorem11_9.eventually_of_inverseLoadingEnvelope
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
     (ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
     Filter.Eventually
       (fun i =>
@@ -8477,15 +8255,15 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredI
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge
+  FactorPCTheorem11_9.eventually_of_unrecoveredEntrywiseWLLN
     hcard X Λ F U Ψ Ψlim
-    (ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge.toUnrecoveredEntrywiseWLLNBridge h)
+    (ApproxFactorInverseLoadingEnvelopeWLLN.toUnrecoveredEntrywiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from the inverse-loading-envelope unrecovered raw moment route. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredInverseLoadingEnvelopeWLLNBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_inverseLoadingEnvelope
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
@@ -8493,7 +8271,7 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Unre
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
     (ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
     Filter.Eventually
       (fun i =>
@@ -8511,17 +8289,16 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Unre
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
-  factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge
+  FactorPCTheorem11_9.eventually_jointLS_of_unrecoveredEntrywiseWLLN
     hcard hcardObs X Λ F U Ψ Ψlim
-    (ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge.toUnrecoveredEntrywiseWLLNBridge h)
+    (ApproxFactorInverseLoadingEnvelopeWLLN.toUnrecoveredEntrywiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint for the inverse-loading
-envelope route. It exposes the PCA formula, literal normalized joint-LS
-minimizer, and bounded score-variance conclusion from the same primitive
-Hansen-style envelope assumptions. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredInverseLoadingEnvelopeWLLNBridge
+/-- The inverse-loading-envelope route combining Hansen Theorem 11.9's PCA and
+joint-LS certificates with an eventual finite-index `factorScoreVarianceBound`.
+The covariance conjunct does not assert convergence. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_inverseLoadingEnvelope
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
@@ -8529,7 +8306,7 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
     (ρInv ρΛ ρΨ ρFU ρUF ρUU : ι → ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge
+    (h : ApproxFactorInverseLoadingEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρInv ρΛ ρΨ ρFU ρUF ρUU) :
     Filter.Eventually
       (fun i =>
@@ -8573,25 +8350,24 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+        factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionUnrecoveredInverseLoadingEnvelopeWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorInverseLoadingEnvelopeWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint for the whole-matrix WLLN
-route. It exposes the PCA formula, literal normalized joint-LS minimizer, and
-bounded score-variance conclusion from the same Assumption 11.1 WLLN package. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1MatrixWLLNBridge
+/-- The whole-matrix WLLN route combining Hansen Theorem 11.9's PCA and
+joint-LS certificates with an eventual finite-index `factorScoreVarianceBound`.
+The covariance conjunct does not assert convergence. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_matrixWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorMatrixWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -8634,24 +8410,23 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+        factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorMatrixWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint for the recovered raw-moment
-WLLN route. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1RawMomentMatrixWLLNBridge
+/-- The recovered raw-moment WLLN route, with the eventual finite-index
+`factorScoreVarianceBound` recorded as its final conjunct. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_rawMomentWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionRawMomentMatrixWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorRawMomentWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -8694,24 +8469,23 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+        factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionRawMomentMatrixWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorRawMomentWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint for the unrecovered raw
-moment WLLN route. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredMomentWLLNBridge
+/-- The unrecovered raw-moment WLLN route, with the eventual finite-index
+`factorScoreVarianceBound` recorded as its final conjunct. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_unrecoveredMomentWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge
+    (h : ApproxFactorUnrecoveredMomentWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Eventually
       (fun i =>
@@ -8755,24 +8529,23 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+        factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionUnrecoveredMomentWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorUnrecoveredMomentWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint for the entrywise
-unrecovered raw moment WLLN route. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseWLLNBridge
+/-- The entrywise unrecovered-moment WLLN route, with the eventual finite-index
+`factorScoreVarianceBound` recorded as its final conjunct. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_unrecoveredEntrywiseWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge
+    (h : ApproxFactorUnrecoveredEntrywiseWLLN
       l X Λ F U Ψ Ψlim) :
     Filter.Eventually
       (fun i =>
@@ -8816,17 +8589,16 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+        factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorUnrecoveredEntrywiseWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint for the scalar-envelope
-unrecovered raw moment WLLN route. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1UnrecoveredEntrywiseEnvelopeWLLNBridge
+/-- The scalar-envelope unrecovered-moment WLLN route, with the eventual
+finite-index `factorScoreVarianceBound` recorded as its final conjunct. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_entrywiseEnvelope
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
@@ -8834,7 +8606,7 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ) (Ψlim : Matrix k k ℝ)
     (ρL ρΨ ρFU ρUF ρUU : ι → ℝ)
-    (h : ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge
+    (h : ApproxFactorEntrywiseEnvelopeWLLN
       l X Λ F U Ψ Ψlim ρL ρΨ ρFU ρUF ρUU) :
     Filter.Eventually
       (fun i =>
@@ -8878,11 +8650,10 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+        factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionUnrecoveredEntrywiseEnvelopeWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorEntrywiseEnvelopeWLLN.toNormalizedRayleighAssumptionBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
@@ -8893,13 +8664,13 @@ This compatibility endpoint remains useful when the probability work is carried
 out term-by-term. The normalized-Rayleigh and matrix-WLLN endpoints above are
 the preferred theorem-facing stochastic boundaries when those primitives are
 available directly. -/
-theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1CrossNoiseWLLNBridge
+theorem FactorPCTheorem11_9.eventually_of_crossNoiseWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -8930,21 +8701,21 @@ theorem factorPCTheorem11_9_eventually_of_approxFactorAssumption11_1CrossNoiseWL
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
   factorPCTheorem11_9_eventually_of_approxFactorAsymptoticCrossNoiseWLLNBridge
     hcard X Λ F U
-    (ApproximateFactorAssumptionCrossNoiseWLLNBridge.toCrossNoiseWLLNBridge h)
+    (ApproxFactorCrossNoiseWLLN.toCrossNoiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.9 normalized joint least-squares minimizer eventually
 follows from Assumption 11.1 plus the three primitive recovered cross/noise
 coordinate WLLNs. -/
-theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1CrossNoiseWLLNBridge
+theorem FactorPCTheorem11_9.eventually_jointLS_of_crossNoiseWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorLeastSquaresNormalizedMinimizer (X i)
@@ -8963,20 +8734,20 @@ theorem factorPCTheorem11_9_jointLS_eventually_of_approxFactorAssumption11_1Cros
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row))) l :=
   factorPCTheorem11_9_jointLS_eventually_of_approxFactorCrossNoiseWLLNBridge
     hcard hcardObs X Λ F U
-    (ApproximateFactorAssumptionCrossNoiseWLLNBridge.toCrossNoiseWLLNBridge h)
+    (ApproxFactorCrossNoiseWLLN.toCrossNoiseWLLNBridge h)
 
 set_option linter.style.longLine false in
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.9 combined asymptotic endpoint for the recovered
-cross/noise coordinate WLLN route. -/
-theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1CrossNoiseWLLNBridge
+/-- The recovered cross/noise coordinate WLLN route, with the eventual
+finite-index `factorScoreVarianceBound` recorded as its final conjunct. -/
+theorem FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_crossNoiseWLLN
     [Nonempty n] {ι : Type*} {l : Filter ι}
     (hcard : Fintype.card r ≤ Fintype.card k)
     (hcardObs : Fintype.card r ≤ Fintype.card n)
     (X : ι → n → k → ℝ) (Λ : ι → Matrix k r ℝ)
     (F : ι → n → r → ℝ) (U : ι → Matrix n k ℝ)
     (Ψ : ι → Matrix k k ℝ)
-    (h : ApproximateFactorAssumptionCrossNoiseWLLNBridge l X Λ F U Ψ) :
+    (h : ApproxFactorCrossNoiseWLLN l X Λ F U Ψ) :
     Filter.Eventually
       (fun i =>
         FactorPCTheorem11_9 (factorSampleCovariance (X i))
@@ -9019,10 +8790,9 @@ theorem factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxF
               (factorPCDiagonalInvSqrtD
                 (factorLeadingPCEigenvalues (r := r)
                   (factorSampleCovariance_isHermitian (X i)) hcard)) (X i row)) ∧
-        ∃ B : ℝ, 0 ≤ B ∧ ∀ x : k → ℝ,
-          x ⬝ᵥ ((Ψ i) *ᵥ x) ≤ B * (x ⬝ᵥ x)) l :=
-  factorPCTheorem11_9_with_jointLS_and_scoreVariance_eventually_of_approxFactorAssumption11_1NormalizedRayleighBridge
+        factorScoreVarianceBound (Λ i) (Ψ i)) l :=
+  FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh
     hcard hcardObs X Λ F U Ψ
-    (ApproximateFactorAssumptionCrossNoiseWLLNBridge.toNormalizedRayleighAssumptionBridge h)
+    (ApproxFactorCrossNoiseWLLN.toNormalizedRayleighAssumptionBridge h)
 
 end HansenEconometrics
