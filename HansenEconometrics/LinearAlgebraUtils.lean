@@ -3,6 +3,7 @@ import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Order.Fin.Tuple
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+import Mathlib.Topology.Instances.Matrix
 
 /-!
 # Shared finite-dimensional linear algebra
@@ -41,44 +42,35 @@ lemma matrixBorelSpace (m n : Type*) [Fintype m] [Fintype n] :
   letI : MeasurableSpace (Matrix m n ℝ) := matrixBorelMeasurableSpace m n
   exact ⟨rfl⟩
 
+private theorem measurable_continuous_matrix_comp_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Finite κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j)
+    {f : Matrix κ κ ℝ → ℝ} (hf : Continuous f) :
+    Measurable fun x => f (A x) := by
+  letI : MeasurableSpace (Matrix κ κ ℝ) :=
+    (inferInstance : MeasurableSpace (κ → κ → ℝ))
+  letI : BorelSpace (Matrix κ κ ℝ) := by
+    change BorelSpace (κ → κ → ℝ)
+    infer_instance
+  have hA' : Measurable A :=
+    measurable_pi_iff.mpr fun i => measurable_pi_iff.mpr fun j => hA i j
+  exact hf.measurable.comp hA'
+
 /-- A finite determinant is measurable when all matrix entries are measurable. -/
 theorem det_measurable_of_entries
     {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
     {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) :
     Measurable fun x => (A x).det := by
-  classical
-  rw [show (fun x => (A x).det) =
-      (fun x => ∑ σ : Equiv.Perm κ, Equiv.Perm.sign σ * ∏ i, A x (σ i) i) by
-        funext x
-        rw [Matrix.det_apply']]
-  exact Finset.measurable_sum Finset.univ (fun σ _ =>
-    measurable_const.mul
-      (Finset.measurable_prod Finset.univ (fun i _ => hA (σ i) i)))
+  exact measurable_continuous_matrix_comp_of_entries
+    hA continuous_id.matrix_det
 
 /-- Every adjugate entry is measurable when all source entries are measurable. -/
 theorem adjugate_apply_measurable_of_entries
     {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
     {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) (i j : κ) :
     Measurable fun x => (A x).adjugate i j := by
-  classical
-  rw [show (fun x => (A x).adjugate i j) =
-      (fun x => ((A x).updateRow j (Pi.single i 1)).det) by
-        funext x
-        rw [Matrix.adjugate_apply]]
-  apply det_measurable_of_entries
-  intro a b
-  by_cases ha : a = j
-  · subst a
-    by_cases hb : b = i
-    · subst b
-      simp [Matrix.updateRow]
-    · simp [Matrix.updateRow, Pi.single_eq_of_ne hb]
-  · have heq : (fun x => ((A x).updateRow j (Pi.single i 1)) a b) =
-        fun x => A x a b := by
-      funext x
-      simp [Matrix.updateRow, ha]
-    rw [heq]
-    exact hA a b
+  exact measurable_continuous_matrix_comp_of_entries
+    hA (continuous_id.matrix_adjugate.matrix_elem i j)
 
 /-- Every entry of the totalized matrix inverse is measurable when all source
 entries are measurable. -/
@@ -101,6 +93,25 @@ theorem matrix_inv_apply_measurable_of_entries
         rw [Matrix.inv_def]
         rfl]
   exact hrinv.mul hadj
+
+/-- A totalized finite matrix inverse is Borel measurable when all source
+entries are measurable. -/
+theorem matrix_inv_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) :
+    @Measurable α (Matrix κ κ ℝ) inferInstance (borel (Matrix κ κ ℝ))
+      (fun x => (A x)⁻¹) := by
+  letI mMatrix : MeasurableSpace (Matrix κ κ ℝ) :=
+    (inferInstance : MeasurableSpace (κ → κ → ℝ))
+  letI : BorelSpace (Matrix κ κ ℝ) := by
+    change BorelSpace (κ → κ → ℝ)
+    infer_instance
+  have hInv : Measurable fun x => (A x)⁻¹ :=
+    measurable_pi_iff.mpr fun i => measurable_pi_iff.mpr fun j =>
+      matrix_inv_apply_measurable_of_entries hA i j
+  have hm : mMatrix = borel (Matrix κ κ ℝ) := BorelSpace.measurable_eq
+  rw [hm] at hInv
+  exact hInv
 
 /-- Every entry of a finite Gram matrix is measurable when all source entries
 are measurable. -/

@@ -936,6 +936,7 @@ noncomputable def twoSLSBootstrapRobustLinearRestrictionStdErrorFinSucc
 
 /-- The concrete robust bootstrap standard error is the generic standard-error
 functional applied to the concrete robust bootstrap covariance estimator. -/
+@[simp]
 theorem twoSLSBootstrapRobustLinearRestrictionStdErrorFinSucc_eq_generic
     (R : Matrix Unit k ℝ)
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (Y : ℕ → Ω → ℝ)
@@ -6425,7 +6426,6 @@ theorem
     TendstoInDistribution
       (fun n ω => twoSLSRobustLinearTStatFinSucc R Z X Y β n ω)
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  let S : Matrix Unit Unit ℝ := R * Vβ * Rᵀ
   let c : ℝ := linearRestrictionStdError R Vβ
   let rawNum : ℕ → Ω → ℝ := fun n ω =>
     linearRestrictionEstimate R
@@ -6445,47 +6445,19 @@ theorem
         (fun _ => μ) (multivariateGaussian 0 Vβ) := by
     simpa [rawNum, Function.comp_def] using
       hβ.continuous_comp (continuous_linearRestrictionEstimate R)
-  have hS : S.PosSemidef := by
-    simpa [S, Matrix.conjTranspose] using
-      Matrix.PosSemidef.conjTranspose_mul_mul_same hVβ Rᵀ
-  have hlinLaw :
-      HasLaw (fun z : EuclideanSpace ℝ k => WithLp.toLp 2 (R *ᵥ z.ofLp))
-        (multivariateGaussian (0 : EuclideanSpace ℝ Unit) S)
-        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ) := by
-    simpa [S] using
-      hasLaw_multivariateGaussian_zero_linearMap
-        (n := k) (q := Unit) hVβ R
-  have hcoordLawUnit :
-      HasLaw (fun z : EuclideanSpace ℝ Unit => z.ofLp ())
-        (gaussianReal 0 (S () ()).toNNReal)
-        (multivariateGaussian (0 : EuclideanSpace ℝ Unit) S) := by
-    simpa using
-      multivariateGaussian_eval_hasLaw
-        (μ := (0 : EuclideanSpace ℝ Unit)) (S := S) hS ()
-  have hcoordLaw :
-      HasLaw
-        (fun z : EuclideanSpace ℝ k =>
-          (WithLp.toLp 2 (R *ᵥ z.ofLp) : EuclideanSpace ℝ Unit).ofLp ())
-        (gaussianReal 0 (S () ()).toNNReal)
-        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ) := by
-    simpa [Function.comp_def] using HasLaw.comp hcoordLawUnit hlinLaw
   have hZlaw :
       HasLaw
         (fun z : EuclideanSpace ℝ k =>
           linearRestrictionEstimate R (z : k → ℝ))
-        (gaussianReal 0 (S () ()).toNNReal)
+        (gaussianReal 0 (c ^ 2).toNNReal)
         (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ) := by
-    refine hcoordLaw.congr ?_
-    filter_upwards with z
-    simp [linearRestrictionEstimate]
-  have hσ :
-      S () () = c ^ 2 := by
-    simpa [S, c, linearRestrictionStdError] using
-      (Real.sq_sqrt (hS.diag_nonneg (i := ()))).symm
+    simpa [c] using
+      linearRestrictionEstimate_hasLaw_gaussianReal_of_posSemidef
+        (R := R) hVβ
   have hstdLaw :
       HasLaw (fun z : ℝ => c * z)
-        (gaussianReal 0 (S () ()).toNNReal) (gaussianReal 0 1) :=
-    hasLaw_const_mul_id_gaussianReal_of_variance_eq hσ
+        (gaussianReal 0 (c ^ 2).toNNReal) (gaussianReal 0 1) :=
+    hasLaw_const_mul_id_gaussianReal_of_variance_eq rfl
   have hrawNum :
       TendstoInDistribution rawNum atTop (fun z : ℝ => c * z)
         (fun _ => μ) (gaussianReal 0 1) := by
@@ -12224,10 +12196,10 @@ theorem
       hresid hTrueTail hcoef hR hV
 
 set_option linter.style.longLine false in
-/-- Literal textbook-fourth Assumption 12.2 endpoint for Hansen Theorem 12.8
-with robust covariance resampling supplied as direct bootstrap covariance
-consistency. -/
-theorem
+/-- Same-file textbook-fourth bridge with robust covariance resampling
+supplied as direct bootstrap covariance consistency. The public Hansen-facing
+surface is assembled later from the honest observed-row route. -/
+private theorem
     twoSLSBootstrap_theorem12_8_of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -12940,7 +12912,7 @@ It avoids routing interval validity through the covariance norm-tail primitive:
 the bootstrap t-ratio limit is derived from direct consistency of
 `twoSLSBootstrapVHatStarFinSucc`, then Chapter 10's percentile-`t` coverage
 bridge consumes the named interval-side package. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_coverageInputs
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13002,7 +12974,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Literal finite-fourth Assumption 12.2 coverage wrapper for the direct
 ordinary-bootstrap robust covariance consistency route. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_coverageInputs
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13060,6 +13032,8 @@ theorem
       (μ := μ) (Z := Z) (X := X) (Y := Y) (R := R) (β := β)
       (q := q) (α := α) hTstar hcoverage
 
+namespace TwoSLSBootstrapPercentileT
+
 set_option linter.style.longLine false in
 /-- Percentile-`t` coverage from the named mixed-moment Assumption 12.2
 package, minimal residual/coefficient inputs, direct bootstrap robust
@@ -13068,8 +13042,7 @@ covariance consistency, and explicit interval-side primitives.
 This wrapper builds the coverage-input package internally from realized robust
 covariance positive definiteness and the Chapter 10 quantile-calibration
 package. -/
-theorem
-    twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
+theorem coverage_of_mixed_moment_inputs
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
@@ -13126,11 +13099,13 @@ theorem
       (β := β) (R := R) (q := q) (α := α)
       h hmodel hR hVhat_pos hquantile)
 
+end TwoSLSBootstrapPercentileT
+
 set_option linter.style.longLine false in
 /-- Literal finite-fourth Assumption 12.2 coverage wrapper with direct
 ordinary-bootstrap robust covariance consistency and explicit interval-side
 primitives. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13195,7 +13170,7 @@ This is the coverage companion to
 `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency`.
 It keeps the interval-side sample and quantile conditions in the named
 coverage-input package. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_coverageInputs
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13268,7 +13243,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Textbook-fourth coverage endpoint from uniform residual/coefficient
 remainders and direct ordinary-bootstrap robust covariance consistency. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_coverageInputs
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13341,7 +13316,7 @@ set_option linter.style.longLine false in
 /-- Coverage from uniform residual/coefficient remainders, direct bootstrap
 covariance consistency, realized robust covariance positive definiteness, and
 quantile calibration. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13413,7 +13388,7 @@ set_option linter.style.longLine false in
 /-- Textbook-fourth coverage endpoint from uniform residual/coefficient
 remainders, direct bootstrap covariance consistency, realized robust
 covariance positive definiteness, and quantile calibration. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13484,7 +13459,7 @@ set_option linter.style.longLine false in
 /-- Percentile-`t` coverage from uniform residual/coefficient remainders, a
 deterministic true-score bound, direct bootstrap covariance consistency, and a
 named coverage package. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_coverageInputs
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13547,7 +13522,7 @@ set_option linter.style.longLine false in
 /-- Textbook-fourth coverage endpoint from uniform residual/coefficient
 remainders, a deterministic true-score bound, direct bootstrap covariance
 consistency, and a named coverage package. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_coverageInputs
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13609,7 +13584,7 @@ set_option linter.style.longLine false in
 /-- Coverage from uniform residual/coefficient remainders, a deterministic
 true-score bound, direct bootstrap covariance consistency, realized robust
 covariance positive definiteness, and quantile calibration. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13677,7 +13652,7 @@ set_option linter.style.longLine false in
 remainders, a deterministic true-score bound, direct bootstrap covariance
 consistency, realized robust covariance positive definiteness, and quantile
 calibration. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13748,7 +13723,7 @@ definiteness, and quantile calibration.
 This is the observed-row companion to the residual-row textbook-fourth coverage
 wrapper; it changes only the public assumption surface by applying
 `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13811,7 +13786,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Observed-row Assumption 12.2 percentile-`t` coverage with the one-row
 restriction rank condition stated as a nonzero row entry. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -13871,16 +13846,14 @@ theorem
     h (oneRow_transpose_mulVec_injective_of_exists_ne_zero hR)
     hTrueBound hResidSmall hPopSmall hCoefSmall hV_boot hVhat_pos hquantile
 
-set_option linter.style.longLine false in
-/-- Textbook-fourth percentile-`t` quantile convergence and coverage from the
-preferred direct-covariance Theorem 12.8 route, with the one-row restriction
-rank condition stated as a nonzero row entry.
+namespace TwoSLSBootstrapPercentileT
 
-This is the residual-row companion to the observed-row theorem below.  It
-returns Hansen's two bootstrap percentile-`t` critical-value limits and the
-resulting interval coverage in one theorem-facing endpoint. -/
-theorem
-    twoSLSBootstrapRobustPercentileTCIEventFinSucc_quantiles_tendsto_and_coverage_theorem12_8_of_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero
+set_option linter.style.longLine false in
+/-- Historical residual-row bounded-score compatibility assembly.
+
+The fixed pathwise score bound is incompatible with the nondegenerate Gaussian
+score limit, so this remains private same-file scaffolding. -/
+private theorem quantiles_and_coverage_of_residual_remainders
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
@@ -13967,15 +13940,12 @@ theorem
       hcoverage.sample hquantile
 
 set_option linter.style.longLine false in
-/-- Observed-row Assumption 12.2 percentile-`t` quantile convergence and
-coverage from the preferred direct-covariance Theorem 12.8 route, with the
-one-row restriction rank condition stated as a nonzero row entry.
+/-- Historical observed-row bounded-score compatibility assembly.
 
-This exposes the Chapter 10 quantile step as part of the theorem-facing
-interval conclusion: the two bootstrap percentile-`t` critical values converge
-to `-q` and `q`, and the resulting interval has limiting coverage `1 - α`. -/
-theorem
-    twoSLSBootstrapRobustPercentileTCIEventFinSucc_quantiles_tendsto_and_coverage_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero
+This delegates to the residual-row helper after converting Assumption 12.2.
+It is private because the fixed pathwise score bound is incompatible with the
+nondegenerate Gaussian score limit. -/
+private theorem quantiles_and_coverage_of_observed_remainders
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
@@ -14041,25 +14011,14 @@ theorem
           μ {ω |
             twoSLSBootstrapRobustPercentileTCIEventFinSucc
               R Z X Y β α n ω})
-        atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
-  let hRinj : Function.Injective Rᵀ.mulVec :=
-    oneRow_transpose_mulVec_injective_of_exists_ne_zero hR
-  let hcoverage :
-      TwoSLSBootstrapRobustPercentileTCoverageInputs
-        μ Z X Y β R q α :=
-    TwoSLSBootstrapRobustPercentileTCoverageInputs.of_textbook_fourth_cov_posDef_quantileCalibration
-      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-      (β := β) (R := R) (q := q) (α := α)
-      h.toResidualTextbookFourthConditions hRinj hVhat_pos hquantile
-  exact
-    twoSLSBootstrapRobustPercentileTCIEventFinSucc_quantiles_tendsto_and_coverage_of_sample_quantile
-      (μ := μ) (Z := Z) (X := X) (Y := Y) (R := R)
-      (β := β) (q := q) (α := α)
-      (twoSLSBootstrap_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency
-        (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-        (R := R) (β := β) (C := C) h hRinj hTrueBound
-        hResidSmall hPopSmall hCoefSmall hV_boot).2
-      hcoverage.sample hquantile
+        atTop (𝓝 (ENNReal.ofReal (1 - α))) :=
+  quantiles_and_coverage_of_residual_remainders
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+    (R := R) (β := β) (q := q) (α := α) (C := C)
+    h.toResidualTextbookFourthConditions hR hTrueBound
+    hResidSmall hPopSmall hCoefSmall hV_boot hVhat_pos hquantile
+
+end TwoSLSBootstrapPercentileT
 
 set_option linter.style.longLine false in
 /-- Historical bounded-score compatibility assembly for the direct-covariance
@@ -14158,7 +14117,7 @@ private theorem boundedScoreCompatibilityFull
       (R := R) (β := β) (C := C) h hR hTrueBound
       hResidSmall hPopSmall hCoefSmall hV_boot
   have hci :=
-    twoSLSBootstrapRobustPercentileTCIEventFinSucc_quantiles_tendsto_and_coverage_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero
+    TwoSLSBootstrapPercentileT.quantiles_and_coverage_of_observed_remainders
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
       (R := R) (β := β) (q := q) (α := α) (C := C)
       h hR hTrueBound hResidSmall hPopSmall hCoefSmall hV_boot
@@ -14168,7 +14127,7 @@ private theorem boundedScoreCompatibilityFull
 set_option linter.style.longLine false in
 /-- Textbook-fourth percentile-`t` coverage with the one-row restriction rank
 condition stated as a nonzero row entry. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -14512,7 +14471,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Observed-row Assumption 12.2 coverage wrapper with the one-row restriction
 rank condition stated as a nonzero row entry. -/
-theorem
+private theorem
     twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_cov_posDef_quantileCalibration_row_ne_zero
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -14541,17 +14500,14 @@ theorem
     (oneRow_transpose_mulVec_injective_of_exists_ne_zero hR)
     hboot hVhat_pos hquantile
 
-set_option linter.style.longLine false in
-/-- Observed-row Assumption 12.2 score-tail primitive route, returning both
-percentile-`t` critical-value convergence and interval coverage.
+namespace TwoSLSBootstrapPercentileT
 
-This is the score-tail analogue of the direct-covariance uniform-remainder
-quantile/coverage endpoint: it reuses the existing score-tail bootstrap
-distribution theorem and the generic Chapter 10 percentile-`t` quantile bridge,
-while keeping realized covariance positive definiteness and quantile calibration
-as explicit interval-side inputs. -/
-theorem
-    twoSLSBootstrapRobustPercentileTCIEventFinSucc_quantiles_tendsto_and_coverage_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_cov_posDef_quantileCalibration_row_ne_zero
+set_option linter.style.longLine false in
+/-- Historical observed-row fixed-compact score-tail compatibility assembly.
+
+The fixed compact tail premise is incompatible with the nondegenerate Gaussian
+score limit, so this remains private same-file scaffolding. -/
+private theorem quantiles_and_coverage_of_observed_score_tail
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
@@ -14604,6 +14560,8 @@ theorem
         (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
         (R := R) (β := β) h hRinj hboot).2
       hcoverage.sample hquantile
+
+end TwoSLSBootstrapPercentileT
 
 set_option linter.style.longLine false in
 /-- Historical score-tail compatibility assembly; this is not a Hansen-facing
@@ -14670,7 +14628,7 @@ private theorem scoreTailCompatibilityFull
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
       (R := R) (β := β) h hR hboot
   have hci :=
-    twoSLSBootstrapRobustPercentileTCIEventFinSucc_quantiles_tendsto_and_coverage_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_cov_posDef_quantileCalibration_row_ne_zero
+    TwoSLSBootstrapPercentileT.quantiles_and_coverage_of_observed_score_tail
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
       (R := R) (β := β) (q := q) (α := α)
       h hR hboot hVhat_pos hquantile

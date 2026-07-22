@@ -957,90 +957,6 @@ structure ManyInstrumentsLIMLMomentConsistencyConditions
     atTop (fun _ => (0 : k → ℝ))
   limit_nonsing : IsUnit H.det
 
-set_option maxHeartbeats 900000 in
--- Product-space synthesis for the inverse/product/mulVec CMT chain is expensive.
-/-- LIML consistency from normalized bread and structural-error score
-convergence.
-
-This is the CMT proof engine for the LIML face of Hansen Theorem 12.19.  It
-uses totalized matrix inverses throughout, so finite-sample singular designs do
-not require a separate high-probability nonsingularity premise. -/
-theorem limlBetaStar_tendstoInMeasure_beta_of_normalized_moments
-    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
-    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
-    {Y : (m : ℕ) → Ω → Fin m → ℝ}
-    {e : (m : ℕ) → Ω → Fin m → ℝ}
-    {limlMuHat : ℕ → Ω → ℝ}
-    {β : k → ℝ} {H : Matrix k k ℝ}
-    (h : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H)
-    (hmodel : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω) :
-    TendstoInMeasure μ
-      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
-      atTop (fun _ => β) := by
-  let A : ℕ → Ω → Matrix k k ℝ := fun m ω =>
-    limlNormalizedMomentMatrixStar (Z m ω) (X m ω) (limlMuHat m ω)
-  let s : ℕ → Ω → k → ℝ := fun m ω =>
-    limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) (limlMuHat m ω)
-  have hA_meas : ∀ m, AEStronglyMeasurable (A m) μ := by
-    intro m
-    simpa [A] using h.moment_meas m
-  have hs_meas : ∀ m, AEStronglyMeasurable (s m) μ := by
-    intro m
-    simpa [s] using h.score_meas m
-  have hA : TendstoInMeasure μ A atTop (fun _ => H) := by
-    simpa [A] using h.moment_tendsto
-  have hs : TendstoInMeasure μ s atTop (fun _ => (0 : k → ℝ)) := by
-    simpa [s] using h.score_tendsto_zero
-  have hAinv_meas : ∀ m, AEStronglyMeasurable (fun ω => (A m ω)⁻¹) μ :=
-    fun m => aestronglyMeasurable_matrix_inv (hA_meas m)
-  have hAinv : TendstoInMeasure μ
-      (fun m ω => (A m ω)⁻¹) atTop (fun _ => H⁻¹) :=
-    tendstoInMeasure_matrix_inv (μ := μ) hA_meas hA (fun _ => h.limit_nonsing)
-  have hAinvA_meas : ∀ m, AEStronglyMeasurable
-      (fun ω => (A m ω)⁻¹ * A m ω) μ := by
-    intro m
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      ((hAinv_meas m).prodMk (hA_meas m))
-  have hAinvA : TendstoInMeasure μ
-      (fun m ω => (A m ω)⁻¹ * A m ω) atTop (fun _ => H⁻¹ * H) :=
-    tendstoInMeasure_matrix_mul hAinv_meas hA_meas hAinv hA
-  have hAinvAβ_meas : ∀ m, AEStronglyMeasurable
-      (fun ω => ((A m ω)⁻¹ * A m ω) *ᵥ β) μ := by
-    intro m
-    exact (Continuous.matrix_mulVec continuous_id continuous_const).comp_aestronglyMeasurable
-      (hAinvA_meas m)
-  have hAinvAβ : TendstoInMeasure μ
-      (fun m ω => ((A m ω)⁻¹ * A m ω) *ᵥ β) atTop (fun _ => β) := by
-    have hcont : Continuous (fun M : Matrix k k ℝ => M *ᵥ β) :=
-      Continuous.matrix_mulVec continuous_id continuous_const
-    have hraw := tendstoInMeasure_continuous_comp hAinvA_meas hAinvA hcont
-    refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hraw
-    exact ae_of_all μ (fun _ => by
-      rw [Matrix.nonsing_inv_mul H h.limit_nonsing]
-      simp)
-  have hAinvs_meas : ∀ m, AEStronglyMeasurable
-      (fun ω => (A m ω)⁻¹ *ᵥ s m ω) μ := by
-    intro m
-    exact (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
-      ((hAinv_meas m).prodMk (hs_meas m))
-  have hAinvs : TendstoInMeasure μ
-      (fun m ω => (A m ω)⁻¹ *ᵥ s m ω) atTop (fun _ => (0 : k → ℝ)) := by
-    have hraw := tendstoInMeasure_mulVec hAinv_meas hs_meas hAinv hs
-    refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hraw
-    exact ae_of_all μ (fun _ => by simp)
-  have hsum := tendstoInMeasure_add hAinvAβ_meas hAinvs_meas hAinvAβ hAinvs
-  simp only [add_zero] at hsum
-  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hsum
-  filter_upwards [eventually_gt_atTop 0] with m hm
-  exact ae_of_all μ (fun ω => by
-    haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
-    have hY : Y m ω = X m ω *ᵥ β + e m ω := hmodel m ω
-    change ((A m ω)⁻¹ * A m ω) *ᵥ β + (A m ω)⁻¹ *ᵥ s m ω =
-      limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)
-    rw [hY, limlBetaStar_eq_normalized_moments,
-      limlNormalizedMomentVectorStar_linear_model]
-    simp [A, s, Matrix.mulVec_add, Matrix.mulVec_mulVec])
-
 /-- Moment-level LIML package with a nonzero structural-error score limit.
 
 This generic CMT layer is used for the 2SLS face of Hansen Theorem 12.19 by
@@ -1088,7 +1004,7 @@ set_option maxHeartbeats 900000 in
 -- Product-space synthesis for the inverse/product/mulVec CMT chain is expensive.
 /-- LIML/k-class estimator convergence from normalized bread and score limits.
 
-The limit is `β + Q^{-1}g`; the LIML consistency theorem above is the special
+The limit is `β + Q^{-1}g`; the LIML consistency theorem below is the special
 case `g = 0`. -/
 theorem limlBetaStar_tendstoInMeasure_of_normalized_moment_limits
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
@@ -1162,6 +1078,34 @@ theorem limlBetaStar_tendstoInMeasure_of_normalized_moment_limits
     rw [hY, limlBetaStar_eq_normalized_moments,
       limlNormalizedMomentVectorStar_linear_model]
     simp [A, s, Matrix.mulVec_add, Matrix.mulVec_mulVec])
+
+/-- LIML consistency from normalized bread and structural-error score
+convergence.
+
+This is the zero-score specialization of the generic moment-limit theorem for
+the LIML face of Hansen Theorem 12.19. Totalized matrix inverses mean that no
+separate finite-sample nonsingularity premise is needed. -/
+theorem limlBetaStar_tendstoInMeasure_beta_of_normalized_moments
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    (h : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H)
+    (hmodel : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) := by
+  simpa using
+    (limlBetaStar_tendstoInMeasure_of_normalized_moment_limits
+      (h := {
+        moment_meas := h.moment_meas
+        score_meas := h.score_meas
+        moment_tendsto := h.moment_tendsto
+        score_tendsto := h.score_tendsto_zero
+        limit_nonsing := h.limit_nonsing })
+      hmodel)
 
 /-- Moment-level OLS package for the many-instrument theorem. -/
 structure ManyInstrumentsOLSMomentLimitConditions
@@ -11818,6 +11762,8 @@ theorem manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure
   exact ae_of_all μ (fun ω => by
     simp [hkappa m ω])
 
+namespace ManyInstrumentsTheorem1219.ProjectedRayleigh
+
 set_option linter.style.longLine false in
 /-- Package-level Rayleigh endpoint for Hansen Theorem 12.19 LIML consistency
 in k-class notation `κ̂ = μ̂ + 1`.
@@ -11826,8 +11772,7 @@ This is the bundled-condition analogue of the raw joint-row wrapper below:
 callers who already have
 `ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions` need not unpack it
 just to rewrite LIML into Hansen's displayed k-class form. -/
-theorem
-manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+theorem liml_add_one_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -11875,8 +11820,7 @@ manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_proj
 set_option linter.style.longLine false in
 /-- Package-level k-class version of Hansen Theorem 12.19 for any pointwise
 `κ̂ = μ̂ + 1` sequence. -/
-theorem
-manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+theorem liml_kappa_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -11910,7 +11854,7 @@ manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_projec
         limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
       atTop (fun _ => β) := by
   have hκ :=
-    manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    liml_add_one_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
       (cross_row := cross_row) (gap_row := gap_row) (β := β)
@@ -11925,8 +11869,7 @@ manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_projec
 set_option linter.style.longLine false in
 /-- Hansen Theorem 12.19 in textbook k-class notation over the bundled
 projected-error/Rayleigh row-WLLN condition package. -/
-theorem
-manyInstruments_estimators_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_kappa_of_card_ratio
+theorem estimators_kappa_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -11974,7 +11917,7 @@ manyInstruments_estimators_theorem12_19_of_reduced_form_projected_error_rayleigh
       (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
       hZ_meas hu2_meas he_meas hjoint
   have hliml :=
-    manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    liml_kappa_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
       (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
@@ -11986,8 +11929,7 @@ manyInstruments_estimators_theorem12_19_of_reduced_form_projected_error_rayleigh
 set_option linter.style.longLine false in
 /-- Centered package-level Rayleigh endpoint for Hansen Theorem 12.19 LIML
 consistency in k-class notation `κ̂ = μ̂ + 1`. -/
-theorem
-manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+theorem liml_add_one_minus_beta_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12035,8 +11977,7 @@ manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure_of_reduce
 set_option linter.style.longLine false in
 /-- Centered package-level k-class version of Hansen Theorem 12.19 for any
 pointwise `κ̂ = μ̂ + 1` sequence. -/
-theorem
-manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+theorem liml_kappa_minus_beta_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12070,7 +12011,7 @@ manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_
         limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
       atTop (fun _ => (0 : k → ℝ)) := by
   have hκ :=
-    manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+    liml_add_one_minus_beta_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
       (cross_row := cross_row) (gap_row := gap_row) (β := β)
@@ -12085,8 +12026,7 @@ manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_
 set_option linter.style.longLine false in
 /-- Centered Hansen Theorem 12.19 in textbook k-class notation over the
 bundled projected-error/Rayleigh row-WLLN condition package. -/
-theorem
-manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_kappa_of_card_ratio_autoMeas
+theorem estimators_kappa_minus_beta_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12134,7 +12074,7 @@ manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_projected_err
       (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
       hZ_meas hu2_meas he_meas hjoint
   have hliml :=
-    manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+    liml_kappa_minus_beta_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
       (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
@@ -12143,6 +12083,10 @@ manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_projected_err
       hZ_meas hu2_meas he_meas hjoint hkappa
   exact ⟨hbase.1, hbase.2.1, hliml⟩
 
+end ManyInstrumentsTheorem1219.ProjectedRayleigh
+
+namespace ManyInstrumentsTheorem1219.RawRayleigh
+
 set_option linter.style.longLine false in
 /-- Raw joint-row Rayleigh endpoint for Hansen Theorem 12.19 LIML
 consistency in k-class notation `κ̂ = μ̂ + 1`.
@@ -12150,7 +12094,7 @@ consistency in k-class notation `κ̂ = μ̂ + 1`.
 This is a thin notation bridge over
 `manyInstruments_estimators_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio`. -/
 theorem
-manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+liml_add_one_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12214,7 +12158,7 @@ set_option linter.style.longLine false in
 /-- Centered raw joint-row Rayleigh endpoint for Hansen Theorem 12.19 LIML
 consistency in k-class notation `κ̂ = μ̂ + 1`. -/
 theorem
-manyInstruments_limlKClass_theorem12_19_rawRayleigh_centered_autoMeas
+liml_add_one_centered_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12279,7 +12223,7 @@ set_option linter.style.longLine false in
 `κ̂ = μ̂ + 1` sequence, stated in the uncentered Hansen Theorem 12.19 k-class
 form. -/
 theorem
-manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+liml_kappa_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12327,7 +12271,7 @@ manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_raw_pr
         limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
       atTop (fun _ => β) := by
   have hκ :=
-    manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    liml_add_one_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
@@ -12347,7 +12291,7 @@ This bundles the OLS and 2SLS probability limits with LIML written as
 `limlKClassBetaStar ... κ̂`, where `κ̂ = μ̂ + 1`, over the strongest raw
 joint-row Rayleigh facade. -/
 theorem
-manyInstruments_estimators_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_kappa_of_card_ratio
+estimators_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12410,7 +12354,7 @@ manyInstruments_estimators_theorem12_19_of_reduced_form_raw_projected_error_rayl
       hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
       hrow_indep hrow_ident hrow_mean_zero
   have hliml :=
-    manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    liml_kappa_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
       (row := row) (β := β) (H := H) (Sigma22 := Sigma22)
@@ -12425,7 +12369,7 @@ set_option linter.style.longLine false in
 /-- Centered raw joint-row Rayleigh endpoint for any pointwise
 `κ̂ = μ̂ + 1` sequence. -/
 theorem
-manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+liml_kappa_centered_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12473,7 +12417,7 @@ manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_
         limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
       atTop (fun _ => (0 : k → ℝ)) := by
   have hκ :=
-    manyInstruments_limlKClass_theorem12_19_rawRayleigh_centered_autoMeas
+    liml_add_one_centered_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
       (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
@@ -12493,7 +12437,7 @@ This bundles the centered OLS and 2SLS probability limits with LIML written as
 `limlKClassBetaStar ... κ̂`, where `κ̂ = μ̂ + 1`, over the strongest raw
 joint-row Rayleigh facade. -/
 theorem
-manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_kappa_of_card_ratio_autoMeas
+estimators_centered_tendstoInMeasure
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
     {Y : (m : ℕ) → Ω → Fin m → ℝ}
@@ -12556,7 +12500,7 @@ manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_raw_projected
       hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
       hrow_indep hrow_ident hrow_mean_zero
   have hliml :=
-    manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+    liml_kappa_centered_tendstoInMeasure
       (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
       (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
       (row := row) (β := β) (H := H) (Sigma22 := Sigma22)
@@ -12566,6 +12510,8 @@ manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_raw_projected
       hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident
       hrow_mean_zero hkappa
   exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+end ManyInstrumentsTheorem1219.RawRayleigh
 
 set_option linter.style.longLine false in
 /-- Row-WLLN Hansen Theorem 12.19 LIML consistency in k-class notation

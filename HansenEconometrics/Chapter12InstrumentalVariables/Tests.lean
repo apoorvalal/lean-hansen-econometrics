@@ -8,9 +8,9 @@ import HansenEconometrics.FDist
 
 This module records the Wald, endogeneity, overidentification, and subset
 overidentification test surfaces from Hansen's instrumental-variables chapter.
-Only the algebraic subset-overidentification identity is currently a numbered
-Hansen theorem bridge; the distributional lemmas below are interface
-projections.
+The distributional lemmas below are interface projections. The substantive
+finite-sample `N = C*` definitions and proof for Hansen Theorem 12.17 live in
+`Chapter12InstrumentalVariables.Overidentification`.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -32,7 +32,7 @@ noncomputable def ivWaldStatistic (theta : q → ℝ) (Vtheta : Matrix q q ℝ) 
 /-- Endogeneity-test statistic comparing OLS and IV estimators. -/
 noncomputable def hausmanEndogeneityStatistic
     (delta : k → ℝ) (Vdelta : Matrix k k ℝ) : ℝ :=
-  delta ⬝ᵥ (Vdelta⁻¹ *ᵥ delta)
+  ivWaldStatistic delta Vdelta
 
 /-- Sargan/Hansen overidentification statistic. -/
 noncomputable def overidentificationStatistic
@@ -42,17 +42,7 @@ noncomputable def overidentificationStatistic
 /-- Subset overidentification statistic. -/
 noncomputable def subsetOveridentificationStatistic
     (gbar : q → ℝ) (C : Matrix q r ℝ) (What : Matrix q q ℝ) : ℝ :=
-  (Cᵀ *ᵥ gbar) ⬝ᵥ ((Cᵀ * What * C)⁻¹ *ᵥ (Cᵀ *ᵥ gbar))
-
-/-- Algebraic `N` statistic from Hansen Theorem 12.17. -/
-noncomputable def subsetOveridentificationN
-    (gbar : q → ℝ) (C : Matrix q r ℝ) (What : Matrix q q ℝ) : ℝ :=
-  subsetOveridentificationStatistic gbar C What
-
-/-- Algebraic `C*` statistic from Hansen Theorem 12.17. -/
-noncomputable def subsetOveridentificationCStar
-    (gbar : q → ℝ) (C : Matrix q r ℝ) (What : Matrix q q ℝ) : ℝ :=
-  subsetOveridentificationStatistic gbar C What
+  ivWaldStatistic (Cᵀ *ᵥ gbar) (Cᵀ * What * C)
 
 /-- Interface projection for an IV Wald statistic with a chi-square null limit. -/
 theorem ivWald_chiSquaredLimit_from_interface
@@ -179,16 +169,6 @@ theorem chapter12_theorem_12_16_sargan_rejectionProb_tendsto_alpha
     Tendsto (fun n => mu {ω | crit < S n ω}) atTop (𝓝 alpha) :=
   chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
     (μ := mu) (W := S) (q := overidDf) (crit := crit) hcrit hS
-
-omit [DecidableEq q] in
-/-- **Hansen Theorem 12.17, algebraic part.** The subset-overidentification
-statistics `N` and `C*` are the same statistic in the canonical Lean notation. -/
-@[simp]
-theorem chapter12_theorem_12_17_subsetOveridentification_N_eq_CStar
-    (gbar : q → ℝ) (C : Matrix q r ℝ) (What : Matrix q q ℝ) :
-    subsetOveridentificationN gbar C What =
-      subsetOveridentificationCStar gbar C What :=
-  rfl
 
 /-- Interface projection for the subset-overidentification statistic's chi-square
 null limit. -/

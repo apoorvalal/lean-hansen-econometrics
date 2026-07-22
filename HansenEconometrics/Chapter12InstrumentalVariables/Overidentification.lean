@@ -15,12 +15,13 @@ Assumption 12.2 endpoint with derived scalar variance positivity derives the
 score, covariance, projection-rank, and variance-positivity inputs, fully
 closing Theorem 12.16 under its displayed assumptions.
 
-The canonical observed-row Theorem 12.17 endpoint derives the limiting row
-rank and every finite-sample rank-failure probability from Assumption 12.2. It
-proves `N = C*` on the nonsingular branch, shows equality failure has
-probability tending to zero under totalization, and supplies both chi-square
-limits, asymptotic equivalence, and calibrated test size through Chapter 9's
-rejection bridge.
+The corrected observed-row Theorem 12.17 endpoint combines the full-instrument
+Assumption 12.2 package with an explicit maintained-instrument relevance
+condition. Full-instrument relevance alone does not imply injectivity of
+`E[Z_a X']`. Under the corrected assumptions, the development proves the exact
+finite-sample `N = C*` identity on the nonsingular branch, derives vanishing
+rank-failure probabilities, and supplies both chi-square limits, asymptotic
+equivalence, and calibrated test size through Chapter 9's rejection bridge.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -1280,7 +1281,7 @@ theorem twoSLSSubsetResidualizedProjectionStar_mul_residualizedInstrumentsStar
 
 /-- The residualized excluded-instrument projection is symmetric on the
 nonsingular residualized-Gram branch. -/
-theorem twoSLSSubsetResidualizedProjectionStar_transpose
+@[simp] theorem twoSLSSubsetResidualizedProjectionStar_transpose
     (Za : Matrix n la ℝ) (Zb : Matrix n lb ℝ)
     [Invertible
       ((twoSLSSubsetResidualizedInstrumentsStar Za Zb)ᵀ *
@@ -1510,7 +1511,7 @@ Hansen's projection decomposition `P_[Z_a,Z_b] = P_a + P_R`.
 This packages the deterministic step needed by
 `twoSLSSubsetNeweyKernelStar_eq_residualizedProjectionStar_add_fittedCorrection_of_schur`.
 -/
-theorem twoSLSSubsetSchurComplement_eq_restrictedMomentMatrix_of_projection_decomposition
+private theorem twoSLSSubsetSchurComplement_eq_restrictedMomentMatrix_of_projection_decomposition
     (Za : Matrix n la ℝ) (Zb : Matrix n lb ℝ) (X : Matrix n k ℝ)
     [Invertible (Zaᵀ * Za)]
     [Invertible ((Matrix.fromCols Za Zb)ᵀ * Matrix.fromCols Za Zb)]
@@ -2912,6 +2913,173 @@ private theorem twoSLSCombinedQZX_fullInstrument_submatrix_inl
           (Sum.inl a) (Sum.inr j) :=
       (integral_apply_apply hMaintained (Sum.inl a) (Sum.inr j)).symm
 
+omit [Fintype n] [DecidableEq n] [Fintype k] [DecidableEq k]
+    [Fintype l] [DecidableEq l] [DecidableEq la] [DecidableEq lb] in
+private theorem posDef_submatrix_sum_inl
+    {a b : Type*}
+    {M : Matrix (a ⊕ b) (a ⊕ b) ℝ} (hM : M.PosDef) :
+    (M.submatrix Sum.inl Sum.inl).PosDef := by
+  refine ⟨hM.isHermitian.submatrix Sum.inl, ?_⟩
+  intro x hx
+  let y := x.mapDomain (Sum.inl : a → a ⊕ b)
+  have hy : y ≠ 0 :=
+    (Finsupp.mapDomain_injective Sum.inl_injective).ne hx
+  simpa [y, Finsupp.sum_mapDomain_index, add_mul, mul_add] using hM.2 hy
+
+namespace TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
+
+omit [Fintype n] [DecidableEq n] [Fintype l] [DecidableEq l]
+    [DecidableEq k] [DecidableEq la] [DecidableEq lb] in
+/-- Project the full observed-row Assumption 12.2 package onto its maintained
+left instrument block.
+
+All iid, moment, orthogonality, `QZZ`, and `Omega` fields are inherited from
+the full instrument vector. Injectivity of `E[Z_a X']` is the only additional
+condition: full-instrument relevance does not imply relevance of `Z_a`. -/
+theorem leftBlock
+    {Omega : Type*} [MeasurableSpace Omega] {mu : Measure Omega}
+    [IsProbabilityMeasure mu]
+    {Za : Nat → Omega → la → Real} {Zb : Nat → Omega → lb → Real}
+    {X : Nat → Omega → k → Real} {e Y : Nat → Omega → Real}
+    {beta : k → Real}
+    (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
+      mu (fun i omega => Sum.elim (Za i omega) (Zb i omega)) X e Y beta)
+    (hRelevance : Function.Injective
+      (twoSLSCombinedQZX (popGram mu (twoSLSCombinedRegressors Za X))).mulVec) :
+    TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
+      mu Za X e Y beta := by
+  classical
+  let Zfull : Nat → Omega → (la ⊕ lb) → Real :=
+    fun i omega => Sum.elim (Za i omega) (Zb i omega)
+  let projectObserved :
+      ((((la ⊕ lb) → Real) × (k → Real)) × Real) →
+        (((la → Real) × (k → Real)) × Real) :=
+    fun row => (((fun a => row.1.1 (Sum.inl a)), row.1.2), row.2)
+  have hProject : Continuous projectObserved := by
+    fun_prop
+  have hObservedMeas : forall i, AEStronglyMeasurable
+      (fun omega => ((Za i omega, X i omega), Y i omega)) mu := by
+    intro i
+    simpa [projectObserved, Zfull] using
+      hProject.comp_aestronglyMeasurable
+        (hFull.observed_aestronglyMeasurable i)
+  have hObservedIndep :
+      iIndepFun (fun i omega => ((Za i omega, X i omega), Y i omega)) mu := by
+    have h := hFull.observed_iIndep.comp
+      (fun _ => projectObserved) (fun _ => hProject.measurable)
+    simpa [projectObserved, Function.comp_def, Zfull] using h
+  have hObservedIdent : forall i,
+      IdentDistrib (fun omega => ((Za i omega, X i omega), Y i omega))
+        (fun omega => ((Za 0 omega, X 0 omega), Y 0 omega)) mu mu := by
+    intro i
+    have h := (hFull.observed_identDistrib i).comp hProject.measurable
+    simpa [projectObserved, Function.comp_def, Zfull] using h
+  have hZfullMeas : AEStronglyMeasurable (Zfull 0) mu := by
+    simpa [Zfull] using
+      (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
+        (hFull.observed_aestronglyMeasurable 0)
+  have hZaMeas : AEStronglyMeasurable (Za 0) mu :=
+    (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
+      (hObservedMeas 0)
+  have hXMeas : AEStronglyMeasurable (X 0) mu :=
+    (continuous_snd.comp continuous_fst).comp_aestronglyMeasurable
+      (hObservedMeas 0)
+  have hZfullFour : forall a : la ⊕ lb,
+      MemLp (fun omega => Zfull 0 omega a) 4 mu := fun a =>
+    coordinate_memLp_four_of_integrable_norm_fourth
+      (μ := mu) (X := Zfull 0) hZfullMeas
+      (by simpa [Zfull] using hFull.instrument_norm_fourth_integrable) a
+  have hZaFour : forall a : la, MemLp (fun omega => Za 0 omega a) 4 mu := by
+    intro a
+    simpa [Zfull] using hZfullFour (Sum.inl a)
+  have hXFour : forall j : k, MemLp (fun omega => X 0 omega j) 4 mu := fun j =>
+    coordinate_memLp_four_of_integrable_norm_fourth
+      (μ := mu) (X := X 0) hXMeas hFull.regressor_norm_fourth_integrable j
+  have hFullCombinedFour : forall s : (la ⊕ lb) ⊕ k,
+      MemLp (fun omega => twoSLSCombinedRegressors Zfull X 0 omega s) 4 mu := by
+    intro s
+    cases s with
+    | inl a => simpa [twoSLSCombinedRegressors] using hZfullFour a
+    | inr j => simpa [twoSLSCombinedRegressors] using hXFour j
+  have hMaintainedCombinedFour : forall s : la ⊕ k,
+      MemLp (fun omega => twoSLSCombinedRegressors Za X 0 omega s) 4 mu := by
+    intro s
+    cases s with
+    | inl a => simpa [twoSLSCombinedRegressors] using hZaFour a
+    | inr j => simpa [twoSLSCombinedRegressors] using hXFour j
+  have hFullInstrumentInt : Integrable
+      (fun omega => Matrix.vecMulVec (Zfull 0 omega) (Zfull 0 omega)) mu :=
+    vecMulVec_integrable_of_coordinate_memLp_four hZfullFour
+  have hZaInstrumentInt : Integrable
+      (fun omega => Matrix.vecMulVec (Za 0 omega) (Za 0 omega)) mu :=
+    vecMulVec_integrable_of_coordinate_memLp_four hZaFour
+  have hFullCombinedInt : Integrable
+      (fun omega => Matrix.vecMulVec
+        (twoSLSCombinedRegressors Zfull X 0 omega)
+        (twoSLSCombinedRegressors Zfull X 0 omega)) mu :=
+    vecMulVec_integrable_of_coordinate_memLp_four hFullCombinedFour
+  have hMaintainedCombinedInt : Integrable
+      (fun omega => Matrix.vecMulVec
+        (twoSLSCombinedRegressors Za X 0 omega)
+        (twoSLSCombinedRegressors Za X 0 omega)) mu :=
+    vecMulVec_integrable_of_coordinate_memLp_four hMaintainedCombinedFour
+  have hFullQZZ : popGram mu Zfull =
+      twoSLSCombinedQZZ (popGram mu (twoSLSCombinedRegressors Zfull X)) :=
+    popGram_eq_twoSLSCombinedQZZ_popGram hFullInstrumentInt hFullCombinedInt
+  have hMaintainedQZZ : popGram mu Za =
+      twoSLSCombinedQZZ (popGram mu (twoSLSCombinedRegressors Za X)) :=
+    popGram_eq_twoSLSCombinedQZZ_popGram hZaInstrumentInt hMaintainedCombinedInt
+  have hQZZEq :
+      (twoSLSCombinedQZZ
+        (popGram mu (twoSLSCombinedRegressors Zfull X))).submatrix
+          Sum.inl Sum.inl =
+        twoSLSCombinedQZZ (popGram mu (twoSLSCombinedRegressors Za X)) := by
+    rw [← hFullQZZ, ← hMaintainedQZZ]
+    exact popGram_fullInstrument_submatrix_inl_inl
+      (μ := mu) Za Zb hZaInstrumentInt hFullInstrumentInt
+  have hQZZPos :
+      (twoSLSCombinedQZZ
+        (popGram mu (twoSLSCombinedRegressors Za X))).PosDef := by
+    have h := posDef_submatrix_sum_inl hFull.qzz_posDef
+    simpa [Zfull, hQZZEq] using h
+  let hFullMixed := hFull.toJointIidMixedMomentConditions
+  have hFullScoreInt : Integrable (fun omega => e 0 omega • Zfull 0 omega) mu := by
+    simpa [Zfull] using hFullMixed.instrument_cross_integrable
+  have hZaScoreInt : Integrable (fun omega => e 0 omega • Za 0 omega) mu := by
+    refine Integrable.of_eval ?_
+    intro a
+    simpa [Zfull, Pi.smul_apply] using
+      (Integrable.eval hFullScoreInt (Sum.inl a))
+  have hOrthogonality : mu[fun omega => e 0 omega • Za 0 omega] = 0 := by
+    ext a
+    rw [integral_apply hZaScoreInt]
+    have hzero := congrFun hFull.orthogonality (Sum.inl a)
+    rw [integral_apply hFullScoreInt] at hzero
+    simpa [Zfull, Pi.smul_apply] using hzero
+  have hOmegaEq :
+      (scoreCovMat mu Zfull e).submatrix Sum.inl Sum.inl =
+        scoreCovMat mu Za e := by
+    ext a b
+    rfl
+  have hOmegaPos : (scoreCovMat mu Za e).PosDef := by
+    have h := posDef_submatrix_sum_inl hFull.omega_posDef
+    simpa [Zfull, hOmegaEq] using h
+  exact
+    { observed_aestronglyMeasurable := hObservedMeas
+      observed_iIndep := hObservedIndep
+      observed_identDistrib := hObservedIdent
+      model := hFull.model
+      response_fourth_integrable := hFull.response_fourth_integrable
+      regressor_norm_fourth_integrable := hFull.regressor_norm_fourth_integrable
+      instrument_norm_fourth_integrable :=
+        (MemLp.of_eval hZaFour).integrable_norm_pow'
+      orthogonality := hOrthogonality
+      qzz_posDef := hQZZPos
+      qzx_rank := hRelevance
+      omega_posDef := hOmegaPos }
+
+end TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
+
 set_option linter.style.longLine false in
 /-- The maintained/full Assumption 12.2 population rank conditions derive the
 full-row-rank limiting excluded-instrument score map. -/
@@ -3019,17 +3187,19 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_assumption12
   exact (Matrix.isUnit_iff_isUnit_det _).mp hPos.isUnit
 
 set_option linter.style.longLine false in
-/-- Observed-row Assumption 12.2 derives the limiting row-Gram certificate;
-no separate row-Gram or covariance-target rank premise is needed. -/
+/-- The full observed-row Assumption 12.2 package and maintained-instrument
+relevance derive the limiting row-Gram certificate. The relevance premise is
+essential: relevance of `[Z_a,Z_b]` does not imply relevance of `Z_a`. -/
 theorem twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_observed_assumption12_2
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     [IsProbabilityMeasure μ]
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (hMaintained :
-      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
     (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
-      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β) :
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
+    (hMaintainedRelevance : Function.Injective
+      (twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Za X))).mulVec) :
     IsUnit
       ((twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
           (twoSLSSubsetResidualizedScoreMapFromGram
@@ -3037,6 +3207,8 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_observed_ass
         (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
           (twoSLSSubsetResidualizedScoreMapFromGram
             (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)))))ᵀ).det :=
+  let hMaintained := hFull.leftBlock
+    (Za := Za) (Zb := Zb) hMaintainedRelevance
   twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_assumption12_2_partitioned
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e)
     hMaintained.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
@@ -8547,16 +8719,20 @@ theorem all
     hsum (Eventually.of_forall fun _ => zero_le _) ?_
   exact Eventually.of_forall fun m => measure_union_le _ _
 
-/-- Observed-row Assumption 12.2 implies all high-probability rank branches
-used by Hansen Theorem 12.17. -/
+/-- Full-instrument observed-row Assumption 12.2 plus maintained relevance
+implies all high-probability rank branches used by the corrected Theorem 12.17
+endpoint. -/
 theorem of_observed_assumption12_2
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (hMaintained :
-      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
     (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
-      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β) :
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
+    (hMaintainedRelevance : Function.Injective
+      (twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Za X))).mulVec) :
     TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X := by
+  let hMaintained := hFull.leftBlock
+    (Za := Za) (Zb := Zb) hMaintainedRelevance
   let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
     fun i ω => Sum.elim (Za i ω) (Zb i ω)
   let hMaintainedMixed :=
@@ -18879,11 +19055,12 @@ theorem
     hsigma_pos hZa hZ hFitted hMaintainedFitted hA hR_rowGram
     halpha_le_one hcrit
 
+namespace Theorem12_17
+
 set_option linter.style.longLine false in
 /-- Observed-row Hansen Theorem 12.17 full-homoskedastic facade with scalar
 variance positivity derived from the full-instrument Assumption 12.2 package. -/
-theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
+theorem conclusions_of_fullResidualScoreMap
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18990,9 +19167,8 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos`. -/
-theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos_lowerTail
+`Theorem12_17.conclusions_of_fullResidualScoreMap`. -/
+theorem conclusions_lowerTail_of_fullResidualScoreMap
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -19083,7 +19259,7 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
+  conclusions_of_fullResidualScoreMap
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
     (A := A) hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
     hZa hZ hFitted hMaintainedFitted hA hR_rowGram
@@ -19091,28 +19267,33 @@ theorem
       (q := df) (c := crit) (alpha := alpha) halpha_le_one hcrit)
 
 set_option linter.style.longLine false in
-/-- Observed-row Hansen Theorem 12.17 facade deriving the residualized score-map
-limit from the full-instrument sample-Gram WLLN and deriving scalar variance
-positivity from full-instrument homoskedasticity.
+/-- Corrected observed-row Theorem 12.17 conclusion package with explicit
+rank-failure control.
+
+The full-instrument package supplies every maintained condition except
+injectivity of `E[Z_a X']`; that missing relevance condition is an explicit
+premise. The residualized score-map limit is derived from the full-instrument
+sample-Gram WLLN, and scalar variance positivity is derived from
+full-instrument homoskedasticity.
 
 The limiting residualized score map is fixed to Hansen's population
 full-instrument Gram expression, and the Newey covariance target is derived
-from full-instrument homoskedasticity.  Finite-sample identities are used on
-rank events whose complements have vanishing probability.  The shorter
-`Theorem12_17.observed` wrapper derives those rank probabilities and limiting
-row-Gram nonsingularity from observed Assumption 12.2. -/
-theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
+from full-instrument homoskedasticity. Finite-sample identities are used on
+rank events whose complements have vanishing probability. The shorter
+`Theorem12_17.corrected` wrapper derives those probabilities and limiting
+row-Gram nonsingularity from the full package plus maintained relevance. -/
+theorem conclusions_of_rankFailure
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
     {β : k → ℝ}
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
-    (hMaintained :
-      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
     (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
+    (hMaintainedRelevance : Function.Injective
+      (twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Za X))).mulVec)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
     (hZfull0 :
@@ -19166,6 +19347,8 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) := by
+  let hMaintained := hFull.leftBlock
+    (Za := Za) (Zb := Zb) hMaintainedRelevance
   let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
     fun i ω => Sum.elim (Za i ω) (Zb i ω)
   let A : Matrix lb (la ⊕ lb) ℝ :=
@@ -19221,7 +19404,7 @@ theorem
             simpa [A, Zfull] using
               twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_observed_assumption12_2
                 (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e)
-                hMaintained hFull))
+                hFull hMaintainedRelevance))
   have hnum : BoundedInProbability μ
       (fun m ω =>
         twoSLSSarganNumeratorStar
@@ -19526,19 +19709,19 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos`. -/
-theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos_lowerTail
+`Theorem12_17.conclusions_of_rankFailure`. -/
+theorem conclusions_lowerTail_of_rankFailure
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
     {β : k → ℝ}
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
-    (hMaintained :
-      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
     (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
+    (hMaintainedRelevance : Function.Injective
+      (twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Za X))).mulVec)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
     (hZfull0 :
@@ -19593,30 +19776,31 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
+  conclusions_of_rankFailure
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-    hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
+    hover hdf hFull hMaintainedRelevance hZa0 hZfull0 hhomoFull
     hrank
     (chiSquared_upperTail_eq_of_lowerTail_eq
       (q := df) (c := crit) (alpha := alpha) halpha_le_one hcrit)
 
-namespace Theorem12_17
-
 set_option linter.style.longLine false in
-/-- Canonical observed-row endpoint for Hansen Theorem 12.17.
+/-- Corrected observed-row endpoint for Hansen Theorem 12.17.
 
-Observed Assumption 12.2 derives both the limiting row rank and the vanishing
-probabilities of all singular finite-sample branches. -/
-abbrev observed
+The printed theorem's full-instrument relevance condition does not imply
+relevance of the maintained instruments. This endpoint therefore adds exactly
+injectivity of `E[Z_a X']`; the projection bridge derives the remaining
+maintained observed-iid, moment, orthogonality, `QZZ`, and `Omega` fields. -/
+abbrev corrected
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)] {β : k → ℝ}
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
-    (hMaintained :
-      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
     (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
+    (hMaintainedRelevance : Function.Injective
+      (twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Za X))).mulVec)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
     (hZfull0 : Measurable (fun ω => Sum.elim (Za 0 ω) (Zb 0 ω)))
@@ -19625,26 +19809,27 @@ abbrev observed
       (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (hcrit : (chiSquared df) (Set.Ioi crit) = alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
+  conclusions_of_rankFailure
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-    hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
+    hover hdf hFull hMaintainedRelevance hZa0 hZfull0 hhomoFull
     (TwoSLSSubsetRankFailureProbabilityConditions.of_observed_assumption12_2
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-      hMaintained hFull)
+      hFull hMaintainedRelevance)
     hcrit
 
 set_option linter.style.longLine false in
-/-- Lower-tail critical-value companion to `Theorem12_17.observed`. -/
-abbrev observed_lowerTail
+/-- Lower-tail critical-value companion to `Theorem12_17.corrected`. -/
+abbrev corrected_lowerTail
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)] {β : k → ℝ}
     (hover : Fintype.card k < Fintype.card la)
     (hdf : df = Fintype.card lb)
-    (hMaintained :
-      TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Za X e Y β)
     (hFull : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
       μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β)
+    (hMaintainedRelevance : Function.Injective
+      (twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Za X))).mulVec)
     (hZa0 : Measurable (Za 0))
     [SigmaFinite (μ.trim (conditioningSpace_le hZa0))]
     (hZfull0 : Measurable (fun ω => Sum.elim (Za 0 ω) (Zb 0 ω)))
@@ -19654,12 +19839,12 @@ abbrev observed_lowerTail
     {crit : ℝ} {alpha : ℝ≥0∞}
     (halpha_le_one : alpha ≤ 1)
     (hcrit : (chiSquared df) (Set.Iic crit) = 1 - alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos_lowerTail
+  conclusions_lowerTail_of_rankFailure
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-    hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
+    hover hdf hFull hMaintainedRelevance hZa0 hZfull0 hhomoFull
     (TwoSLSSubsetRankFailureProbabilityConditions.of_observed_assumption12_2
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-      hMaintained hFull)
+      hFull hMaintainedRelevance)
     halpha_le_one hcrit
 
 end Theorem12_17

@@ -21,8 +21,11 @@ generalized-pencil selector from the concrete smallest root, and states the
 limiting-bread nondegeneracy assumptions omitted by the printed theorem.
 
 Older assembly and structural-block Rayleigh interfaces are retained under
-`WeakIVCompatibility`.  They are proof support only and are not canonical
-statements of Hansen's LIML eigenvalue problem.
+`WeakIVCompatibility`. Its public compatibility routes use short nested names
+that distinguish joint versus split moment assembly and centered versus
+uncentered conclusions; the descriptive implementation names remain private.
+These routes are proof support only and are not canonical statements of
+Hansen's LIML eigenvalue problem.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -275,6 +278,7 @@ noncomputable def weakIV2SLSProjectedBreadScoreFromPrimitive
 omit [Fintype k] [DecidableEq k] [MeasurableSpace Ω] in
 /-- The projected bread/score map applied to the root-scaled primitive moments
 is exactly Hansen's root-scaled weak-IV bread/score pair. -/
+@[simp]
 theorem weakIV2SLSProjectedBreadScoreFromRootPrimitive_eq
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
     (m : ℕ) (ω : Ω) :
@@ -951,7 +955,7 @@ noncomputable def weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimiti
 omit [Fintype l] [DecidableEq k] [DecidableEq l] [MeasurableSpace Ω] in
 /-- The compatibility bridge specializes to the numerator-only sample pair.
 It does not identify Hansen's finite-sample generalized eigenvalue. -/
-theorem weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq
+private theorem weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
     (β : k → ℝ) (m : ℕ) (ω : Ω) :
     weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
@@ -961,7 +965,7 @@ theorem weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_
 
 omit [DecidableEq k] [DecidableEq l] [MeasurableSpace Ωlim] in
 /-- The compatibility bridge specializes to the numerator-only limit pair. -/
-theorem weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq
+private theorem weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq
     (QZZ : Matrix l l ℝ) (C : Matrix l k ℝ)
     (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
     (β : k → ℝ) (η : Ωlim) :
@@ -1047,7 +1051,7 @@ omit [DecidableEq k] in
 The hypothesis `muSelector` is the continuous argmin/eigenvalue selector for
 the pair `(Q, R)`.  This theorem predates the exact random-denominator
 primitive and is not the canonical finite-sample LIML eigenvalue route. -/
-theorem weakIV_compatibility_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
+private theorem weakIV_compatibility_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -1225,32 +1229,10 @@ private theorem weakIV_twoSLS_projected_bread_score_map_measurable :
     Measurable
       (weakIV2SLSProjectedBreadScoreFromPrimitive
         (k := k) (l := l)) := by
-  have hQdet : Measurable
-      (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) => (p.1).det) :=
-    (Continuous.matrix_det continuous_fst).measurable
-  have hQadj : Measurable
-      (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) => (p.1).adjugate) :=
-    (Continuous.matrix_adjugate continuous_fst).measurable
-  have hQinv_det : Measurable
-      (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) =>
-        Ring.inverse (p.1).det) := by
-    have heq :
-        (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) =>
-          Ring.inverse (p.1).det) =
-          (fun p => ((p.1).det)⁻¹) := by
-      funext p
-      exact Ring.inverse_eq_inv _
-    rw [heq]
-    exact measurable_inv.comp hQdet
   have hQinv : Measurable
       (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) => p.1⁻¹) := by
-    have heq :
-        (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) => p.1⁻¹) =
-          (fun p => Ring.inverse (p.1).det • (p.1).adjugate) := by
-      funext p
-      exact Matrix.inv_def p.1
-    rw [heq]
-    exact hQinv_det.smul hQadj
+    exact matrix_inv_measurable_of_entries fun i j =>
+      (continuous_fst.matrix_elem i j).measurable
   have hQZX : Measurable
       (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) => p.2.1) :=
     (continuous_fst.comp continuous_snd).measurable
@@ -1286,10 +1268,8 @@ private theorem weakIV_twoSLS_projected_bread_score_map_continuousAt_of_qzz_nons
         (k := k) (l := l)) p := by
   have hQinv : ContinuousAt
       (fun q : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) => q.1⁻¹) p := by
-    have hInv : ContinuousAt (fun A : Matrix l l ℝ => A⁻¹) p.1 := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hp.ne_zero
+    have hInv : ContinuousAt (fun A : Matrix l l ℝ => A⁻¹) p.1 :=
+      continuousAt_matrix_inv_of_isUnit p.1 hp
     exact hInv.comp continuousAt_fst
   have hQZX : ContinuousAt
       (fun q : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) => q.2.1) p :=
@@ -1447,8 +1427,7 @@ theorem weakIV_twoSLS_root_projected_bread_score_tendstoInDistribution_of_primit
     hPrimitive
     (weakIV_twoSLS_projected_bread_score_map_measurable (k := k) (l := l))
     hD_null hcont
-  simpa [weakIV2SLSProjectedBreadScoreFromRootPrimitive_eq,
-    weakIV2SLSProjectedBreadScoreFromPrimitive, weakIV2SLSRootPrimitiveMoments,
+  simpa [weakIV2SLSProjectedBreadScoreFromPrimitive, weakIV2SLSRootPrimitiveMoments,
     weakIV2SLSRootScaledBread, weakIV2SLSRootScaledScore,
     weakIV2SLSPrimitiveLimit, weakIV2SLSLimitBread, weakIV2SLSLimitScore,
     Matrix.mul_assoc] using hraw
@@ -1492,7 +1471,7 @@ This is the continuous bridge from
 `(Q̂_ZZ, n^{-1/2}Z'X, n^{-1/2}Z'e)` to the reduced-form LIML Rayleigh primitive
 `(Q̂_ZZ, n^{-1/2}Z'[Y X])` used by the `µ̂_n` selector in Hansen Theorem
 12.18. -/
-theorem weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+private theorem weakIV_compatibility_reducedFormRayleigh_of_rootPrimitive
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ} {β : k → ℝ} {QZZ : Matrix l l ℝ}
     {C : Matrix l k ℝ} {Xi2 : Ωlim → Matrix l k ℝ}
@@ -1786,9 +1765,7 @@ theorem weakIV_liml_root_assembly_joint_tendstoInDistribution_of_generalizedEige
       simp only [weakIVLIMLGeneralizedEigenvalueRootAssemblyMap,
         weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments]
       rw [← hselector.sample_selector_eq m ω]
-      simp [
-        weakIVLIMLRootOLSPrimitiveMoments,
-        weakIV2SLSProjectedBreadScoreFromRootPrimitive_eq])
+      simp [weakIVLIMLRootOLSPrimitiveMoments])
   · exact ae_of_all ν (fun η => by
       change
         weakIVLIMLGeneralizedEigenvalueRootAssemblyMap muSelector
@@ -1881,7 +1858,7 @@ numerator-only selector to the joint
 `((B₂SLS,S₂SLS),(Σ₂₂,Σ₂e),µ̂)` assembly required by the weak-scaled LIML moment
 CMT.  It is retained for compatibility and is not the canonical Hansen
 generalized-eigenvalue derivation. -/
-theorem weakIV_compatibility_root_assembly_of_numerator_selector
+private theorem weakIV_compatibility_root_assembly_of_numerator_selector
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -1996,8 +1973,7 @@ theorem weakIV_compatibility_root_assembly_of_numerator_selector
         weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq Z X e β m ω
       rw [hliml_selector m ω]
       simp [weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap,
-        weakIVLIMLRootOLSPrimitiveMoments,
-        weakIV2SLSProjectedBreadScoreFromRootPrimitive_eq, hred])
+        weakIVLIMLRootOLSPrimitiveMoments, hred])
   · exact ae_of_all ν (fun η => by
       change
         weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap β muSelector
@@ -3180,6 +3156,37 @@ theorem WeakIVLIMLRawEigenvalueProblemConditions.of_finite_sample_rayleigh
   structural_limit_rayleigh_minimizer := h.structural_limit_rayleigh_minimizer
 
 omit [DecidableEq k] in
+/-- Continuous-selector CMT for the scaled LIML eigenvalue adjustment using
+only the structural Rayleigh-selector certificate needed downstream. -/
+private theorem weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_structural_rayleigh_selector
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
+    {Xi2 : Ωlim → Matrix l k ℝ} {xie : Ωlim → l → ℝ}
+    {mustar : Ωlim → ℝ}
+    {muSelector : Matrix l l ℝ × Matrix l (Sum Unit k) ℝ → ℝ}
+    {Sigma22 : Matrix k k ℝ}
+    (hprimitive : TendstoInDistribution
+      (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
+      (fun (m : ℕ) (ω : Ω) =>
+        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
+      atTop
+      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      (fun _ => μ) ν)
+    (h : WeakIVLIMLStructuralRayleighSelectorCertificate
+      Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22) :
+    TendstoInDistribution
+      (fun (m : ℕ) (ω : Ω) => limlMuHat m ω)
+      atTop mustar (fun _ => μ) ν := by
+  have hraw := hprimitive.continuous_comp h.selector_cont
+  refine TendstoInDistribution.congr ?_ ?_ hraw
+  · intro m
+    exact ae_of_all μ (fun ω => by
+      simp [h.sample_selector_eq m ω])
+  · exact ae_of_all ν (fun η => by
+      simp [h.limit_selector_eq η])
+
+omit [DecidableEq k] in
 /-- Finite-sample Rayleigh/eigenvalue certificate form of the reduced-form
 selector CMT for `µ̂_n`.
 
@@ -3207,17 +3214,11 @@ theorem WeakIVLIMLFiniteSampleRayleighSelectorCertificate.muHat_tendstoInDistrib
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22) :
     TendstoInDistribution
       (fun (m : ℕ) (ω : Ω) => limlMuHat m ω)
-      atTop mustar (fun _ => μ) ν := by
-  let hstructural :=
-    WeakIVLIMLStructuralRayleighSelectorCertificate.of_finite_sample_rayleigh
-      (k := k) (l := l) h
-  have hraw := hprimitive.continuous_comp hstructural.selector_cont
-  refine TendstoInDistribution.congr ?_ ?_ hraw
-  · intro m
-    exact ae_of_all μ (fun ω => by
-      simp [hstructural.sample_selector_eq m ω])
-  · exact ae_of_all ν (fun η => by
-      simp [hstructural.limit_selector_eq η])
+      atTop mustar (fun _ => μ) ν :=
+  weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_structural_rayleigh_selector
+    (μ := μ) (ν := ν) hprimitive
+    (WeakIVLIMLStructuralRayleighSelectorCertificate.of_finite_sample_rayleigh
+      (k := k) (l := l) h)
 
 omit [DecidableEq k] in
 /-- Root-primitive finite-sample Rayleigh/eigenvalue certificate form of the
@@ -3249,7 +3250,7 @@ theorem
       atTop mustar (fun _ => μ) ν :=
   WeakIVLIMLFiniteSampleRayleighSelectorCertificate.muHat_tendstoInDistribution
     (μ := μ) (ν := ν)
-    (weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+    (weakIV_compatibility_reducedFormRayleigh_of_rootPrimitive
       (μ := μ) (ν := ν) (β := β) hPrimitive)
     h
 
@@ -3342,43 +3343,12 @@ theorem weakIV_liml_raw_eigenvalue_problem_outputs_of_root_primitive
   have hout :=
     weakIV_compatibility_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
       (μ := μ) (ν := ν)
-      (weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+      (weakIV_compatibility_reducedFormRayleigh_of_rootPrimitive
         (μ := μ) (ν := ν) (β := β) hPrimitive)
       hred.selector_cont hred.sample_selector_eq hred.limit_selector_eq
       hred.sample_rayleigh_minimizer hred.reducedForm_limit_rayleigh_minimizer
   exact
     ⟨hout.1, hout.2.1, hout.2.2, h.structural_limit_rayleigh_minimizer⟩
-
-omit [DecidableEq k] in
-/-- Continuous-selector CMT for the scaled LIML eigenvalue adjustment using
-only the structural Rayleigh-selector certificate needed downstream. -/
-theorem weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_structural_rayleigh_selector
-    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
-    {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
-    {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
-    {Xi2 : Ωlim → Matrix l k ℝ} {xie : Ωlim → l → ℝ}
-    {mustar : Ωlim → ℝ}
-    {muSelector : Matrix l l ℝ × Matrix l (Sum Unit k) ℝ → ℝ}
-    {Sigma22 : Matrix k k ℝ}
-    (hprimitive : TendstoInDistribution
-      (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
-      (fun (m : ℕ) (ω : Ω) =>
-        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
-      atTop
-      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
-      (fun _ => μ) ν)
-    (h : WeakIVLIMLStructuralRayleighSelectorCertificate
-      Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22) :
-    TendstoInDistribution
-      (fun (m : ℕ) (ω : Ω) => limlMuHat m ω)
-      atTop mustar (fun _ => μ) ν := by
-  have hraw := hprimitive.continuous_comp h.selector_cont
-  refine TendstoInDistribution.congr ?_ ?_ hraw
-  · intro m
-    exact ae_of_all μ (fun ω => by
-      simp [h.sample_selector_eq m ω])
-  · exact ae_of_all ν (fun η => by
-      simp [h.limit_selector_eq η])
 
 omit [DecidableEq k] in
 /-- Certificate method form of
@@ -3411,10 +3381,10 @@ omit [DecidableEq k] in
 local-to-zero first-stage/score convergence.
 
 This composes the root primitive bridge
-`weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive`
+`weakIV_compatibility_reducedFormRayleigh_of_rootPrimitive`
 with the reduced-form selector theorem, so callers do not have to assume
 reduced-form Rayleigh primitive convergence separately. -/
-theorem weakIV_limlMuHat_tendstoInDistribution_of_root_primitive_structural_rayleigh_selector
+private theorem weakIV_limlMuHat_tendstoInDistribution_of_root_primitive_structural_rayleigh_selector
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -3435,7 +3405,7 @@ theorem weakIV_limlMuHat_tendstoInDistribution_of_root_primitive_structural_rayl
       atTop mustar (fun _ => μ) ν :=
   weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_structural_rayleigh_selector
     (μ := μ) (ν := ν)
-    (weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+    (weakIV_compatibility_reducedFormRayleigh_of_rootPrimitive
       (μ := μ) (ν := ν) (β := β) hPrimitive)
     h
 
@@ -3950,7 +3920,7 @@ theorem weakIV_liml_singular_tendsto_zero_of_joint_tendsto
 
 /-- Pointwise nonsingularity of Hansen's random weak-IV 2SLS limit bread
 implies the a.s. nonsingularity field used by the theorem packages. -/
-theorem weakIV2SLSLimitBread_nonsing_ae_of_forall
+private theorem weakIV2SLSLimitBread_nonsing_ae_of_forall
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ}
@@ -3965,7 +3935,7 @@ theorem weakIV2SLSLimitBread_nonsing_ae_of_forall
 
 /-- Pointwise nonsingularity of Hansen's random weak-IV LIML limit bread
 implies the a.s. nonsingularity field used by the theorem packages. -/
-theorem weakIVLIMLLimitBread_nonsing_ae_of_forall
+private theorem weakIVLIMLLimitBread_nonsing_ae_of_forall
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ} {mustar : Ωlim → ℝ}
@@ -3984,7 +3954,7 @@ theorem weakIVLIMLLimitBread_nonsing_ae_of_forall
 
 /-- Pointwise positive-definiteness of Hansen's random weak-IV 2SLS limit
 bread implies the a.s. nonsingularity field used by the theorem packages. -/
-theorem weakIV2SLSLimitBread_nonsing_ae_of_forall_posDef
+private theorem weakIV2SLSLimitBread_nonsing_ae_of_forall_posDef
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ}
@@ -3995,7 +3965,7 @@ theorem weakIV2SLSLimitBread_nonsing_ae_of_forall_posDef
 
 /-- Pointwise positive-definiteness of Hansen's random weak-IV LIML limit
 bread implies the a.s. nonsingularity field used by the theorem packages. -/
-theorem weakIVLIMLLimitBread_nonsing_ae_of_forall_posDef
+private theorem weakIVLIMLLimitBread_nonsing_ae_of_forall_posDef
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ} {mustar : Ωlim → ℝ}
@@ -4073,7 +4043,7 @@ theorem weakIVFirstStageLimit_rank_ae_of_reducedFormLimit_rank_ae
 omit [DecidableEq k] [DecidableEq l] in
 /-- Pointwise full column rank of the weak first-stage limit implies the a.e.
 rank field used by the weak-IV limit-bread bridges. -/
-theorem weakIVFirstStageLimit_rank_ae_of_forall
+private theorem weakIVFirstStageLimit_rank_ae_of_forall
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ}
@@ -4081,13 +4051,7 @@ theorem weakIVFirstStageLimit_rank_ae_of_forall
       (weakIVFirstStageLimit QZZ C (Xi2 η)).mulVec) :
     ν {η | ¬ Function.Injective
       (weakIVFirstStageLimit QZZ C (Xi2 η)).mulVec} = 0 := by
-  have hEmpty :
-      {η | ¬ Function.Injective
-        (weakIVFirstStageLimit QZZ C (Xi2 η)).mulVec} =
-        (∅ : Set Ωlim) := by
-    ext η
-    simp [hRank η]
-  rw [hEmpty, measure_empty]
+  simp [hRank]
 
 /-- Pointwise full-column-rank weak first-stage limits imply the a.s.
 nonsingularity field for Hansen's weak-IV 2SLS random limit bread. -/
@@ -4229,20 +4193,17 @@ theorem weakIV_mu_nonpos_ae_of_structural_rayleigh_witness_ae
 
 /-- Pointwise `µ* ≤ 0` implies the a.e. sign field used by the weak-IV LIML
 limit-bread bridge. -/
-theorem weakIV_mu_nonpos_ae_of_forall
+private theorem weakIV_mu_nonpos_ae_of_forall
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {mustar : Ωlim → ℝ}
     (hmu : ∀ η, mustar η ≤ 0) :
     ν {η | ¬ mustar η ≤ 0} = 0 := by
-  have hEmpty : {η | ¬ mustar η ≤ 0} = (∅ : Set Ωlim) := by
-    ext η
-    simp [hmu η]
-  rw [hEmpty, measure_empty]
+  simp [hmu]
 
 omit [DecidableEq k] [DecidableEq l] in
 /-- Pointwise full column rank of Hansen's full reduced-form LIML limit matrix
 implies the a.e. rank field used by the weak-IV theorem packages. -/
-theorem weakIVReducedFormLimit_rank_ae_of_forall
+private theorem weakIVReducedFormLimit_rank_ae_of_forall
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ} {xie : Ωlim → l → ℝ} {β : k → ℝ}
@@ -4250,18 +4211,12 @@ theorem weakIVReducedFormLimit_rank_ae_of_forall
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec) :
     ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0 := by
-  have hEmpty :
-      {η | ¬ Function.Injective
-        (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} =
-        (∅ : Set Ωlim) := by
-    ext η
-    simp [hRank η]
-  rw [hEmpty, measure_empty]
+  simp [hRank]
 
 omit [DecidableEq k] in
 /-- Pointwise nonpositive structural Rayleigh quotient witnesses imply the
 a.e. witness field used to prove `µ* ≤ 0` in the weak-IV theorem packages. -/
-theorem weakIVLIMLRayleigh_nonpos_witness_ae_of_forall
+private theorem weakIVLIMLRayleigh_nonpos_witness_ae_of_forall
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ} {Sigma22 : Matrix k k ℝ}
@@ -4269,13 +4224,7 @@ theorem weakIVLIMLRayleigh_nonpos_witness_ae_of_forall
       weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
       weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0 := by
-  have hEmpty :
-      {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
-        weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} =
-        (∅ : Set Ωlim) := by
-    ext η
-    simp [hWitness η]
-  rw [hEmpty, measure_empty]
+  simp [hWitness]
 
 omit [IsProbabilityMeasure μ] in
 /-- Build the 2SLS weak-IV moment package without separately assuming
@@ -4543,30 +4492,10 @@ theorem weakIV_olsBetaStar_tendstoInMeasure_of_moments
 private theorem weakIV_twoSLS_inverse_score_map_measurable :
     Measurable
       (fun p : Matrix k k ℝ × (k → ℝ) => p.1⁻¹ *ᵥ p.2) := by
-  have hdet : Measurable
-      (fun p : Matrix k k ℝ × (k → ℝ) => (p.1).det) :=
-    (Continuous.matrix_det continuous_fst).measurable
-  have hadj : Measurable
-      (fun p : Matrix k k ℝ × (k → ℝ) => (p.1).adjugate) :=
-    (Continuous.matrix_adjugate continuous_fst).measurable
-  have hinv_det : Measurable
-      (fun p : Matrix k k ℝ × (k → ℝ) => Ring.inverse (p.1).det) := by
-    have heq :
-        (fun p : Matrix k k ℝ × (k → ℝ) => Ring.inverse (p.1).det) =
-          (fun p => ((p.1).det)⁻¹) := by
-      funext p
-      exact Ring.inverse_eq_inv _
-    rw [heq]
-    exact measurable_inv.comp hdet
   have hmat_inv : Measurable
       (fun p : Matrix k k ℝ × (k → ℝ) => p.1⁻¹) := by
-    have heq :
-        (fun p : Matrix k k ℝ × (k → ℝ) => p.1⁻¹) =
-          (fun p => Ring.inverse (p.1).det • (p.1).adjugate) := by
-      funext p
-      exact Matrix.inv_def p.1
-    rw [heq]
-    exact hinv_det.smul hadj
+    exact matrix_inv_measurable_of_entries fun i j =>
+      (continuous_fst.matrix_elem i j).measurable
   exact (Continuous.matrix_mulVec continuous_fst continuous_snd).measurable.comp
     (hmat_inv.prodMk measurable_snd)
 
@@ -4586,10 +4515,8 @@ private theorem weakIV_twoSLS_inverse_score_continuousAt_of_nonsingular
     (p : Matrix k k ℝ × (k → ℝ))
     (hp : IsUnit (p.1).det) :
     ContinuousAt (fun q : Matrix k k ℝ × (k → ℝ) => q.1⁻¹ *ᵥ q.2) p := by
-  have hInv : ContinuousAt (fun A : Matrix k k ℝ => A⁻¹) p.1 := by
-    refine continuousAt_matrix_inv _ ?_
-    rw [Ring.inverse_eq_inv']
-    exact continuousAt_inv₀ hp.ne_zero
+  have hInv : ContinuousAt (fun A : Matrix k k ℝ => A⁻¹) p.1 :=
+    continuousAt_matrix_inv_of_isUnit p.1 hp
   have hInvProd : ContinuousAt
       (fun q : Matrix k k ℝ × (k → ℝ) => q.1⁻¹) p :=
     hInv.comp continuousAt_fst
@@ -5366,65 +5293,32 @@ private theorem weakIV_twoSLS_root_totalization_remainder_tendstoInMeasure_zero
           (weakIV2SLSRootScaledBread Z X m ω)⁻¹ *ᵥ
             weakIV2SLSRootScaledScore Z X e m ω)
       atTop (fun _ => (0 : k → ℝ)) := by
-  intro ε hε
-  have hBound : ∀ᶠ m in atTop,
-      μ {ω |
-          edist
-            (twoSLSBetaStar
-                (stackRegressors Z m ω) (stackRegressors X m ω)
-                (stackOutcomes Y m ω) -
-              β -
-              (weakIV2SLSRootScaledBread Z X m ω)⁻¹ *ᵥ
-                weakIV2SLSRootScaledScore Z X e m ω)
-            (0 : k → ℝ) ≥ ε} ≤
-        μ {ω | ¬ IsUnit (weakIV2SLSRootScaledBread Z X m ω).det} := by
+  have hsingular_normalized : Tendsto
+      (fun m => μ {ω | ¬ IsUnit (weakIV2SLSNormalizedBread Z X m ω).det})
+      atTop (𝓝 0) := by
+    refine (tendsto_congr' ?_).mpr hsingular
     filter_upwards [eventually_gt_atTop 0] with m hm
-    refine measure_mono ?_
-    intro ω hω
-    simp only [Set.mem_setOf_eq] at hω ⊢
-    intro hunit
+    congr 1
+    ext ω
+    simp only [Set.mem_setOf_eq]
+    rw [weakIV2SLSRootScaledBread_eq_card_smul_normalizedBread,
+      Matrix.det_smul]
+    simp [isUnit_iff_ne_zero, Nat.cast_ne_zero.mpr (Nat.ne_of_gt hm)]
+  have hnormalized :=
+    weakIV_twoSLS_totalization_remainder_tendstoInMeasure_zero
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β)
+      hmodel hsingular_normalized
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hnormalized
+  filter_upwards [eventually_gt_atTop 0] with m hm
+  exact ae_of_all μ fun ω => by
     haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
-    have hunit_norm : IsUnit (weakIV2SLSNormalizedBread Z X m ω).det := by
-      have hroot :=
-        weakIV2SLSRootScaledBread_eq_card_smul_normalizedBread Z X m ω
-      have hdet_ne :
-          ((m : ℝ) • weakIV2SLSNormalizedBread Z X m ω).det ≠ 0 := by
-        simpa [hroot] using hunit.ne_zero
-      have hnorm_ne : (weakIV2SLSNormalizedBread Z X m ω).det ≠ 0 := by
-        rw [Matrix.det_smul] at hdet_ne
-        exact right_ne_zero_of_mul hdet_ne
-      exact isUnit_iff_ne_zero.mpr hnorm_ne
-    have hunit' : IsUnit
-        (twoSLSMomentMatrixStar
-          (stackRegressors Z m ω) (stackRegressors X m ω)).det :=
-      isUnit_twoSLSMomentMatrixStar_det_of_sample_bread
-        (Z := stackRegressors Z m ω) (X := stackRegressors X m ω) (by
-          simpa [weakIV2SLSNormalizedBread] using hunit_norm)
-    have hY :
-        stackOutcomes Y m ω =
-          stackRegressors X m ω *ᵥ β + stackErrors e m ω := by
-      ext i
-      simp [stackOutcomes, stackRegressors, stackErrors, Matrix.mulVec,
-        dotProduct, hmodel]
-    have hR :
+    simpa only using congrArg
+      (fun v : k → ℝ =>
         twoSLSBetaStar
-            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
-          β -
-          (weakIV2SLSRootScaledBread Z X m ω)⁻¹ *ᵥ
-            weakIV2SLSRootScaledScore Z X e m ω = 0 := by
-      rw [hY]
-      have hbase :=
-        twoSLSBetaStar_sub_eq_linearizedScore_of_nonsingular
-          (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
-          (β := β) (e := stackErrors e m ω) hunit'
-      rw [hbase]
-      rw [weakIV2SLSRootScaled_inverse_score_eq_normalized]
-      simp [weakIV2SLSNormalizedBread, weakIV2SLSNormalizedScore,
-        twoSLSLinearizationMatrix, Matrix.mul_assoc, Matrix.mulVec_mulVec]
-    rw [hR, edist_self] at hω
-    exact absurd hω (not_le.mpr hε)
-  exact tendsto_of_tendsto_of_tendsto_of_le_of_le'
-    tendsto_const_nhds hsingular (Eventually.of_forall (fun _ => zero_le _)) hBound
+            (stackRegressors Z m ω) (stackRegressors X m ω)
+            (stackOutcomes Y m ω) -
+          β - v)
+      (weakIV2SLSRootScaled_inverse_score_eq_normalized Z X e m ω).symm
 
 /-- Moment-level 2SLS constructor for Hansen Theorem 12.18.
 
@@ -6480,7 +6374,7 @@ It does not require the raw package's full reduced-form limit minimizer audit
 field: the existing finite-sample Rayleigh certificate already carries the
 structural LIML minimizer needed to derive `µ* ≤ 0` from the supplied
 nonpositive Rayleigh witnesses. -/
-theorem
+private theorem
     WeakIVEstimatorFiniteSampleRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -6550,7 +6444,7 @@ set_option linter.style.longLine false in
 Pointwise full rank of Hansen's reduced-form limit matrix and pointwise
 nonpositive structural Rayleigh witnesses are converted internally to the a.e.
 rank/sign fields used for limit-bread nonsingularity. -/
-theorem
+private theorem
     WeakIVEstimatorFiniteSampleRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -6606,7 +6500,7 @@ OLS bread/score WLLNs, and a.e. reduced-form rank/Rayleigh-witness inputs.
 This is the split-primitive version of
 `WeakIVEstimatorFiniteSampleRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae`:
 the shared root/OLS primitive convergence is assembled internally by Slutsky. -/
-theorem
+private theorem
     WeakIVEstimatorFiniteSampleRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -6676,7 +6570,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `WeakIVEstimatorFiniteSampleRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`. -/
-theorem
+private theorem
     WeakIVEstimatorFiniteSampleRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7019,7 +6913,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Split-primitive raw eigenvalue-problem package with random limit-bread
 nonsingularity discharged from a.e. weak first-stage rank and `µ* ≤ 0`. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_firstStage_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7077,7 +6971,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Split-primitive raw eigenvalue-problem package with rank/sign inputs stated
 on Hansen's reduced-form Rayleigh problem. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7134,7 +7028,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7191,7 +7085,7 @@ set_option linter.style.longLine false in
 /-- Split-primitive raw theorem package directly from the full reduced-form
 Rayleigh selector certificate, with a.e. reduced-form rank/Rayleigh-witness
 sign inputs. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7244,7 +7138,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos_ae`. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7307,7 +7201,7 @@ This removes the two explicit a.s. nonsingularity premises from
 The 2SLS limit bread is nonsingular a.e. from `QZZ > 0` and a.e. full column
 rank of the weak first-stage limit `QZZ*C + Ξ₂`; the LIML limit bread is
 nonsingular a.e. from the same rank condition, `Σ₂₂ ≥ 0`, and `µ* ≤ 0` a.e. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7368,7 +7262,7 @@ This narrows
 the caller no longer supplies full rank of the weak first-stage block
 `QZZ*C + Ξ₂` directly.  It is derived by restricting the full reduced-form
 matrix `[Aβ + ξe, A]` to its right block. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7417,7 +7311,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_mu_nonpos_ae`. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7473,7 +7367,7 @@ assumed for the full reduced-form limit matrix `[Aβ + ξe, A]`, then restricted
 to the first-stage block `A = QZZ*C + Ξ₂`; the sign condition `µ* ≤ 0` is
 derived from a.e. nonpositive structural Rayleigh quotient witnesses and the
 raw structural minimizer certificate. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7531,7 +7425,7 @@ This is the deterministic-support variant of
 `of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae`: the a.e.
 rank and sign fields are derived internally from pointwise Hansen reduced-form
 rank and nonpositive structural Rayleigh witnesses. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7590,7 +7484,7 @@ the continuous selector, sample selector equation, limit selector equation,
 finite-sample Rayleigh minimizer, reduced-form limit minimizer, and structural
 limit minimizer are supplied in Hansen's reduced-form notation and converted to
 the raw eigenvalue-problem package internally. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7642,7 +7536,7 @@ certificate, with pointwise reduced-form rank and Rayleigh-witness sign inputs.
 
 This deterministic-support variant derives the a.e. primitive rank and sign
 fields internally before applying the selector-facing a.e. constructor. -/
-theorem
+private theorem
     WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7843,7 +7737,7 @@ This narrows `WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_
 the caller supplies the structural Rayleigh selector and primitive rank/sign
 inputs, while the 2SLS and LIML random limit-bread nonsingularity fields are
 derived by the existing positive-definite bridges. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7896,7 +7790,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos_ae`. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7947,7 +7841,7 @@ with rank/sign inputs stated on Hansen's reduced-form limit problem.
 The reduced-form full-rank field is restricted to the weak first-stage block,
 and the a.e. nonpositive Rayleigh quotient witnesses imply `µ* ≤ 0` through
 the structural minimizer in the selector certificate. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -7999,7 +7893,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae`. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -8056,7 +7950,7 @@ constructors: the shared root/OLS primitive process is assembled from Hansen's
 root local-to-zero primitive CLT and the two normalized OLS WLLNs, while the
 Rayleigh input is the narrower structural selector certificate rather than the
 full reduced-form selector audit package. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -8127,7 +8021,7 @@ This is the direct-sign analogue of
 The root/OLS primitive process is assembled from Hansen's root local-to-zero
 primitive CLT and normalized OLS WLLNs, while the first-stage rank input is
 derived internally from the full reduced-form limit matrix. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -8198,7 +8092,7 @@ set_option linter.style.longLine false in
 Pointwise full rank of Hansen's reduced-form limit matrix and pointwise
 `µ* ≤ 0` are converted internally to the a.e. fields used to discharge the
 random 2SLS and LIML limit-bread nonsingularity assumptions. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -8250,7 +8144,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`. -/
-theorem
+private theorem
     WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ}
@@ -9659,7 +9553,7 @@ uses `WeakIVLIMLFiniteSampleRayleighSelectorCertificate` directly, so callers
 do not need the raw eigenvalue package's reduced-form limit minimizer audit
 field when the reduced-form rank and structural Rayleigh nonpositivity inputs
 already discharge the random limit-bread nonsingularity fields. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -9724,7 +9618,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint for the a.e. finite-sample Rayleigh
 reduced-form rank and Rayleigh-witness route. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -9789,7 +9683,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Centered finite-sample Rayleigh row wrapper with pointwise reduced-form
 rank and Rayleigh-witness sign inputs. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -9854,7 +9748,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint for the pointwise finite-sample
 Rayleigh reduced-form rank and Rayleigh-witness route. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -9925,7 +9819,7 @@ This is the split-primitive counterpart of
 it assembles the shared root/OLS primitive convergence from Hansen's root
 local-to-zero primitive CLT and the two normalized OLS WLLNs, then reuses the
 finite-sample Rayleigh package and rank/sign bridges. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -9999,7 +9893,7 @@ This is the uncentered counterpart of
 `weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`:
 it keeps Hansen's `β + bias` conclusions and reuses the same finite-sample
 Rayleigh condition constructor. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10065,6 +9959,8 @@ theorem
       hmodel hZ hX he hMu hbread hscore hSigma22 hroot hQZZ
       hrayleigh hReducedRank hRayleighNonpos)
 
+namespace Theorem12_18FiniteSampleRayleigh
+
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 endpoint from split primitive stochastic inputs,
 the finite-sample Rayleigh/eigenvalue certificate, and Hansen's reduced-form
@@ -10073,8 +9969,7 @@ the finite-sample Rayleigh/eigenvalue certificate, and Hansen's reduced-form
 This keeps the finite-sample Rayleigh route as the proof engine while making
 the reduced-form minimizer that Hansen uses to define `µ*` visible at the same
 theorem boundary. -/
-theorem
-    weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae_with_reducedForm_minimizer
+theorem centered_limits_and_minimizer_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -10152,9 +10047,8 @@ the finite-sample Rayleigh/eigenvalue certificate, and Hansen's reduced-form
 `µ*` minimizer certificate.
 
 This is the `β + bias` companion of
-`weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae_with_reducedForm_minimizer`. -/
-theorem
-    weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae_with_reducedForm_minimizer
+`centered_limits_and_minimizer_ae`. -/
+theorem limits_and_minimizer_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -10226,6 +10120,8 @@ theorem
       hrayleigh hReducedRank hRayleighNonpos,
     hreduced⟩
 
+end Theorem12_18FiniteSampleRayleigh
+
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 endpoint from split primitive stochastic inputs,
 the finite-sample Rayleigh/eigenvalue certificate, and positive-definite
@@ -10235,7 +10131,7 @@ This is the split root-CLT/OLS-WLLN counterpart of
 `weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_limitBread_posDef`.
 It avoids the reduced-form rank/Rayleigh-sign shortcut when the proof supplies
 positive definiteness of the random 2SLS and LIML limit breads directly. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10308,7 +10204,7 @@ set_option linter.style.longLine false in
 /-- Uncentered Hansen Theorem 12.18 endpoint from split primitive stochastic
 inputs, the finite-sample Rayleigh/eigenvalue certificate, and
 positive-definite random limit breads. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10383,7 +10279,7 @@ stochastic inputs and the finite-sample Rayleigh/eigenvalue certificate.
 
 This is the pointwise rank/Rayleigh-witness analogue of
 `weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10456,7 +10352,7 @@ certificate.
 
 This is the uncentered counterpart of
 `weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos`. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10530,7 +10426,7 @@ Compared with the reduced-form Rayleigh row wrapper, this route does not ask
 for the optional reduced-form limit minimizer audit fields. It keeps the
 remaining hard inputs explicit: the shared root/OLS primitive CLT, the
 structural `µ*` selector certificate, and random limit-bread nonsingularity. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10593,7 +10489,7 @@ theorem
 
 /-- Uncentered compatibility endpoint matching
 `weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing`. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10730,7 +10626,7 @@ file: the LIML eigenvalue facts are supplied in their natural reduced-form
 Rayleigh notation, the root-primitive selector equations are derived by bridge
 lemmas, and the a.s. nonsingularity fields are derived from pointwise
 nonsingularity. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -10794,7 +10690,7 @@ theorem
 
 /-- Uncentered compatibility endpoint matching
 `weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing`. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -11061,7 +10957,7 @@ This is the Hansen-facing positive-definite form of
 `weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_posDef`:
 pointwise positive definiteness of the 2SLS and LIML random limit breads
 supplies the a.e. nonsingularity fields used by the existing CMT endpoint. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -11124,7 +11020,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 structural Rayleigh row wrapper with
 positive-definite `Σ₂₂` and `QZZ`. -/
-theorem weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing_posDef
+private theorem weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -11250,7 +11146,7 @@ theorem weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 reduced-form Rayleigh row wrapper with
 positive-definite `Σ₂₂` and `QZZ`. -/
-theorem weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing_posDef
+private theorem weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -11377,7 +11273,7 @@ theorem weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_posDef
 set_option linter.style.longLine false in
 /-- Uncentered Theorem 12.18 finite-sample Rayleigh row wrapper with
 positive-definite population matrices and positive-definite random limit breads. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -11440,7 +11336,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered Theorem 12.18 structural Rayleigh row wrapper with
 positive-definite `Σ₂₂` and `QZZ`. -/
-theorem weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing_posDef
+private theorem weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -11566,7 +11462,7 @@ theorem weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_posDef
 set_option linter.style.longLine false in
 /-- Uncentered Theorem 12.18 reduced-form Rayleigh row wrapper with
 positive-definite `Σ₂₂` and `QZZ`. -/
-theorem weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing_posDef
+private theorem weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -11634,7 +11530,7 @@ This is the Hansen-facing positive-definite form of
 `weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing_posDef`.
 It converts the two random limit-bread positive-definiteness assumptions into
 the determinant-unit hypotheses used by the existing CMT endpoint. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -11696,7 +11592,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered Theorem 12.18 structural Rayleigh row wrapper with
 positive-definite population matrices and positive-definite random limit breads. -/
-theorem weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_limitBread_posDef
+private theorem weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -11757,7 +11653,7 @@ theorem weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_limitBread_po
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 reduced-form Rayleigh row wrapper with positive-definite
 population matrices and positive-definite random limit breads. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -11820,7 +11716,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered Theorem 12.18 reduced-form Rayleigh row wrapper with
 positive-definite population matrices and positive-definite random limit breads. -/
-theorem weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_posDef
+private theorem weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -11882,7 +11778,7 @@ theorem weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_p
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 raw-eigenvalue row wrapper with positive-definite
 population matrices and positive-definite random limit breads. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -11945,7 +11841,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered Theorem 12.18 raw-eigenvalue row wrapper with positive-definite
 population matrices and positive-definite random limit breads. -/
-theorem weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_limitBread_posDef
+private theorem weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -12013,7 +11909,7 @@ This narrows the corresponding `..._limitBread_posDef` wrapper: the LIML
 random limit bread still remains as a positive-definiteness premise, while the
 2SLS random limit bread is discharged by the primitive rank bridge
 `weakIV2SLSLimitBread_posDef_of_qzz_posDef_firstStage_rank`. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12080,7 +11976,7 @@ set_option linter.style.longLine false in
 /-- Uncentered raw-eigenvalue row wrapper where Hansen's 2SLS limit-bread
 nonsingularity is derived from `QZZ > 0` and full column rank of the weak
 first-stage limit `QZZ*C + Ξ₂`. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_limitBread_posDef
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12150,7 +12046,7 @@ are discharged from Hansen-style primitive conditions.
 The 2SLS bread follows from `QZZ > 0` and full column rank of the weak
 first-stage limit.  The LIML bread follows from the same 2SLS bread,
 `Σ₂₂ ≥ 0`, and the Rayleigh-root sign condition `μ* ≤ 0`. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12217,7 +12113,7 @@ set_option linter.style.longLine false in
 /-- Uncentered raw-eigenvalue row wrapper where both weak-IV random limit
 breads are discharged from `QZZ > 0`, weak first-stage full rank, `Σ₂₂ ≥ 0`,
 and `μ* ≤ 0`. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12289,7 +12185,7 @@ Compared with
 this version only requires a.e. full column rank of the weak first-stage limit
 and a.e. `µ* ≤ 0`, which is the natural probabilistic form for the random
 Gaussian limit objects in Theorem 12.18. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12352,7 +12248,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint for the a.e. first-stage-rank and
 `µ* ≤ 0` raw-eigenvalue route. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12421,7 +12317,7 @@ This is the theorem-facing version of
 the rank premise is stated on Hansen's full reduced-form limit matrix
 `[Aβ + ξe, A]`, and the weak first-stage rank used by the 2SLS/LIML
 limit-bread bridges is derived internally. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12484,7 +12380,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint for the a.e. reduced-form-rank and
 direct `µ* ≤ 0` raw-eigenvalue route. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12547,7 +12443,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos_ae`. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12610,7 +12506,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint for the pointwise reduced-form-rank and
 direct `µ* ≤ 0` raw-eigenvalue route. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12678,7 +12574,7 @@ This is the theorem-facing endpoint for the primitive reduced-form route: full
 rank is stated on Hansen's reduced-form limit matrix `[Aβ + ξe, A]`, and the
 sign condition for `µ*` is stated as a nonpositive structural Rayleigh quotient
 witness on an a.e. event. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12743,7 +12639,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint for the a.e. reduced-form rank and
 Rayleigh-witness sign route. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12813,7 +12709,7 @@ This deterministic-support variant derives the a.e. fields in
 `weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos_ae`
 from pointwise full rank of Hansen's reduced-form limit matrix and pointwise
 nonpositive structural Rayleigh witnesses. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12878,7 +12774,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint for the pointwise reduced-form rank and
 Rayleigh-witness sign route. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -12949,7 +12845,7 @@ sample reduced-form Rayleigh certificate, reduced-form limit minimizer, and
 structural Rayleigh minimizer through
 `WeakIVLIMLReducedFormRayleighSelectorCertificate`; the existing rank/sign
 bridges discharge the random 2SLS and LIML limit-bread nonsingularity fields. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13014,7 +12910,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint from the full reduced-form Rayleigh selector
 and a.e. reduced-form rank/Rayleigh-witness sign inputs. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13079,7 +12975,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 endpoint from the full reduced-form Rayleigh selector,
 with pointwise reduced-form rank and Rayleigh-witness sign inputs. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13144,7 +13040,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered compatibility endpoint from the full reduced-form Rayleigh selector
 and pointwise reduced-form rank/Rayleigh-witness sign inputs. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13215,7 +13111,7 @@ Compared with
 this wrapper takes the sign condition on Hansen's limiting LIML root `µ*`
 directly.  The reduced-form full-rank condition is still stated on the same
 full reduced-form limit matrix used in the theorem-facing Rayleigh route. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13282,7 +13178,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered Theorem 12.18 endpoint from split primitive stochastic inputs and
 the narrow structural Rayleigh selector, with direct a.e. `µ* ≤ 0` support. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13353,7 +13249,7 @@ set_option linter.style.longLine false in
 This is the split-primitive direct-sign route with pointwise reduced-form rank
 and pointwise `µ* ≤ 0`; the a.e. random limit-bread fields are derived by the
 condition-package constructor. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13420,7 +13316,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Uncentered pointwise-support companion to
 `weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos`. -/
-theorem
+private theorem
     weakIV_estimators_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13489,13 +13385,13 @@ set_option linter.style.longLine false in
 the narrow structural Rayleigh selector.
 
 Compared with
-`weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`,
+`Theorem12_18ReducedForm.centered_limits_ae`,
 this wrapper no longer requires the full reduced-form Rayleigh selector
 certificate.  The remaining Rayleigh input is exactly the continuous selector
 data and structural `µ*` minimizer used by the LIML limit; reduced-form
 rank and Rayleigh-sign inputs still discharge random limit-bread
 nonsingularity. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13563,7 +13459,7 @@ theorem
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
 `weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`. -/
-theorem
+private theorem
     weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
@@ -13628,6 +13524,8 @@ theorem
       hmodel hZ hX he hMu hbread hscore hSigma22 hroot hQZZ
       hrayleigh hReducedRank hRayleighNonpos)
 
+namespace Theorem12_18ReducedForm
+
 set_option linter.style.longLine false in
 /-- Centered Theorem 12.18 endpoint from split primitive stochastic inputs and
 the full reduced-form Rayleigh selector.
@@ -13639,7 +13537,7 @@ It builds that joint convergence from Hansen's root local-to-zero primitive CLT
 and the two normalized OLS WLLNs, then reuses the reduced-form Rayleigh selector
 and a.e. reduced-form rank/sign bridges. -/
 theorem
-    weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+    centered_limits_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -13715,7 +13613,7 @@ proof only needs the structural Rayleigh minimizer, but Hansen's theorem defines
 already present in `WeakIVLIMLReducedFormRayleighSelectorCertificate`; this
 wrapper keeps it visible in the theorem conclusion. -/
 theorem
-    weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae_with_reducedForm_minimizer
+    centered_limits_and_minimizer_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -13773,7 +13671,7 @@ theorem
       LIMLRayleighMinimizer
         (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β)
         Sigma (mustar η)) :=
-  ⟨weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+  ⟨centered_limits_ae
       (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y) (e := e)
       (limlMuHat := limlMuHat) (β := β) (QZZ := QZZ) (C := C)
       (Xi2 := Xi2) (xie := xie) (mustar := mustar)
@@ -13789,9 +13687,9 @@ selector, returning Hansen's full reduced-form `µ*` minimizer certificate
 alongside the textbook `β + bias` estimator limits.
 
 This is the uncentered companion to
-`weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae_with_reducedForm_minimizer`. -/
+`Theorem12_18ReducedForm.centered_limits_and_minimizer_ae`. -/
 theorem
-    weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae_with_reducedForm_minimizer
+    uncentered_limits_and_minimizer_ae
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -13863,9 +13761,9 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Pointwise-support variant of
-`weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae`. -/
+`Theorem12_18ReducedForm.centered_limits_ae`. -/
 theorem
-    weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+    centered_limits
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -13935,7 +13833,7 @@ set_option linter.style.longLine false in
 Rayleigh selector, returning Hansen's reduced-form `µ*` minimizer certificate
 alongside the estimator limits. -/
 theorem
-    weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_with_reducedForm_minimizer
+    centered_limits_and_minimizer
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -13993,7 +13891,7 @@ theorem
       LIMLRayleighMinimizer
         (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β)
         Sigma (mustar η)) :=
-  ⟨weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+  ⟨centered_limits
       (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y) (e := e)
       (limlMuHat := limlMuHat) (β := β) (QZZ := QZZ) (C := C)
       (Xi2 := Xi2) (xie := xie) (mustar := mustar)
@@ -14009,9 +13907,9 @@ reduced-form Rayleigh selector, returning Hansen's reduced-form `µ*` minimizer
 certificate alongside the textbook `β + bias` estimator limits.
 
 This is the pointwise-support companion to
-`weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae_with_reducedForm_minimizer`. -/
+`Theorem12_18ReducedForm.uncentered_limits_and_minimizer_ae`. -/
 theorem
-    weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_with_reducedForm_minimizer
+    uncentered_limits_and_minimizer
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -14080,6 +13978,8 @@ theorem
         hmodel hZ hX he hMu hbread hscore hSigma22 hroot hQZZ
         hrayleigh hReducedRank hRayleighNonpos),
     hrayleigh.reducedForm_limit_rayleigh_minimizer⟩
+
+end Theorem12_18ReducedForm
 
 /-- Hansen Theorem 12.18 from the centered condition package, returning the
 textbook-centered claims directly. -/
@@ -15277,44 +15177,12 @@ theorem weakIV_rawInstrumentGram_singular_tendsto_zero
       (fun m => μ {omega | ¬ IsUnit
         (sampleGram (stackRegressors Z m omega)).det})
       atTop (𝓝 0) := by
-  classical
-  have hpair : TendstoInDistribution
-      (fun (m : ℕ) (omega : Ω) =>
-        (sampleGram (stackRegressors Z m omega), (0 : l → ℝ)))
-      atTop
-      (fun _ : EuclideanSpace ℝ (l × Sum Unit k) =>
-        (popGram μ Z, (0 : l → ℝ)))
-      (fun _ => μ)
-      (multivariateGaussian 0
-        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) := by
-    have hcont : Continuous
-        (fun p : Matrix l (Sum Unit k) ℝ ×
-            (Matrix l l ℝ × Matrix (Sum Unit k) (Sum Unit k) ℝ) =>
-          (p.2.1, (0 : l → ℝ))) := by
-      fun_prop
-    simpa [Function.comp_def] using
-      (weakIV_rawJointMoments_tendstoInDistribution h).continuous_comp hcont
-  have hlimit :
-      (multivariateGaussian 0
-        (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
-        {z : EuclideanSpace ℝ (l × Sum Unit k) |
-          ¬ IsUnit (popGram μ Z).det} = 0 := by
-    have hempty :
-        {z : EuclideanSpace ℝ (l × Sum Unit k) |
-          ¬ IsUnit (popGram μ Z).det} = ∅ := by
-      ext z
-      simp only [Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false]
-      exact fun hnot => hnot hQZZ
-    rw [hempty, measure_empty]
-  exact weakIV_pair_bread_singular_tendsto_zero_of_joint_tendsto
-    (μ := μ)
-    (ν := multivariateGaussian 0
-      (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
-    (B := fun m omega => sampleGram (stackRegressors Z m omega))
-    (S := fun _ _ => (0 : l → ℝ))
-    (B0 := fun _ => popGram μ Z)
-    (S0 := fun _ => (0 : l → ℝ))
-    hpair hlimit
+  exact matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
+    (fun m => sampleGram_stackRegressors_aestronglyMeasurable_of_wlln
+      h.instrument_gram_conditions m)
+    (sampleGram_stackRegressors_tendstoInMeasure_popGram_of_wlln
+      h.instrument_gram_conditions)
+    hQZZ
 
 /-- Continuous block projection of the proved raw Gaussian CLT gives the joint
 `(Xi_2, xi_e)` object used in all three faces of Theorem 12.18. -/
@@ -15486,22 +15354,15 @@ theorem weakIVLIMLSelectorBadSet_of_unit_kernel
   change 0 < sInf
     ((fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
       Metric.sphere (0 : ι → ℝ) 1) at hp
-  letI := FiniteDimensional.proper_real (ι → ℝ)
   have hxsphere : x ∈ Metric.sphere (0 : ι → ℝ) 1 := by
     simpa [Metric.mem_sphere, dist_eq_norm] using hxnorm
-  have hcompact : IsCompact
-      ((fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
-        Metric.sphere (0 : ι → ℝ) 1) := by
-    exact (isCompact_sphere (0 : ι → ℝ) 1).image_of_continuousOn (by fun_prop)
-  have hzero : (0 : ℝ) ∈
-      (fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
-        Metric.sphere (0 : ι → ℝ) 1 := by
-    refine ⟨x, hxsphere, ?_⟩
-    simp [hker]
   have hle : sInf
       ((fun y : ι → ℝ => y ⬝ᵥ (p.2 *ᵥ y)) ''
-        Metric.sphere (0 : ι → ℝ) 1) ≤ 0 :=
-    csInf_le hcompact.bddBelow hzero
+        Metric.sphere (0 : ι → ℝ) 1) ≤ 0 := by
+    calc
+      weakIVLIMLSphereMinimum p.2 ≤ weakIVLIMLQuadraticForm p.2 x :=
+        weakIVLIMLSphereMinimum_le p.2 hxsphere
+      _ = 0 := by simp [weakIVLIMLQuadraticForm, hker]
   exact (not_lt_of_ge hle) hp
 
 omit [DecidableEq ι] [Nonempty ι] in
@@ -16192,32 +16053,10 @@ private theorem weakIVRawLIMLPencilFormula_measurable
     (continuous_snd.comp (continuous_snd.comp continuous_fst)).measurable
   have hr : Measurable (fun p : WeakIVRawLIMLPencilState k l => p.2) :=
     measurable_snd
-  have hQdet : Measurable
-      (fun p : WeakIVRawLIMLPencilState k l => (p.1.2.1).det) :=
-    (Continuous.matrix_det
-      (continuous_fst.comp (continuous_snd.comp continuous_fst))).measurable
-  have hQadj : Measurable
-      (fun p : WeakIVRawLIMLPencilState k l => (p.1.2.1).adjugate) :=
-    (Continuous.matrix_adjugate
-      (continuous_fst.comp (continuous_snd.comp continuous_fst))).measurable
-  have hQinvDet : Measurable
-      (fun p : WeakIVRawLIMLPencilState k l => Ring.inverse (p.1.2.1).det) := by
-    have heq :
-        (fun p : WeakIVRawLIMLPencilState k l => Ring.inverse (p.1.2.1).det) =
-          (fun p => ((p.1.2.1).det)⁻¹) := by
-      funext p
-      exact Ring.inverse_eq_inv _
-    rw [heq]
-    exact measurable_inv.comp hQdet
   have hQinv : Measurable
       (fun p : WeakIVRawLIMLPencilState k l => p.1.2.1⁻¹) := by
-    have heq :
-        (fun p : WeakIVRawLIMLPencilState k l => p.1.2.1⁻¹) =
-          (fun p => Ring.inverse (p.1.2.1).det • (p.1.2.1).adjugate) := by
-      funext p
-      exact Matrix.inv_def p.1.2.1
-    rw [heq]
-    exact hQinvDet.smul hQadj
+    exact matrix_inv_measurable_of_entries fun i j =>
+      ((continuous_fst.comp (continuous_snd.comp continuous_fst)).matrix_elem i j).measurable
   have hD : Measurable
       (fun _ : WeakIVRawLIMLPencilState k l => D) := measurable_const
   have hDt : Measurable
@@ -16294,10 +16133,8 @@ private theorem weakIVRawLIMLPencilAssemblyMap_continuousAt_of_nonsingular
     continuousAt_snd
   have hQinv : ContinuousAt
       (fun q : WeakIVRawLIMLPencilState k l => q.1.2.1⁻¹) p := by
-    have hinv : ContinuousAt (fun A : Matrix l l ℝ => A⁻¹) p.1.2.1 := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hp.ne_zero
+    have hinv : ContinuousAt (fun A : Matrix l l ℝ => A⁻¹) p.1.2.1 :=
+      continuousAt_matrix_inv_of_isUnit p.1.2.1 hp
     let qfun : WeakIVRawLIMLPencilState k l → Matrix l l ℝ :=
       fun q => q.1.2.1
     have hcomp : ContinuousAt ((fun A : Matrix l l ℝ => A⁻¹) ∘ qfun) p :=
@@ -16560,15 +16397,15 @@ private theorem weakIV_tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero
     {X Y : ℕ → Ω → E}
     (hbad : Tendsto (fun m => μ {omega | X m omega ≠ Y m omega}) atTop (𝓝 0)) :
     TendstoInMeasure μ (Y - X) atTop (fun _ => 0) := by
-  intro epsilon hepsilon
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbad
-    (Eventually.of_forall fun _ => zero_le _) ?_
-  exact Eventually.of_forall fun m => measure_mono (by
-    intro omega homega
-    simp only [Set.mem_setOf_eq, Pi.sub_apply] at homega ⊢
-    intro heq
-    rw [heq, sub_self, edist_self] at homega
-    exact (not_le_of_gt hepsilon) homega)
+  have hzero : TendstoInMeasure μ
+      (fun (_ : ℕ) (_ : Ω) => (0 : E)) atTop (fun _ => 0) :=
+    tendstoInMeasure_const_of_tendsto (μ := μ) tendsto_const_nhds
+  refine tendstoInMeasure_congr_of_measure_ne_tendsto_zero hzero ?_
+  convert hbad using 1
+  funext m
+  apply congrArg μ
+  ext omega
+  simp [Pi.sub_apply, sub_eq_zero, ne_comm]
 
 /-- The literal triangular LIML generalized-eigenvalue pencil follows from
 the raw reduced-form CLT/WLLNs and nonsingularity of the population instrument
@@ -17490,6 +17327,301 @@ theorem weakIVLocalLIMLSmallestRoot_tendstoInDistribution
       (C := C) (beta := beta) raw_moments hQZZ hSigma
   have hroot := (weakIV_theorem12_18_triangular_raw_assembly hassembly).2.1
   simpa [weakIVRawLIMLSmallestRoot] using hroot
+
+set_option linter.style.longLine false
+
+namespace WeakIVCompatibility
+
+/-! ## Citeable compatibility API
+
+The declarations below preserve the exact compatibility conclusions proved by
+the private route-specific engines above, while organizing their public names
+by primitive assembly, rank/sign route, and centered or uncentered endpoint.
+-/
+
+@[inherit_doc WeakIVEstimatorFiniteSampleRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorFiniteSampleRayleighConditions.ReducedFormRank.RayleighNonpos.of_joint_rows_ae :=
+  WeakIVEstimatorFiniteSampleRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorFiniteSampleRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos]
+alias WeakIVEstimatorFiniteSampleRayleighConditions.ReducedFormRank.RayleighNonpos.of_joint_rows :=
+  WeakIVEstimatorFiniteSampleRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc WeakIVEstimatorFiniteSampleRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorFiniteSampleRayleighConditions.ReducedFormRank.RayleighNonpos.of_split_rows_ae :=
+  WeakIVEstimatorFiniteSampleRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorFiniteSampleRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos]
+alias WeakIVEstimatorFiniteSampleRayleighConditions.ReducedFormRank.RayleighNonpos.of_split_rows :=
+  WeakIVEstimatorFiniteSampleRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_firstStage_rank_mu_nonpos_ae]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.FirstStageRank.MuNonpos.of_split_rows_ae :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_firstStage_rank_mu_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos_ae]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.FirstStageRank.MuNonpos.of_joint_rows_ae :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_mu_nonpos_ae]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormRank.MuNonpos.of_joint_rows_ae :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_mu_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_mu_nonpos]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormRank.MuNonpos.of_joint_rows :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_mu_nonpos
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormRank.RayleighNonpos.of_split_rows_ae :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormRank.RayleighNonpos.of_split_rows :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormRank.RayleighNonpos.of_joint_rows_ae :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormRank.RayleighNonpos.of_joint_rows :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormSelector.RayleighNonpos.of_split_rows_ae :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormSelector.RayleighNonpos.of_split_rows :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_primitive_ols_wlln_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormSelector.RayleighNonpos.of_joint_rows_ae :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos]
+alias WeakIVEstimatorRawEigenvalueProblemConditions.ReducedFormSelector.RayleighNonpos.of_joint_rows :=
+  WeakIVEstimatorRawEigenvalueProblemConditions.of_root_ols_primitive_rows_reducedForm_rayleigh_selector_rank_rayleigh_nonpos
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorStructuralRayleighConditions.ReducedFormRank.RayleighNonpos.of_joint_rows_ae :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos]
+alias WeakIVEstimatorStructuralRayleighConditions.ReducedFormRank.RayleighNonpos.of_joint_rows :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos_ae]
+alias WeakIVEstimatorStructuralRayleighConditions.FirstStageRank.MuNonpos.of_joint_rows_ae :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos]
+alias WeakIVEstimatorStructuralRayleighConditions.FirstStageRank.MuNonpos.of_joint_rows :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_ols_primitive_rows_firstStage_rank_mu_nonpos
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae]
+alias WeakIVEstimatorStructuralRayleighConditions.ReducedFormRank.MuNonpos.of_split_rows_ae :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos]
+alias WeakIVEstimatorStructuralRayleighConditions.ReducedFormRank.MuNonpos.of_split_rows :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias WeakIVEstimatorStructuralRayleighConditions.ReducedFormRank.RayleighNonpos.of_split_rows_ae :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos]
+alias WeakIVEstimatorStructuralRayleighConditions.ReducedFormRank.RayleighNonpos.of_split_rows :=
+  WeakIVEstimatorStructuralRayleighConditions.of_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing]
+alias Theorem12_18StructuralRayleigh.JointRows.LimitBreadNonsing.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing]
+alias Theorem12_18StructuralRayleigh.JointRows.LimitBreadNonsing.limits :=
+  weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_pointwise_nonsing
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing]
+alias Theorem12_18ReducedForm.JointRows.LimitBreadNonsing.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing]
+alias Theorem12_18ReducedForm.JointRows.LimitBreadNonsing.limits :=
+  weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_pointwise_nonsing
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_limitBread_posDef]
+alias Theorem12_18FiniteSampleRayleigh.JointRows.LimitBreadPosDef.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_limitBread_posDef]
+alias Theorem12_18FiniteSampleRayleigh.JointRows.LimitBreadPosDef.limits :=
+  weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_limitBread_posDef]
+alias Theorem12_18StructuralRayleigh.JointRows.LimitBreadPosDef.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_limitBread_posDef]
+alias Theorem12_18StructuralRayleigh.JointRows.LimitBreadPosDef.limits :=
+  weakIV_estimators_theorem12_18_of_structural_rayleigh_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_posDef]
+alias Theorem12_18ReducedForm.JointRows.LimitBreadPosDef.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_posDef]
+alias Theorem12_18ReducedForm.JointRows.LimitBreadPosDef.limits :=
+  weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_limitBread_posDef]
+alias Theorem12_18RawEigenvalue.JointRows.LimitBreadPosDef.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_limitBread_posDef]
+alias Theorem12_18RawEigenvalue.JointRows.LimitBreadPosDef.limits :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18FiniteSampleRayleigh.JointRows.RankRayleighNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18FiniteSampleRayleigh.JointRows.RankRayleighNonpos.limits_ae :=
+  weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18FiniteSampleRayleigh.JointRows.RankRayleighNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18FiniteSampleRayleigh.JointRows.RankRayleighNonpos.limits :=
+  weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18FiniteSampleRayleigh.SplitRows.RankRayleighNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18FiniteSampleRayleigh.SplitRows.RankRayleighNonpos.limits_ae :=
+  weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_limitBread_posDef]
+alias Theorem12_18FiniteSampleRayleigh.SplitRows.LimitBreadPosDef.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_limitBread_posDef]
+alias Theorem12_18FiniteSampleRayleigh.SplitRows.LimitBreadPosDef.limits :=
+  weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18FiniteSampleRayleigh.SplitRows.RankRayleighNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18FiniteSampleRayleigh.SplitRows.RankRayleighNonpos.limits :=
+  weakIV_estimators_theorem12_18_of_finite_sample_rayleigh_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_limitBread_posDef]
+alias Theorem12_18RawEigenvalue.FirstStageRank.LimitBreadPosDef.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_limitBread_posDef]
+alias Theorem12_18RawEigenvalue.FirstStageRank.LimitBreadPosDef.limits :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_limitBread_posDef
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos_ae]
+alias Theorem12_18RawEigenvalue.FirstStageRank.MuNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos_ae
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos_ae]
+alias Theorem12_18RawEigenvalue.FirstStageRank.MuNonpos.limits_ae :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos]
+alias Theorem12_18RawEigenvalue.FirstStageRank.MuNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos]
+alias Theorem12_18RawEigenvalue.FirstStageRank.MuNonpos.limits :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_firstStage_rank_mu_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos_ae]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.MuNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos_ae
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos_ae]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.MuNonpos.limits_ae :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.MuNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.MuNonpos.limits :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_mu_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.RayleighNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.RayleighNonpos.limits_ae :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.RayleighNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18RawEigenvalue.ReducedFormRank.RayleighNonpos.limits :=
+  weakIV_estimators_theorem12_18_of_raw_eigenvalue_problem_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18ReducedForm.JointRows.RankRayleighNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18ReducedForm.JointRows.RankRayleighNonpos.limits_ae :=
+  weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18ReducedForm.JointRows.RankRayleighNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18ReducedForm.JointRows.RankRayleighNonpos.limits :=
+  weakIV_estimators_theorem12_18_of_reducedForm_rayleigh_selector_rows_reducedForm_rank_rayleigh_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae]
+alias Theorem12_18StructuralRayleigh.SplitRows.ReducedFormRank.MuNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae]
+alias Theorem12_18StructuralRayleigh.SplitRows.ReducedFormRank.MuNonpos.limits_ae :=
+  weakIV_estimators_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos]
+alias Theorem12_18StructuralRayleigh.SplitRows.ReducedFormRank.MuNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos
+
+@[inherit_doc weakIV_estimators_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos]
+alias Theorem12_18StructuralRayleigh.SplitRows.ReducedFormRank.MuNonpos.limits :=
+  weakIV_estimators_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_mu_nonpos
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae]
+alias Theorem12_18StructuralRayleigh.SplitRows.ReducedFormRank.RayleighNonpos.centered_limits_ae :=
+  weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos_ae
+
+@[inherit_doc weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos]
+alias Theorem12_18StructuralRayleigh.SplitRows.ReducedFormRank.RayleighNonpos.centered_limits :=
+  weakIV_estimators_minus_beta_theorem12_18_of_structural_rayleigh_selector_root_primitive_ols_wlln_rows_reducedForm_rank_rayleigh_nonpos
+
+end WeakIVCompatibility
+
+set_option linter.style.longLine true
 
 end Asymptotics
 

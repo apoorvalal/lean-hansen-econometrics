@@ -3597,15 +3597,14 @@ theorem twoSLSKinalExactMomentIff_of_jointNormal_standardCoordinate_nuisance_pro
 
 /-- Hansen Theorem 12.7 reduced to the exact FWL tail theorem.
 
-This theorem keeps Hansen's joint-normal condition package in the statement,
-but the proof obligation is now localized: prove the a.e. 2SLS/FWL equality on
-the nonsingular branch and prove the Kinal random inverse-Gram tail iff for
-`twoSLSKinalFWLBetaStar`. -/
+The proof obligation is localized: prove the a.e. 2SLS/FWL equality on the
+nonsingular branch and prove the Kinal random inverse-Gram tail iff for
+`twoSLSKinalFWLBetaStar`.  The adjacent condition-bearing wrapper derives the
+FWL equality from Hansen's joint-normal condition package. -/
 theorem twoSLSKinal_theorem12_7_of_fwl_tail_theorem
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    (_h : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
     (hFWL :
       (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
         =ᵐ[μ]
@@ -3630,7 +3629,7 @@ theorem twoSLSKinal_theorem12_7_of_fwl_tail_theorem_from_conditions
       MemLp (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
           (r : ℝ≥0∞) μ ↔
         (r : ℝ) < twoSLSKinalMomentThreshold k₂ l₂ :=
-  twoSLSKinal_theorem12_7_of_fwl_tail_theorem h
+  twoSLSKinal_theorem12_7_of_fwl_tail_theorem
     (twoSLSKinal_fwl_ae_eq_of_jointNormalConditions h) hTail
 
 /-- Hansen Theorem 12.7 reduced to coordinatewise scalar FWL moment
@@ -3639,7 +3638,6 @@ theorem twoSLSKinal_theorem12_7_of_fwl_coordinate_tail_theorem
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    (_h : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
     (hFWL :
       (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
         =ᵐ[μ]
@@ -3664,7 +3662,7 @@ theorem twoSLSKinal_theorem12_7_of_fwl_coordinate_tail_theorem_from_conditions
       MemLp (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
           (r : ℝ≥0∞) μ ↔
         (r : ℝ) < twoSLSKinalMomentThreshold k₂ l₂ :=
-  twoSLSKinal_theorem12_7_of_fwl_coordinate_tail_theorem h
+  twoSLSKinal_theorem12_7_of_fwl_coordinate_tail_theorem
     (twoSLSKinal_fwl_ae_eq_of_jointNormalConditions h) hCoord
 
 /-- Hansen Theorem 12.7 reduced to score-coordinate scalar FWL moment
@@ -3675,7 +3673,6 @@ theorem twoSLSKinal_theorem12_7_of_fwl_score_coordinate_tail_theorem
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
-    (_h : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
     (hFWL :
       (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
         =ᵐ[μ]
@@ -3700,7 +3697,7 @@ theorem twoSLSKinal_theorem12_7_of_fwl_score_coordinate_tail_theorem_from_condit
       MemLp (fun ω => twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
           (r : ℝ≥0∞) μ ↔
         (r : ℝ) < twoSLSKinalMomentThreshold k₂ l₂ :=
-  twoSLSKinal_theorem12_7_of_fwl_score_coordinate_tail_theorem h
+  twoSLSKinal_theorem12_7_of_fwl_score_coordinate_tail_theorem
     (twoSLSKinal_fwl_ae_eq_of_jointNormalConditions h) hScore
 
 /-- Hansen Theorem 12.7 from the current lowest-level product-tail inputs.
