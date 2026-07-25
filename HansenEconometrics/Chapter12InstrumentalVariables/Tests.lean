@@ -8,9 +8,9 @@ import HansenEconometrics.FDist
 
 This module records the Wald, endogeneity, overidentification, and subset
 overidentification test surfaces from Hansen's instrumental-variables chapter.
-The distributional lemmas below are interface projections. The substantive
-finite-sample `N = C*` definitions and proof for Hansen Theorem 12.17 live in
-`Chapter12InstrumentalVariables.Overidentification`.
+The chapter-facing size theorems take their substantive distributional inputs
+directly. The finite-sample `N = C*` definitions and proof for Hansen Theorem
+12.17 live in `Chapter12InstrumentalVariables.Overidentification`.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -25,14 +25,10 @@ variable [MeasurableSpace Omega] {mu : Measure Omega} [IsProbabilityMeasure mu]
 variable [Fintype k] [Fintype q] [Fintype r]
 variable [DecidableEq k] [DecidableEq q] [DecidableEq r]
 
-/-- Generic IV Wald statistic for a restriction vector. -/
-noncomputable def ivWaldStatistic (theta : q → ℝ) (Vtheta : Matrix q q ℝ) : ℝ :=
-  theta ⬝ᵥ (Vtheta⁻¹ *ᵥ theta)
-
 /-- Endogeneity-test statistic comparing OLS and IV estimators. -/
 noncomputable def hausmanEndogeneityStatistic
     (delta : k → ℝ) (Vdelta : Matrix k k ℝ) : ℝ :=
-  ivWaldStatistic delta Vdelta
+  criterionJStatOrZero delta Vdelta
 
 /-- Sargan/Hansen overidentification statistic. -/
 noncomputable def overidentificationStatistic
@@ -42,14 +38,7 @@ noncomputable def overidentificationStatistic
 /-- Subset overidentification statistic. -/
 noncomputable def subsetOveridentificationStatistic
     (gbar : q → ℝ) (C : Matrix q r ℝ) (What : Matrix q q ℝ) : ℝ :=
-  ivWaldStatistic (Cᵀ *ᵥ gbar) (Cᵀ * What * C)
-
-/-- Interface projection for an IV Wald statistic with a chi-square null limit. -/
-theorem ivWald_chiSquaredLimit_from_interface
-    (W : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
-    (hW : TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
-    TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=
-  hW
+  criterionJStatOrZero (Cᵀ *ᵥ gbar) (Cᵀ * What * C)
 
 /-- **Hansen Theorem 12.6, test-size layer.**
 
@@ -67,13 +56,6 @@ theorem chapter12_theorem_12_6_ivWald_rejectionProb_tendsto_alpha
   chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
     (μ := mu) (W := W) (q := df) (crit := crit) hcrit hW
 
-/-- Interface projection for the robust control-function endogeneity Wald limit. -/
-theorem endogeneityWald_chiSquaredLimit_from_interface
-    (W : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
-    (hW : TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
-    TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=
-  hW
-
 /-- **Hansen Theorem 12.14, size conclusion.**
 
 Given the control-function endogeneity Wald statistic's `χ²(k₂)` limit under
@@ -88,14 +70,6 @@ theorem chapter12_theorem_12_14_endogeneityWald_rejectionProb_tendsto_alpha
     Tendsto (fun n => mu {ω | crit < W n ω}) atTop (𝓝 alpha) :=
   chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
     (μ := mu) (W := W) (q := k2) (crit := crit) hcrit hW
-
-omit [IsProbabilityMeasure mu] in
-/-- Interface projection for the finite-sample endogeneity F law. -/
-theorem endogeneityF_hasLaw_from_interface
-    (Fstat : Omega → ℝ) (df1 df2 : ℕ)
-    (hF : HasLaw Fstat (classicalFDist df1 df2) mu) :
-    HasLaw Fstat (classicalFDist df1 df2) mu :=
-  hF
 
 omit [Fintype k] [Fintype q] [Fintype r] [DecidableEq k] [DecidableEq q] [DecidableEq r]
     [IsProbabilityMeasure mu] in
@@ -147,13 +121,6 @@ theorem chapter12_theorem_12_15_endogeneityF_rejection_probability_eq_alpha
   olsFStatistic_rejection_probability_eq_alpha_classical
     X₁ X₂ β₁ crit hcrit hσ2 hq hdf ε hε
 
-/-- Interface projection for the overidentification statistic's chi-square null limit. -/
-theorem overidentification_chiSquaredLimit_from_interface
-    (J : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
-    (hJ : TendstoInDistribution J atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
-    TendstoInDistribution J atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=
-  hJ
-
 /-- **Hansen Theorem 12.16, size conclusion.**
 
 Given the Sargan statistic's `χ²(ℓ-k)` limit, the upper-tail Sargan test has
@@ -169,14 +136,6 @@ theorem chapter12_theorem_12_16_sargan_rejectionProb_tendsto_alpha
     Tendsto (fun n => mu {ω | crit < S n ω}) atTop (𝓝 alpha) :=
   chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
     (μ := mu) (W := S) (q := overidDf) (crit := crit) hcrit hS
-
-/-- Interface projection for the subset-overidentification statistic's chi-square
-null limit. -/
-theorem subsetOveridentification_chiSquaredLimit_from_interface
-    (Nstat : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
-    (hN : TendstoInDistribution Nstat atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
-    TendstoInDistribution Nstat atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=
-  hN
 
 /-- **Hansen Theorem 12.17, distributional test-size layer.**
 

@@ -17974,7 +17974,7 @@ upper-tail critical-value convention.  It fixes the residualized score-map
 target to Hansen's population-Gram formula and removes the separate `hA`
 premise from the strongest covariance-target endpoint. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+    Theorem12_17.FullInstrumentSampleGram.residualRows
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18078,9 +18078,9 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`. -/
+`Theorem12_17.FullInstrumentSampleGram.residualRows`. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+    Theorem12_17.FullInstrumentSampleGram.residualRows_lowerTail
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18191,7 +18191,7 @@ This is the upper-tail critical-value convention.  The maintained and full
 instrument Assumption 12.2 packages are stated on Hansen's observed rows and
 converted to the residual-row proof engine at the boundary. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+    Theorem12_17.FullInstrumentSampleGram.observedRows
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18286,7 +18286,7 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+  Theorem12_17.FullInstrumentSampleGram.residualRows
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
     hover hdf hMaintained.toResidualTextbookFourthConditions
     hFull.toResidualTextbookFourthConditions hZa0 hhomo hsigma_pos hZa hZ
@@ -18294,9 +18294,9 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`. -/
+`Theorem12_17.FullInstrumentSampleGram.observedRows`. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+    Theorem12_17.FullInstrumentSampleGram.observedRows_lowerTail
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18392,7 +18392,7 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+  Theorem12_17.FullInstrumentSampleGram.residualRows_lowerTail
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
     hover hdf hMaintained.toResidualTextbookFourthConditions
     hFull.toResidualTextbookFourthConditions hZa0 hhomo hsigma_pos hZa hZ
@@ -18408,7 +18408,7 @@ packages at the boundary, derives the finite-sample residualized and moment
 branches from Gram certificates, and replaces the primitive covariance
 convergence premise by `scoreCovMat μ [Za,Zb] e = σ² QZZ`. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+    Theorem12_17.FullResidualScoreMap.neweyCovariance
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18509,9 +18509,9 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`. -/
+`Theorem12_17.FullResidualScoreMap.neweyCovariance`. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+    Theorem12_17.FullResidualScoreMap.neweyCovariance_lowerTail
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18620,7 +18620,7 @@ homoskedasticity used for the common-denominator replacement `C* - C = o_p(1)`
 and the covariance identity `scoreCovMat μ [Za,Zb] e = σ² QZZ` through the
 reusable Chapter 7/12 bridges. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+    Theorem12_17.FullResidualScoreMap.fullHomoskedastic
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18725,16 +18725,16 @@ theorem
       (X := X) (e := e)
       hFull.toJointIidMixedMomentConditions hZfull0 hhomoFull
   exact
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+    Theorem12_17.FullResidualScoreMap.neweyCovariance
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
       (A := A) hover hdf hMaintained hFull hZa0 hhomo hsigma_pos
       hZa hZ hFitted hMaintainedFitted hA hcov hR_rowGram hcrit
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`. -/
+`Theorem12_17.FullResidualScoreMap.fullHomoskedastic`. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+    Theorem12_17.FullResidualScoreMap.fullHomoskedastic_lowerTail
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18840,7 +18840,7 @@ theorem
       (X := X) (e := e)
       hFull.toJointIidMixedMomentConditions hZfull0 hhomoFull
   exact
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+    Theorem12_17.FullResidualScoreMap.neweyCovariance_lowerTail
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
       (A := A) hover hdf hMaintained hFull hZa0 hhomo hsigma_pos
       hZa hZ hFitted hMaintainedFitted hA hcov hR_rowGram
@@ -18855,7 +18855,7 @@ observed rows and converted to the residual-row proof engine at the boundary.
 This keeps the theorem-facing API aligned with the textbook rows while reusing
 the full-homoskedastic Newey covariance route. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+    Theorem12_17.FullResidualScoreMap.fullHomoskedastic_observedRows
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -18946,7 +18946,7 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+  Theorem12_17.FullResidualScoreMap.fullHomoskedastic
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
     (A := A) hover hdf hMaintained.toResidualTextbookFourthConditions
     hFull.toResidualTextbookFourthConditions hZa0 hZfull0 hhomoFull
@@ -18954,9 +18954,9 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`. -/
+`Theorem12_17.FullResidualScoreMap.fullHomoskedastic_observedRows`. -/
 theorem
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+    Theorem12_17.FullResidualScoreMap.fullHomoskedastic_observedRows_lowerTail
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     {df : ℕ} [Fact (0 < df)]
@@ -19048,7 +19048,7 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) :=
-  twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail
+  Theorem12_17.FullResidualScoreMap.fullHomoskedastic_lowerTail
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
     (A := A) hover hdf hMaintained.toResidualTextbookFourthConditions
     hFull.toResidualTextbookFourthConditions hZa0 hZfull0 hhomoFull
@@ -19160,7 +19160,7 @@ theorem conclusions_of_fullResidualScoreMap
       (X := X) (e := e) (Y := Y) (β := β)
       hFull hZfull0 hhomoFull
   exact
-    twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+    Theorem12_17.FullResidualScoreMap.fullHomoskedastic_observedRows
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
       (A := A) hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
       hsigma_pos hZa hZ hFitted hMaintainedFitted hA hR_rowGram hcrit
@@ -19849,17 +19849,18 @@ abbrev corrected_lowerTail
 
 end Theorem12_17
 
+namespace Theorem12_17
+
 set_option linter.style.longLine false in
-/-- Observed-row facade for Hansen Theorem 12.17's probability-level
-asymptotic equivalence between Newey's subset test and the Sargan-difference
-subset test.
+/-- Corrected observed-row facade for the probability-level asymptotic
+equivalence between Newey's subset test and the Sargan-difference subset test.
 
 This reuses the same full-homoskedastic Newey-covariance route as
-`twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`,
+`Theorem12_17.FullResidualScoreMap.fullHomoskedastic_observedRows`,
 then applies the generic rejection-probability equivalence bridge with
-textbook degrees of freedom `ℓ_b`. -/
-theorem
-    twoSLSSubsetNeweySarganDiffTest_rejectionProb_equiv_card_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams
+degrees of freedom `ℓ_b`. This is a compatibility result for the corrected
+formalization, not the under-specified asymptotic claim printed in Hansen. -/
+theorem corrected_observedRows_rejectionProb_equiv
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
     [Fact (0 < Fintype.card lb)]
@@ -19954,6 +19955,8 @@ theorem
         hFull.toResidualTextbookFourthConditions hZa0 hhomo hsigma_pos
         hZa hZ hFitted hMaintainedFitted hA hcov hR_rowGram)
       hcrit
+
+end Theorem12_17
 
 set_option linter.style.longLine false in
 /-- Theorem 12.17 facade with the limiting covariance regularity stated

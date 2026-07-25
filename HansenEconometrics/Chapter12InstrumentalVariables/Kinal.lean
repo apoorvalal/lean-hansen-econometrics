@@ -2439,16 +2439,12 @@ theorem twoSLSKinalFWLScoreCoordinateLaws_of_scoreVectorLaw
 
 /-- Full score-vector/Gram independence implies the coordinate
 score/inverse-scale independence required by Kinal's scalar product-tail
-route, once Chapter 11 has identified the fixed coordinate inverse-Wishart
-push-forward law. -/
+route. -/
 theorem twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVector_indep_gram
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    [IsProbabilityMeasure μ]
     (X₁ : Ω → Matrix n k₁ ℝ) (Y₂ : Ω → Matrix n k₂ ℝ)
     (Z₂ : Ω → Matrix n l₂ ℝ) (Y₁ : Ω → n → ℝ)
     (Sigma : Matrix k₂ k₂ ℝ) (ScoreVectorLaw : Measure (k₂ → ℝ))
-    [SFinite (wishartLaw (n := l₂) Sigma)]
-    [SFinite (chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1))]
     (hScoreVector :
       HasLaw
         (fun ω => twoSLSKinalFWLScoreStar (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
@@ -2457,11 +2453,7 @@ theorem twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVecto
     (hScoreGramInd :
       (fun ω => twoSLSKinalFWLScoreStar (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
         ⟂ᵢ[μ]
-      fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-    (hScaleMap : ∀ j : k₂,
-      (wishartLaw (n := l₂) Sigma).map
-          (inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))) =
-        chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1)) :
+      fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω)) :
     ∀ j : k₂,
       (fun ω => twoSLSKinalFWLScoreStar (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) j)
         ⟂ᵢ[μ]
@@ -2480,8 +2472,6 @@ theorem twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVecto
       twoSLSKinalFWLScoreCoordinateLaws_of_scoreVectorLaw
         (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
         (ScoreVectorLaw := ScoreVectorLaw) hScoreVector j
-  haveI : IsProbabilityMeasure (ScoreVectorLaw.map evalJ) :=
-    (hScoreCoord.isProbabilityMeasure_iff).1 inferInstance
   have hGramLaw :
       HasLaw
         (fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω))
@@ -3085,7 +3075,7 @@ theorem twoSLSKinalFWLScoreCoordinateMomentIff_of_scoreVector_residualGram_produ
     twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVector_indep_gram
       (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
       (Sigma := Sigma) (ScoreVectorLaw := ScoreVectorLaw)
-      hScoreVector hW hScoreGramInd hScaleMap
+      hScoreVector hW hScoreGramInd
   exact
     twoSLSKinalFWLScoreCoordinateMomentIff_of_residualGram_product_tail
       (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
@@ -4193,7 +4183,7 @@ theorem TwoSLSKinalResidualGramProductTailConditions.of_scoreVectorProductTail
     twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVector_indep_gram
       (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
       (Sigma := Sigma) (ScoreVectorLaw := ScoreVectorLaw)
-      hScoreVector hW hScoreGramInd hScaleMap
+      hScoreVector hW hScoreGramInd
   exact
     { joint_normal := hJoint
       score_prob := hScoreProb
@@ -4909,9 +4899,6 @@ theorem TwoSLSKinalJointNormalStandardCoordinateNuisanceInputs.of_iidMatrixGauss
         (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
         (Sigma := Sigma) (ScoreVectorLaw := ScoreVectorLaw)
         hScoreVector hW hScoreGramInd
-        (fun j =>
-          twoSLSKinalCoordinateInverseScale_map_eq_of_standardCoordinate_nuisance_whitening
-            (l₂ := l₂) Sigma T S c hBridge j)
 
 /-- Nuisance standard-coordinate inputs derive the coordinate inverse-Wishart
 map identities through the Chapter 11 nuisance bridge. -/
@@ -5181,13 +5168,6 @@ theorem twoSLSKinal_theorem12_7_of_iidGaussianGram_scoreVector_standardGramBridg
     twoSLSKinalFWLScoreCoordinateLaws_of_scoreVectorLaw
       (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
       (ScoreVectorLaw := ScoreVectorLaw) hScoreVector
-  have hScaleMap : ∀ j : k₂,
-      (wishartLaw (n := l₂) Sigma).map
-          (inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))) =
-        chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1) :=
-    fun j =>
-      twoSLSKinalCoordinateInverseScale_map_eq_of_standardGramBridge
-        (l₂ := l₂) Sigma hBridge j
   have hInd : ∀ j : k₂,
       (fun ω => twoSLSKinalFWLScoreStar (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) j)
         ⟂ᵢ[μ]
@@ -5196,7 +5176,7 @@ theorem twoSLSKinal_theorem12_7_of_iidGaussianGram_scoreVector_standardGramBridg
     twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVector_indep_gram
       (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
       (Sigma := Sigma) (ScoreVectorLaw := ScoreVectorLaw)
-      hScoreVector hW hScoreGramInd hScaleMap
+      hScoreVector hW hScoreGramInd
   exact
     twoSLSKinal_theorem12_7_of_standardGram_product_tail_from_conditions
       (h := hJoint) (Sigma := Sigma) (rIdx := rIdx) hBridge
@@ -5325,13 +5305,6 @@ theorem TwoSLSKinalJointNormalStandardGramInputs.of_iidMatrixGaussian_gram_score
     twoSLSKinalFWLScoreStar_indep_gram_of_iidMatrixGaussian_gram_ae_eq
       (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
       (Rstd := Rstd) hScoreStdGramInd hGram
-  have hScaleMap : ∀ j : k₂,
-      (wishartLaw (n := l₂) Sigma).map
-          (inverseWishartScaledLinearForm Sigma (Pi.single j (1 : ℝ))) =
-        chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1) :=
-    fun j =>
-      twoSLSKinalCoordinateInverseScale_map_eq_of_standardGramBridge
-        (l₂ := l₂) Sigma hBridge j
   refine
     { score_law := ?_
       residual_gram_wishart := hW
@@ -5347,7 +5320,7 @@ theorem TwoSLSKinalJointNormalStandardGramInputs.of_iidMatrixGaussian_gram_score
       twoSLSKinalFWLScoreCoordinate_indep_coordinateInverseScale_of_scoreVector_indep_gram
         (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
         (Sigma := Sigma) (ScoreVectorLaw := ScoreVectorLaw)
-        hScoreVector hW hScoreGramInd hScaleMap
+        hScoreVector hW hScoreGramInd
 
 /-- Constructor for the standard-Gram input package from a vector-score
 product-tail theorem.
@@ -6550,9 +6523,6 @@ theorem
       (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Y₁ := Y₁)
       (Sigma := Sigma) (ScoreVectorLaw := ScoreVectorLaw)
       h.score_vector_law h.residualGramWishartLaw h.score_independent_gram
-      (fun j =>
-        twoSLSKinalCoordinateInverseScale_map_eq_of_standardGramBridge
-          (l₂ := l₂) Sigma h.standardGramBridge j)
 
 /-- The strong Gaussian decomposition package refines to the existing
 standard-Gram input package. -/

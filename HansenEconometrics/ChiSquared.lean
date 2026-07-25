@@ -12,6 +12,19 @@ import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
 
+/-!
+# Chi-squared distribution utilities
+
+This module defines `chiSquared` as a gamma measure and develops the law
+identities used by the econometrics chapters. Its public surface includes the
+standard-normal square representation, convolution and finite-sum laws,
+symmetric-idempotent quadratic-form laws, multivariate Gaussian Mahalanobis
+laws, and the upper-tail calibration bridge used by asymptotic tests.
+
+The coordinate and density lemmas are support infrastructure for those public
+distributional endpoints.
+-/
+
 open MeasureTheory ProbabilityTheory
 open scoped ENNReal MatrixOrder
 
@@ -80,7 +93,7 @@ lemma sq_preimage_Iic_of_nonneg {t : ℝ} (ht : 0 ≤ t) :
 /-- **Jacobian identity**: for `u > 0`, the Gamma(1/2,1/2) density at `u²` times the Jacobian
 `2u` equals twice the standard normal density at `u`.  This is the key algebraic step in the
 change-of-variables argument `t = u²` that converts the Gamma CDF into the Gaussian CDF. -/
-lemma jacobian_pdf_eq {u : ℝ} (hu : 0 < u) :
+private lemma jacobian_pdf_eq {u : ℝ} (hu : 0 < u) :
     gammaPDFReal (1 / 2 : ℝ) (1 / 2 : ℝ) (u ^ 2) * (2 * u) = 2 * gaussianPDFReal 0 1 u := by
   have hu2nn : (0 : ℝ) ≤ u ^ 2 := sq_nonneg u
   simp only [gammaPDFReal, if_pos hu2nn, gaussianPDFReal, NNReal.coe_one, mul_one, sub_zero]

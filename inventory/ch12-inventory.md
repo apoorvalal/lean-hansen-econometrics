@@ -1835,9 +1835,9 @@ support inventory above control completion status and preferred public names.
   `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_homoskedastic_derivedDualSchur`
   now discharges the score-map convergence from the raw full-instrument
   sample-Gram WLLN. The literal observed-row facades
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`
+  `Theorem12_17.FullInstrumentSampleGram.observedRows`
   and
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail`
+  `Theorem12_17.FullInstrumentSampleGram.observedRows_lowerTail`
   state the maintained and full-instrument Assumption 12.2 packages on observed rows, then reuse
   the residual-row full-Gram/fitted-Gram theorem through
   `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`.
@@ -1862,9 +1862,9 @@ support inventory above control completion status and preferred public names.
   `TwoSLSSubsetCommonSigmaSlutskyBridgeConditions.of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`,
   `TwoSLSSubsetOveridConditions.of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`,
   and theorem endpoints
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`
+  `Theorem12_17.FullResidualScoreMap.neweyCovariance`
   /
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail`,
+  `Theorem12_17.FullResidualScoreMap.neweyCovariance_lowerTail`,
   so this facade no longer takes Newey covariance consistency as a primitive
   premise. The helper
   `scoreCovMat_eq_errorVariance_smul_twoSLSCombinedQZZ_of_assumption12_2_homoskedastic`
@@ -1874,15 +1874,15 @@ support inventory above control completion status and preferred public names.
   specialization `HomoskedasticErrorVariance.of_twoSLSCombined_left` derive the
   maintained-block homoskedasticity used by `C* - C` from full-instrument
   homoskedasticity. The theorem endpoints
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`
+  `Theorem12_17.FullResidualScoreMap.fullHomoskedastic`
   /
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail`
+  `Theorem12_17.FullResidualScoreMap.fullHomoskedastic_lowerTail`
   use those helpers to remove both the explicit covariance-identity premise and
   the separate maintained-instrument homoskedasticity premise from the
   residual-row theorem-facing row-Gram route. The observed-row facades
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`
+  `Theorem12_17.FullResidualScoreMap.fullHomoskedastic_observedRows`
   /
-  `twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_lowerTail`
+  `Theorem12_17.FullResidualScoreMap.fullHomoskedastic_observedRows_lowerTail`
   expose the same route with maintained and full Assumption 12.2 packages on
   Hansen's observed rows, delegating through
   `TwoSLSObservedIidFourthMomentPositiveCovarianceConditions.toResidualTextbookFourthConditions`.
@@ -1938,8 +1938,10 @@ support inventory above control completion status and preferred public names.
   companion `twoSLSSubsetNeweySarganDiffTest_rejectionProb_equiv_card_lowerTail`
   now state that the Newey and Sargan-difference rejection probabilities have
   vanishing truncated differences in both directions, reusing the two calibrated
-  chi-square size limits. The observed-row full-homoskedastic facade
-  `twoSLSSubsetNeweySarganDiffTest_rejectionProb_equiv_card_of_normalEquations_fullResidualScoreMap_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams`
-  packages that equivalence at the same theorem boundary as the strongest
-  corrected observed-row 12.17 endpoint; the existing `twoSLSSubsetNeweyStatOrZero_sub_sarganDiff_tendstoInMeasure_zero`
+  chi-square size limits. The corrected observed-row full-homoskedastic facade
+  `Theorem12_17.corrected_observedRows_rejectionProb_equiv` packages that
+  equivalence at the same theorem boundary as the strongest corrected
+  observed-row 12.17 endpoint. It is explicitly a compatibility result and
+  **does not formalize the under-specified asymptotic claim printed in Hansen**.
+  The existing `twoSLSSubsetNeweyStatOrZero_sub_sarganDiff_tendstoInMeasure_zero`
   remains the statistic-level `N-C=oₚ(1)` equivalence.

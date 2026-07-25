@@ -8955,7 +8955,7 @@ face is derived from Hansen's root-primitive weak-IV CLT
 `(Q̂_ZZ, n^{-1/2}Z'X, n^{-1/2}Z'e)`, and the LIML face is derived from the
 weak-scaled LIML bread/score package together with the Rayleigh-minimum
 certificate for `µ*`. -/
-theorem weakIV_estimators_minus_beta_theorem12_18_of_root_primitive_moments
+private theorem weakIV_estimators_minus_beta_theorem12_18_of_root_primitive_moments
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}

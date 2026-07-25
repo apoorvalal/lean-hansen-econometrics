@@ -2,7 +2,6 @@ import HansenEconometrics.Chapter12InstrumentalVariables.Basic
 import HansenEconometrics.Chapter12InstrumentalVariables.Asymptotics
 import HansenEconometrics.Chapter12InstrumentalVariables.Bootstrap
 import HansenEconometrics.Chapter12InstrumentalVariables.ControlFunction
-import HansenEconometrics.Chapter12InstrumentalVariables.FiniteSample
 import HansenEconometrics.Chapter12InstrumentalVariables.Functions
 import HansenEconometrics.Chapter12InstrumentalVariables.GeneratedRegressors
 import HansenEconometrics.Chapter12InstrumentalVariables.Kinal
@@ -42,7 +41,7 @@ The development starts with deterministic IV/2SLS estimator algebra:
   surfaces for Theorems 12.16--12.17.
 * `LIML`, `WeakInstruments`, and `ManyInstruments`: LIML notation plus the
   weak- and many-instrument theorem surfaces for Theorems 12.18--12.19.
-* `ControlFunction`, `FiniteSample`, `LATE`, `Tests`, and `WeakMany`: thin
+* `ControlFunction`, `LATE`, `Tests`, and `WeakMany`: thin
   compatibility and chapter-support surfaces retained from the initial
   Chapter 12 API; the modules above remain canonical for numbered theorems.
 

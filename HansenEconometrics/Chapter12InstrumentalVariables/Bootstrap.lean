@@ -12774,7 +12774,7 @@ set_option linter.style.longLine false in
 /-- Observed-row Assumption 12.2 direct-covariance Hansen Theorem 12.8
 endpoint with the one-row restriction rank condition stated as a nonzero row
 entry. -/
-theorem
+private theorem
     twoSLSBootstrap_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_row_ne_zero
     [IsProbabilityMeasure μ]
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}

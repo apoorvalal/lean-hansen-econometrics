@@ -4,6 +4,20 @@ import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 import Mathlib.Probability.Distributions.Beta
 
+/-!
+# Student-t distribution utilities
+
+This module develops the Student-t distribution in two equivalent forms:
+
+* `classicalStudentT`, backed by the explicit density `studentTPDF`;
+* `studentT`, defined from the standard-normal and chi-squared ratio law.
+
+The public API proves equality of these measures, establishes probability and
+measurability facts, supplies explicit central-coverage and tail bounds, and
+characterizes the exact moment threshold. The ratio-law theorems at the end of
+the file are the intended interface for finite-sample regression results.
+-/
+
 open MeasureTheory ProbabilityTheory
 open scoped ENNReal NNReal
 
