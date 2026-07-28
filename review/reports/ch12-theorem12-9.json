@@ -1,0 +1,58 @@
+[
+  {
+    "id": "afe2cc79fc5a2a77733f63c0d2e6137076d5f895",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 22644,
+    "decl": "generated129_integrable_matrix_mul_const",
+    "dimension": "redundancy",
+    "severity": "major",
+    "rule": "AGENTS.md: reuse repo theorems before adding new ones",
+    "claim": "The corrected layer duplicates an existing four-lemma matrix integration helper family from Chapter 11 SUR.",
+    "evidence": "Both helper families have the same general statements and coordinatewise proofs and are confined to their defining files.",
+    "suggested_fix": "Extract one reusable matrix-integration helper family into a shared utility module and make both chapter files delegate to it.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "64080c21cfe06b1648e78b75c298df21f790b521",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 22984,
+    "decl": "coefficientLinearization",
+    "dimension": "hygiene",
+    "severity": "nit",
+    "rule": "AGENTS.md PR gate: keep same-file proof scaffolding private",
+    "claim": "coefficientLinearization is public although it has only same-file proof uses.",
+    "evidence": "Repository search finds no out-of-file caller or inventory citation.",
+    "suggested_fix": "Make coefficientLinearization private.",
+    "mechanical": true,
+    "confidence": "high"
+  },
+  {
+    "id": "625eaef5ea9e0fec57fc8435bf25a1f317db8ea9",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 22957,
+    "decl": "oracle_covariance_consistent",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate: add simp lemmas for recurring canonical rewrites",
+    "claim": "The oracle generated-design/stacked-row equality is reproved in two endpoint proofs instead of exposed as one simp bridge.",
+    "evidence": "oracle_coefficient_limit and oracle_covariance_consistent contained identical extensionality proofs.",
+    "suggested_fix": "Add one private simp bridge and reuse it.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "c227f5fd7667e810666084fa26d115c70db56bbf",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 22957,
+    "decl": "oracle_covariance_consistent",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md proof strategy policy: add small helper lemmas when they remove recurring notation friction",
+    "claim": "oracle_covariance_consistent duplicated the nontrivial oracle-design extensionality block.",
+    "evidence": "The same ext/simp block occurred verbatim in both oracle endpoints.",
+    "suggested_fix": "Factor the equality into the shared simp bridge.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

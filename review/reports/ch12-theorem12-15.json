@@ -1,0 +1,44 @@
+[
+  {
+    "id": "f1c74dad1471e3c4e73647d59a828e4c591faa81",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 14174,
+    "decl": "gram_apply_measurable_of_entries",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The private Gram-entry measurability helper carried an unused DecidableEq n assumption.",
+    "evidence": "Lean's unusedSectionVars linter named DecidableEq n.",
+    "suggested_fix": "Add DecidableEq n to the declaration's omit prefix.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "c279e1bea2e1dd287450da03368a267410912456",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 14277,
+    "decl": "fromCols_apply_measurable_of_entries",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The private fromCols measurability helper carried unused Fintype n and DecidableEq n assumptions.",
+    "evidence": "Lean's unusedSectionVars linter named both assumptions.",
+    "suggested_fix": "Add both assumptions to the declaration's omit prefix.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "85c473b993e5a82fd4e5082d706a0d6895242200",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 14355,
+    "decl": "fittedRegressorsStar_apply_measurable_of_entries",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The private fitted-regressor measurability helper carried unused Fintype k2 and DecidableEq k2 assumptions.",
+    "evidence": "Lean's unusedSectionVars linter named both assumptions.",
+    "suggested_fix": "Add both assumptions to the declaration's omit prefix.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

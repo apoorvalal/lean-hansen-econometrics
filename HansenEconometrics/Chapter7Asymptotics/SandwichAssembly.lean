@@ -384,7 +384,8 @@ regressor.  The conversion theorem below derives the score outer-product moment
 used by the existing robust feasible-HC API.  The remaining difference from a
 literal textbook `E[Y^4]` assumption is the projection step turning a response
 fourth moment into a structural-error fourth moment. -/
-structure IidAssumption72FourthMomentConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
+structure IidStructuralErrorRegressorFourthMomentConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ) where
   /-- Linear-model decomposition of the observed outcome. -/
   model : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω
@@ -407,13 +408,13 @@ structure IidAssumption72FourthMomentConditions (μ : Measure Ω) [IsProbability
   /-- Fourth-row-moment domination for feasible-HC quadratic weights. -/
   rowNorm_fourth_integrable : Integrable (fun ω => ‖X 0 ω‖ ^ 4) μ
 
-namespace IidAssumption72FourthMomentConditions
+namespace IidStructuralErrorRegressorFourthMomentConditions
 
 /-- The fourth structural-error moment supplies the squared-error `L²` moment. -/
 theorem error_sq_memLp_two
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : IidAssumption72FourthMomentConditions μ X e y β) :
+    (h : IidStructuralErrorRegressorFourthMomentConditions μ X e y β) :
     MemLp (fun ω => e 0 ω ^ 2) 2 μ := by
   have hmeas : AEStronglyMeasurable (fun ω => e 0 ω ^ 2) μ :=
     ((h.e_aestronglyMeasurable 0).aemeasurable.pow_const 2).aestronglyMeasurable
@@ -426,16 +427,17 @@ theorem error_sq_memLp_two
 theorem int_error_sq
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : IidAssumption72FourthMomentConditions μ X e y β) :
-    Integrable (fun ω => e 0 ω ^ 2) μ :=
+    (h : IidStructuralErrorRegressorFourthMomentConditions μ X e y β) :
+  Integrable (fun ω => e 0 ω ^ 2) μ :=
   memLp_one_iff_integrable.mp
-    ((IidAssumption72FourthMomentConditions.error_sq_memLp_two h).mono_exponent one_le_two)
+    ((IidStructuralErrorRegressorFourthMomentConditions.error_sq_memLp_two h).mono_exponent
+      one_le_two)
 
 /-- Fourth-row-moment integrability supplies the squared-row `L²` moment. -/
 theorem rowNorm_sq_memLp_two
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : IidAssumption72FourthMomentConditions μ X e y β) :
+    (h : IidStructuralErrorRegressorFourthMomentConditions μ X e y β) :
     MemLp (fun ω => ‖X 0 ω‖ ^ 2) 2 μ := by
   have hmeas : AEStronglyMeasurable (fun ω => ‖X 0 ω‖ ^ 2) μ :=
     ((h.x_aestronglyMeasurable 0).norm.aemeasurable.pow_const 2).aestronglyMeasurable
@@ -449,13 +451,13 @@ of the true-error score outer product. -/
 theorem int_score_outer
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : IidAssumption72FourthMomentConditions μ X e y β) :
+    (h : IidStructuralErrorRegressorFourthMomentConditions μ X e y β) :
     Integrable (fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)) μ := by
   classical
   have he2 : MemLp (fun ω => e 0 ω ^ 2) 2 μ :=
-    IidAssumption72FourthMomentConditions.error_sq_memLp_two h
+    IidStructuralErrorRegressorFourthMomentConditions.error_sq_memLp_two h
   have hrow2 : MemLp (fun ω => ‖X 0 ω‖ ^ 2) 2 μ :=
-    IidAssumption72FourthMomentConditions.rowNorm_sq_memLp_two h
+    IidStructuralErrorRegressorFourthMomentConditions.rowNorm_sq_memLp_two h
   have hprod : Integrable
       ((fun ω => e 0 ω ^ 2) * (fun ω => ‖X 0 ω‖ ^ 2)) μ :=
     he2.integrable_mul hrow2
@@ -494,26 +496,26 @@ joint-observation package. -/
 theorem toIidRobustFeasibleHCMomentConditions
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : IidAssumption72FourthMomentConditions μ X e y β) :
+    (h : IidStructuralErrorRegressorFourthMomentConditions μ X e y β) :
     IidRobustFeasibleHCMomentConditions μ X e y β where
   model := h.model
   x_aestronglyMeasurable := h.x_aestronglyMeasurable
   e_aestronglyMeasurable := h.e_aestronglyMeasurable
   joint_iIndep := h.joint_iIndep
   joint_identDistrib := h.joint_identDistrib
-  int_error_sq := IidAssumption72FourthMomentConditions.int_error_sq h
+  int_error_sq := IidStructuralErrorRegressorFourthMomentConditions.int_error_sq h
   Q_nonsing := h.Q_nonsing
   orthogonality := h.orthogonality
-  int_score_outer := IidAssumption72FourthMomentConditions.int_score_outer h
+  int_score_outer := IidStructuralErrorRegressorFourthMomentConditions.int_score_outer h
   rowNorm_fourth_integrable := h.rowNorm_fourth_integrable
 
-end IidAssumption72FourthMomentConditions
+end IidStructuralErrorRegressorFourthMomentConditions
 
 /-- IID response/regressor fourth-moment package for Hansen Assumption 7.2.
 
 This packages the textbook-style response moment `E[Y^4] < ∞` together with
 the linear-model decomposition.  The conversion theorem derives the structural
-error fourth moment and then reuses `IidAssumption72FourthMomentConditions`. -/
+error fourth moment and then reuses `IidStructuralErrorRegressorFourthMomentConditions`. -/
 structure IidAssumption72ResponseMomentConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ) where
   /-- Linear-model decomposition of the observed outcome. -/
@@ -613,11 +615,11 @@ theorem int_error_fourth
 
 /-- The response-fourth-moment package discharges the structural-error
 fourth-moment iid package. -/
-theorem toIidAssumption72FourthMomentConditions
+theorem toIidStructuralErrorRegressorFourthMomentConditions
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
     (h : IidAssumption72ResponseMomentConditions μ X e y β) :
-    IidAssumption72FourthMomentConditions μ X e y β where
+    IidStructuralErrorRegressorFourthMomentConditions μ X e y β where
   model := h.model
   x_aestronglyMeasurable := h.x_aestronglyMeasurable
   e_aestronglyMeasurable := h.e_aestronglyMeasurable
@@ -635,8 +637,8 @@ theorem toIidRobustFeasibleHCMomentConditions
     {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
     (h : IidAssumption72ResponseMomentConditions μ X e y β) :
     IidRobustFeasibleHCMomentConditions μ X e y β :=
-  IidAssumption72FourthMomentConditions.toIidRobustFeasibleHCMomentConditions
-    h.toIidAssumption72FourthMomentConditions
+  IidStructuralErrorRegressorFourthMomentConditions.toIidRobustFeasibleHCMomentConditions
+    h.toIidStructuralErrorRegressorFourthMomentConditions
 
 end IidAssumption72ResponseMomentConditions
 
@@ -2931,6 +2933,78 @@ noncomputable def olsHetCovIdealStar
 noncomputable def olsHetCovStar
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
   (sampleGram X)⁻¹ * sampleScoreCovStar X y * (sampleGram X)⁻¹
+
+omit [DecidableEq k] in
+/-- Sample Gram matrices transform contravariantly under a deterministic
+column change `X ↦ X T`. -/
+theorem sampleGram_mul_columnTransform
+    {q : Type*}
+    (X : Matrix n k ℝ) (T : Matrix k q ℝ) :
+    sampleGram (X * T) = Tᵀ * sampleGram X * T := by
+  unfold sampleGram
+  rw [Matrix.transpose_mul]
+  simp [Matrix.mul_assoc, Matrix.smul_mul, Matrix.mul_smul]
+
+/-- HC0 middle matrices transform contravariantly under a deterministic column
+change when the totalized OLS residuals agree. -/
+private theorem sampleScoreCovStar_mul_columnTransform_of_residual_eq
+    {q : Type*} [Fintype q] [DecidableEq q]
+    (X : Matrix n k ℝ) (T : Matrix k q ℝ) (y : n → ℝ)
+    (hres : olsResidualStar (X * T) y = olsResidualStar X y) :
+    sampleScoreCovStar (X * T) y =
+      Tᵀ * sampleScoreCovStar X y * T := by
+  unfold sampleScoreCovStar
+  rw [hres]
+  calc
+    (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • (X * T) i)
+          (olsResidualStar X y i • (X * T) i)
+        =
+      (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n, Tᵀ * Matrix.vecMulVec (olsResidualStar X y i • X i)
+          (olsResidualStar X y i • X i) * T := by
+          congr 1
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          ext a b
+          simp [Matrix.mul_apply, Matrix.vecMulVec_apply,
+            Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+    _ = Tᵀ * ((Fintype.card n : ℝ)⁻¹ •
+          ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • X i)
+            (olsResidualStar X y i • X i)) * T := by
+          rw [Matrix.mul_smul, Matrix.smul_mul]
+          simp [Matrix.mul_assoc, Matrix.mul_sum, Matrix.sum_mul]
+
+/-- HC0 sandwich covariance transforms under a deterministic nonsingular
+column change, provided the totalized residuals agree. -/
+theorem olsHetCovStar_mul_columnTransform_of_residual_eq
+    {q : Type*} [Fintype q] [DecidableEq q]
+    (X : Matrix n k ℝ) (T : Matrix k q ℝ) (S : Matrix q k ℝ) (y : n → ℝ)
+    (hST : S * T = 1) (hTS : T * S = 1)
+    (hG : IsUnit (sampleGram X).det)
+    (hres : olsResidualStar (X * T) y = olsResidualStar X y) :
+    olsHetCovStar (X * T) y = S * olsHetCovStar X y * Sᵀ := by
+  have htr : Sᵀ * Tᵀ = 1 := by
+    rw [← Matrix.transpose_mul, hTS, Matrix.transpose_one]
+  rw [olsHetCovStar, sampleGram_mul_columnTransform,
+    sampleScoreCovStar_mul_columnTransform_of_residual_eq X T y hres,
+    nonsingInv_conjugate_of_inverse (G := sampleGram X) (T := T) (S := S) hST hTS hG]
+  change (S * (sampleGram X)⁻¹ * Sᵀ) *
+        (Tᵀ * sampleScoreCovStar X y * T) *
+        (S * (sampleGram X)⁻¹ * Sᵀ) =
+      S * ((sampleGram X)⁻¹ * sampleScoreCovStar X y * (sampleGram X)⁻¹) * Sᵀ
+  calc
+    (S * (sampleGram X)⁻¹ * Sᵀ) *
+          (Tᵀ * sampleScoreCovStar X y * T) *
+          (S * (sampleGram X)⁻¹ * Sᵀ)
+        = S * ((sampleGram X)⁻¹ *
+            ((Sᵀ * Tᵀ) * sampleScoreCovStar X y * (T * S)) *
+              (sampleGram X)⁻¹) * Sᵀ := by
+          simp [Matrix.mul_assoc]
+    _ = S * ((sampleGram X)⁻¹ * sampleScoreCovStar X y *
+          (sampleGram X)⁻¹) * Sᵀ := by
+          rw [htr, hTS]
+          simp [Matrix.mul_assoc]
 
 /-- Totalized HC1 asymptotic sandwich estimator:
 `(n / (n-k)) V̂_HC0`. -/

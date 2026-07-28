@@ -1,0 +1,16 @@
+[
+  {
+    "id": "db57090e0a088e5731060eda05335fa6c2a40ec7",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/ManyInstruments.lean",
+    "line": 13445,
+    "decl": "ManyInstrumentsTheorem1219RawModelConditions",
+    "dimension": "faithfulness",
+    "severity": "major",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The raw Theorem 12.19 package silently strengthens Hansen's covariance assumption by requiring the full reduced-form covariance Sigma to be positive definite, excluding singular covariance models without documenting or justifying that extra nondegeneracy assumption.",
+    "evidence": "Hansen (12.74), textbook/ch12/ch12_excerpt.txt:5620-5631, states only E[uu' | Z] = Sigma. The Lean package has field error_covariance_posDef : Sigma.PosDef, and the final endpoint consumes it. Before this review fix, neither the package docstring nor the inventory disclosed that strengthening.",
+    "suggested_fix": "Either weaken the raw package to covariance positive semidefiniteness and move any genuinely needed nondegeneracy to the minimal generalized-root theorem, or explicitly document and justify Sigma.PosDef as an additional corrected-endpoint assumption in the raw-package/endpoint docstrings and Chapter 12 inventory.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

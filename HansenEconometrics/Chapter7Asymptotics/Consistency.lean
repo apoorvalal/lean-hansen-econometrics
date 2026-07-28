@@ -79,6 +79,39 @@ abbrev SampleMomentAssumption71
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
   LeastSquaresConsistencyConditions μ X e
 
+/-- Gram-only WLLN package for the stacked-design sample Gram.
+
+This is the part of Hansen Assumption 7.1 / 12.1 needed only to prove
+`n⁻¹∑ Xᵢ Xᵢ' → E[X X']`.  It deliberately omits the error score,
+orthogonality, and nonsingularity fields from `SampleMomentAssumption71`, so
+later chapters can cite the exact sample-Gram requirements without inventing an
+irrelevant regression error process. -/
+structure SampleGramWLLNConditions (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) where
+  /-- Pairwise independence of the outer-product sequence `X i (X i)ᵀ`. -/
+  indep_outer :
+    Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => Matrix.vecMulVec (X i ω) (X i ω)))
+  /-- Identical distribution of the outer products. -/
+  ident_outer : ∀ i,
+    IdentDistrib (fun ω => Matrix.vecMulVec (X i ω) (X i ω))
+                 (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ μ
+  /-- Integrability of the reference outer product. -/
+  int_outer : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ
+
+namespace SampleGramWLLNConditions
+
+/-- The full Chapter 7 moment package supplies the Gram-only WLLN package. -/
+theorem ofSampleMoment
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) :
+    SampleGramWLLNConditions μ X where
+  indep_outer := h.indep_outer
+  ident_outer := h.ident_outer
+  int_outer := h.int_outer
+
+end SampleGramWLLNConditions
+
 namespace LeastSquaresConsistencyConditions
 
 /-- Compatibility projection for code that still names the internal sample bundle. -/
@@ -272,12 +305,13 @@ theorem popGram_inv_isSymm
 noncomputable def errorVariance (μ : Measure Ω) (e : ℕ → Ω → ℝ) : ℝ :=
   μ[fun ω => e 0 ω ^ 2]
 
+omit [DecidableEq k] in
 /-- **WLLN for the sample Gram.** Under the moment-level assumptions, the sample
 Gram matrix of the stacked design converges in probability to the population Gram `Q`. -/
-theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
+theorem sampleGram_stackRegressors_tendstoInMeasure_popGram_of_wlln
     {μ : Measure Ω} [IsFiniteMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
-    (h : SampleMomentAssumption71 μ X e) :
+    {X : ℕ → Ω → (k → ℝ)}
+    (h : SampleGramWLLNConditions μ X) :
     TendstoInMeasure μ
       (fun n ω => sampleGram (stackRegressors X n ω))
       atTop
@@ -287,17 +321,41 @@ theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
     (fun i ω => Matrix.vecMulVec (X i ω) (X i ω))
     h.int_outer h.indep_outer h.ident_outer
 
-/-- Measurability of the stacked sample Gram under the Chapter 7.1 moment layer. -/
-theorem sampleGram_stackRegressors_aestronglyMeasurable
+/-- **WLLN for the sample Gram.** Under the moment-level assumptions, the sample
+Gram matrix of the stacked design converges in probability to the population Gram `Q`. -/
+theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
-    (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
+    (h : SampleMomentAssumption71 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω => sampleGram (stackRegressors X n ω))
+      atTop
+      (fun _ => popGram μ X) :=
+  sampleGram_stackRegressors_tendstoInMeasure_popGram_of_wlln
+    (SampleGramWLLNConditions.ofSampleMoment h)
+
+omit [DecidableEq k] in
+/-- Measurability of the stacked sample Gram under the Gram-only WLLN layer. -/
+theorem sampleGram_stackRegressors_aestronglyMeasurable_of_wlln
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)}
+    (h : SampleGramWLLNConditions μ X) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω => sampleGram (stackRegressors X n ω)) μ := by
   simp only [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
   refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+
+/-- Measurability of the stacked sample Gram under the Chapter 7.1 moment layer. -/
+theorem sampleGram_stackRegressors_aestronglyMeasurable
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
+    AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ :=
+  sampleGram_stackRegressors_aestronglyMeasurable_of_wlln
+    (SampleGramWLLNConditions.ofSampleMoment h) n
 
 /-- Measurability of the stacked sample cross moment under the Chapter 7.1 moment layer. -/
 theorem sampleCrossMoment_stack_aestronglyMeasurable
@@ -311,6 +369,27 @@ theorem sampleCrossMoment_stack_aestronglyMeasurable
   refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
+
+omit [DecidableEq k] in
+/-- Measurability of the stacked sample cross moment under a generic
+cross-product WLLN layer.
+
+Unlike `sampleCrossMoment_stack_aestronglyMeasurable`, this helper does not
+assume the population cross moment is zero. -/
+theorem sampleCrossMoment_stack_aestronglyMeasurable_of_wlln
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (hint : Integrable (fun ω => e 0 ω • X 0 ω) μ)
+    (hident : ∀ i,
+      IdentDistrib (fun ω => e i ω • X i ω) (fun ω => e 0 ω • X 0 ω) μ μ)
+    (n : ℕ) :
+    AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
+  simp only [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+    sum_fin_eq_sum_range_smul]
+  refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+  refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+  exact ((hident i).integrable_iff.mpr hint).aestronglyMeasurable
 
 /-- **CMT for the inverse sample Gram.** Under the moment-level assumptions,
 `Q̂ₙ⁻¹ →ₚ Q⁻¹`. -/
@@ -346,6 +425,27 @@ theorem sampleCrossMoment_stack_tendstoInMeasure_zero
   exact tendstoInMeasure_wlln
     (fun i ω => e i ω • X i ω)
     h.int_cross h.indep_cross h.ident_cross
+
+omit [DecidableEq k] in
+/-- **Generic cross-moment WLLN.**
+
+The stacked sample cross moment converges to its population cross moment without
+requiring the orthogonality axiom used by Theorem 7.1. -/
+theorem sampleCrossMoment_stack_tendstoInMeasure_integral
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (hint : Integrable (fun ω => e 0 ω • X 0 ω) μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • X i ω)))
+    (hident : ∀ i,
+      IdentDistrib (fun ω => e i ω • X i ω) (fun ω => e 0 ω • X 0 ω) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop
+      (fun _ => μ[fun ω => e 0 ω • X 0 ω]) := by
+  simp only [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+    sum_fin_eq_sum_range_smul]
+  exact tendstoInMeasure_wlln
+    (fun i ω => e i ω • X i ω) hint hindep hident
 
 /-- **Theorem 7.4 squared-error WLLN.**
 

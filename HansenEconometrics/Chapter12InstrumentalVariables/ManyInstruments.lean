@@ -1,0 +1,17791 @@
+import HansenEconometrics.AsymptoticUtils
+import HansenEconometrics.ProbabilityUtils
+import HansenEconometrics.Chapter11MultivariateRegression.ReducedRank
+import HansenEconometrics.Chapter7Asymptotics.Consistency
+import HansenEconometrics.Chapter12InstrumentalVariables.Asymptotics
+import HansenEconometrics.Chapter12InstrumentalVariables.LIML
+import HansenEconometrics.Chapter12InstrumentalVariables.WeakInstruments
+import Mathlib.MeasureTheory.Integral.Prod
+import Mathlib.Probability.Independence.Conditional
+
+/-!
+# Chapter 12 — many instruments
+
+This file contains the theorem surface for Hansen Theorem 12.19.  The
+instrument index type is allowed to depend on the sample size, so the statement
+can express the Bekker-style sequence `ℓ_n / n -> α` rather than fixing the
+instrument dimension.
+
+The strongest corrected raw-model endpoint is
+`manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot`; it
+derives the LIML selector limit through the Chapter 11 generalized-eigenvalue
+infrastructure and returns the OLS, 2SLS, and LIML probability limits together.
+-/
+
+open MeasureTheory ProbabilityTheory Filter
+open scoped Matrix Matrix.Norms.Elementwise Function Topology MeasureTheory ProbabilityTheory
+
+namespace HansenEconometrics
+
+open Matrix
+
+variable {k : Type*} [Fintype k] [DecidableEq k]
+variable {ι : ℕ → Type*} [∀ m, Fintype (ι m)] [∀ m, DecidableEq (ι m)]
+
+/-- Signal component `Z Γ` in Hansen's many-instrument reduced form
+`X = Γ'Z + u₂`, written in row-matrix convention. -/
+noncomputable def manyInstrumentSignal
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) : Matrix n k ℝ :=
+  Z * Gamma
+
+/-- Sample signal Gram matrix `n^{-1} Γ'Z'ZΓ` from Hansen (12.77). -/
+noncomputable def manyInstrumentSignalGram
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) : Matrix k k ℝ :=
+  sampleGram (manyInstrumentSignal Z Gamma)
+
+/-- OLS reduced-form Gram cross term
+`n^{-1}((ZΓ)'u₂ + u₂'(ZΓ))` from Hansen's many-instrument decomposition. -/
+noncomputable def manyInstrumentReducedFormCrossGram
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (u2 : Matrix n k ℝ) :
+    Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ((manyInstrumentSignal Z Gamma)ᵀ * u2 +
+      u2ᵀ * manyInstrumentSignal Z Gamma)
+
+omit [Fintype k] [DecidableEq k] in
+/-- The signal Gram `n⁻¹Γ'Z'ZΓ` is the primitive instrument Gram
+`Q̂_ZZ` pre- and post-multiplied by `Γ`. -/
+theorem manyInstrumentSignalGram_eq_Gamma_transpose_sampleQZZ_mul_Gamma
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) :
+    manyInstrumentSignalGram Z Gamma =
+      Gammaᵀ * sampleQZZ Z * Gamma := by
+  rw [manyInstrumentSignalGram, manyInstrumentSignal, sampleQZZ]
+  unfold sampleGram
+  rw [Matrix.transpose_mul]
+  simp [Matrix.mul_assoc, Matrix.smul_mul, Matrix.mul_smul]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentSignalGram_diag_mul_card
+    {n l : Type*} [Fintype n] [Nonempty n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (a : k) :
+    (Fintype.card n : ℝ) * manyInstrumentSignalGram Z Gamma a a =
+      ∑ i : n, (manyInstrumentSignal Z Gamma i a) ^ 2 := by
+  have hcard : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  simp [manyInstrumentSignalGram, sampleGram, Matrix.mul_apply, hcard, pow_two]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The signal/reduced-form-error cross Gram is the symmetrized primitive
+instrument-error cross moment `Q̂_Zu₂`, transformed by `Γ`. -/
+theorem manyInstrumentReducedFormCrossGram_eq_Gamma_transpose_sampleQZX
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (u2 : Matrix n k ℝ) :
+    manyInstrumentReducedFormCrossGram Z Gamma u2 =
+      Gammaᵀ * sampleQZX Z u2 + (Gammaᵀ * sampleQZX Z u2)ᵀ := by
+  simp [manyInstrumentReducedFormCrossGram, manyInstrumentSignal, sampleQZX,
+    Matrix.transpose_mul, Matrix.mul_assoc, Matrix.mul_smul, smul_add]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The signal score `n⁻¹Γ'Z'e` is `Γ'` times the primitive instrument score. -/
+theorem sampleCrossMoment_manyInstrumentSignal_eq_Gamma_transpose_sampleCrossMoment
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (e : n → ℝ) :
+    sampleCrossMoment (manyInstrumentSignal Z Gamma) e =
+      Gammaᵀ *ᵥ sampleCrossMoment Z e := by
+  simp [manyInstrumentSignal, sampleCrossMoment, Matrix.transpose_mul,
+    Matrix.mulVec_mulVec, Matrix.mulVec_smul]
+
+omit [Fintype k] [DecidableEq k] in
+/-- Projected signal Gram matrix for the 2SLS face of Hansen's many-instrument
+decomposition.  This is the exact Star-projection version of the signal bread
+component. -/
+noncomputable def manyInstrumentProjectedSignalGram
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) : Matrix k k ℝ :=
+  sampleGram (instrumentProjectionStar Z * manyInstrumentSignal Z Gamma)
+
+omit [Fintype k] [DecidableEq k] in
+/-- Projected signal/error cross-Gram term for the 2SLS bread decomposition. -/
+noncomputable def manyInstrumentProjectedReducedFormCrossGram
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (u2 : Matrix n k ℝ) :
+    Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ((instrumentProjectionStar Z * manyInstrumentSignal Z Gamma)ᵀ *
+        (instrumentProjectionStar Z * u2) +
+      (instrumentProjectionStar Z * u2)ᵀ *
+        (instrumentProjectionStar Z * manyInstrumentSignal Z Gamma))
+
+omit [Fintype k] [DecidableEq k] in
+/-- Projected signal score component for the 2SLS score decomposition. -/
+noncomputable def manyInstrumentProjectedSignalScore
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (e : n → ℝ) : k → ℝ :=
+  sampleCrossMoment (instrumentProjectionStar Z * manyInstrumentSignal Z Gamma) e
+
+omit [Fintype k] [DecidableEq k] in
+/-- Projected reduced-form error Gram matrix `n^{-1} u₂' P_Z u₂`.
+Under Hansen's many-instrument homoskedasticity and fourth-moment assumptions
+this is the matrix whose probability limit is `α Σ₂₂`. -/
+noncomputable def manyInstrumentProjectedErrorGram
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) : Matrix k k ℝ :=
+  sampleGram (instrumentProjectionStar Z * u2)
+
+omit [Fintype k] [DecidableEq k] in
+/-- Projected reduced-form error cross moment `n^{-1} u₂' P_Z e`.
+Under Hansen's many-instrument homoskedasticity and fourth-moment assumptions
+this has probability limit `α Σ₂e`. -/
+noncomputable def manyInstrumentProjectedErrorCross
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) (e : n → ℝ) : k → ℝ :=
+  sampleCrossMoment (instrumentProjectionStar Z * u2) e
+
+omit [Fintype k] [DecidableEq k] in
+/-- Projection trace ratio `n^{-1}tr(P_Z*)` used in Hansen's many-instrument
+homoskedastic projection moment calculations.  On nonsingular instrument Gram
+matrices this is the instrument-count ratio `ℓ_n/n`. -/
+noncomputable def manyInstrumentProjectionTraceRatio
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ * Matrix.trace (instrumentProjectionStar Z)
+
+omit [Fintype k] [DecidableEq k] in
+/-- On the ordinary nonsingular projection branch, `n^{-1}tr(P_Z)` equals the
+instrument-count ratio.  This reuses the Chapter 3 hat-matrix trace theorem
+rather than reproving the projection-rank argument locally. -/
+theorem manyInstrumentProjectionTraceRatio_eq_card_ratio_of_nonsingular
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) [Invertible (Zᵀ * Z)] :
+    manyInstrumentProjectionTraceRatio Z =
+      (Fintype.card l : ℝ) / (Fintype.card n : ℝ) := by
+  simp [manyInstrumentProjectionTraceRatio, instrumentProjectionStar_eq_projection,
+    instrumentProjection, hatMatrix_trace, div_eq_mul_inv, mul_comm]
+
+/-- If every realized instrument Gram is nonsingular and Hansen's instrument
+count ratio `ℓ_n / n` converges to `α`, then the projection trace ratio
+`n^{-1} tr(P_Z*)` converges to `α` in probability.
+
+This is the deterministic trace step in the many-instrument projection
+calculation; the remaining work in Hansen's theorem is the homoskedastic
+moment/remainder argument, not the trace identity itself. -/
+theorem manyInstrumentProjectionTraceRatio_tendstoInMeasure_of_card_ratio_nonsingular
+    {ι : ℕ → Type*} [∀ m, Fintype (ι m)] [∀ m, DecidableEq (ι m)]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {alpha : ℝ}
+    (hcard : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (hnonsing : ∀ (m : ℕ) (ω : Ω),
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω))) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectionTraceRatio (Z m ω))
+      atTop (fun _ => alpha) := by
+  have hconst : TendstoInMeasure μ
+      (fun m (_ : Ω) => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+      atTop (fun _ => alpha) :=
+    tendstoInMeasure_const_real (μ := μ) hcard
+  refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hconst
+  exact ae_of_all μ fun ω => by
+    rcases hnonsing m ω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    simpa using
+      (manyInstrumentProjectionTraceRatio_eq_card_ratio_of_nonsingular
+        (Z m ω)
+      ).symm
+
+/-- Eventual-a.e. version of
+`manyInstrumentProjectionTraceRatio_tendstoInMeasure_of_card_ratio_nonsingular`.
+
+This is the form used by the many-instrument theorem: the projection trace
+ratio is identified with `ℓ_n / n` on the high-probability nonsingular branch,
+not necessarily for every sample size and realization. -/
+theorem manyInstrumentProjectionTraceRatio_tendstoInMeasure_of_eventually_ae_card_ratio_nonsingular
+    {ι : ℕ → Type*} [∀ m, Fintype (ι m)] [∀ m, DecidableEq (ι m)]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {alpha : ℝ}
+    (hcard : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω))) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectionTraceRatio (Z m ω))
+      atTop (fun _ => alpha) := by
+  have hconst : TendstoInMeasure μ
+      (fun m (_ : Ω) => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+      atTop (fun _ => alpha) :=
+    tendstoInMeasure_const_real (μ := μ) hcard
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hconst
+  filter_upwards [hnonsing] with m hm
+  filter_upwards [hm] with ω hω
+  rcases hω with ⟨inst⟩
+  letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+  simpa using
+    (manyInstrumentProjectionTraceRatio_eq_card_ratio_of_nonsingular
+      (Z m ω)
+    ).symm
+
+omit [Fintype k] [DecidableEq k] in
+/-- On an a.e. nonsingular instrument branch, the projection trace ratio is
+a.e. equal to the deterministic instrument-count ratio, hence measurable.
+
+This is the measurability companion to
+`manyInstrumentProjectionTraceRatio_tendstoInMeasure_of_eventually_ae_card_ratio_nonsingular`;
+it lets theorem-facing constructors derive the trace-ratio measurability field
+instead of carrying it as a separate homoskedastic projection-remainder input. -/
+theorem manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+    {Ω : Type*} [MeasurableSpace Ω]
+    {m : ℕ} {Z : Ω → Matrix (Fin m) (ι m) ℝ} {μ : Measure Ω}
+    (hnonsing : ∀ᵐ ω ∂μ, Nonempty (Invertible ((Z ω)ᵀ * Z ω))) :
+    AEStronglyMeasurable (fun ω => manyInstrumentProjectionTraceRatio (Z ω)) μ := by
+  have hconst : AEStronglyMeasurable
+      (fun _ : Ω => (Fintype.card (ι m) : ℝ) / (Fintype.card (Fin m) : ℝ)) μ :=
+    aestronglyMeasurable_const
+  refine hconst.congr ?_
+  filter_upwards [hnonsing] with ω hω
+  rcases hω with ⟨inst⟩
+  letI : Invertible ((Z ω)ᵀ * Z ω) := inst
+  exact (manyInstrumentProjectionTraceRatio_eq_card_ratio_of_nonsingular (Z ω)).symm
+
+omit [Fintype k] [DecidableEq k] in
+private theorem instrumentProjectionStar_transpose
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) :
+    (instrumentProjectionStar Z)ᵀ = instrumentProjectionStar Z := by
+  simp [instrumentProjectionStar, Matrix.transpose_mul, Matrix.transpose_nonsing_inv,
+    Matrix.mul_assoc]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem instrumentProjectionStar_idempotent
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) :
+    instrumentProjectionStar Z * instrumentProjectionStar Z =
+      instrumentProjectionStar Z := by
+  by_cases hunit : IsUnit (Zᵀ * Z).det
+  · letI : Invertible (Zᵀ * Z) := Matrix.invertibleOfIsUnitDet (A := Zᵀ * Z) hunit
+    exact instrumentProjectionStar_idempotent_of_nonsingular Z
+  · rw [instrumentProjectionStar, Matrix.nonsing_inv_apply_not_isUnit _ hunit]
+    simp
+
+omit [Fintype k] [DecidableEq k] in
+private theorem instrumentProjectionStar_sum_sq_eq_trace
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) :
+    (∑ i, ∑ j, instrumentProjectionStar Z i j ^ 2) =
+      Matrix.trace (instrumentProjectionStar Z) := by
+  let P := instrumentProjectionStar Z
+  have hsymm : ∀ i j, P j i = P i j := by
+    intro i j
+    have h := congrFun (congrFun (instrumentProjectionStar_transpose Z) i) j
+    simpa [P] using h
+  calc
+    (∑ i, ∑ j, instrumentProjectionStar Z i j ^ 2) =
+        ∑ i, (P * P) i i := by
+      apply Finset.sum_congr rfl
+      intro i _
+      simp only [P, Matrix.mul_apply]
+      apply Finset.sum_congr rfl
+      intro j _
+      change P i j ^ 2 = P i j * P j i
+      rw [hsymm]
+      ring
+    _ = ∑ i, P i i := by rw [instrumentProjectionStar_idempotent Z]
+    _ = Matrix.trace (instrumentProjectionStar Z) := rfl
+
+omit [Fintype k] [DecidableEq k] in
+private theorem instrumentProjectionStar_sum_sq_le_card
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) :
+    (∑ i, ∑ j, instrumentProjectionStar Z i j ^ 2) ≤
+      (Fintype.card n : ℝ) := by
+  classical
+  rw [instrumentProjectionStar_sum_sq_eq_trace]
+  have hHermitian : (instrumentProjectionStar Z).IsHermitian := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      instrumentProjectionStar_transpose Z
+  rw [← rank_eq_natCast_trace_of_isHermitian_idempotent hHermitian
+    (instrumentProjectionStar_idempotent Z)]
+  exact_mod_cast Matrix.rank_le_card_width (instrumentProjectionStar Z)
+
+omit [Fintype k] [DecidableEq k] in
+/-- On the nonsingular instrument branch, projecting the first-stage signal
+`ZΓ` leaves its sample Gram unchanged. -/
+theorem manyInstrumentProjectedSignalGram_eq_signalGram_of_nonsingular
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) [Invertible (Zᵀ * Z)] :
+    manyInstrumentProjectedSignalGram Z Gamma =
+      manyInstrumentSignalGram Z Gamma := by
+  rw [manyInstrumentProjectedSignalGram, manyInstrumentSignalGram]
+  congr 1
+  rw [manyInstrumentSignal, ← Matrix.mul_assoc,
+    instrumentProjectionStar_mul_Z_of_nonsingular]
+
+omit [Fintype k] [DecidableEq k] in
+/-- On the nonsingular instrument branch, projecting the first-stage signal
+`ZΓ` leaves its score against any outcome/error vector unchanged. -/
+theorem manyInstrumentProjectedSignalScore_eq_signalScore_of_nonsingular
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (e : n → ℝ)
+    [Invertible (Zᵀ * Z)] :
+    manyInstrumentProjectedSignalScore Z Gamma e =
+      sampleCrossMoment (manyInstrumentSignal Z Gamma) e := by
+  rw [manyInstrumentProjectedSignalScore]
+  congr 1
+  rw [manyInstrumentSignal, ← Matrix.mul_assoc,
+    instrumentProjectionStar_mul_Z_of_nonsingular]
+
+omit [Fintype k] [DecidableEq k] in
+/-- On the nonsingular instrument branch, the projected signal/error cross-Gram
+equals the unprojected reduced-form cross-Gram because `P_Z ZΓ = ZΓ`. -/
+theorem manyInstrumentProjectedReducedFormCrossGram_eq_crossGram_of_nonsingular
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (u2 : Matrix n k ℝ)
+    [Invertible (Zᵀ * Z)] :
+    manyInstrumentProjectedReducedFormCrossGram Z Gamma u2 =
+      manyInstrumentReducedFormCrossGram Z Gamma u2 := by
+  let P : Matrix n n ℝ := instrumentProjectionStar Z
+  let S : Matrix n k ℝ := manyInstrumentSignal Z Gamma
+  have hPS : P * S = S := by
+    dsimp [P, S, manyInstrumentSignal]
+    rw [← Matrix.mul_assoc, instrumentProjectionStar_mul_Z_of_nonsingular]
+  have hPT : Pᵀ = P := by
+    simpa [P] using instrumentProjectionStar_transpose_of_nonsingular (Z := Z)
+  have hSP : Sᵀ * P = Sᵀ := by
+    have h := congrArg Matrix.transpose hPS
+    simpa [Matrix.transpose_mul, hPT] using h
+  have hleft : (P * S)ᵀ * (P * u2) = Sᵀ * u2 := by
+    calc
+      (P * S)ᵀ * (P * u2) = Sᵀ * (P * u2) := by rw [hPS]
+      _ = (Sᵀ * P) * u2 := by rw [Matrix.mul_assoc]
+      _ = Sᵀ * u2 := by rw [hSP]
+  have hright : (P * u2)ᵀ * (P * S) = u2ᵀ * S := by
+    calc
+      (P * u2)ᵀ * (P * S) = (P * u2)ᵀ * S := by rw [hPS]
+      _ = (u2ᵀ * Pᵀ) * S := by rw [Matrix.transpose_mul]
+      _ = u2ᵀ * (P * S) := by rw [hPT, Matrix.mul_assoc]
+      _ = u2ᵀ * S := by rw [hPS]
+  change
+    (Fintype.card n : ℝ)⁻¹ • ((P * S)ᵀ * (P * u2) + (P * u2)ᵀ * (P * S)) =
+      (Fintype.card n : ℝ)⁻¹ • (Sᵀ * u2 + u2ᵀ * S)
+  rw [hleft, hright]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem limlNormalizedMomentMatrixStar_zero_eq_sampleGram_projected
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) :
+    limlNormalizedMomentMatrixStar Z X 0 =
+      sampleGram (instrumentProjectionStar Z * X) := by
+  let P : Matrix n n ℝ := instrumentProjectionStar Z
+  simp only [limlNormalizedMomentMatrixStar, limlMomentMatrixStar, sampleGram]
+  rw [limlWeightMatrixStar_zero]
+  change (Fintype.card n : ℝ)⁻¹ • (Xᵀ * P * X) =
+    (Fintype.card n : ℝ)⁻¹ • ((P * X)ᵀ * (P * X))
+  rw [Matrix.transpose_mul]
+  change (Fintype.card n : ℝ)⁻¹ • (Xᵀ * P * X) =
+    (Fintype.card n : ℝ)⁻¹ • (Xᵀ * Pᵀ * (P * X))
+  rw [show Pᵀ = P by simpa [P] using instrumentProjectionStar_transpose Z]
+  congr 1
+  rw [Matrix.mul_assoc (Xᵀ) P X]
+  rw [Matrix.mul_assoc (Xᵀ) P (P * X)]
+  rw [← Matrix.mul_assoc P P X,
+    show P * P = P by simpa [P] using instrumentProjectionStar_idempotent Z]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem limlNormalizedMomentVectorStar_zero_eq_sampleCrossMoment_projected
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (e : n → ℝ) :
+    limlNormalizedMomentVectorStar Z X e 0 =
+      sampleCrossMoment (instrumentProjectionStar Z * X) e := by
+  simp [limlNormalizedMomentVectorStar, limlMomentVectorStar, sampleCrossMoment,
+    Matrix.transpose_mul, instrumentProjectionStar_transpose]
+
+/-- OLS many-instrument probability-limit drift `(H + Σ₂₂)^{-1} Σ₂e`. -/
+noncomputable def manyInstrumentsOLSBias
+    (H Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) : k → ℝ :=
+  (H + Sigma22)⁻¹ *ᵥ Sigma2e
+
+/-- 2SLS many-instrument probability-limit drift
+`(H + αΣ₂₂)^{-1} αΣ₂e`. -/
+noncomputable def manyInstrumentsTwoSLSBias
+    (H Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) (alpha : ℝ) : k → ℝ :=
+  (H + alpha • Sigma22)⁻¹ *ᵥ (alpha • Sigma2e)
+
+/-- OLS limit bread nonsingularity in Hansen Theorem 12.19 follows from a
+positive-definite signal limit and positive-semidefinite reduced-form error
+covariance. -/
+theorem manyInstruments_ols_limit_matrix_nonsingular_of_posSemidef
+    {H Sigma22 : Matrix k k ℝ}
+    (hH : H.PosDef) (hSigma22 : Sigma22.PosSemidef) :
+    IsUnit (H + Sigma22).det := by
+  exact (Matrix.isUnit_iff_isUnit_det _).mp (hH.add_posSemidef hSigma22).isUnit
+
+/-- 2SLS limit bread nonsingularity in Hansen Theorem 12.19 follows from a
+positive-definite signal limit, positive-semidefinite reduced-form error
+covariance, and nonnegative instrument-ratio limit. -/
+theorem manyInstruments_twoSLS_limit_matrix_nonsingular_of_posSemidef
+    {H Sigma22 : Matrix k k ℝ} {alpha : ℝ}
+    (hH : H.PosDef) (hSigma22 : Sigma22.PosSemidef) (halpha : 0 ≤ alpha) :
+    IsUnit (H + alpha • Sigma22).det := by
+  have hscaled : (alpha • Sigma22).PosSemidef := hSigma22.smul halpha
+  exact (Matrix.isUnit_iff_isUnit_det _).mp (hH.add_posSemidef hscaled).isUnit
+
+omit [Fintype k] [DecidableEq k] in
+/-- OLS sample Gram under Hansen's many-instrument reduced form
+`X = ZΓ + u₂`.
+
+This deterministic identity is the algebraic bridge used before proving the
+many-instrument OLS bread limit from the signal, reduced-form error, and
+cross-term moment limits. -/
+theorem manyInstrumentReducedForm_sampleGram
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (u2 : Matrix n k ℝ) :
+    sampleGram (manyInstrumentSignal Z Gamma + u2) =
+      manyInstrumentSignalGram Z Gamma + sampleGram u2 +
+        manyInstrumentReducedFormCrossGram Z Gamma u2 := by
+  ext a b
+  simp [manyInstrumentSignalGram, manyInstrumentReducedFormCrossGram,
+    sampleGram, Matrix.transpose_add, Matrix.add_mul, Matrix.mul_add, add_assoc]
+  ring
+
+omit [Fintype k] [DecidableEq k] in
+/-- OLS sample score under Hansen's many-instrument reduced form
+`X = ZΓ + u₂`. -/
+theorem manyInstrumentReducedForm_sampleCrossMoment
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ)
+    (u2 : Matrix n k ℝ) (e : n → ℝ) :
+    sampleCrossMoment (manyInstrumentSignal Z Gamma + u2) e =
+      sampleCrossMoment (manyInstrumentSignal Z Gamma) e +
+        sampleCrossMoment u2 e := by
+  ext a
+  simp [sampleCrossMoment, Matrix.transpose_add, Matrix.add_mulVec]
+  ring
+
+omit [Fintype k] [DecidableEq k] in
+/-- Normalized 2SLS bread under Hansen's many-instrument reduced form
+`X = ZΓ + u₂`, decomposed into projected signal, projected reduced-form-error,
+and projected cross-Gram terms. -/
+theorem manyInstrumentProjectedReducedForm_normalizedMomentMatrix_zero
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (u2 : Matrix n k ℝ) :
+    limlNormalizedMomentMatrixStar Z (manyInstrumentSignal Z Gamma + u2) 0 =
+      manyInstrumentProjectedSignalGram Z Gamma +
+        manyInstrumentProjectedErrorGram Z u2 +
+          manyInstrumentProjectedReducedFormCrossGram Z Gamma u2 := by
+  rw [limlNormalizedMomentMatrixStar_zero_eq_sampleGram_projected]
+  ext a b
+  simp [manyInstrumentProjectedSignalGram, manyInstrumentProjectedErrorGram,
+    manyInstrumentProjectedReducedFormCrossGram, sampleGram, Matrix.mul_add,
+    Matrix.transpose_add, Matrix.add_mul, Matrix.mul_add, add_assoc]
+  ring
+
+omit [Fintype k] [DecidableEq k] in
+/-- Normalized 2SLS score under Hansen's many-instrument reduced form
+`X = ZΓ + u₂`, decomposed into projected signal and reduced-form-error scores. -/
+theorem manyInstrumentProjectedReducedForm_normalizedMomentVector_zero
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ)
+    (u2 : Matrix n k ℝ) (e : n → ℝ) :
+    limlNormalizedMomentVectorStar Z (manyInstrumentSignal Z Gamma + u2) e 0 =
+      manyInstrumentProjectedSignalScore Z Gamma e +
+        manyInstrumentProjectedErrorCross Z u2 e := by
+  rw [limlNormalizedMomentVectorStar_zero_eq_sampleCrossMoment_projected]
+  ext a
+  simp [manyInstrumentProjectedSignalScore, manyInstrumentProjectedErrorCross,
+    sampleCrossMoment, Matrix.mul_add, Matrix.transpose_add, Matrix.add_mulVec]
+  ring
+
+section Asymptotics
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+variable {μ : Measure Ω} [IsProbabilityMeasure μ]
+
+omit [DecidableEq k] in
+@[reducible]
+private noncomputable def manyInstrumentsMatrixBorelMeasurableSpaceInst :
+    MeasurableSpace (Matrix k k ℝ) :=
+  matrixBorelMeasurableSpace k k
+
+attribute [local instance] manyInstrumentsMatrixBorelMeasurableSpaceInst
+
+omit [DecidableEq k] in
+private lemma manyInstrumentsMatrixBorelSpaceInst :
+    BorelSpace (Matrix k k ℝ) :=
+  matrixBorelSpace k k
+
+attribute [local instance] manyInstrumentsMatrixBorelSpaceInst
+
+omit [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ] in
+/-- On an a.e. nonsingular instrument branch, projected signal-Gram
+measurability follows from the unprojected signal-Gram measurability and the
+identity `P_Z ZΓ = ZΓ`. -/
+theorem manyInstrumentProjectedSignalGram_aestronglyMeasurable_of_ae_nonsingular
+    {m : ℕ} {Z : Ω → Matrix (Fin m) (ι m) ℝ}
+    {Gamma : Matrix (ι m) k ℝ}
+    (hnonsing : ∀ᵐ ω ∂μ, Nonempty (Invertible ((Z ω)ᵀ * Z ω)))
+    (hsignal : AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z ω) Gamma) μ) :
+    AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z ω) Gamma) μ := by
+  refine hsignal.congr ?_
+  filter_upwards [hnonsing] with ω hω
+  rcases hω with ⟨inst⟩
+  letI : Invertible ((Z ω)ᵀ * Z ω) := inst
+  exact
+    (manyInstrumentProjectedSignalGram_eq_signalGram_of_nonsingular
+      (Z ω) Gamma).symm
+
+omit [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ] in
+/-- On an a.e. nonsingular instrument branch, projected signal/error cross-Gram
+measurability follows from the unprojected cross-Gram measurability. -/
+theorem
+manyInstrumentProjectedReducedFormCrossGram_aestronglyMeasurable_of_ae_nonsingular
+    {m : ℕ} {Z : Ω → Matrix (Fin m) (ι m) ℝ}
+    {Gamma : Matrix (ι m) k ℝ} {u2 : Ω → Matrix (Fin m) k ℝ}
+    (hnonsing : ∀ᵐ ω ∂μ, Nonempty (Invertible ((Z ω)ᵀ * Z ω)))
+    (hcross : AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram (Z ω) Gamma (u2 ω)) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z ω) Gamma (u2 ω)) μ := by
+  refine hcross.congr ?_
+  filter_upwards [hnonsing] with ω hω
+  rcases hω with ⟨inst⟩
+  letI : Invertible ((Z ω)ᵀ * Z ω) := inst
+  exact
+    (manyInstrumentProjectedReducedFormCrossGram_eq_crossGram_of_nonsingular
+      (Z ω) Gamma (u2 ω)).symm
+
+omit [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ] in
+/-- On an a.e. nonsingular instrument branch, projected signal-score
+measurability follows from the unprojected signal-score measurability. -/
+theorem manyInstrumentProjectedSignalScore_aestronglyMeasurable_of_ae_nonsingular
+    {m : ℕ} {Z : Ω → Matrix (Fin m) (ι m) ℝ}
+    {Gamma : Matrix (ι m) k ℝ} {e : Ω → Fin m → ℝ}
+    (hnonsing : ∀ᵐ ω ∂μ, Nonempty (Invertible ((Z ω)ᵀ * Z ω)))
+    (hscore : AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (manyInstrumentSignal (Z ω) Gamma) (e ω)) μ) :
+    AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z ω) Gamma (e ω)) μ := by
+  refine hscore.congr ?_
+  filter_upwards [hnonsing] with ω hω
+  rcases hω with ⟨inst⟩
+  letI : Invertible ((Z ω)ᵀ * Z ω) := inst
+  exact
+    (manyInstrumentProjectedSignalScore_eq_signalScore_of_nonsingular
+      (Z ω) Gamma (e ω)).symm
+
+set_option linter.unusedFintypeInType false in
+omit [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ] in
+private theorem manyInstrumentVector_aestronglyMeasurable_of_entries
+    {r : Type*} [Fintype r] {v : Ω → r → ℝ}
+    (hv : ∀ i, AEStronglyMeasurable (fun ω => v ω i) μ) :
+    AEStronglyMeasurable v μ := by
+  rw [aestronglyMeasurable_iff_aemeasurable]
+  rw [aemeasurable_pi_iff]
+  intro i
+  exact (hv i).aemeasurable
+
+omit [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ] in
+/-- Finite-sample measurability of the totalized instrument projection
+`P_Z*` from measurability of the realized instrument matrix. -/
+theorem manyInstrumentProjectionStar_aestronglyMeasurable
+    {m : ℕ} {Zmat : Ω → Matrix (Fin m) (ι m) ℝ}
+    (hZmat : AEStronglyMeasurable Zmat μ) :
+    AEStronglyMeasurable
+      (fun ω => instrumentProjectionStar (Zmat ω)) μ := by
+  have hZt : AEStronglyMeasurable (fun ω => (Zmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hZmat
+  have hZZ : AEStronglyMeasurable (fun ω => (Zmat ω)ᵀ * Zmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hZt.prodMk hZmat)
+  have hZZinv : AEStronglyMeasurable
+      (fun ω => ((Zmat ω)ᵀ * Zmat ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hZZ
+  have hleft : AEStronglyMeasurable
+      (fun ω => Zmat ω * ((Zmat ω)ᵀ * Zmat ω)⁻¹) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hZmat.prodMk hZZinv)
+  have hproj : AEStronglyMeasurable
+      (fun ω => Zmat ω * ((Zmat ω)ᵀ * Zmat ω)⁻¹ * (Zmat ω)ᵀ) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hleft.prodMk hZt)
+  simpa [instrumentProjectionStar, Matrix.mul_assoc] using hproj
+
+set_option linter.unusedFintypeInType false in
+set_option linter.unusedDecidableInType false in
+set_option linter.unusedSectionVars false in
+omit [IsProbabilityMeasure μ] in
+/-- Projected reduced-form error Gram measurability from finite-sample matrix
+measurability of `Z` and `u₂`. -/
+theorem manyInstrumentProjectedErrorGram_aestronglyMeasurable
+    {m : ℕ} {Zmat : Ω → Matrix (Fin m) (ι m) ℝ}
+    {Umat : Ω → Matrix (Fin m) k ℝ}
+    (hZmat : AEStronglyMeasurable Zmat μ)
+    (hUmat : AEStronglyMeasurable Umat μ) :
+    AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Zmat ω) (Umat ω)) μ := by
+  have hP : AEStronglyMeasurable
+      (fun ω => instrumentProjectionStar (Zmat ω)) μ :=
+    manyInstrumentProjectionStar_aestronglyMeasurable (μ := μ) hZmat
+  have hPU : AEStronglyMeasurable
+      (fun ω => instrumentProjectionStar (Zmat ω) * Umat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hP.prodMk hUmat)
+  have hPUt : AEStronglyMeasurable
+      (fun ω => (instrumentProjectionStar (Zmat ω) * Umat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hPU
+  have hraw : AEStronglyMeasurable
+      (fun ω =>
+        (Fintype.card (Fin m) : ℝ)⁻¹ •
+          ((instrumentProjectionStar (Zmat ω) * Umat ω)ᵀ *
+            (instrumentProjectionStar (Zmat ω) * Umat ω))) μ :=
+    ((Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hPUt.prodMk hPU)).const_smul (Fintype.card (Fin m) : ℝ)⁻¹
+  simpa [manyInstrumentProjectedErrorGram, sampleGram] using hraw
+
+set_option linter.unusedFintypeInType false in
+set_option linter.unusedDecidableInType false in
+set_option linter.unusedSectionVars false in
+omit [IsProbabilityMeasure μ] in
+/-- Projected reduced-form error score measurability from finite-sample matrix
+measurability of `Z`, `u₂`, and the structural error vector. -/
+theorem manyInstrumentProjectedErrorCross_aestronglyMeasurable
+    {m : ℕ} {Zmat : Ω → Matrix (Fin m) (ι m) ℝ}
+    {Umat : Ω → Matrix (Fin m) k ℝ} {evec : Ω → Fin m → ℝ}
+    (hZmat : AEStronglyMeasurable Zmat μ)
+    (hUmat : AEStronglyMeasurable Umat μ)
+    (hevec : AEStronglyMeasurable evec μ) :
+    AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Zmat ω) (Umat ω) (evec ω)) μ := by
+  have hP : AEStronglyMeasurable
+      (fun ω => instrumentProjectionStar (Zmat ω)) μ :=
+    manyInstrumentProjectionStar_aestronglyMeasurable (μ := μ) hZmat
+  have hPU : AEStronglyMeasurable
+      (fun ω => instrumentProjectionStar (Zmat ω) * Umat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hP.prodMk hUmat)
+  have hPUt : AEStronglyMeasurable
+      (fun ω => (instrumentProjectionStar (Zmat ω) * Umat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hPU
+  have hraw : AEStronglyMeasurable
+      (fun ω =>
+        (Fintype.card (Fin m) : ℝ)⁻¹ •
+          ((instrumentProjectionStar (Zmat ω) * Umat ω)ᵀ *ᵥ evec ω)) μ :=
+    ((Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hPUt.prodMk hevec)).const_smul (Fintype.card (Fin m) : ℝ)⁻¹
+  simpa [manyInstrumentProjectedErrorCross, sampleCrossMoment] using hraw
+
+omit [IsProbabilityMeasure μ] in
+/-- Finite-sample measurability of totalized OLS from matrix-valued
+regressor and outcome measurability. -/
+theorem manyInstruments_olsBetaStar_aestronglyMeasurable
+    {m : ℕ} {Xmat : Ω → Matrix (Fin m) k ℝ} {Yvec : Ω → Fin m → ℝ}
+    (hXmat : AEStronglyMeasurable Xmat μ)
+    (hYvec : AEStronglyMeasurable Yvec μ) :
+    AEStronglyMeasurable (fun ω => olsBetaStar (Xmat ω) (Yvec ω)) μ := by
+  have hXt : AEStronglyMeasurable (fun ω => (Xmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hXmat
+  have hGram : AEStronglyMeasurable (fun ω => (Xmat ω)ᵀ * Xmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXt.prodMk hXmat)
+  have hInv : AEStronglyMeasurable
+      (fun ω => ((Xmat ω)ᵀ * Xmat ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hCross : AEStronglyMeasurable (fun ω => (Xmat ω)ᵀ *ᵥ Yvec ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXt.prodMk hYvec)
+  have hbeta : AEStronglyMeasurable
+      (fun ω => ((Xmat ω)ᵀ * Xmat ω)⁻¹ *ᵥ ((Xmat ω)ᵀ *ᵥ Yvec ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInv.prodMk hCross)
+  simpa [olsBetaStar] using hbeta
+
+set_option linter.unusedFintypeInType false in
+omit [IsProbabilityMeasure μ] in
+/-- Finite-sample measurability of totalized 2SLS from matrix-valued
+instrument, regressor, and outcome measurability. -/
+theorem manyInstruments_twoSLSBetaStar_aestronglyMeasurable
+    {m : ℕ} {Zmat : Ω → Matrix (Fin m) (ι m) ℝ}
+    {Xmat : Ω → Matrix (Fin m) k ℝ} {Yvec : Ω → Fin m → ℝ}
+    (hZmat : AEStronglyMeasurable Zmat μ)
+    (hXmat : AEStronglyMeasurable Xmat μ)
+    (hYvec : AEStronglyMeasurable Yvec μ) :
+    AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Zmat ω) (Xmat ω) (Yvec ω)) μ := by
+  have hP : AEStronglyMeasurable
+      (fun ω => instrumentProjectionStar (Zmat ω)) μ :=
+    manyInstrumentProjectionStar_aestronglyMeasurable (μ := μ) hZmat
+  have hXt : AEStronglyMeasurable (fun ω => (Xmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hXmat
+  have hXtP : AEStronglyMeasurable
+      (fun ω => (Xmat ω)ᵀ * instrumentProjectionStar (Zmat ω)) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXt.prodMk hP)
+  have hM : AEStronglyMeasurable
+      (fun ω => (Xmat ω)ᵀ * instrumentProjectionStar (Zmat ω) * Xmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXtP.prodMk hXmat)
+  have hMinv : AEStronglyMeasurable
+      (fun ω => ((Xmat ω)ᵀ * instrumentProjectionStar (Zmat ω) * Xmat ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hM
+  have hV : AEStronglyMeasurable
+      (fun ω => ((Xmat ω)ᵀ * instrumentProjectionStar (Zmat ω)) *ᵥ Yvec ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXtP.prodMk hYvec)
+  have hbeta : AEStronglyMeasurable
+      (fun ω =>
+        ((Xmat ω)ᵀ * instrumentProjectionStar (Zmat ω) * Xmat ω)⁻¹ *ᵥ
+          (((Xmat ω)ᵀ * instrumentProjectionStar (Zmat ω)) *ᵥ Yvec ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hMinv.prodMk hV)
+  simpa [twoSLSBetaStar, twoSLSMomentMatrixStar, twoSLSMomentVectorStar,
+    Matrix.mul_assoc] using hbeta
+
+set_option linter.unusedFintypeInType false in
+omit [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ] in
+private theorem manyInstruments_limlWeightMatrixStar_aestronglyMeasurable
+    {m : ℕ} {Zmat : Ω → Matrix (Fin m) (ι m) ℝ}
+    {muHat : Ω → ℝ}
+    (hZmat : AEStronglyMeasurable Zmat μ)
+    (hmu : AEStronglyMeasurable muHat μ) :
+    AEStronglyMeasurable
+      (fun ω => limlWeightMatrixStar (Zmat ω) (muHat ω)) μ := by
+  have hP : AEStronglyMeasurable
+      (fun ω => instrumentProjectionStar (Zmat ω)) μ :=
+    manyInstrumentProjectionStar_aestronglyMeasurable (μ := μ) hZmat
+  have hResid : AEStronglyMeasurable
+      (fun ω => (1 : Matrix (Fin m) (Fin m) ℝ) -
+        instrumentProjectionStar (Zmat ω)) μ :=
+    aestronglyMeasurable_const.sub hP
+  exact hP.sub (hmu.smul hResid)
+
+set_option linter.unusedFintypeInType false in
+omit [IsProbabilityMeasure μ] in
+/-- Finite-sample measurability of totalized LIML from matrix-valued
+instrument, regressor, outcome, and eigenvalue-adjustment measurability. -/
+theorem manyInstruments_limlBetaStar_aestronglyMeasurable
+    {m : ℕ} {Zmat : Ω → Matrix (Fin m) (ι m) ℝ}
+    {Xmat : Ω → Matrix (Fin m) k ℝ} {Yvec : Ω → Fin m → ℝ}
+    {muHat : Ω → ℝ}
+    (hZmat : AEStronglyMeasurable Zmat μ)
+    (hXmat : AEStronglyMeasurable Xmat μ)
+    (hYvec : AEStronglyMeasurable Yvec μ)
+    (hmu : AEStronglyMeasurable muHat μ) :
+    AEStronglyMeasurable
+      (fun ω => limlBetaStar (Zmat ω) (Xmat ω) (Yvec ω) (muHat ω)) μ := by
+  have hW :=
+    manyInstruments_limlWeightMatrixStar_aestronglyMeasurable
+      (μ := μ) (Zmat := Zmat) hZmat hmu
+  have hXt : AEStronglyMeasurable (fun ω => (Xmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hXmat
+  have hXtW : AEStronglyMeasurable
+      (fun ω => (Xmat ω)ᵀ * limlWeightMatrixStar (Zmat ω) (muHat ω)) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXt.prodMk hW)
+  have hM : AEStronglyMeasurable
+      (fun ω => (Xmat ω)ᵀ * limlWeightMatrixStar (Zmat ω) (muHat ω) * Xmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXtW.prodMk hXmat)
+  have hMinv : AEStronglyMeasurable
+      (fun ω =>
+        ((Xmat ω)ᵀ * limlWeightMatrixStar (Zmat ω) (muHat ω) * Xmat ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hM
+  have hV : AEStronglyMeasurable
+      (fun ω => ((Xmat ω)ᵀ * limlWeightMatrixStar (Zmat ω) (muHat ω)) *ᵥ
+        Yvec ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXtW.prodMk hYvec)
+  have hbeta : AEStronglyMeasurable
+      (fun ω =>
+        ((Xmat ω)ᵀ * limlWeightMatrixStar (Zmat ω) (muHat ω) * Xmat ω)⁻¹ *ᵥ
+          (((Xmat ω)ᵀ * limlWeightMatrixStar (Zmat ω) (muHat ω)) *ᵥ
+            Yvec ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hMinv.prodMk hV)
+  simpa [limlBetaStar, limlMomentMatrixStar, limlMomentVectorStar] using hbeta
+
+set_option linter.unusedFintypeInType false in
+omit [IsProbabilityMeasure μ] in
+/-- Estimator measurability for Hansen Theorem 12.19 from reduced-form matrix
+measurability and the structural equation. -/
+theorem manyInstruments_estimator_measurability_of_reduced_form
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ) :
+    (∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ) ∧
+    (∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ) ∧
+    (∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) := by
+  have hX_meas : ∀ m, AEStronglyMeasurable (X m) μ := by
+    intro m
+    have hsignal : AEStronglyMeasurable
+        (fun ω => manyInstrumentSignal (Z m ω) (Gamma m)) μ := by
+      simpa [manyInstrumentSignal] using
+        (Continuous.matrix_mul continuous_id continuous_const).comp_aestronglyMeasurable
+          (hZ_meas m)
+    exact (hsignal.add (hu2_meas m)).congr
+      (ae_of_all μ fun ω => (hreduced m ω).symm)
+  have hY_meas : ∀ m, AEStronglyMeasurable (Y m) μ := by
+    intro m
+    have hfit : AEStronglyMeasurable (fun ω => X m ω *ᵥ β) μ :=
+      (Continuous.matrix_mulVec continuous_id continuous_const).comp_aestronglyMeasurable
+        (hX_meas m)
+    exact (hfit.add (he_meas m)).congr
+      (ae_of_all μ fun ω => (hstruct m ω).symm)
+  refine ⟨?_, ?_, ?_⟩
+  · intro m
+    exact manyInstruments_olsBetaStar_aestronglyMeasurable
+      (μ := μ) (hX_meas m) (hY_meas m)
+  · intro m
+    exact manyInstruments_twoSLSBetaStar_aestronglyMeasurable
+      (hZ_meas m) (hX_meas m) (hY_meas m)
+  · intro m
+    exact manyInstruments_limlBetaStar_aestronglyMeasurable
+      (hZ_meas m) (hX_meas m) (hY_meas m) (hmu_meas m)
+
+set_option maxHeartbeats 600000 in
+-- Product-space synthesis for scalar/matrix smul CMT is expensive.
+private theorem tendstoInMeasure_smul_matrix
+    {κ : Type*} [Fintype κ]
+    {r : ℕ → Ω → ℝ} {A : ℕ → Ω → Matrix κ κ ℝ}
+    {c : ℝ} {M : Matrix κ κ ℝ}
+    (hr_meas : ∀ m, AEStronglyMeasurable (r m) μ)
+    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
+    (hr : TendstoInMeasure μ r atTop (fun _ => c))
+    (hA : TendstoInMeasure μ A atTop (fun _ => M)) :
+    TendstoInMeasure μ (fun m ω => r m ω • A m ω) atTop (fun _ => c • M) := by
+  have hprod_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (r m ω, A m ω)) μ :=
+    fun m => (hr_meas m).prodMk (hA_meas m)
+  have hprod : TendstoInMeasure μ
+      (fun m ω => (r m ω, A m ω)) atTop (fun _ => (c, M)) :=
+    tendstoInMeasure_prodMk hr hA
+  have hcont : Continuous (fun p : ℝ × Matrix κ κ ℝ => p.1 • p.2) :=
+    continuous_fst.smul continuous_snd
+  exact tendstoInMeasure_continuous_comp hprod_meas hprod hcont
+
+set_option maxHeartbeats 600000 in
+-- Product-space synthesis for scalar/vector smul CMT is expensive.
+private theorem tendstoInMeasure_smul_vector
+    {κ : Type*} [Fintype κ]
+    {r : ℕ → Ω → ℝ} {v : ℕ → Ω → κ → ℝ}
+    {c : ℝ} {g : κ → ℝ}
+    (hr_meas : ∀ m, AEStronglyMeasurable (r m) μ)
+    (hv_meas : ∀ m, AEStronglyMeasurable (v m) μ)
+    (hr : TendstoInMeasure μ r atTop (fun _ => c))
+    (hv : TendstoInMeasure μ v atTop (fun _ => g)) :
+    TendstoInMeasure μ (fun m ω => r m ω • v m ω) atTop (fun _ => c • g) := by
+  have hprod_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (r m ω, v m ω)) μ :=
+    fun m => (hr_meas m).prodMk (hv_meas m)
+  have hprod : TendstoInMeasure μ
+      (fun m ω => (r m ω, v m ω)) atTop (fun _ => (c, g)) :=
+    tendstoInMeasure_prodMk hr hv
+  have hcont : Continuous (fun p : ℝ × (κ → ℝ) => p.1 • p.2) :=
+    continuous_fst.smul continuous_snd
+  exact tendstoInMeasure_continuous_comp hprod_meas hprod hcont
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstruments_liml_matrix_limit_cancel
+    {H Sigma22 : Matrix k k ℝ} {alpha : ℝ}
+    (halpha_lt_one : alpha < 1) :
+    (H + alpha • Sigma22) -
+        (alpha / (1 - alpha)) • ((H + Sigma22) - (H + alpha • Sigma22)) =
+      H := by
+  have hden : 1 - alpha ≠ 0 := by linarith
+  ext i j
+  simp [Matrix.add_apply, Matrix.sub_apply, Matrix.smul_apply]
+  field_simp [hden]
+  ring
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstruments_liml_score_limit_cancel
+    {Sigma2e : k → ℝ} {alpha : ℝ}
+    (halpha_lt_one : alpha < 1) :
+    alpha • Sigma2e -
+        (alpha / (1 - alpha)) • (Sigma2e - alpha • Sigma2e) =
+      (0 : k → ℝ) := by
+  have hden : 1 - alpha ≠ 0 := by linarith
+  ext i
+  simp [Pi.sub_apply, Pi.smul_apply]
+  field_simp [hden]
+  ring
+
+/-- Moment-level LIML consistency package for Hansen Theorem 12.19.
+
+The fields are Hansen's normalized LIML bread and structural-error score
+convergences.  This package is deliberately below the theorem-facing
+many-instrument package: it proves the LIML estimator limit from moment
+convergence instead of assuming that final limit directly. -/
+structure ManyInstrumentsLIMLMomentConsistencyConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (H : Matrix k k ℝ) : Prop where
+  moment_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => limlNormalizedMomentMatrixStar (Z m ω) (X m ω) (limlMuHat m ω)) μ
+  score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => limlNormalizedMomentVectorStar
+      (Z m ω) (X m ω) (e m ω) (limlMuHat m ω)) μ
+  moment_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      limlNormalizedMomentMatrixStar (Z m ω) (X m ω) (limlMuHat m ω))
+    atTop (fun _ => H)
+  score_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) (limlMuHat m ω))
+    atTop (fun _ => (0 : k → ℝ))
+  limit_nonsing : IsUnit H.det
+
+/-- Moment-level LIML package with a nonzero structural-error score limit.
+
+This generic CMT layer is used for the 2SLS face of Hansen Theorem 12.19 by
+setting the LIML adjustment to zero. -/
+structure ManyInstrumentsLIMLMomentLimitConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (Q : Matrix k k ℝ) (g : k → ℝ) : Prop where
+  moment_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => limlNormalizedMomentMatrixStar (Z m ω) (X m ω) (limlMuHat m ω)) μ
+  score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => limlNormalizedMomentVectorStar
+      (Z m ω) (X m ω) (e m ω) (limlMuHat m ω)) μ
+  moment_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      limlNormalizedMomentMatrixStar (Z m ω) (X m ω) (limlMuHat m ω))
+    atTop (fun _ => Q)
+  score_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) (limlMuHat m ω))
+    atTop (fun _ => g)
+  limit_nonsing : IsUnit Q.det
+
+/-- Convert the nonzero-score LIML moment package to the zero-score consistency
+package when the score limit is `0`. -/
+theorem ManyInstrumentsLIMLMomentConsistencyConditions.of_moment_limit_zero_score
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {H : Matrix k k ℝ}
+    (h : ManyInstrumentsLIMLMomentLimitConditions
+      μ Z X e limlMuHat H (0 : k → ℝ)) :
+    ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H :=
+  { moment_meas := h.moment_meas
+    score_meas := h.score_meas
+    moment_tendsto := h.moment_tendsto
+    score_tendsto_zero := h.score_tendsto
+    limit_nonsing := h.limit_nonsing }
+
+set_option maxHeartbeats 900000 in
+-- Product-space synthesis for the inverse/product/mulVec CMT chain is expensive.
+/-- LIML/k-class estimator convergence from normalized bread and score limits.
+
+The limit is `β + Q^{-1}g`; the LIML consistency theorem below is the special
+case `g = 0`. -/
+theorem limlBetaStar_tendstoInMeasure_of_normalized_moment_limits
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β g : k → ℝ} {Q : Matrix k k ℝ}
+    (h : ManyInstrumentsLIMLMomentLimitConditions μ Z X e limlMuHat Q g)
+    (hmodel : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β + Q⁻¹ *ᵥ g) := by
+  let A : ℕ → Ω → Matrix k k ℝ := fun m ω =>
+    limlNormalizedMomentMatrixStar (Z m ω) (X m ω) (limlMuHat m ω)
+  let s : ℕ → Ω → k → ℝ := fun m ω =>
+    limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) (limlMuHat m ω)
+  have hA_meas : ∀ m, AEStronglyMeasurable (A m) μ := by
+    intro m
+    simpa [A] using h.moment_meas m
+  have hs_meas : ∀ m, AEStronglyMeasurable (s m) μ := by
+    intro m
+    simpa [s] using h.score_meas m
+  have hA : TendstoInMeasure μ A atTop (fun _ => Q) := by
+    simpa [A] using h.moment_tendsto
+  have hs : TendstoInMeasure μ s atTop (fun _ => g) := by
+    simpa [s] using h.score_tendsto
+  have hAinv_meas : ∀ m, AEStronglyMeasurable (fun ω => (A m ω)⁻¹) μ :=
+    fun m => aestronglyMeasurable_matrix_inv (hA_meas m)
+  have hAinv : TendstoInMeasure μ
+      (fun m ω => (A m ω)⁻¹) atTop (fun _ => Q⁻¹) :=
+    tendstoInMeasure_matrix_inv (μ := μ) hA_meas hA (fun _ => h.limit_nonsing)
+  have hAinvA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (A m ω)⁻¹ * A m ω) μ := by
+    intro m
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      ((hAinv_meas m).prodMk (hA_meas m))
+  have hAinvA : TendstoInMeasure μ
+      (fun m ω => (A m ω)⁻¹ * A m ω) atTop (fun _ => Q⁻¹ * Q) :=
+    tendstoInMeasure_matrix_mul hAinv_meas hA_meas hAinv hA
+  have hAinvAβ_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => ((A m ω)⁻¹ * A m ω) *ᵥ β) μ := by
+    intro m
+    exact (Continuous.matrix_mulVec continuous_id continuous_const).comp_aestronglyMeasurable
+      (hAinvA_meas m)
+  have hAinvAβ : TendstoInMeasure μ
+      (fun m ω => ((A m ω)⁻¹ * A m ω) *ᵥ β) atTop (fun _ => β) := by
+    have hcont : Continuous (fun M : Matrix k k ℝ => M *ᵥ β) :=
+      Continuous.matrix_mulVec continuous_id continuous_const
+    have hraw := tendstoInMeasure_continuous_comp hAinvA_meas hAinvA hcont
+    refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hraw
+    exact ae_of_all μ (fun _ => by
+      rw [Matrix.nonsing_inv_mul Q h.limit_nonsing]
+      simp)
+  have hAinvs_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (A m ω)⁻¹ *ᵥ s m ω) μ := by
+    intro m
+    exact (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      ((hAinv_meas m).prodMk (hs_meas m))
+  have hAinvs : TendstoInMeasure μ
+      (fun m ω => (A m ω)⁻¹ *ᵥ s m ω) atTop (fun _ => Q⁻¹ *ᵥ g) :=
+    tendstoInMeasure_mulVec hAinv_meas hs_meas hAinv hs
+  have hsum := tendstoInMeasure_add hAinvAβ_meas hAinvs_meas hAinvAβ hAinvs
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hsum
+  filter_upwards [eventually_gt_atTop 0] with m hm
+  exact ae_of_all μ (fun ω => by
+    haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+    have hY : Y m ω = X m ω *ᵥ β + e m ω := hmodel m ω
+    change ((A m ω)⁻¹ * A m ω) *ᵥ β + (A m ω)⁻¹ *ᵥ s m ω =
+      limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)
+    rw [hY, limlBetaStar_eq_normalized_moments,
+      limlNormalizedMomentVectorStar_linear_model]
+    simp [A, s, Matrix.mulVec_add, Matrix.mulVec_mulVec])
+
+/-- LIML consistency from normalized bread and structural-error score
+convergence.
+
+This is the zero-score specialization of the generic moment-limit theorem for
+the LIML face of Hansen Theorem 12.19. Totalized matrix inverses mean that no
+separate finite-sample nonsingularity premise is needed. -/
+theorem limlBetaStar_tendstoInMeasure_beta_of_normalized_moments
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    (h : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H)
+    (hmodel : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) := by
+  simpa using
+    (limlBetaStar_tendstoInMeasure_of_normalized_moment_limits
+      (h := {
+        moment_meas := h.moment_meas
+        score_meas := h.score_meas
+        moment_tendsto := h.moment_tendsto
+        score_tendsto := h.score_tendsto_zero
+        limit_nonsing := h.limit_nonsing })
+      hmodel)
+
+/-- Moment-level OLS package for the many-instrument theorem. -/
+structure ManyInstrumentsOLSMomentLimitConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (Q : Matrix k k ℝ) (g : k → ℝ) : Prop where
+  gram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ
+  score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (X m ω) (e m ω)) μ
+  gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleGram (X m ω)) atTop (fun _ => Q)
+  score_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleCrossMoment (X m ω) (e m ω)) atTop (fun _ => g)
+  limit_nonsing : IsUnit Q.det
+
+set_option maxHeartbeats 900000 in
+-- Product-space synthesis for the three-input LIML cancellation maps is expensive.
+/-- Build Hansen's many-instrument LIML zero-score moment package from the OLS
+and projected 2SLS moment limits plus the LIML eigenvalue adjustment limit
+`μ̂ -> α / (1 - α)`.
+
+This is the local formal version of Hansen's cancellation in the proof of
+Theorem 12.19:
+`(H + αΣ₂₂) - (α/(1-α))((H + Σ₂₂) - (H + αΣ₂₂)) = H` and
+`αΣ₂e - (α/(1-α))(Σ₂e - αΣ₂e) = 0`. -/
+theorem ManyInstrumentsLIMLMomentConsistencyConditions.of_ols_twoSLS_moments_mu_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hOLS : ManyInstrumentsOLSMomentLimitConditions μ X e (H + Sigma22) Sigma2e)
+    (h2SLS : ManyInstrumentsLIMLMomentLimitConditions
+      μ Z X e (fun _ _ => 0) (H + alpha • Sigma22) (alpha • Sigma2e))
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha)))
+    (halpha_lt_one : alpha < 1)
+    (hH_nonsing : IsUnit H.det) :
+    ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H := by
+  let mu0 : ℝ := alpha / (1 - alpha)
+  let Pmat : ℕ → Ω → Matrix k k ℝ := fun m ω =>
+    limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0
+  let Gmat : ℕ → Ω → Matrix k k ℝ := fun m ω => sampleGram (X m ω)
+  let Pscore : ℕ → Ω → k → ℝ := fun m ω =>
+    limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0
+  let Gscore : ℕ → Ω → k → ℝ := fun m ω =>
+    sampleCrossMoment (X m ω) (e m ω)
+  have hPmat_meas : ∀ m, AEStronglyMeasurable (Pmat m) μ := by
+    intro m
+    simpa [Pmat] using h2SLS.moment_meas m
+  have hGmat_meas : ∀ m, AEStronglyMeasurable (Gmat m) μ := by
+    intro m
+    simpa [Gmat] using hOLS.gram_meas m
+  have hPscore_meas : ∀ m, AEStronglyMeasurable (Pscore m) μ := by
+    intro m
+    simpa [Pscore] using h2SLS.score_meas m
+  have hGscore_meas : ∀ m, AEStronglyMeasurable (Gscore m) μ := by
+    intro m
+    simpa [Gscore] using hOLS.score_meas m
+  have hPmat_tendsto : TendstoInMeasure μ Pmat atTop
+      (fun _ => H + alpha • Sigma22) := by
+    simpa [Pmat] using h2SLS.moment_tendsto
+  have hGmat_tendsto : TendstoInMeasure μ Gmat atTop
+      (fun _ => H + Sigma22) := by
+    simpa [Gmat] using hOLS.gram_tendsto
+  have hPscore_tendsto : TendstoInMeasure μ Pscore atTop
+      (fun _ => alpha • Sigma2e) := by
+    simpa [Pscore] using h2SLS.score_tendsto
+  have hGscore_tendsto : TendstoInMeasure μ Gscore atTop
+      (fun _ => Sigma2e) := by
+    simpa [Gscore] using hOLS.score_tendsto
+  have hmat_prod_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (limlMuHat m ω, (Pmat m ω, Gmat m ω))) μ := by
+    intro m
+    exact (hmu_meas m).prodMk ((hPmat_meas m).prodMk (hGmat_meas m))
+  have hmat_prod_tendsto : TendstoInMeasure μ
+      (fun m ω => (limlMuHat m ω, (Pmat m ω, Gmat m ω))) atTop
+      (fun _ => (mu0, (H + alpha • Sigma22, H + Sigma22))) := by
+    exact tendstoInMeasure_prodMk hmu_tendsto
+      (tendstoInMeasure_prodMk hPmat_tendsto hGmat_tendsto)
+  have hmat_cont : Continuous
+      (fun p : ℝ × (Matrix k k ℝ × Matrix k k ℝ) =>
+        p.2.1 - p.1 • (p.2.2 - p.2.1)) := by
+    have hP : Continuous
+        (fun p : ℝ × (Matrix k k ℝ × Matrix k k ℝ) => p.2.1) :=
+      continuous_fst.comp continuous_snd
+    have hG : Continuous
+        (fun p : ℝ × (Matrix k k ℝ × Matrix k k ℝ) => p.2.2) :=
+      continuous_snd.comp continuous_snd
+    exact hP.sub (continuous_fst.smul (hG.sub hP))
+  have hliml_mat_raw : TendstoInMeasure μ
+      (fun m ω => Pmat m ω - limlMuHat m ω • (Gmat m ω - Pmat m ω))
+      atTop
+      (fun _ =>
+        (H + alpha • Sigma22) -
+          (alpha / (1 - alpha)) • ((H + Sigma22) - (H + alpha • Sigma22))) := by
+    simpa [mu0] using
+      tendstoInMeasure_continuous_comp hmat_prod_meas hmat_prod_tendsto hmat_cont
+  have hliml_mat : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlNormalizedMomentMatrixStar (Z m ω) (X m ω) (limlMuHat m ω))
+      atTop (fun _ => H) := by
+    refine TendstoInMeasure.congr' ?_ ?_ hliml_mat_raw
+    · exact Eventually.of_forall fun m => ae_of_all μ fun ω => by
+        simpa [Pmat, Gmat] using
+          (limlNormalizedMomentMatrixStar_eq_zero_sub_mu_residual
+            (Z m ω) (X m ω) (limlMuHat m ω)).symm
+    · exact ae_of_all μ fun _ => by
+        simpa using
+          (manyInstruments_liml_matrix_limit_cancel
+            (H := H) (Sigma22 := Sigma22) (alpha := alpha) halpha_lt_one)
+  have hscore_prod_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (limlMuHat m ω, (Pscore m ω, Gscore m ω))) μ := by
+    intro m
+    exact (hmu_meas m).prodMk ((hPscore_meas m).prodMk (hGscore_meas m))
+  have hscore_prod_tendsto : TendstoInMeasure μ
+      (fun m ω => (limlMuHat m ω, (Pscore m ω, Gscore m ω))) atTop
+      (fun _ => (mu0, (alpha • Sigma2e, Sigma2e))) := by
+    exact tendstoInMeasure_prodMk hmu_tendsto
+      (tendstoInMeasure_prodMk hPscore_tendsto hGscore_tendsto)
+  have hscore_cont : Continuous
+      (fun p : ℝ × ((k → ℝ) × (k → ℝ)) =>
+        p.2.1 - p.1 • (p.2.2 - p.2.1)) := by
+    have hP : Continuous
+        (fun p : ℝ × ((k → ℝ) × (k → ℝ)) => p.2.1) :=
+      continuous_fst.comp continuous_snd
+    have hG : Continuous
+        (fun p : ℝ × ((k → ℝ) × (k → ℝ)) => p.2.2) :=
+      continuous_snd.comp continuous_snd
+    exact hP.sub (continuous_fst.smul (hG.sub hP))
+  have hliml_score_raw : TendstoInMeasure μ
+      (fun m ω => Pscore m ω - limlMuHat m ω • (Gscore m ω - Pscore m ω))
+      atTop
+      (fun _ =>
+        alpha • Sigma2e -
+          (alpha / (1 - alpha)) • (Sigma2e - alpha • Sigma2e)) := by
+    simpa [mu0] using
+      tendstoInMeasure_continuous_comp
+        hscore_prod_meas hscore_prod_tendsto hscore_cont
+  have hliml_score : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlNormalizedMomentVectorStar
+          (Z m ω) (X m ω) (e m ω) (limlMuHat m ω))
+      atTop (fun _ => (0 : k → ℝ)) := by
+    refine TendstoInMeasure.congr' ?_ ?_ hliml_score_raw
+    · exact Eventually.of_forall fun m => ae_of_all μ fun ω => by
+        simpa [Pscore, Gscore] using
+          (limlNormalizedMomentVectorStar_eq_zero_sub_mu_residual
+            (Z m ω) (X m ω) (e m ω) (limlMuHat m ω)).symm
+    · exact ae_of_all μ fun _ => by
+        simpa using
+          (manyInstruments_liml_score_limit_cancel
+            (Sigma2e := Sigma2e) (alpha := alpha) halpha_lt_one)
+  refine
+    { moment_meas := ?_
+      score_meas := ?_
+      moment_tendsto := hliml_mat
+      score_tendsto_zero := hliml_score
+      limit_nonsing := hH_nonsing }
+  · intro m
+    have hformula : AEStronglyMeasurable
+        (fun ω => Pmat m ω - limlMuHat m ω • (Gmat m ω - Pmat m ω)) μ :=
+      (hPmat_meas m).sub ((hmu_meas m).smul ((hGmat_meas m).sub (hPmat_meas m)))
+    refine hformula.congr (ae_of_all μ fun ω => ?_)
+    simpa [Pmat, Gmat] using
+      (limlNormalizedMomentMatrixStar_eq_zero_sub_mu_residual
+        (Z m ω) (X m ω) (limlMuHat m ω)).symm
+  · intro m
+    have hformula : AEStronglyMeasurable
+        (fun ω => Pscore m ω - limlMuHat m ω • (Gscore m ω - Pscore m ω)) μ :=
+      (hPscore_meas m).sub
+        ((hmu_meas m).smul ((hGscore_meas m).sub (hPscore_meas m)))
+    refine hformula.congr (ae_of_all μ fun ω => ?_)
+    simpa [Pscore, Gscore] using
+      (limlNormalizedMomentVectorStar_eq_zero_sub_mu_residual
+        (Z m ω) (X m ω) (e m ω) (limlMuHat m ω)).symm
+
+/-- Positive-definite specialization of
+`ManyInstrumentsLIMLMomentConsistencyConditions.of_ols_twoSLS_moments_mu_tendsto`,
+matching Hansen's signal limit assumption `H > 0`. -/
+theorem ManyInstrumentsLIMLMomentConsistencyConditions.of_ols_twoSLS_moments_mu_tendsto_posDef
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hOLS : ManyInstrumentsOLSMomentLimitConditions μ X e (H + Sigma22) Sigma2e)
+    (h2SLS : ManyInstrumentsLIMLMomentLimitConditions
+      μ Z X e (fun _ _ => 0) (H + alpha • Sigma22) (alpha • Sigma2e))
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha)))
+    (halpha_lt_one : alpha < 1)
+    (hH : H.PosDef) :
+    ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H :=
+  ManyInstrumentsLIMLMomentConsistencyConditions.of_ols_twoSLS_moments_mu_tendsto
+    (μ := μ) (Z := Z) (X := X) (e := e) (limlMuHat := limlMuHat)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    hOLS h2SLS hmu_meas hmu_tendsto halpha_lt_one
+    ((Matrix.isUnit_iff_isUnit_det _).mp hH.isUnit)
+
+/-- Current many-instrument interface for the sample LIML eigenvalue adjustment.
+
+The imported LIML layer already supplies Rayleigh-minimum notation, but this
+module still has no finite-sample many-instrument eigenvalue statistic whose
+limit can be linked to Hansen's `μ̂`.  This package names exactly the output
+needed by Theorem 12.19 until that sample eigenvalue bridge is added. -/
+structure ManyInstrumentsLIMLEigenvalueLimitConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (limlMuHat : ℕ → Ω → ℝ) (alpha : ℝ) : Prop where
+  meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ
+  tendsto : TendstoInMeasure μ limlMuHat atTop
+    (fun _ => alpha / (1 - alpha))
+
+/-- Deterministic many-instrument LIML eigenvalue benchmark
+`(ℓ_n/n)/(1 - ℓ_n/n)`.
+
+Hansen's Theorem 12.19 sends `ℓ_n/n -> α`; this is the deterministic scalar
+that the sample LIML adjustment must track before the cancellation API can use
+the limit `α/(1-α)`. -/
+noncomputable def manyInstrumentsLIMLEigenvalueCardRatioAdjustment
+    (m : ℕ) : ℝ :=
+  let r := (Fintype.card (ι m) : ℝ) / (m : ℝ)
+  r / (1 - r)
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- If the instrument-count ratio converges to `α < 1`, Hansen's deterministic
+LIML eigenvalue benchmark converges to `α/(1-α)`. -/
+theorem manyInstrumentsLIMLEigenvalueCardRatioAdjustment_tendsto
+    {alpha : ℝ}
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (halpha_lt_one : alpha < 1) :
+    Tendsto
+      (fun m : ℕ =>
+        manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m)
+      atTop (𝓝 (alpha / (1 - alpha))) := by
+  have hcont : ContinuousAt (fun r : ℝ => r / (1 - r)) alpha := by
+    have hden : 1 - alpha ≠ 0 := by linarith
+    exact continuousAt_id.div (continuousAt_const.sub continuousAt_id) hden
+  simpa [manyInstrumentsLIMLEigenvalueCardRatioAdjustment] using
+    hcont.tendsto.comp hratio
+
+omit [Fintype k] [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+/-- The many-instrument ratio limit is automatically nonnegative.
+
+Hansen assumes `ℓ_n / n -> α`; since each finite-sample ratio is nonnegative,
+the limit side condition `0 ≤ α` used by the matrix nonsingularity wrappers is
+not a separate primitive. -/
+theorem manyInstruments_alpha_nonneg_of_card_ratio_tendsto
+    {alpha : ℝ}
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha)) :
+    0 ≤ alpha :=
+  le_of_tendsto_of_tendsto tendsto_const_nhds hratio
+    (Eventually.of_forall fun _ =>
+      div_nonneg (Nat.cast_nonneg _) (Nat.cast_nonneg _))
+
+/-- Sample LIML eigenvalue-problem output for Hansen Theorem 12.19.
+
+The substantive spectral/WLLN work is isolated in the centered gap:
+`μ̂_n - (ℓ_n/n)/(1 - ℓ_n/n) ->p 0`.  Combined with `ℓ_n/n -> α`, this derives
+the existing theorem-facing limit package `μ̂_n ->p α/(1-α)`. -/
+structure ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (limlMuHat : ℕ → Ω → ℝ) : Prop where
+  meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ
+  adjustment_gap_tendsto_zero : TendstoInMeasure μ
+    (fun m ω =>
+      limlMuHat m ω -
+        manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m)
+    atTop (fun _ => 0)
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Convert the sample LIML eigenvalue-problem gap into Hansen's
+`μ̂_n ->p α/(1-α)` limit package. -/
+theorem
+    ManyInstrumentsLIMLSampleEigenvalueProblemConditions.toLIMLEigenvalueLimitConditions
+    {limlMuHat : ℕ → Ω → ℝ} {alpha : ℝ}
+    (h : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (halpha_lt_one : alpha < 1) :
+    ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha where
+  meas := h.meas
+  tendsto := by
+    have hbenchmark : TendstoInMeasure μ
+        (fun m (_ : Ω) =>
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m)
+        atTop (fun _ => alpha / (1 - alpha)) :=
+      tendstoInMeasure_const_real (μ := μ)
+        (manyInstrumentsLIMLEigenvalueCardRatioAdjustment_tendsto
+          (ι := ι) hratio halpha_lt_one)
+    exact TendstoInMeasure.of_sub_tendsto_zero_real
+      h.adjustment_gap_tendsto_zero hbenchmark
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Direct convergence form of the sample LIML eigenvalue-problem bridge:
+`μ̂_n ->p α/(1-α)`. -/
+theorem manyInstruments_limlMuHat_tendsto_alpha_over_one_minus_alpha_of_sample_eigenvalue_problem
+    {limlMuHat : ℕ → Ω → ℝ} {alpha : ℝ}
+    (h : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (halpha_lt_one : alpha < 1) :
+    TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha)) :=
+  (h.toLIMLEigenvalueLimitConditions
+    (ι := ι) (μ := μ) hratio halpha_lt_one).tendsto
+
+/-- Sharply named certificate for the remaining many-instrument LIML
+eigenvalue input in Hansen Theorem 12.19: the sample LIML adjustment must
+converge to `α / (1 - α)`.
+
+This is an alias of `ManyInstrumentsLIMLEigenvalueLimitConditions`; it names
+the exact remaining theorem input until the finite-sample LIML eigenvalue
+statistic is connected to the many-instrument Rayleigh/eigenvalue argument. -/
+abbrev ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (limlMuHat : ℕ → Ω → ℝ) (alpha : ℝ) : Prop :=
+  ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha
+
+/-- The sharply named Theorem 12.19 LIML eigenvalue certificate is exactly the
+existing many-instrument eigenvalue limit-condition package. -/
+theorem manyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate_iff_limitConditions
+    {limlMuHat : ℕ → Ω → ℝ} {alpha : ℝ} :
+    ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+        μ limlMuHat alpha ↔
+      ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha :=
+  Iff.rfl
+
+/-- Convert the many-instrument LIML eigenvalue-adjustment limit package into
+the LIML zero-score moment package, once the OLS and projected-2SLS moment
+limits are available.
+
+This is a named bridge from the theorem-facing eigenvalue certificate to the
+existing LIML cancellation theorem. -/
+theorem ManyInstrumentsLIMLEigenvalueLimitConditions.toLIMLMomentConsistencyConditions_posDef
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha)
+    (hOLS : ManyInstrumentsOLSMomentLimitConditions μ X e (H + Sigma22) Sigma2e)
+    (h2SLS : ManyInstrumentsLIMLMomentLimitConditions
+      μ Z X e (fun _ _ => 0) (H + alpha • Sigma22) (alpha • Sigma2e))
+    (halpha_lt_one : alpha < 1) (hH : H.PosDef) :
+    ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H :=
+  ManyInstrumentsLIMLMomentConsistencyConditions.of_ols_twoSLS_moments_mu_tendsto_posDef
+    (μ := μ) (Z := Z) (X := X) (e := e) (limlMuHat := limlMuHat)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    hOLS h2SLS hmu.meas hmu.tendsto halpha_lt_one hH
+
+/-- Reduced-form moment components sufficient to assemble the OLS moment package
+used in Hansen Theorem 12.19.
+
+This keeps the theorem-facing many-instrument assumptions closer to Hansen's
+decomposition `X = ZΓ + u₂`: signal Gram, reduced-form error Gram, their
+cross-Gram, and the two score components are primitive moment limits; the OLS
+bread/score package is then derived. -/
+structure ManyInstrumentsOLSMomentAssemblyConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (H Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) : Prop where
+  reduced_form : ∀ (m : ℕ) (ω : Ω),
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  gram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ
+  score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (X m ω) (e m ω)) μ
+  signal_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ
+  reduced_error_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleGram (u2 m ω)) μ
+  cross_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω)) μ
+  signal_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω)) μ
+  reduced_error_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ
+  signal_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  reduced_error_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleGram (u2 m ω))
+    atTop (fun _ => Sigma22)
+  cross_gram_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+    atTop (fun _ => (0 : Matrix k k ℝ))
+  signal_score_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω))
+    atTop (fun _ => (0 : k → ℝ))
+  reduced_error_score_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+    atTop (fun _ => Sigma2e)
+  limit_nonsing : IsUnit (H + Sigma22).det
+
+/-- Build the OLS reduced-form assembly package with the OLS limit
+nonsingularity discharged from Hansen's positive-definite signal limit and
+positive-semidefinite reduced-form error covariance. -/
+theorem ManyInstrumentsOLSMomentAssemblyConditions.of_components_posSemidef
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hreduced_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram (u2 m ω)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω)) μ)
+    (hreduced_error_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hreduced_error_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleGram (u2 m ω))
+      atTop (fun _ => Sigma22))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hreduced_error_score_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => Sigma2e))
+    (hH : H.PosDef) (hSigma22 : Sigma22.PosSemidef) :
+    ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e where
+  reduced_form := hreduced
+  gram_meas := hgram_meas
+  score_meas := hscore_meas
+  signal_gram_meas := hsignal_gram_meas
+  reduced_error_gram_meas := hreduced_error_gram_meas
+  cross_gram_meas := hcross_gram_meas
+  signal_score_meas := hsignal_score_meas
+  reduced_error_score_meas := hreduced_error_score_meas
+  signal_gram_tendsto := hsignal_gram_tendsto
+  reduced_error_gram_tendsto := hreduced_error_gram_tendsto
+  cross_gram_tendsto_zero := hcross_gram_tendsto_zero
+  signal_score_tendsto_zero := hsignal_score_tendsto_zero
+  reduced_error_score_tendsto := hreduced_error_score_tendsto
+  limit_nonsing :=
+    manyInstruments_ols_limit_matrix_nonsingular_of_posSemidef hH hSigma22
+
+/-- Named WLLN output for Hansen's OLS reduced-form decomposition in
+Theorem 12.19.
+
+This is the smallest current enforceable reduced-form package: it contains the
+five component probability limits generated by `X = ZΓ + u₂`, the associated
+measurability fields, and the positivity facts needed to derive OLS
+nonsingularity.  Conditional homoskedasticity and fourth-moment hypotheses
+should target this package rather than the downstream estimator limit. -/
+structure ManyInstrumentsReducedFormWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (H Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) : Prop where
+  reduced_form : ∀ (m : ℕ) (ω : Ω),
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  gram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ
+  score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (X m ω) (e m ω)) μ
+  signal_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ
+  reduced_error_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleGram (u2 m ω)) μ
+  cross_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω)) μ
+  signal_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω)) μ
+  reduced_error_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ
+  signal_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  reduced_error_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleGram (u2 m ω))
+    atTop (fun _ => Sigma22)
+  cross_gram_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+    atTop (fun _ => (0 : Matrix k k ℝ))
+  signal_score_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω))
+    atTop (fun _ => (0 : k → ℝ))
+  reduced_error_score_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+    atTop (fun _ => Sigma2e)
+  signal_limit_posDef : H.PosDef
+  reduced_error_limit_posSemidef : Sigma22.PosSemidef
+
+/-- Turn the named OLS reduced-form WLLN package into the existing assembly
+package used by the 12.19 estimator constructors. -/
+theorem ManyInstrumentsReducedFormWLLNConditions.toOLSMomentAssemblyConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    (h : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e) :
+    ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e :=
+  ManyInstrumentsOLSMomentAssemblyConditions.of_components_posSemidef
+    (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    h.reduced_form h.gram_meas h.score_meas h.signal_gram_meas
+    h.reduced_error_gram_meas h.cross_gram_meas h.signal_score_meas
+    h.reduced_error_score_meas h.signal_gram_tendsto
+    h.reduced_error_gram_tendsto h.cross_gram_tendsto_zero
+    h.signal_score_tendsto_zero h.reduced_error_score_tendsto
+    h.signal_limit_posDef h.reduced_error_limit_posSemidef
+
+omit [DecidableEq k] in
+/-- Construct the reduced-form WLLN package when the reduced-form errors and
+structural error are ordinary stacked iid row sequences.
+
+This discharges the two unprojected reduced-form WLLNs in Hansen Theorem 12.19
+from the Chapter 7 WLLN layer. The signal Gram, signal-score, and signal-error
+cross-Gram limits remain explicit because they involve the sample-size-dependent
+instrument space and first-stage coefficient sequence. -/
+theorem ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef) :
+    ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e where
+  reduced_form := hreduced
+  gram_meas := hgram_meas
+  score_meas := hscore_meas
+  signal_gram_meas := hsignal_gram_meas
+  reduced_error_gram_meas :=
+    fun m => sampleGram_stackRegressors_aestronglyMeasurable_of_wlln
+      (μ := μ) (X := u2) ⟨hindep_outer, hident_outer, hint_outer⟩ m
+  cross_gram_meas := hcross_gram_meas
+  signal_score_meas := hsignal_score_meas
+  reduced_error_score_meas :=
+    fun m => sampleCrossMoment_stack_aestronglyMeasurable_of_wlln
+      (μ := μ) (X := u2) (e := e) hint_cross hident_cross m
+  signal_gram_tendsto := hsignal_gram_tendsto
+  reduced_error_gram_tendsto := by
+    simpa [hSigma22] using
+      sampleGram_stackRegressors_tendstoInMeasure_popGram_of_wlln
+        (μ := μ) (X := u2) ⟨hindep_outer, hident_outer, hint_outer⟩
+  cross_gram_tendsto_zero := hcross_gram_tendsto_zero
+  signal_score_tendsto_zero := hsignal_score_tendsto_zero
+  reduced_error_score_tendsto := by
+    simpa [hSigma2e] using
+      sampleCrossMoment_stack_tendstoInMeasure_integral
+        (μ := μ) (X := u2) (e := e) hint_cross hindep_cross hident_cross
+  signal_limit_posDef := hH
+  reduced_error_limit_posSemidef := hSigma22_psd
+
+omit [DecidableEq k] in
+/-- Primitive instrument-side WLLN inputs for Hansen Theorem 12.19.
+
+Because the instrument index type `ι m` changes with the sample size, raw
+objects such as `Q̂_ZZ : Matrix (ι m) (ι m) ℝ` do not have a fixed codomain in
+which to state convergence.  Hansen's proof only needs the fixed-dimensional
+transforms `Γ'Q̂_ZZΓ`, the symmetrized `Γ'Q̂_Zu₂`, and `Γ'(n⁻¹Z'e)`, so this
+package names exactly those primitive instrument-moment WLLNs instead of the
+downstream composite signal WLLNs. -/
+structure ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (H : Matrix k k ℝ) : Prop where
+  qzz_signal_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => (Gamma m)ᵀ * sampleQZZ (Z m ω) * Gamma m) μ
+  qzu2_cross_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      (Gamma m)ᵀ * sampleQZX (Z m ω) (u2 m ω) +
+        ((Gamma m)ᵀ * sampleQZX (Z m ω) (u2 m ω))ᵀ) μ
+  ze_signal_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => (Gamma m)ᵀ *ᵥ sampleCrossMoment (Z m ω) (e m ω)) μ
+  qzz_signal_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => (Gamma m)ᵀ * sampleQZZ (Z m ω) * Gamma m)
+    atTop (fun _ => H)
+  qzu2_cross_gram_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      (Gamma m)ᵀ * sampleQZX (Z m ω) (u2 m ω) +
+        ((Gamma m)ᵀ * sampleQZX (Z m ω) (u2 m ω))ᵀ)
+    atTop (fun _ => (0 : Matrix k k ℝ))
+  ze_signal_score_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω => (Gamma m)ᵀ *ᵥ sampleCrossMoment (Z m ω) (e m ω))
+    atTop (fun _ => (0 : k → ℝ))
+
+omit [Fintype k] [DecidableEq k] in
+/-- Symmetrized row cross product `x u' + u x'` used in the many-instrument
+cross-Gram WLLN. -/
+noncomputable def manyInstrumentSymCrossRow (x u : k → ℝ) : Matrix k k ℝ :=
+  Matrix.vecMulVec x u + (Matrix.vecMulVec x u)ᵀ
+
+omit [DecidableEq k] in
+private lemma measurable_manyInstrumentSymCrossRow_joint :
+    Measurable
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ =>
+        manyInstrumentSymCrossRow z.1.1 z.1.2) := by
+  have hx : Continuous
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.1.1) :=
+    continuous_fst.comp continuous_fst
+  have hu : Continuous
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.1.2) :=
+    continuous_snd.comp continuous_fst
+  have houter : Continuous
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ =>
+        Matrix.vecMulVec z.1.1 z.1.2) :=
+    Continuous.matrix_vecMulVec hx hu
+  have htranspose : Continuous
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ =>
+        (Matrix.vecMulVec z.1.1 z.1.2)ᵀ) :=
+    houter.matrix_transpose
+  simpa [manyInstrumentSymCrossRow] using
+    (houter.add htranspose).measurable
+
+omit [Fintype k] [DecidableEq k] in
+private lemma measurable_manyInstrumentCompressedSignal_joint :
+    Measurable
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.1.1) :=
+  measurable_fst.comp measurable_fst
+
+omit [Fintype k] [DecidableEq k] in
+private lemma measurable_manyInstrumentSignalScore_joint :
+    Measurable
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.2 • z.1.1) := by
+  rw [measurable_pi_iff]
+  intro a
+  have he : Measurable (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.2) :=
+    measurable_snd
+  have hxa : Measurable
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.1.1 a) :=
+    ((measurable_pi_apply a).comp measurable_fst).comp measurable_fst
+  simpa [Pi.smul_apply] using he.mul hxa
+
+omit [DecidableEq k] in
+private lemma measurable_manyInstrumentReducedErrorOuter_joint :
+    Measurable
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ =>
+        Matrix.vecMulVec z.1.2 z.1.2) := by
+  have hu : Continuous
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.1.2) :=
+    continuous_snd.comp continuous_fst
+  exact (Continuous.matrix_vecMulVec hu hu).measurable
+
+omit [Fintype k] [DecidableEq k] in
+private lemma measurable_manyInstrumentReducedErrorScore_joint :
+    Measurable
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.2 • z.1.2) := by
+  rw [measurable_pi_iff]
+  intro a
+  have he : Measurable (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.2) :=
+    measurable_snd
+  have hua : Measurable
+      (fun z : ((k → ℝ) × (k → ℝ)) × ℝ => z.1.2 a) :=
+    ((measurable_pi_apply a).comp measurable_snd).comp measurable_fst
+  simpa [Pi.smul_apply] using he.mul hua
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentReducedFormCrossGram_core_eq_avg_symCross
+    {n : Type*} [Fintype n]
+    (S U : Matrix n k ℝ) :
+    (Fintype.card n : ℝ)⁻¹ • (Sᵀ * U + Uᵀ * S) =
+      (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n, manyInstrumentSymCrossRow (S i) (U i) := by
+  have hsum : Sᵀ * U + Uᵀ * S =
+      ∑ i : n, manyInstrumentSymCrossRow (S i) (U i) := by
+    ext a b
+    simp [manyInstrumentSymCrossRow, Matrix.mul_apply, Matrix.add_apply,
+      Matrix.sum_apply, Matrix.vecMulVec_apply, Finset.sum_add_distrib, mul_comm]
+  rw [hsum]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentReducedFormCrossGram_eq_avg_symCross_of_signal
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq l]
+    (Z : Matrix n l ℝ) (Gamma : Matrix l k ℝ) (U S : Matrix n k ℝ)
+    (hS : manyInstrumentSignal Z Gamma = S) :
+    manyInstrumentReducedFormCrossGram Z Gamma U =
+      (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n, manyInstrumentSymCrossRow (S i) (U i) := by
+  rw [manyInstrumentReducedFormCrossGram, hS]
+  exact manyInstrumentReducedFormCrossGram_core_eq_avg_symCross S U
+
+omit [DecidableEq k] in
+/-- Fixed-codomain compressed-signal WLLN inputs for Hansen Theorem 12.19.
+
+The raw instrument dimension `ι m` varies with `m`, so Chapter 7's ordinary
+WLLN cannot directly apply to `Q̂_ZZ`.  When the theorem user has already
+identified the compressed signal `ZΓ` with a fixed `k`-dimensional stacked row
+sequence, this package derives the transformed primitive instrument WLLNs from
+ordinary Chapter 7 WLLNs for that compressed signal, its cross product with
+`u₂`, and its score against `e`. -/
+structure ManyInstrumentsCompressedSignalWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (signal : ℕ → Ω → k → ℝ)
+    (e : ℕ → Ω → ℝ)
+    (u2 : ℕ → Ω → k → ℝ)
+    (H : Matrix k k ℝ) : Prop where
+  compressed_signal : ∀ (m : ℕ) (ω : Ω),
+    manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω
+  signal_gram_wlln : SampleGramWLLNConditions μ signal
+  signal_gram_limit : H = popGram μ signal
+  sym_cross_integrable : Integrable
+    (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ
+  sym_cross_indep :
+    Pairwise ((· ⟂ᵢ[μ] ·) on
+      (fun i ω => manyInstrumentSymCrossRow (signal i ω) (u2 i ω)))
+  sym_cross_ident : ∀ i,
+    IdentDistrib
+      (fun ω => manyInstrumentSymCrossRow (signal i ω) (u2 i ω))
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ μ
+  sym_cross_mean_zero :
+    μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0
+  signal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ
+  signal_score_indep :
+    Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • signal i ω))
+  signal_score_ident : ∀ i,
+    IdentDistrib
+      (fun ω => e i ω • signal i ω)
+      (fun ω => e 0 ω • signal 0 ω) μ μ
+  signal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0
+
+omit [DecidableEq k] in
+/-- IID fixed-codomain compressed rows supply the compressed-signal WLLN package
+used in Hansen Theorem 12.19.
+
+This constructor reduces the transformed-instrument WLLN input to one ordinary
+joint iid row process `((ZΓ)_i, u₂ᵢ, eᵢ)`.  Chapter 7's finite-second WLLN
+constructs the compressed signal Gram, while independence and identical
+distribution for the symmetrized signal-error cross row and signal score are
+obtained by measurable composition from the same joint iid primitive. -/
+theorem ManyInstrumentsCompressedSignalWLLNConditions.of_iid_compressed_signal
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {H : Matrix k k ℝ}
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0) :
+    ManyInstrumentsCompressedSignalWLLNConditions
+      μ Z Gamma signal e u2 H where
+  compressed_signal := hcompressed
+  signal_gram_wlln := by
+    refine SampleGramWLLNConditions.of_iid_finite_second
+      (μ := μ) (X := signal) hsignal_meas ?_ ?_ hsignal_norm_sq
+    · simpa [Function.comp] using
+        hjoint_indep.comp
+          (fun (_ : ℕ) (z : ((k → ℝ) × (k → ℝ)) × ℝ) => z.1.1)
+          (fun (_ : ℕ) => measurable_manyInstrumentCompressedSignal_joint)
+    · intro i
+      simpa [Function.comp] using
+        (hjoint_ident i).comp measurable_manyInstrumentCompressedSignal_joint
+  signal_gram_limit := hsignal_gram_limit
+  sym_cross_integrable := hsym_cross_integrable
+  sym_cross_indep := by
+    have hindep : iIndepFun
+        (fun i ω => manyInstrumentSymCrossRow (signal i ω) (u2 i ω)) μ := by
+      simpa [Function.comp] using
+        hjoint_indep.comp
+          (fun (_ : ℕ) (z : ((k → ℝ) × (k → ℝ)) × ℝ) =>
+            manyInstrumentSymCrossRow z.1.1 z.1.2)
+          (fun (_ : ℕ) => measurable_manyInstrumentSymCrossRow_joint)
+    intro i j hij
+    exact hindep.indepFun hij
+  sym_cross_ident := by
+    intro i
+    simpa [Function.comp] using
+      (hjoint_ident i).comp measurable_manyInstrumentSymCrossRow_joint
+  sym_cross_mean_zero := hsym_cross_mean_zero
+  signal_score_integrable := hsignal_score_integrable
+  signal_score_indep := by
+    have hindep : iIndepFun (fun i ω => e i ω • signal i ω) μ := by
+      simpa [Function.comp] using
+        hjoint_indep.comp
+          (fun (_ : ℕ) (z : ((k → ℝ) × (k → ℝ)) × ℝ) => z.2 • z.1.1)
+          (fun (_ : ℕ) => measurable_manyInstrumentSignalScore_joint)
+    intro i j hij
+    exact hindep.indepFun hij
+  signal_score_ident := by
+    intro i
+    simpa [Function.comp] using
+      (hjoint_ident i).comp measurable_manyInstrumentSignalScore_joint
+  signal_score_mean_zero := hsignal_score_mean_zero
+
+omit [DecidableEq k] in
+theorem
+    ManyInstrumentsCompressedSignalWLLNConditions.toPrimitiveInstrumentMomentWLLNConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {H : Matrix k k ℝ}
+    (h : ManyInstrumentsCompressedSignalWLLNConditions
+      μ Z Gamma signal e u2 H) :
+    ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H := by
+  let C : ℕ → Ω → Matrix k k ℝ := fun i ω =>
+    manyInstrumentSymCrossRow (signal i ω) (u2 i ω)
+  have hcross_meas_avg : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω => (m : ℝ)⁻¹ • ∑ i : Fin m, C i.val ω) μ := by
+    intro m
+    refine AEStronglyMeasurable.const_smul ?_ ((m : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.sym_cross_ident i.val).integrable_iff.mpr
+      h.sym_cross_integrable).aestronglyMeasurable
+  have hcross_wlln_range : TendstoInMeasure μ
+      (fun (m : ℕ) ω => (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, C i ω)
+      atTop (fun _ => (0 : Matrix k k ℝ)) := by
+    have hraw := tendstoInMeasure_wlln
+      (μ := μ) C h.sym_cross_integrable h.sym_cross_indep h.sym_cross_ident
+    simpa [C, h.sym_cross_mean_zero] using hraw
+  have hcross_wlln_fin : TendstoInMeasure μ
+      (fun (m : ℕ) ω => (m : ℝ)⁻¹ • ∑ i : Fin m, C i.val ω)
+      atTop (fun _ => (0 : Matrix k k ℝ)) := by
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hcross_wlln_range
+    exact ae_of_all μ fun ω => by
+      simpa using congrArg (fun M : Matrix k k ℝ => (m : ℝ)⁻¹ • M)
+        ((Fin.sum_univ_eq_sum_range (fun i => C i ω) m).symm)
+  refine
+    { qzz_signal_gram_meas := ?_
+      qzu2_cross_gram_meas := ?_
+      ze_signal_score_meas := ?_
+      qzz_signal_gram_tendsto := ?_
+      qzu2_cross_gram_tendsto_zero := ?_
+      ze_signal_score_tendsto_zero := ?_ }
+  · intro m
+    have hstack := sampleGram_stackRegressors_aestronglyMeasurable_of_wlln
+      (μ := μ) (X := signal) h.signal_gram_wlln m
+    exact hstack.congr (ae_of_all μ fun ω => by
+      calc
+        sampleGram (stackRegressors signal m ω) =
+            manyInstrumentSignalGram (Z m ω) (Gamma m) := by
+          simp [manyInstrumentSignalGram, h.compressed_signal m ω]
+        _ = (Gamma m)ᵀ * sampleQZZ (Z m ω) * Gamma m := by
+          exact manyInstrumentSignalGram_eq_Gamma_transpose_sampleQZZ_mul_Gamma
+            (Z m ω) (Gamma m))
+  · intro m
+    exact (hcross_meas_avg m).congr (ae_of_all μ fun ω => by
+      calc
+        (m : ℝ)⁻¹ • ∑ i : Fin m, C i.val ω =
+            manyInstrumentReducedFormCrossGram
+              (Z m ω) (Gamma m) (stackRegressors u2 m ω) := by
+          rw [manyInstrumentReducedFormCrossGram_eq_avg_symCross_of_signal
+            (Z m ω) (Gamma m) (stackRegressors u2 m ω)
+            (stackRegressors signal m ω) (h.compressed_signal m ω)]
+          rw [Fintype.card_fin]
+          apply congrArg (fun M : Matrix k k ℝ => (m : ℝ)⁻¹ • M)
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          ext a b
+          simp [C, manyInstrumentSymCrossRow, stackRegressors,
+            Matrix.vecMulVec_apply]
+        _ = (Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω) +
+            ((Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω))ᵀ := by
+          exact manyInstrumentReducedFormCrossGram_eq_Gamma_transpose_sampleQZX
+            (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+  · intro m
+    have hstack := sampleCrossMoment_stack_aestronglyMeasurable_of_wlln
+      (μ := μ) (X := signal) (e := e)
+      h.signal_score_integrable h.signal_score_ident m
+    exact hstack.congr (ae_of_all μ fun ω => by
+      calc
+        sampleCrossMoment (stackRegressors signal m ω) (stackErrors e m ω) =
+            sampleCrossMoment
+              (manyInstrumentSignal (Z m ω) (Gamma m)) (stackErrors e m ω) := by
+          simp [h.compressed_signal m ω]
+        _ = (Gamma m)ᵀ *ᵥ sampleCrossMoment (Z m ω) (stackErrors e m ω) := by
+          exact sampleCrossMoment_manyInstrumentSignal_eq_Gamma_transpose_sampleCrossMoment
+            (Z m ω) (Gamma m) (stackErrors e m ω))
+  · have hstack : TendstoInMeasure μ
+        (fun m ω => sampleGram (stackRegressors signal m ω))
+        atTop (fun _ => H) := by
+      simpa [h.signal_gram_limit] using
+        sampleGram_stackRegressors_tendstoInMeasure_popGram_of_wlln
+          (μ := μ) (X := signal) h.signal_gram_wlln
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hstack
+    exact ae_of_all μ fun ω => by
+      calc
+        sampleGram (stackRegressors signal m ω) =
+            manyInstrumentSignalGram (Z m ω) (Gamma m) := by
+          simp [manyInstrumentSignalGram, h.compressed_signal m ω]
+        _ = (Gamma m)ᵀ * sampleQZZ (Z m ω) * Gamma m := by
+          exact manyInstrumentSignalGram_eq_Gamma_transpose_sampleQZZ_mul_Gamma
+            (Z m ω) (Gamma m)
+  · refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hcross_wlln_fin
+    exact ae_of_all μ fun ω => by
+      calc
+        (m : ℝ)⁻¹ • ∑ i : Fin m, C i.val ω =
+            manyInstrumentReducedFormCrossGram
+              (Z m ω) (Gamma m) (stackRegressors u2 m ω) := by
+          rw [manyInstrumentReducedFormCrossGram_eq_avg_symCross_of_signal
+            (Z m ω) (Gamma m) (stackRegressors u2 m ω)
+            (stackRegressors signal m ω) (h.compressed_signal m ω)]
+          rw [Fintype.card_fin]
+          apply congrArg (fun M : Matrix k k ℝ => (m : ℝ)⁻¹ • M)
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          ext a b
+          simp [C, manyInstrumentSymCrossRow, stackRegressors,
+            Matrix.vecMulVec_apply]
+        _ = (Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω) +
+            ((Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω))ᵀ := by
+          exact manyInstrumentReducedFormCrossGram_eq_Gamma_transpose_sampleQZX
+            (Z m ω) (Gamma m) (stackRegressors u2 m ω)
+  · have hscore : TendstoInMeasure μ
+        (fun m ω => sampleCrossMoment (stackRegressors signal m ω) (stackErrors e m ω))
+        atTop (fun _ => (0 : k → ℝ)) := by
+      have hraw := sampleCrossMoment_stack_tendstoInMeasure_integral
+        (μ := μ) (X := signal) (e := e)
+        h.signal_score_integrable h.signal_score_indep h.signal_score_ident
+      simpa [h.signal_score_mean_zero] using hraw
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hscore
+    exact ae_of_all μ fun ω => by
+      calc
+        sampleCrossMoment (stackRegressors signal m ω) (stackErrors e m ω) =
+            sampleCrossMoment
+              (manyInstrumentSignal (Z m ω) (Gamma m)) (stackErrors e m ω) := by
+          simp [h.compressed_signal m ω]
+        _ = (Gamma m)ᵀ *ᵥ sampleCrossMoment (Z m ω) (stackErrors e m ω) := by
+          exact sampleCrossMoment_manyInstrumentSignal_eq_Gamma_transpose_sampleCrossMoment
+            (Z m ω) (Gamma m) (stackErrors e m ω)
+
+omit [DecidableEq k] in
+/-- Primitive transformed-instrument WLLNs from a fixed-dimensional iid
+compressed row process.
+
+This is the direct theorem-facing form of
+`ManyInstrumentsCompressedSignalWLLNConditions.of_iid_compressed_signal`
+followed by
+`ManyInstrumentsCompressedSignalWLLNConditions.toPrimitiveInstrumentMomentWLLNConditions`.
+It replaces the varying-dimension primitive moment package by enforceable
+fixed-codomain iid assumptions on `(ZΓ, u₂, e)`. -/
+theorem
+ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions.of_iid_compressed_signal
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {H : Matrix k k ℝ}
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0) :
+    ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H :=
+  (ManyInstrumentsCompressedSignalWLLNConditions.of_iid_compressed_signal
+    (μ := μ) (Z := Z) (Gamma := Gamma) (signal := signal) (e := e)
+    (u2 := u2) (H := H)
+    hcompressed hsignal_meas hjoint_indep hjoint_ident hsignal_norm_sq
+    hsignal_gram_limit hsym_cross_integrable hsym_cross_mean_zero
+    hsignal_score_integrable
+    hsignal_score_mean_zero).toPrimitiveInstrumentMomentWLLNConditions
+
+omit [DecidableEq k] in
+/-- Construct the reduced-form WLLN package from primitive instrument-moment
+WLLNs plus the Chapter 7 stacked-row WLLNs for the reduced-form errors.
+
+Compared with `ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln`,
+this constructor does not ask for WLLNs of the composite signal objects
+`ZΓ` directly.  It derives them from the deterministic bridges
+`n⁻¹Γ'Z'ZΓ = Γ'Q̂_ZZΓ`, the symmetrized `Γ'Q̂_Zu₂`, and
+`n⁻¹Γ'Z'e = Γ'(n⁻¹Z'e)`. -/
+theorem ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_instrument_moment_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinstrument_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (Gamma m)ᵀ * sampleQZZ (Z m ω) * Gamma m) μ)
+    (hinstrument_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        (Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω) +
+          ((Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω))ᵀ) μ)
+    (hinstrument_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        (Gamma m)ᵀ *ᵥ sampleCrossMoment (Z m ω) (stackErrors e m ω)) μ)
+    (hinstrument_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => (Gamma m)ᵀ * sampleQZZ (Z m ω) * Gamma m)
+      atTop (fun _ => H))
+    (hinstrument_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        (Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω) +
+          ((Gamma m)ᵀ * sampleQZX (Z m ω) (stackRegressors u2 m ω))ᵀ)
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hinstrument_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        (Gamma m)ᵀ *ᵥ sampleCrossMoment (Z m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef) :
+    ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e := by
+  let hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ := by
+    intro m
+    exact (hinstrument_signal_gram_meas m).congr
+      (ae_of_all μ fun ω =>
+        (manyInstrumentSignalGram_eq_Gamma_transpose_sampleQZZ_mul_Gamma
+          (Z m ω) (Gamma m)).symm)
+  let hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ := by
+    intro m
+    exact (hinstrument_cross_gram_meas m).congr
+      (ae_of_all μ fun ω =>
+        (manyInstrumentReducedFormCrossGram_eq_Gamma_transpose_sampleQZX
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω)).symm)
+  let hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω)) μ := by
+    intro m
+    exact (hinstrument_signal_score_meas m).congr
+      (ae_of_all μ fun ω =>
+        (sampleCrossMoment_manyInstrumentSignal_eq_Gamma_transpose_sampleCrossMoment
+          (Z m ω) (Gamma m) (stackErrors e m ω)).symm)
+  let hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H) :=
+    TendstoInMeasure.congr
+      (fun m => ae_of_all μ fun ω =>
+        (manyInstrumentSignalGram_eq_Gamma_transpose_sampleQZZ_mul_Gamma
+          (Z m ω) (Gamma m)).symm)
+      EventuallyEq.rfl hinstrument_signal_gram_tendsto
+  let hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)) :=
+    TendstoInMeasure.congr
+      (fun m => ae_of_all μ fun ω =>
+        (manyInstrumentReducedFormCrossGram_eq_Gamma_transpose_sampleQZX
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω)).symm)
+      EventuallyEq.rfl hinstrument_cross_gram_tendsto_zero
+  let hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)) :=
+    TendstoInMeasure.congr
+      (fun m => ae_of_all μ fun ω =>
+        (sampleCrossMoment_manyInstrumentSignal_eq_Gamma_transpose_sampleCrossMoment
+          (Z m ω) (Gamma m) (stackErrors e m ω)).symm)
+      EventuallyEq.rfl hinstrument_signal_score_tendsto_zero
+  exact
+    ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hsignal_gram_meas hcross_gram_meas
+      hsignal_score_meas hsignal_gram_tendsto hcross_gram_tendsto_zero
+      hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+
+omit [DecidableEq k] in
+/-- Construct the reduced-form WLLN package from the named primitive
+instrument-side WLLN package plus Chapter 7 stacked-row WLLNs for the
+reduced-form errors.
+
+This is the preferred theorem-facing bridge for Hansen's `Q̂_ZZ`, `Q̂_Zu₂`,
+and `n⁻¹Z'e` inputs: the varying instrument dimension is confined to
+`ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions`, while the resulting
+reduced-form package has the fixed `k × k` and `k` limits used by the estimator
+proofs. -/
+theorem
+ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_primitive_instrument_moment_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef) :
+    ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e :=
+  ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_instrument_moment_wlln
+    (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    hreduced hgram_meas hscore_meas
+    hinst.qzz_signal_gram_meas hinst.qzu2_cross_gram_meas
+    hinst.ze_signal_score_meas hinst.qzz_signal_gram_tendsto
+    hinst.qzu2_cross_gram_tendsto_zero hinst.ze_signal_score_tendsto_zero
+    hint_outer hindep_outer hident_outer hSigma22 hint_cross hindep_cross
+    hident_cross hSigma2e hH hSigma22_psd
+
+/-- Assemble the OLS moment-limit package from Hansen's many-instrument
+reduced-form moment components. -/
+theorem ManyInstrumentsOLSMomentLimitConditions.of_reduced_form_components
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    (h : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e) :
+    ManyInstrumentsOLSMomentLimitConditions μ X e (H + Sigma22) Sigma2e := by
+  refine
+    { gram_meas := h.gram_meas
+      score_meas := h.score_meas
+      gram_tendsto := ?_
+      score_tendsto := ?_
+      limit_nonsing := h.limit_nonsing }
+  · have hsignal_plus_error : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentSignalGram (Z m ω) (Gamma m) + sampleGram (u2 m ω))
+        atTop (fun _ => H + Sigma22) :=
+      tendstoInMeasure_add h.signal_gram_meas h.reduced_error_gram_meas
+        h.signal_gram_tendsto h.reduced_error_gram_tendsto
+    have htotal : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentSignalGram (Z m ω) (Gamma m) + sampleGram (u2 m ω) +
+            manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+        atTop (fun _ => H + Sigma22 + (0 : Matrix k k ℝ)) :=
+      tendstoInMeasure_add
+        (fun m => (h.signal_gram_meas m).add (h.reduced_error_gram_meas m))
+        h.cross_gram_meas hsignal_plus_error h.cross_gram_tendsto_zero
+    refine TendstoInMeasure.congr' ?_ ?_ htotal
+    · filter_upwards [eventually_gt_atTop 0] with m hm
+      exact ae_of_all μ (fun ω => by
+        haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+        change
+          manyInstrumentSignalGram (Z m ω) (Gamma m) + sampleGram (u2 m ω) +
+              manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω) =
+            sampleGram (X m ω)
+        rw [h.reduced_form m ω, manyInstrumentReducedForm_sampleGram])
+    · exact ae_of_all μ (fun _ => by simp)
+  · have hscore_sum : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω) +
+            sampleCrossMoment (u2 m ω) (e m ω))
+        atTop (fun _ => (0 : k → ℝ) + Sigma2e) :=
+      tendstoInMeasure_add h.signal_score_meas h.reduced_error_score_meas
+        h.signal_score_tendsto_zero h.reduced_error_score_tendsto
+    refine TendstoInMeasure.congr' ?_ ?_ hscore_sum
+    · filter_upwards [eventually_gt_atTop 0] with m hm
+      exact ae_of_all μ (fun ω => by
+        haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+        change
+          sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω) +
+              sampleCrossMoment (u2 m ω) (e m ω) =
+            sampleCrossMoment (X m ω) (e m ω)
+        rw [h.reduced_form m ω, manyInstrumentReducedForm_sampleCrossMoment])
+    · exact ae_of_all μ (fun _ => by simp)
+
+/-- Projected reduced-form moment components sufficient to assemble the 2SLS
+moment package used in Hansen Theorem 12.19.
+
+This is the `μ = 0` LIML/k-class face.  The primitive limits are the projected
+signal Gram, projected reduced-form-error Gram, projected cross-Gram, projected
+signal score, and projected reduced-form-error score; the normalized 2SLS
+bread/score package is then derived. -/
+structure ManyInstrumentsTwoSLSMomentAssemblyConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (H Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) (alpha : ℝ) : Prop where
+  reduced_form : ∀ (m : ℕ) (ω : Ω),
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  moment_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0) μ
+  score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0) μ
+  projected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ
+  projected_error_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ
+  projected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedReducedFormCrossGram
+      (Z m ω) (Gamma m) (u2 m ω)) μ
+  projected_signal_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ
+  projected_error_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ
+  projected_signal_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  projected_error_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω))
+    atTop (fun _ => alpha • Sigma22)
+  projected_cross_gram_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+    atTop (fun _ => (0 : Matrix k k ℝ))
+  projected_signal_score_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+    atTop (fun _ => (0 : k → ℝ))
+  projected_error_score_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω))
+    atTop (fun _ => alpha • Sigma2e)
+  limit_nonsing : IsUnit (H + alpha • Sigma22).det
+
+/-- Lower-level projection-trace layer for the many-instrument 2SLS
+projected-error moment consequences.
+
+The primitive assumptions mirror Hansen's homoskedastic many-instrument
+calculation: the projected error Gram/cross moments equal the projection trace
+ratio times the unprojected reduced-form moments up to `o_p(1)` remainders,
+and `n^{-1}tr(P_Z*) -> α`.  The theorem below turns these lower-level
+projection-trace consequences into the projected-error fields required by the
+existing 2SLS assembly package. -/
+structure ManyInstrumentsProjectedTraceMomentConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) (alpha : ℝ) : Prop where
+  trace_ratio_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ
+  reduced_error_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleGram (u2 m ω)) μ
+  reduced_error_cross_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ
+  projected_error_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ
+  projected_error_cross_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ
+  trace_ratio_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentProjectionTraceRatio (Z m ω))
+    atTop (fun _ => alpha)
+  reduced_error_gram_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleGram (u2 m ω))
+    atTop (fun _ => Sigma22)
+  reduced_error_cross_tendsto : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+    atTop (fun _ => Sigma2e)
+  projected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+        manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+    atTop (fun _ => (0 : Matrix k k ℝ))
+  projected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+        manyInstrumentProjectionTraceRatio (Z m ω) •
+          sampleCrossMoment (u2 m ω) (e m ω))
+    atTop (fun _ => (0 : k → ℝ))
+
+/-- Homoskedastic projection-trace remainders left after the reduced-form WLLNs
+and instrument trace ratio have been separated out.
+
+Under Hansen's conditional homoskedasticity and bounded fourth moments, these
+are the two projected-error remainder WLLNs that still require a triangular
+array/projection proof in the current repo. -/
+structure ManyInstrumentsHomoskedasticProjectionRemainderConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ) : Prop where
+  trace_ratio_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ
+  projected_error_gram_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ
+  projected_error_cross_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ
+  projected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+        manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+    atTop (fun _ => (0 : Matrix k k ℝ))
+  projected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+        manyInstrumentProjectionTraceRatio (Z m ω) •
+          sampleCrossMoment (u2 m ω) (e m ω))
+    atTop (fun _ => (0 : k → ℝ))
+
+omit [Fintype k] [DecidableEq k] in
+/-- Matrix-valued projected-error trace remainder in Hansen's many-instrument
+homoskedastic calculation. -/
+noncomputable def manyInstrumentProjectedErrorGramTraceRemainder
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) : Matrix k k ℝ :=
+  manyInstrumentProjectedErrorGram Z u2 -
+    manyInstrumentProjectionTraceRatio Z • sampleGram u2
+
+omit [Fintype k] [DecidableEq k] in
+/-- Vector-valued projected-error score trace remainder in Hansen's
+many-instrument homoskedastic calculation. -/
+noncomputable def manyInstrumentProjectedErrorCrossTraceRemainder
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) (e : n → ℝ) : k → ℝ :=
+  manyInstrumentProjectedErrorCross Z u2 e -
+    manyInstrumentProjectionTraceRatio Z • sampleCrossMoment u2 e
+
+omit [Fintype k] [DecidableEq k] in
+private theorem sampleGram_eq_average_vecMulVec
+    {n : Type*} [Fintype n] (X : Matrix n k ℝ) :
+    sampleGram X =
+      (Fintype.card n : ℝ)⁻¹ • ∑ i : n, Matrix.vecMulVec (X i) (X i) := by
+  ext a b
+  by_cases hn : Fintype.card n = 0
+  · simp [sampleGram, Matrix.smul_apply, hn]
+  · simp [sampleGram, Matrix.mul_apply, Matrix.vecMulVec, Matrix.sum_apply,
+      Matrix.smul_apply]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem sampleCrossMoment_eq_average_rows
+    {n : Type*} [Fintype n] (X : Matrix n k ℝ) (e : n → ℝ) :
+    sampleCrossMoment X e =
+      (Fintype.card n : ℝ)⁻¹ • ∑ i : n, e i • X i := by
+  ext a
+  by_cases hn : Fintype.card n = 0
+  · simp [sampleCrossMoment, Pi.smul_apply, hn]
+  · simp [sampleCrossMoment, Matrix.mulVec, dotProduct, Pi.smul_apply, mul_comm]
+
+omit [Fintype k] [DecidableEq k] in
+/-- Canonical matrix row contribution for the projected-error trace remainder.
+
+This is the exact finite-sample row summand whose average is
+`manyInstrumentProjectedErrorGramTraceRemainder`.  It separates the algebraic
+row-identity step from the remaining homoskedastic triangular-array WLLN. -/
+noncomputable def manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) (i : n) : Matrix k k ℝ :=
+  Matrix.vecMulVec ((instrumentProjectionStar Z * u2) i)
+      ((instrumentProjectionStar Z * u2) i) -
+    manyInstrumentProjectionTraceRatio Z • Matrix.vecMulVec (u2 i) (u2 i)
+
+omit [Fintype k] [DecidableEq k] in
+/-- Canonical vector row contribution for the projected-error score trace
+remainder. -/
+noncomputable def manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) (e : n → ℝ) (i : n) : k → ℝ :=
+  e i • ((instrumentProjectionStar Z * u2) i) -
+    manyInstrumentProjectionTraceRatio Z • (e i • u2 i)
+
+omit [Fintype k] [DecidableEq k] in
+/-- The projected-error Gram trace remainder is exactly the average of its
+canonical finite-sample row contributions. -/
+theorem manyInstrumentProjectedErrorGramTraceRemainder_eq_average_canonicalRow
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) :
+    manyInstrumentProjectedErrorGramTraceRemainder Z u2 =
+      (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n,
+          manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow Z u2 i := by
+  rw [manyInstrumentProjectedErrorGramTraceRemainder,
+    manyInstrumentProjectedErrorGram]
+  rw [sampleGram_eq_average_vecMulVec (instrumentProjectionStar Z * u2),
+    sampleGram_eq_average_vecMulVec u2]
+  simp [manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow,
+    Finset.sum_sub_distrib, Finset.smul_sum, smul_sub, smul_smul, mul_comm]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The projected-error score trace remainder is exactly the average of its
+canonical finite-sample row contributions. -/
+theorem manyInstrumentProjectedErrorCrossTraceRemainder_eq_average_canonicalRow
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (u2 : Matrix n k ℝ) (e : n → ℝ) :
+    manyInstrumentProjectedErrorCrossTraceRemainder Z u2 e =
+      (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n,
+          manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow Z u2 e i := by
+  rw [manyInstrumentProjectedErrorCrossTraceRemainder,
+    manyInstrumentProjectedErrorCross]
+  rw [sampleCrossMoment_eq_average_rows (instrumentProjectionStar Z * u2) e,
+    sampleCrossMoment_eq_average_rows u2 e]
+  simp [manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow,
+    Finset.sum_sub_distrib, Finset.smul_sum, smul_sub, smul_smul,
+    mul_assoc, mul_left_comm, mul_comm]
+
+omit [DecidableEq k] in
+/-- Canonical row-average convergence inputs for Hansen's projected-error
+trace remainders.
+
+Unlike the more abstract scalar/row WLLN packages below, these fields use the
+exact finite-sample row summands defined from `P_Z*`, `u₂`, and `e`.  The
+remaining work is therefore the probabilistic homoskedastic projection WLLN for
+these canonical averages, not an additional algebraic identification step. -/
+structure ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ) : Prop where
+  gram_average_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      (Fintype.card (Fin m) : ℝ)⁻¹ •
+        ∑ i : Fin m,
+          manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow
+            (Z m ω) (u2 m ω) i)
+    atTop (fun _ => (0 : Matrix k k ℝ))
+  cross_average_tendsto_zero : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      (Fintype.card (Fin m) : ℝ)⁻¹ •
+        ∑ i : Fin m,
+          manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow
+            (Z m ω) (u2 m ω) (e m ω) i)
+    atTop (fun _ => (0 : k → ℝ))
+
+omit [DecidableEq k] in
+/-- Entrywise scalar WLLN certificates for the two projected-error trace
+remainders.
+
+This is a narrower proof target than the matrix/vector remainder fields in
+`ManyInstrumentsHomoskedasticProjectionRemainderConditions`: each matrix entry
+and vector coordinate can be proved as a scalar `o_p(1)` statement, and the
+finite-dimensional assembly below supplies the full Hansen remainder package. -/
+structure ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ) : Prop where
+  gram_entry_tendsto_zero : ∀ a b : k, TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) a b)
+    atTop (fun _ => 0)
+  cross_entry_tendsto_zero : ∀ a : k, TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) a)
+    atTop (fun _ => 0)
+
+namespace ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+
+omit [DecidableEq k] in
+/-- Entrywise scalar projected-error trace WLLNs imply the matrix-valued Gram
+remainder WLLN. -/
+theorem gram_tendsto_zero
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    (h : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)) := by
+  refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
+  refine tendstoInMeasure_pi (μ := μ) (fun b => ?_)
+  simpa [manyInstrumentProjectedErrorGramTraceRemainder] using
+    h.gram_entry_tendsto_zero a b
+
+omit [DecidableEq k] in
+/-- Entrywise scalar projected-error trace WLLNs imply the vector-valued score
+remainder WLLN. -/
+theorem cross_tendsto_zero
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    (h : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)) := by
+  refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
+  simpa [manyInstrumentProjectedErrorCrossTraceRemainder] using
+    h.cross_entry_tendsto_zero a
+
+end ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+
+namespace ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+
+omit [DecidableEq k] in
+/-- Canonical row-average convergence supplies the entrywise projected-error
+trace-remainder WLLN package. -/
+theorem toEntryWLLNConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    (h : ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+      μ Z e u2) :
+    ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2 where
+  gram_entry_tendsto_zero := by
+    intro a b
+    have hgram : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω))
+        atTop (fun _ => (0 : Matrix k k ℝ)) := by
+      refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl
+        h.gram_average_tendsto_zero
+      exact ae_of_all μ fun ω =>
+        (manyInstrumentProjectedErrorGramTraceRemainder_eq_average_canonicalRow
+          (Z m ω) (u2 m ω)).symm
+    exact TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hgram a) b
+  cross_entry_tendsto_zero := by
+    intro a
+    have hcross : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentProjectedErrorCrossTraceRemainder
+            (Z m ω) (u2 m ω) (e m ω))
+        atTop (fun _ => (0 : k → ℝ)) := by
+      refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl
+        h.cross_average_tendsto_zero
+      exact ae_of_all μ fun ω =>
+        (manyInstrumentProjectedErrorCrossTraceRemainder_eq_average_canonicalRow
+          (Z m ω) (u2 m ω) (e m ω)).symm
+    exact TendstoInMeasure.pi_apply hcross a
+
+end ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+
+omit [DecidableEq k] in
+/-- Compatibility-only matrix/vector row WLLN inputs for projected remainders.
+
+This generic implication is valid if such iid additive rows are independently
+constructed. Hansen's projected quadratic forms do not supply them because
+`P_Z` couples all observations. New theorem-facing work must use
+`ManyInstrumentsProjectionQuadraticMeanSquareConditions`. -/
+structure ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (gram_row : ℕ → Ω → Matrix k k ℝ)
+    (cross_row : ℕ → Ω → k → ℝ) : Prop where
+  gram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+    manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω
+  cross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+    manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω
+  gram_integrable : Integrable (gram_row 0) μ
+  gram_indep : Pairwise ((· ⟂ᵢ[μ] ·) on gram_row)
+  gram_ident : ∀ i, IdentDistrib (gram_row i) (gram_row 0) μ μ
+  gram_mean_zero : μ[gram_row 0] = 0
+  cross_integrable : Integrable (cross_row 0) μ
+  cross_indep : Pairwise ((· ⟂ᵢ[μ] ·) on cross_row)
+  cross_ident : ∀ i, IdentDistrib (cross_row i) (cross_row 0) μ μ
+  cross_mean_zero : μ[cross_row 0] = 0
+
+namespace ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+
+omit [DecidableEq k] in
+/-- Joint-row constructor for the projected-error trace-remainder WLLN package.
+
+This is the Hansen-facing form when the homoskedastic projection argument
+produces one iid row process containing both the matrix Gram remainder row and
+the vector score remainder row.  The separate independence and identical-law
+fields in `ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions` are
+then derived by measurable projection from that joint row process. -/
+theorem of_joint_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0) :
+    ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+      μ Z e u2 gram_row cross_row where
+  gram_remainder_eq_avg := hgram_remainder_eq_avg
+  cross_remainder_eq_avg := hcross_remainder_eq_avg
+  gram_integrable := hgram_integrable
+  gram_indep := by
+    have hindep : iIndepFun gram_row μ := by
+      simpa [Function.comp] using
+        hjoint_indep.comp
+          (fun (_ : ℕ) (z : Matrix k k ℝ × (k → ℝ)) => z.1)
+          (fun (_ : ℕ) => measurable_fst)
+    intro i j hij
+    exact hindep.indepFun hij
+  gram_ident := by
+    intro i
+    simpa [Function.comp] using (hjoint_ident i).comp measurable_fst
+  gram_mean_zero := hgram_mean_zero
+  cross_integrable := hcross_integrable
+  cross_indep := by
+    have hindep : iIndepFun cross_row μ := by
+      simpa [Function.comp] using
+        hjoint_indep.comp
+          (fun (_ : ℕ) (z : Matrix k k ℝ × (k → ℝ)) => z.2)
+          (fun (_ : ℕ) => measurable_snd)
+    intro i j hij
+    exact hindep.indepFun hij
+  cross_ident := by
+    intro i
+    simpa [Function.comp] using (hjoint_ident i).comp measurable_snd
+  cross_mean_zero := hcross_mean_zero
+
+set_option linter.style.longLine false in
+omit [DecidableEq k] in
+/-- Canonical-row constructor for the projected-error trace-remainder WLLN
+package.
+
+This strengthens the row-process boundary from aggregate sample-average
+identities to pointwise identifications with the canonical finite-sample row
+summands `manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow` and
+`manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow`.  The remaining
+probabilistic work is still exactly the iid zero-mean row WLLN. -/
+theorem of_canonical_rows_joint_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (hgram_canonical_eq_row : ∀ (m : ℕ) (ω : Ω) (i : Fin m),
+      manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow
+        (Z m ω) (u2 m ω) i = gram_row i.val ω)
+    (hcross_canonical_eq_row : ∀ (m : ℕ) (ω : Ω) (i : Fin m),
+      manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow
+        (Z m ω) (u2 m ω) (e m ω) i = cross_row i.val ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0) :
+    ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+      μ Z e u2 gram_row cross_row :=
+  ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions.of_joint_wlln
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    (gram_row := gram_row) (cross_row := cross_row)
+    (by
+      intro m ω
+      calc
+        manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+            (Fintype.card (Fin m) : ℝ)⁻¹ •
+              ∑ i : Fin m,
+                manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow
+                  (Z m ω) (u2 m ω) i := by
+          exact manyInstrumentProjectedErrorGramTraceRemainder_eq_average_canonicalRow
+            (Z m ω) (u2 m ω)
+        _ = (m : ℝ)⁻¹ • ∑ i : Fin m, gram_row i.val ω := by
+          rw [Fintype.card_fin]
+          apply congrArg (fun M : Matrix k k ℝ => (m : ℝ)⁻¹ • M)
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          exact hgram_canonical_eq_row m ω i
+        _ = (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω := by
+          exact congrArg (fun M : Matrix k k ℝ => (m : ℝ)⁻¹ • M)
+            (Fin.sum_univ_eq_sum_range (fun i => gram_row i ω) m))
+    (by
+      intro m ω
+      calc
+        manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+            (Fintype.card (Fin m) : ℝ)⁻¹ •
+              ∑ i : Fin m,
+                manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow
+                  (Z m ω) (u2 m ω) (e m ω) i := by
+          exact manyInstrumentProjectedErrorCrossTraceRemainder_eq_average_canonicalRow
+            (Z m ω) (u2 m ω) (e m ω)
+        _ = (m : ℝ)⁻¹ • ∑ i : Fin m, cross_row i.val ω := by
+          rw [Fintype.card_fin]
+          apply congrArg (fun v : k → ℝ => (m : ℝ)⁻¹ • v)
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          exact hcross_canonical_eq_row m ω i
+        _ = (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω := by
+          exact congrArg (fun v : k → ℝ => (m : ℝ)⁻¹ • v)
+            (Fin.sum_univ_eq_sum_range (fun i => cross_row i ω) m))
+    hgram_integrable hcross_integrable hjoint_indep hjoint_ident
+    hgram_mean_zero hcross_mean_zero
+
+omit [DecidableEq k] in
+/-- Matrix/vector row WLLNs imply the entrywise projected-error trace-remainder
+package used by the theorem-facing constructors. -/
+theorem toEntryWLLNConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (h : ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+      μ Z e u2 gram_row cross_row) :
+    ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2 where
+  gram_entry_tendsto_zero := by
+    intro a b
+    have hraw : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+        atTop (fun _ => (0 : Matrix k k ℝ)) := by
+      have hw := tendstoInMeasure_wlln
+        (μ := μ) gram_row h.gram_integrable h.gram_indep h.gram_ident
+      simpa [h.gram_mean_zero] using hw
+    have hentry : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          ((m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω) a b)
+        atTop (fun _ => 0) := by
+      simpa using TendstoInMeasure.pi_apply
+        (TendstoInMeasure.pi_apply hraw a) b
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hentry
+    exact ae_of_all μ fun ω => by
+      have hcoord := congrArg (fun M : Matrix k k ℝ => M a b)
+        (h.gram_remainder_eq_avg m ω)
+      simpa using hcoord.symm
+  cross_entry_tendsto_zero := by
+    intro a
+    have hraw : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+        atTop (fun _ => (0 : k → ℝ)) := by
+      have hw := tendstoInMeasure_wlln
+        (μ := μ) cross_row h.cross_integrable h.cross_indep h.cross_ident
+      simpa [h.cross_mean_zero] using hw
+    have hentry : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          ((m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω) a)
+        atTop (fun _ => 0) := by
+      simpa using TendstoInMeasure.pi_apply hraw a
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hentry
+    exact ae_of_all μ fun ω => by
+      have hcoord := congrArg (fun v : k → ℝ => v a)
+        (h.cross_remainder_eq_avg m ω)
+      simpa using hcoord.symm
+
+omit [DecidableEq k] in
+/-- Matrix/vector row WLLNs imply the canonical row-average convergence package.
+
+This bridge replaces the direct canonical-average primitive whenever the
+projection proof has already produced an enforceable row-WLLN package.  The
+canonical averages are identified with the same finite-sample remainders by the
+exact row identities above; no extra stochastic argument is introduced here. -/
+theorem toCanonicalRowAverageConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (h : ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+      μ Z e u2 gram_row cross_row) :
+    ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+      μ Z e u2 where
+  gram_average_tendsto_zero := by
+    have hgram : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω))
+        atTop (fun _ => (0 : Matrix k k ℝ)) :=
+      (h.toEntryWLLNConditions).gram_tendsto_zero
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hgram
+    exact ae_of_all μ fun ω =>
+      manyInstrumentProjectedErrorGramTraceRemainder_eq_average_canonicalRow
+        (Z m ω) (u2 m ω)
+  cross_average_tendsto_zero := by
+    have hcross : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentProjectedErrorCrossTraceRemainder
+            (Z m ω) (u2 m ω) (e m ω))
+        atTop (fun _ => (0 : k → ℝ)) :=
+      (h.toEntryWLLNConditions).cross_tendsto_zero
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hcross
+    exact ae_of_all μ fun ω =>
+      manyInstrumentProjectedErrorCrossTraceRemainder_eq_average_canonicalRow
+        (Z m ω) (u2 m ω) (e m ω)
+
+end ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+
+omit [DecidableEq k] in
+/-- Compatibility-only scalar row-average inputs for projected remainders.
+
+This package does not follow from Hansen's iid errors because projection makes
+the canonical summands dependent. It is retained only for callers that have
+an independent additive representation from a separate argument. -/
+structure ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (gram_row : k → k → ℕ → Ω → ℝ)
+    (cross_row : k → ℕ → Ω → ℝ) : Prop where
+  gram_entry_eq_avg : ∀ (a b : k) (m : ℕ) (ω : Ω),
+    manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) a b =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row a b i ω
+  cross_entry_eq_avg : ∀ (a : k) (m : ℕ) (ω : Ω),
+    manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) a =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row a i ω
+  gram_integrable : ∀ a b : k, Integrable (gram_row a b 0) μ
+  gram_indep : ∀ a b : k, Pairwise ((· ⟂ᵢ[μ] ·) on gram_row a b)
+  gram_ident : ∀ a b : k, ∀ i,
+    IdentDistrib (gram_row a b i) (gram_row a b 0) μ μ
+  gram_mean_zero : ∀ a b : k, μ[gram_row a b 0] = 0
+  cross_integrable : ∀ a : k, Integrable (cross_row a 0) μ
+  cross_indep : ∀ a : k, Pairwise ((· ⟂ᵢ[μ] ·) on cross_row a)
+  cross_ident : ∀ a : k, ∀ i,
+    IdentDistrib (cross_row a i) (cross_row a 0) μ μ
+  cross_mean_zero : ∀ a : k, μ[cross_row a 0] = 0
+
+namespace ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+
+omit [Fintype k] [DecidableEq k] in
+/-- Scalar row WLLNs imply the entrywise projected-error trace-remainder WLLN
+package. -/
+theorem toEntryWLLNConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    (h : ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+      μ Z e u2 gram_row cross_row) :
+    ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2 where
+  gram_entry_tendsto_zero := by
+    intro a b
+    have hraw : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row a b i ω)
+        atTop (fun _ => 0) := by
+      have hw := tendstoInMeasure_wlln
+        (μ := μ) (gram_row a b)
+        (h.gram_integrable a b) (h.gram_indep a b) (h.gram_ident a b)
+      simpa [h.gram_mean_zero a b] using hw
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hraw
+    exact ae_of_all μ fun ω => (h.gram_entry_eq_avg a b m ω).symm
+  cross_entry_tendsto_zero := by
+    intro a
+    have hraw : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row a i ω)
+        atTop (fun _ => 0) := by
+      have hw := tendstoInMeasure_wlln
+        (μ := μ) (cross_row a)
+        (h.cross_integrable a) (h.cross_indep a) (h.cross_ident a)
+      simpa [h.cross_mean_zero a] using hw
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hraw
+    exact ae_of_all μ fun ω => (h.cross_entry_eq_avg a m ω).symm
+
+omit [DecidableEq k] in
+/-- A matrix/vector projected-error row WLLN package supplies the scalar
+entrywise package by coordinate projection.
+
+This records that scalar entry certificates are not a separate mathematical
+input once the stronger row-average identities and row WLLNs have been proved. -/
+theorem of_row_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (h : ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+      μ Z e u2 gram_row cross_row) :
+    ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+      μ Z e u2
+        (fun a b i ω => gram_row i ω a b)
+        (fun a i ω => cross_row i ω a) where
+  gram_entry_eq_avg := by
+    intro a b m ω
+    have hcoord := congrArg (fun M : Matrix k k ℝ => M a b)
+      (h.gram_remainder_eq_avg m ω)
+    simpa [Matrix.smul_apply, Matrix.sum_apply] using hcoord
+  cross_entry_eq_avg := by
+    intro a m ω
+    have hcoord := congrArg (fun v : k → ℝ => v a)
+      (h.cross_remainder_eq_avg m ω)
+    simpa [Pi.smul_apply, Finset.sum_apply] using hcoord
+  gram_integrable := by
+    intro a b
+    let L : Matrix k k ℝ →L[ℝ] ℝ :=
+      (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) b).comp
+        (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => k → ℝ) a)
+    simpa [L] using L.integrable_comp h.gram_integrable
+  gram_indep := by
+    intro a b i j hij
+    have hrow_cont : Continuous (fun M : Matrix k k ℝ => M a) :=
+      continuous_apply a
+    have hcoord_meas : Measurable (fun M : Matrix k k ℝ => M a b) :=
+      ((continuous_apply b).comp hrow_cont).measurable
+    simpa [Function.comp] using
+      IndepFun.comp (h.gram_indep hij) hcoord_meas hcoord_meas
+  gram_ident := by
+    intro a b i
+    have hrow_cont : Continuous (fun M : Matrix k k ℝ => M a) :=
+      continuous_apply a
+    have hcoord_meas : Measurable (fun M : Matrix k k ℝ => M a b) :=
+      ((continuous_apply b).comp hrow_cont).measurable
+    simpa [Function.comp] using (h.gram_ident i).comp hcoord_meas
+  gram_mean_zero := by
+    intro a b
+    let L : Matrix k k ℝ →L[ℝ] ℝ :=
+      (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) b).comp
+        (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => k → ℝ) a)
+    have hcoord := congrArg L h.gram_mean_zero
+    have hL := L.integral_comp_comm h.gram_integrable
+    rw [← hL] at hcoord
+    simpa using hcoord
+  cross_integrable := by
+    intro a
+    let L : (k → ℝ) →L[ℝ] ℝ :=
+      ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) a
+    simpa [L] using L.integrable_comp h.cross_integrable
+  cross_indep := by
+    intro a i j hij
+    simpa [Function.comp] using
+      IndepFun.comp (h.cross_indep hij)
+        (measurable_pi_apply a) (measurable_pi_apply a)
+  cross_ident := by
+    intro a i
+    simpa [Function.comp] using
+      (h.cross_ident i).comp (measurable_pi_apply a)
+  cross_mean_zero := by
+    intro a
+    let L : (k → ℝ) →L[ℝ] ℝ :=
+      ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) a
+    have hcoord := congrArg L h.cross_mean_zero
+    have hL := L.integral_comp_comm h.cross_integrable
+    rw [← hL] at hcoord
+    simpa using hcoord
+
+omit [DecidableEq k] in
+/-- Direct scalar projected-error trace-remainder package from one joint
+matrix/vector row process.
+
+This composes the row-level joint WLLN constructor with `of_row_wlln`, so a
+caller proving Hansen's homoskedastic projection remainder as matrix/vector
+row averages automatically gets the scalar entrywise package as well. -/
+theorem of_joint_row_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0) :
+    ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+      μ Z e u2
+        (fun a b i ω => gram_row i ω a b)
+        (fun a i ω => cross_row i ω a) :=
+  of_row_wlln
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    (gram_row := gram_row) (cross_row := cross_row)
+    (ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions.of_joint_wlln
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      (gram_row := gram_row) (cross_row := cross_row)
+      hgram_remainder_eq_avg hcross_remainder_eq_avg hgram_integrable
+      hcross_integrable hjoint_indep hjoint_ident hgram_mean_zero
+      hcross_mean_zero)
+
+end ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Compatibility-only scalar row-average inputs for the LIML gap.
+
+The implication from the stated additive representation is valid, but a LIML
+generalized eigenvalue is not itself an additive row statistic. Hansen's raw
+model therefore does not construct this package; use normalized-pencil
+convergence and a generalized-eigenvalue selector instead. -/
+structure ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (limlMuHat : ℕ → Ω → ℝ)
+    (gap_row : ℕ → Ω → ℝ) : Prop where
+  meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ
+  adjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+    limlMuHat m ω -
+        manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω
+  integrable : Integrable (gap_row 0) μ
+  indep : Pairwise ((· ⟂ᵢ[μ] ·) on gap_row)
+  ident : ∀ i, IdentDistrib (gap_row i) (gap_row 0) μ μ
+  mean_zero : μ[gap_row 0] = 0
+
+namespace ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Build the scalar sample-average LIML eigenvalue-gap WLLN package from the
+average identity and ordinary Chapter 7 scalar WLLN inputs.
+
+The measurability of `limlMuHat` is derived from the row-process measurability
+implied by integrability/identical distribution and the deterministic
+adjustment-gap identity, so callers do not need to supply it separately. -/
+theorem of_average
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (hadjust : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω)
+    (hintegrable : Integrable (gap_row 0) μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on gap_row))
+    (hident : ∀ i, IdentDistrib (gap_row i) (gap_row 0) μ μ)
+    (hmean_zero : μ[gap_row 0] = 0) :
+    ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+      (ι := ι) μ limlMuHat gap_row where
+  meas := by
+    intro m
+    have hrow_meas : ∀ i, AEStronglyMeasurable (gap_row i) μ :=
+      fun i => ((hident i).integrable_iff.mpr hintegrable).aestronglyMeasurable
+    have havg_meas : AEStronglyMeasurable
+        (fun ω => (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω) μ := by
+      have hsum : AEStronglyMeasurable (∑ i ∈ Finset.range m, gap_row i) μ :=
+        Finset.aestronglyMeasurable_sum (Finset.range m)
+          (fun i _ => hrow_meas i)
+      have hscaled := hsum.const_smul ((m : ℝ)⁻¹)
+      have heq : (fun ω => (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω) =
+          ((m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i) := by
+        funext ω
+        simp [Finset.sum_apply]
+      rw [heq]
+      exact hscaled
+    have hmu_meas : AEStronglyMeasurable
+        (fun ω =>
+          (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω +
+            manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m) μ :=
+      havg_meas.add aestronglyMeasurable_const
+    exact hmu_meas.congr (ae_of_all μ fun ω => by
+      have h := hadjust m ω
+      linarith)
+  adjustment_gap_eq_avg := hadjust
+  integrable := hintegrable
+  indep := hindep
+  ident := hident
+  mean_zero := hmean_zero
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Scalar row WLLNs imply the sample LIML eigenvalue adjustment-gap package. -/
+theorem toSampleEigenvalueProblemConditions
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (h : ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+      (ι := ι) μ limlMuHat gap_row) :
+    ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat where
+  meas := h.meas
+  adjustment_gap_tendsto_zero := by
+    have hraw : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω)
+        atTop (fun _ => 0) := by
+      have hw := tendstoInMeasure_wlln
+        (μ := μ) gap_row h.integrable h.indep h.ident
+      simpa [h.mean_zero] using hw
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hraw
+    exact ae_of_all μ fun ω => (h.adjustment_gap_eq_avg m ω).symm
+
+end ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Direct constructor for the sample LIML eigenvalue-problem package from a
+scalar sample-average WLLN for the centered adjustment gap.
+
+This composes `ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions.of_average`
+with `toSampleEigenvalueProblemConditions`; it is the theorem-facing bridge
+when the remaining spectral argument has already produced a scalar row
+representation for
+`μ̂_n - (ℓ_n/n)/(1 - ℓ_n/n)`. -/
+theorem ManyInstrumentsLIMLSampleEigenvalueProblemConditions.of_adjustment_gap_average_wlln
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (hadjust : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω)
+    (hintegrable : Integrable (gap_row 0) μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on gap_row))
+    (hident : ∀ i, IdentDistrib (gap_row i) (gap_row 0) μ μ)
+    (hmean_zero : μ[gap_row 0] = 0) :
+    ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat :=
+  (ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions.of_average
+    (ι := ι) (μ := μ) (limlMuHat := limlMuHat) (gap_row := gap_row)
+    hadjust hintegrable hindep hident hmean_zero).toSampleEigenvalueProblemConditions
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Joint outcome/regressor matrix `[Y X]` for the finite-sample LIML
+Rayleigh problem.
+
+The left column is indexed by `Unit`, and the regressor block by `k`, matching
+the reduced-form Rayleigh surface used in the weak-IV file. -/
+noncomputable def manyInstrumentsLIMLSampleRayleighData
+    {n : Type*} [Fintype n] [DecidableEq n]
+    (X : Matrix n k ℝ) (Y : n → ℝ) : Matrix n (Sum Unit k) ℝ :=
+  Matrix.fromCols (fun i (_ : Unit) => Y i) X
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Numerator matrix for Hansen's finite-sample many-instrument LIML
+Rayleigh quotient, `[Y X]'P_Z[Y X]`. -/
+  noncomputable def manyInstrumentsLIMLSampleRayleighNumerator
+      {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+      (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+    let W : Matrix n (Sum Unit k) ℝ :=
+      Matrix.fromCols (fun i (_ : Unit) => Y i) X
+    Wᵀ * instrumentProjectionStar Z * W
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Denominator matrix for Hansen's finite-sample many-instrument LIML
+Rayleigh quotient, `[Y X]'M_Z[Y X]` with `M_Z = I - P_Z`. -/
+  noncomputable def manyInstrumentsLIMLSampleRayleighDenominator
+      {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+      (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+    let W : Matrix n (Sum Unit k) ℝ :=
+      Matrix.fromCols (fun i (_ : Unit) => Y i) X
+    Wᵀ * ((1 : Matrix n n ℝ) - instrumentProjectionStar Z) * W
+
+omit [Fintype k] [DecidableEq k] in
+/-- A residualized linear dependence among `[Y,X]` is a kernel direction of
+the finite-sample LIML denominator. -/
+theorem manyInstrumentsLIMLSampleRayleighDenominator_mulVec_eq_zero
+    {n l d : Type*} [Fintype n] [Fintype l] [Fintype d]
+    [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n d ℝ) (Y : n → ℝ)
+    (x : Sum Unit d → ℝ)
+    (hres : ((1 : Matrix n n ℝ) - instrumentProjectionStar Z) *ᵥ
+      (manyInstrumentsLIMLSampleRayleighData X Y *ᵥ x) = 0) :
+    manyInstrumentsLIMLSampleRayleighDenominator Z X Y *ᵥ x = 0 := by
+  classical
+  let W := manyInstrumentsLIMLSampleRayleighData X Y
+  change (((Wᵀ * ((1 : Matrix n n ℝ) - instrumentProjectionStar Z)) * W) *ᵥ x) = 0
+  change ((1 : Matrix n n ℝ) - instrumentProjectionStar Z) *ᵥ (W *ᵥ x) = 0 at hres
+  rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, hres]
+  simp
+
+omit [Fintype k] [DecidableEq k] in
+/-- The normalized concrete root is zero whenever residualized joint data have
+a nontrivial exact linear dependence. -/
+theorem manyInstrumentsNormalizedSmallestRoot_eq_zero_of_residual_relation
+    {n l d : Type*} [Fintype n] [Fintype l] [Fintype d]
+    [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n d ℝ) (Y : n → ℝ)
+    (x : Sum Unit d → ℝ) (hx : x ≠ 0)
+    (hres : ((1 : Matrix n n ℝ) - instrumentProjectionStar Z) *ᵥ
+      (manyInstrumentsLIMLSampleRayleighData X Y *ᵥ x) = 0) :
+    weakIVLIMLSmallestGeneralizedRoot
+      (((Fintype.card n : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighNumerator Z X Y),
+        ((Fintype.card n : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighDenominator Z X Y)) = 0 := by
+  classical
+  apply weakIVLIMLSmallestGeneralizedRoot_eq_zero_of_nonzero_kernel _ x hx
+  rw [Matrix.smul_mulVec,
+    manyInstrumentsLIMLSampleRayleighDenominator_mulVec_eq_zero Z X Y x hres]
+  simp
+
+omit [Fintype k] [DecidableEq k] in
+/-- On the residual-dependence branch, the repository's concrete LIML
+estimator is exactly totalized 2SLS. -/
+theorem limlBetaStar_normalizedSmallestRoot_eq_twoSLS_of_residual_relation
+    {n l d : Type*} [Fintype n] [Fintype l] [Fintype d]
+    [DecidableEq n] [DecidableEq l] [DecidableEq d]
+    (Z : Matrix n l ℝ) (X : Matrix n d ℝ) (Y : n → ℝ)
+    (x : Sum Unit d → ℝ) (hx : x ≠ 0)
+    (hres : ((1 : Matrix n n ℝ) - instrumentProjectionStar Z) *ᵥ
+      (manyInstrumentsLIMLSampleRayleighData X Y *ᵥ x) = 0) :
+    limlBetaStar Z X Y
+      (weakIVLIMLSmallestGeneralizedRoot
+        (((Fintype.card n : ℝ)⁻¹ •
+            manyInstrumentsLIMLSampleRayleighNumerator Z X Y),
+          ((Fintype.card n : ℝ)⁻¹ •
+            manyInstrumentsLIMLSampleRayleighDenominator Z X Y))) =
+      twoSLSBetaStar Z X Y := by
+  rw [manyInstrumentsNormalizedSmallestRoot_eq_zero_of_residual_relation
+    Z X Y x hx hres]
+  exact limlBetaStar_zero Z X Y
+
+/-- Compatibility finite-sample Rayleigh/eigenvalue adjustment-gap input.
+
+The Rayleigh audit field is genuine, but the separate iid row decomposition of
+the selected eigenvalue gap is not supplied by Hansen's assumptions. The
+canonical replacement is
+`ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate`. -/
+structure ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (gap_row : ℕ → Ω → ℝ) : Prop where
+  finite_sample_rayleigh_minimizer : ∀ m ω,
+    LIMLRayleighMinimizer
+      (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+      (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+      (limlMuHat m ω)
+  adjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+    limlMuHat m ω -
+        manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω
+  integrable : Integrable (gap_row 0) μ
+  indep : Pairwise ((· ⟂ᵢ[μ] ·) on gap_row)
+  ident : ∀ i, IdentDistrib (gap_row i) (gap_row 0) μ μ
+  mean_zero : μ[gap_row 0] = 0
+
+namespace ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+
+omit [DecidableEq k] in
+/-- Forget the finite-sample Rayleigh minimizer audit field after it has been
+recorded, recovering the existing scalar adjustment-gap WLLN package consumed
+by the 12.19 estimator constructors. -/
+theorem toAdjustmentGapWLLNConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (h : ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+      (ι := ι) μ Z X Y limlMuHat gap_row) :
+    ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+      (ι := ι) μ limlMuHat gap_row :=
+  ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions.of_average
+    (ι := ι) (μ := μ) h.adjustment_gap_eq_avg h.integrable h.indep h.ident
+    h.mean_zero
+
+omit [DecidableEq k] in
+/-- Finite-sample Rayleigh adjustment-gap WLLNs imply the sample eigenvalue
+problem package `μ̂_n - (ℓ_n/n)/(1-ℓ_n/n) ->p 0`. -/
+theorem toSampleEigenvalueProblemConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (h : ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+      (ι := ι) μ Z X Y limlMuHat gap_row) :
+    ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat :=
+  h.toAdjustmentGapWLLNConditions.toSampleEigenvalueProblemConditions
+
+end ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+
+omit [DecidableEq k] in
+/-- Compatibility-only joint row package for projected and eigenvalue gaps.
+
+Neither a projected quadratic form nor a selected generalized eigenvalue has
+this iid additive structure in Hansen's model. The package remains only as a
+generic compatibility implication and is deprecated below. -/
+structure ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (gram_row : ℕ → Ω → Matrix k k ℝ)
+    (cross_row : ℕ → Ω → k → ℝ)
+    (gap_row : ℕ → Ω → ℝ) : Prop where
+  finite_sample_rayleigh_minimizer : ∀ m ω,
+    LIMLRayleighMinimizer
+      (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+      (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+      (limlMuHat m ω)
+  gram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+    manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω
+  cross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+    manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω
+  adjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+    limlMuHat m ω -
+        manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+      (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gap_row i ω
+  gram_integrable : Integrable (gram_row 0) μ
+  cross_integrable : Integrable (cross_row 0) μ
+  gap_integrable : Integrable (gap_row 0) μ
+  joint_indep :
+    iIndepFun (fun i ω => ((gram_row i ω, cross_row i ω), gap_row i ω)) μ
+  joint_ident : ∀ i,
+    IdentDistrib
+      (fun ω => ((gram_row i ω, cross_row i ω), gap_row i ω))
+      (fun ω => ((gram_row 0 ω, cross_row 0 ω), gap_row 0 ω)) μ μ
+  gram_mean_zero : μ[gram_row 0] = 0
+  cross_mean_zero : μ[cross_row 0] = 0
+  gap_mean_zero : μ[gap_row 0] = 0
+
+namespace ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+
+omit [DecidableEq k] in
+/-- Compatibility constructor from an explicitly supplied iid additive row.
+
+Its premises are not consequences of Hansen's raw conditional model. In
+particular, this declaration must not be used to label an arbitrary row object
+as the projected-form or eigenvalue remainder. -/
+theorem of_raw_joint_row
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0) :
+    ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+      (ι := ι) μ Z X Y e u2 limlMuHat
+      (fun i ω => (row i ω).1.1)
+      (fun i ω => (row i ω).1.2)
+      (fun i ω => (row i ω).2) where
+  finite_sample_rayleigh_minimizer := hrayleigh
+  gram_remainder_eq_avg := hgram_remainder_eq_avg
+  cross_remainder_eq_avg := hcross_remainder_eq_avg
+  adjustment_gap_eq_avg := hadjustment_gap_eq_avg
+  gram_integrable := by
+    let L : ((Matrix k k ℝ × (k → ℝ)) × ℝ) →L[ℝ] Matrix k k ℝ :=
+      (ContinuousLinearMap.fst ℝ (Matrix k k ℝ) (k → ℝ)).comp
+        (ContinuousLinearMap.fst ℝ (Matrix k k ℝ × (k → ℝ)) ℝ)
+    simpa [L] using L.integrable_comp hrow_integrable
+  cross_integrable := by
+    let L : ((Matrix k k ℝ × (k → ℝ)) × ℝ) →L[ℝ] (k → ℝ) :=
+      (ContinuousLinearMap.snd ℝ (Matrix k k ℝ) (k → ℝ)).comp
+        (ContinuousLinearMap.fst ℝ (Matrix k k ℝ × (k → ℝ)) ℝ)
+    simpa [L] using L.integrable_comp hrow_integrable
+  gap_integrable := by
+    let L : ((Matrix k k ℝ × (k → ℝ)) × ℝ) →L[ℝ] ℝ :=
+      ContinuousLinearMap.snd ℝ (Matrix k k ℝ × (k → ℝ)) ℝ
+    simpa [L] using L.integrable_comp hrow_integrable
+  joint_indep := by
+    simpa using hrow_indep
+  joint_ident := by
+    intro i
+    simpa using hrow_ident i
+  gram_mean_zero := by
+    let L : ((Matrix k k ℝ × (k → ℝ)) × ℝ) →L[ℝ] Matrix k k ℝ :=
+      (ContinuousLinearMap.fst ℝ (Matrix k k ℝ) (k → ℝ)).comp
+        (ContinuousLinearMap.fst ℝ (Matrix k k ℝ × (k → ℝ)) ℝ)
+    have hcoord := congrArg L hrow_mean_zero
+    have hL := L.integral_comp_comm hrow_integrable
+    rw [← hL] at hcoord
+    simpa [L] using hcoord
+  cross_mean_zero := by
+    let L : ((Matrix k k ℝ × (k → ℝ)) × ℝ) →L[ℝ] (k → ℝ) :=
+      (ContinuousLinearMap.snd ℝ (Matrix k k ℝ) (k → ℝ)).comp
+        (ContinuousLinearMap.fst ℝ (Matrix k k ℝ × (k → ℝ)) ℝ)
+    have hcoord := congrArg L hrow_mean_zero
+    have hL := L.integral_comp_comm hrow_integrable
+    rw [← hL] at hcoord
+    simpa [L] using hcoord
+  gap_mean_zero := by
+    let L : ((Matrix k k ℝ × (k → ℝ)) × ℝ) →L[ℝ] ℝ :=
+      ContinuousLinearMap.snd ℝ (Matrix k k ℝ × (k → ℝ)) ℝ
+    have hcoord := congrArg L hrow_mean_zero
+    have hL := L.integral_comp_comm hrow_integrable
+    rw [← hL] at hcoord
+    simpa [L] using hcoord
+
+omit [DecidableEq k] in
+/-- A joint projected-error/Rayleigh row package supplies the projected-error
+matrix/vector row-WLLN package. -/
+theorem toProjectedErrorRowWLLNConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (h : ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+      (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+      μ Z e u2 gram_row cross_row :=
+  ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions.of_joint_wlln
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    (gram_row := gram_row) (cross_row := cross_row)
+    h.gram_remainder_eq_avg h.cross_remainder_eq_avg
+    h.gram_integrable h.cross_integrable
+    (by
+      simpa [Function.comp] using
+        h.joint_indep.comp
+          (fun (_ : ℕ) (z : (Matrix k k ℝ × (k → ℝ)) × ℝ) => z.1)
+          (fun (_ : ℕ) => measurable_fst))
+    (by
+      intro i
+      simpa [Function.comp] using (h.joint_ident i).comp measurable_fst)
+    h.gram_mean_zero h.cross_mean_zero
+
+omit [DecidableEq k] in
+/-- A joint projected-error/Rayleigh row package supplies the finite-sample
+Rayleigh adjustment-gap WLLN package. -/
+theorem toRayleighAdjustmentGapWLLNConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (h : ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+      (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+      (ι := ι) μ Z X Y limlMuHat gap_row where
+  finite_sample_rayleigh_minimizer := h.finite_sample_rayleigh_minimizer
+  adjustment_gap_eq_avg := h.adjustment_gap_eq_avg
+  integrable := h.gap_integrable
+  indep := by
+    have hindep : iIndepFun gap_row μ := by
+      simpa [Function.comp] using
+        h.joint_indep.comp
+          (fun (_ : ℕ) (z : (Matrix k k ℝ × (k → ℝ)) × ℝ) => z.2)
+          (fun (_ : ℕ) => measurable_snd)
+    intro i j hij
+    exact hindep.indepFun hij
+  ident := by
+    intro i
+    simpa [Function.comp] using (h.joint_ident i).comp measurable_snd
+  mean_zero := h.gap_mean_zero
+
+omit [DecidableEq k] in
+/-- A joint projected-error/Rayleigh row package supplies the direct
+sample-eigenvalue problem package after forgetting the Rayleigh audit field. -/
+theorem toSampleEigenvalueProblemConditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    (h : ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+      (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat :=
+  h.toRayleighAdjustmentGapWLLNConditions.toSampleEigenvalueProblemConditions
+
+end ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+
+omit [DecidableEq k] in
+/-- Build the homoskedastic projection-remainder package when the trace ratio
+is identified a.e. by nonsingular instruments.
+
+The two projected-error measurability fields and the two trace-remainder WLLNs
+are still the substantive homoskedastic/fourth-moment work.  The trace-ratio
+measurability field is derived from `n^{-1}tr(P_Z*) = ℓ_n/n` on the a.e.
+nonsingular branch. -/
+theorem ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ))) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 where
+  trace_ratio_meas := fun m =>
+    manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (μ := μ) (Z := fun ω => Z m ω) (hnonsing m)
+  projected_error_gram_meas := hprojected_error_gram_meas
+  projected_error_cross_meas := hprojected_error_cross_meas
+  projected_error_gram_trace_remainder_tendsto_zero :=
+    hprojected_error_gram_trace_remainder_tendsto_zero
+  projected_error_cross_trace_remainder_tendsto_zero :=
+    hprojected_error_cross_trace_remainder_tendsto_zero
+
+set_option linter.unusedDecidableInType false in
+/-- Build the homoskedastic projection-remainder package from finite-sample
+measurability of `Z`, `u₂`, and `e`.
+
+This removes the non-substantive projected-error measurability fields from the
+caller-facing assumptions.  The two trace-remainder WLLNs remain exactly the
+homoskedastic/fourth-moment work required by Hansen's proof. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ))) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+  ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_ae_nonsingular_remainders
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    hnonsing
+    (fun m => manyInstrumentProjectedErrorGram_aestronglyMeasurable
+      (μ := μ) (Zmat := Z m) (Umat := u2 m) (hZ_meas m) (hu2_meas m))
+    (fun m => manyInstrumentProjectedErrorCross_aestronglyMeasurable
+      (μ := μ) (Zmat := Z m) (Umat := u2 m) (evec := e m)
+      (hZ_meas m) (hu2_meas m) (he_meas m))
+    hprojected_error_gram_trace_remainder_tendsto_zero
+    hprojected_error_cross_trace_remainder_tendsto_zero
+
+set_option linter.unusedDecidableInType false in
+set_option linter.style.longLine false in
+/-- Build the homoskedastic projection-remainder package from finite-sample
+measurability and entrywise scalar trace-remainder WLLNs.
+
+This is the preferred local target for the remaining Hansen 12.19
+homoskedastic projection step: prove one scalar WLLN for each `u₂'P_Zu₂`
+entry and each `u₂'P_Ze` coordinate, then use this constructor to recover the
+matrix/vector remainder package consumed by the estimator theorem. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_entrywise_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+  ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_measurable_ae_nonsingular_remainders
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    hnonsing hZ_meas hu2_meas he_meas
+    hentry.gram_tendsto_zero hentry.cross_tendsto_zero
+
+set_option linter.unusedDecidableInType false in
+set_option linter.style.longLine false in
+/-- Build the homoskedastic projection-remainder package from finite-sample
+measurability and canonical row-average convergence for the two projected-error
+trace remainders.
+
+This is the Hansen-facing bridge for the homoskedastic projection step in
+Theorem 12.19: the row summands are the exact finite-sample summands defined
+from `P_Z*`, `u₂`, and `e`, and the finite-dimensional entrywise package is
+assembled internally. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_canonical_row_average_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+  ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_entrywise_measurable_ae_nonsingular_remainders
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    hnonsing hZ_meas hu2_meas he_meas hcanonical.toEntryWLLNConditions
+
+set_option linter.unusedDecidableInType false in
+set_option linter.style.longLine false in
+/-- Build the homoskedastic projection-remainder package from finite-sample
+measurability and matrix/vector row WLLNs for the two projected-error
+remainders.
+
+This is the row-process counterpart of
+`of_entrywise_measurable_ae_nonsingular_remainders`: the scalar entrywise
+certificates are derived from a finite-dimensional matrix row process and a
+finite-dimensional vector row process. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_row_wlln_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrow : ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+      μ Z e u2 gram_row cross_row) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+  ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_entrywise_measurable_ae_nonsingular_remainders
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    hnonsing hZ_meas hu2_meas he_meas hrow.toEntryWLLNConditions
+
+set_option linter.unusedDecidableInType false in
+set_option linter.style.longLine false in
+/-- Build the homoskedastic projection-remainder package from one joint iid row
+process for the projected-error trace remainders.
+
+This is the row-process bridge that removes the need to state separate
+independence and identical-law inputs for the Gram and score remainders.  The
+substantive work remains the exact average representation of Hansen's two
+projection-trace remainders and zero means for the two row components. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_joint_row_wlln_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+  ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_row_wlln_measurable_ae_nonsingular_remainders
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    hnonsing hZ_meas hu2_meas he_meas
+    (ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions.of_joint_wlln
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      (gram_row := gram_row) (cross_row := cross_row)
+      hgram_remainder_eq_avg hcross_remainder_eq_avg hgram_integrable
+      hcross_integrable hjoint_indep hjoint_ident hgram_mean_zero
+      hcross_mean_zero)
+
+set_option linter.unusedDecidableInType false in
+set_option linter.style.longLine false in
+/-- Build the homoskedastic projection-remainder package from pointwise
+canonical-row identifications and one joint iid row process.
+
+This is the closest theorem-facing boundary to Hansen's projected-error
+calculation currently available in this file: callers identify the abstract
+row process with the exact canonical finite-sample summands, while this bridge
+derives the aggregate trace-remainder identities and then reuses the ordinary
+row-WLLN constructor. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_canonical_rows_joint_wlln_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hgram_canonical_eq_row : ∀ (m : ℕ) (ω : Ω) (i : Fin m),
+      manyInstrumentProjectedErrorGramTraceRemainderCanonicalRow
+        (Z m ω) (u2 m ω) i = gram_row i.val ω)
+    (hcross_canonical_eq_row : ∀ (m : ℕ) (ω : Ω) (i : Fin m),
+      manyInstrumentProjectedErrorCrossTraceRemainderCanonicalRow
+        (Z m ω) (u2 m ω) (e m ω) i = cross_row i.val ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+  ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_row_wlln_measurable_ae_nonsingular_remainders
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    hnonsing hZ_meas hu2_meas he_meas
+    (ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions.of_canonical_rows_joint_wlln
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      (gram_row := gram_row) (cross_row := cross_row)
+      hgram_canonical_eq_row hcross_canonical_eq_row hgram_integrable
+      hcross_integrable hjoint_indep hjoint_ident hgram_mean_zero
+      hcross_mean_zero)
+
+set_option linter.unusedDecidableInType false in
+set_option linter.style.longLine false in
+/-- Stacked-row version of
+`ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_measurable_ae_nonsingular_remainders`.
+
+The matrix `Z m` is still allowed to have a varying instrument codomain; the
+reduced-form error rows and scalar structural errors are ordinary fixed-row
+processes, so their stacked finite-sample measurability is derived locally. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_stacked_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ))) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions
+      μ Z (fun m ω => stackErrors e m ω) (fun m ω => stackRegressors u2 m ω) := by
+  have hu2_stack_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => stackRegressors u2 m ω) μ := by
+    intro m
+    simpa [stackRegressors] using
+      (stackMatrix_aestronglyMeasurable
+        (μ := μ) (n := m) (X := u2) hu2_meas)
+  have he_stack_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => stackErrors e m ω) μ := by
+    intro m
+    exact
+      manyInstrumentVector_aestronglyMeasurable_of_entries (μ := μ)
+        (v := fun ω => stackErrors e m ω)
+        (fun i => by simpa [stackErrors] using he_meas i.val)
+  exact
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_measurable_ae_nonsingular_remainders
+      (μ := μ) (Z := Z)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      hnonsing hZ_meas hu2_stack_meas he_stack_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero
+
+set_option linter.unusedDecidableInType false in
+set_option linter.style.longLine false in
+/-- Stacked-row homoskedastic projection-remainder package from entrywise
+scalar trace-remainder WLLNs.
+
+This is the fixed-row analogue of
+`of_entrywise_measurable_ae_nonsingular_remainders`.  It derives all
+finite-sample projected-error measurability locally and leaves only scalar
+entrywise `o_p(1)` WLLNs as the stochastic projected-error input. -/
+theorem
+ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_stacked_entrywise_measurable_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hentry :
+      ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω)) :
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions
+      μ Z (fun m ω => stackErrors e m ω) (fun m ω => stackRegressors u2 m ω) := by
+  have hu2_stack_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => stackRegressors u2 m ω) μ := by
+    intro m
+    simpa [stackRegressors] using
+      (stackMatrix_aestronglyMeasurable
+        (μ := μ) (n := m) (X := u2) hu2_meas)
+  have he_stack_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => stackErrors e m ω) μ := by
+    intro m
+    exact
+      manyInstrumentVector_aestronglyMeasurable_of_entries (μ := μ)
+        (v := fun ω => stackErrors e m ω)
+        (fun i => by simpa [stackErrors] using he_meas i.val)
+  exact
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_entrywise_measurable_ae_nonsingular_remainders
+      (μ := μ) (Z := Z)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      hnonsing hZ_meas hu2_stack_meas he_stack_meas hentry
+
+omit [DecidableEq k] in
+/-- Build the projection-trace moment package from Hansen's instrument-count
+ratio and eventual-a.e. nonsingularity of the sample instrument Gram.
+
+The remaining fields are the substantive homoskedastic projection-remainder
+and reduced-form moment assumptions; the deterministic trace-ratio convergence
+is derived instead of assumed. -/
+theorem ManyInstrumentsProjectedTraceMomentConditions.of_eventually_ae_card_ratio_nonsingular
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hcard : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (htrace_ratio_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ)
+    (hreduced_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram (u2 m ω)) μ)
+    (hreduced_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ)
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ)
+    (hreduced_error_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleGram (u2 m ω))
+      atTop (fun _ => Sigma22))
+    (hreduced_error_cross_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => Sigma2e))
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ))) :
+    ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha where
+  trace_ratio_meas := htrace_ratio_meas
+  reduced_error_gram_meas := hreduced_error_gram_meas
+  reduced_error_cross_meas := hreduced_error_cross_meas
+  projected_error_gram_meas := hprojected_error_gram_meas
+  projected_error_cross_meas := hprojected_error_cross_meas
+  trace_ratio_tendsto :=
+    manyInstrumentProjectionTraceRatio_tendstoInMeasure_of_eventually_ae_card_ratio_nonsingular
+      (μ := μ) (Z := Z) hcard hnonsing
+  reduced_error_gram_tendsto := hreduced_error_gram_tendsto
+  reduced_error_cross_tendsto := hreduced_error_cross_tendsto
+  projected_error_gram_trace_remainder_tendsto_zero :=
+    hprojected_error_gram_trace_remainder_tendsto_zero
+  projected_error_cross_trace_remainder_tendsto_zero :=
+    hprojected_error_cross_trace_remainder_tendsto_zero
+
+omit [DecidableEq k] in
+/-- Build the full projection-trace moment package from the named reduced-form
+WLLN package plus the two homoskedastic projection remainder WLLNs.
+
+This removes duplicate reduced-form error WLLN assumptions from the projection
+layer: `sampleGram u₂` and `sampleCrossMoment u₂ e` are inherited from
+`ManyInstrumentsReducedFormWLLNConditions`, while the deterministic trace ratio
+limit is still derived from the instrument count and eventual-a.e.
+nonsingularity. -/
+theorem ManyInstrumentsProjectedTraceMomentConditions.of_reduced_form_wlln_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hcard : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2) :
+    ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha :=
+  ManyInstrumentsProjectedTraceMomentConditions.of_eventually_ae_card_ratio_nonsingular
+    (μ := μ) (Z := Z) (e := e) (u2 := u2)
+    (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    hcard hnonsing hproj.trace_ratio_meas hRF.reduced_error_gram_meas
+    hRF.reduced_error_score_meas hproj.projected_error_gram_meas
+    hproj.projected_error_cross_meas hRF.reduced_error_gram_tendsto
+    hRF.reduced_error_score_tendsto
+    hproj.projected_error_gram_trace_remainder_tendsto_zero
+    hproj.projected_error_cross_trace_remainder_tendsto_zero
+
+omit [DecidableEq k] in
+/-- Projection-trace moment package from reduced-form WLLNs and raw
+homoskedastic projection-remainder fields, deriving trace-ratio measurability
+from a.e. nonsingular instruments.
+
+Compared with
+`ManyInstrumentsProjectedTraceMomentConditions.of_reduced_form_wlln_projection_remainders`,
+this constructor does not require a prebuilt
+`ManyInstrumentsHomoskedasticProjectionRemainderConditions` value and does not
+ask for `trace_ratio_meas` separately. -/
+theorem
+ManyInstrumentsProjectedTraceMomentConditions.of_reduced_form_wlln_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hcard : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha))
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ))) :
+    ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha := by
+  let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_ae_nonsingular_remainders
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      hnonsing hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero
+  have hnonsing_eventually : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)) :=
+    Filter.Eventually.of_forall hnonsing
+  exact
+    ManyInstrumentsProjectedTraceMomentConditions.of_reduced_form_wlln_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hcard hnonsing_eventually hRF hproj
+
+omit [DecidableEq k] in
+/-- Projection-trace consequences imply the projected-error Gram limit
+`n^{-1}u₂'P_Zu₂ ->p αΣ₂₂`. -/
+theorem manyInstrumentProjectedErrorGram_tendsto_of_trace_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (h : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω))
+      atTop (fun _ => alpha • Sigma22) := by
+  let r : ℕ → Ω → ℝ := fun m ω => manyInstrumentProjectionTraceRatio (Z m ω)
+  let G : ℕ → Ω → Matrix k k ℝ := fun m ω => sampleGram (u2 m ω)
+  have hscaled : TendstoInMeasure μ
+      (fun m ω => r m ω • G m ω) atTop (fun _ => alpha • Sigma22) :=
+    tendstoInMeasure_smul_matrix
+      (μ := μ) (r := r) (A := G)
+      (c := alpha) (M := Sigma22)
+      (by intro m; simpa [r] using h.trace_ratio_meas m)
+      (by intro m; simpa [G] using h.reduced_error_gram_meas m)
+      (by simpa [r] using h.trace_ratio_tendsto)
+      (by simpa [G] using h.reduced_error_gram_tendsto)
+  exact TendstoInMeasure.of_sub_tendsto_zero_matrix
+    (μ := μ)
+    (X := fun m ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω))
+    (Y := fun m ω => r m ω • G m ω)
+    (C := alpha • Sigma22)
+    (by simpa [r, G] using h.projected_error_gram_trace_remainder_tendsto_zero)
+    hscaled
+
+omit [DecidableEq k] in
+/-- Projection-trace consequences imply the projected-error score limit
+`n^{-1}u₂'P_Ze ->p αΣ₂e`. -/
+theorem manyInstrumentProjectedErrorCross_tendsto_of_trace_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (h : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω))
+      atTop (fun _ => alpha • Sigma2e) := by
+  let r : ℕ → Ω → ℝ := fun m ω => manyInstrumentProjectionTraceRatio (Z m ω)
+  let s : ℕ → Ω → k → ℝ := fun m ω => sampleCrossMoment (u2 m ω) (e m ω)
+  have hscaled : TendstoInMeasure μ
+      (fun m ω => r m ω • s m ω) atTop (fun _ => alpha • Sigma2e) :=
+    tendstoInMeasure_smul_vector
+      (μ := μ) (r := r) (v := s)
+      (c := alpha) (g := Sigma2e)
+      (by intro m; simpa [r] using h.trace_ratio_meas m)
+      (by intro m; simpa [s] using h.reduced_error_cross_meas m)
+      (by simpa [r] using h.trace_ratio_tendsto)
+      (by simpa [s] using h.reduced_error_cross_tendsto)
+  exact TendstoInMeasure.of_sub_tendsto_zero_vector
+    (μ := μ)
+    (X := fun m ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω))
+    (Y := fun m ω => r m ω • s m ω)
+    (c := alpha • Sigma2e)
+    (by simpa [r, s] using h.projected_error_cross_trace_remainder_tendsto_zero)
+    hscaled
+
+/-- Assemble the 2SLS projected reduced-form moment package from signal/cross
+component limits plus the lower-level projection-trace error consequences. -/
+theorem ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hnonsing : IsUnit (H + alpha • Sigma22).det) :
+    ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha where
+  reduced_form := hreduced
+  moment_meas := by
+    intro m
+    have hsum : AEStronglyMeasurable
+        (fun ω =>
+          manyInstrumentProjectedSignalGram (Z m ω) (Gamma m) +
+              manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) +
+            manyInstrumentProjectedReducedFormCrossGram
+              (Z m ω) (Gamma m) (u2 m ω)) μ :=
+      ((hprojected_signal_gram_meas m).add
+        (htrace.projected_error_gram_meas m)).add
+          (hprojected_cross_gram_meas m)
+    refine hsum.congr (ae_of_all μ fun ω => ?_)
+    change
+      manyInstrumentProjectedSignalGram (Z m ω) (Gamma m) +
+            manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) +
+          manyInstrumentProjectedReducedFormCrossGram
+            (Z m ω) (Gamma m) (u2 m ω) =
+        limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0
+    rw [hreduced m ω, manyInstrumentProjectedReducedForm_normalizedMomentMatrix_zero]
+  score_meas := by
+    intro m
+    have hsum : AEStronglyMeasurable
+        (fun ω =>
+          manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω) +
+            manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ :=
+      (hprojected_signal_score_meas m).add (htrace.projected_error_cross_meas m)
+    refine hsum.congr (ae_of_all μ fun ω => ?_)
+    change
+      manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω) +
+          manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) =
+        limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0
+    rw [hreduced m ω, manyInstrumentProjectedReducedForm_normalizedMomentVector_zero]
+  projected_signal_gram_meas := hprojected_signal_gram_meas
+  projected_error_gram_meas := htrace.projected_error_gram_meas
+  projected_cross_gram_meas := hprojected_cross_gram_meas
+  projected_signal_score_meas := hprojected_signal_score_meas
+  projected_error_score_meas := htrace.projected_error_cross_meas
+  projected_signal_gram_tendsto := hprojected_signal_gram_tendsto
+  projected_error_gram_tendsto :=
+    manyInstrumentProjectedErrorGram_tendsto_of_trace_remainders htrace
+  projected_cross_gram_tendsto_zero := hprojected_cross_gram_tendsto_zero
+  projected_signal_score_tendsto_zero := hprojected_signal_score_tendsto_zero
+  projected_error_score_tendsto :=
+    manyInstrumentProjectedErrorCross_tendsto_of_trace_remainders htrace
+  limit_nonsing := hnonsing
+
+/-- Projection-trace assembly with the 2SLS limit nonsingularity discharged from
+Hansen's positive-definite signal limit, positive-semidefinite reduced-form
+error covariance, and nonnegative instrument-ratio limit. -/
+theorem ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components_posSemidef
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hH : H.PosDef) (hSigma22 : Sigma22.PosSemidef) (halpha : 0 ≤ alpha) :
+    ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components
+    (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    hreduced hprojected_signal_gram_meas hprojected_cross_gram_meas
+    hprojected_signal_score_meas
+    hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
+    hprojected_signal_score_tendsto_zero htrace
+    (manyInstruments_twoSLS_limit_matrix_nonsingular_of_posSemidef
+      hH hSigma22 halpha)
+
+/-- Assemble the 2SLS projected reduced-form package from the OLS reduced-form
+assembly and projection-trace error package.
+
+On the eventual-a.e. nonsingular instrument branch, the deterministic identity
+`P_Z ZΓ = ZΓ` turns the OLS signal Gram, cross-Gram, and signal-score limits
+into their projected counterparts.  Thus this constructor avoids asking for
+separate projected-signal WLLNs. -/
+theorem ManyInstrumentsTwoSLSMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hH : H.PosDef) (hSigma22 : Sigma22.PosSemidef) (halpha : 0 ≤ alpha) :
+    ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha := by
+  have hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H) := by
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hOLS.signal_gram_tendsto
+    filter_upwards [hnonsing] with m hm
+    filter_upwards [hm] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact
+      (manyInstrumentProjectedSignalGram_eq_signalGram_of_nonsingular
+        (Z m ω) (Gamma m)).symm
+  have hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)) := by
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hOLS.cross_gram_tendsto_zero
+    filter_upwards [hnonsing] with m hm
+    filter_upwards [hm] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact
+      (manyInstrumentProjectedReducedFormCrossGram_eq_crossGram_of_nonsingular
+        (Z m ω) (Gamma m) (u2 m ω)).symm
+  have hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)) := by
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hOLS.signal_score_tendsto_zero
+    filter_upwards [hnonsing] with m hm
+    filter_upwards [hm] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact
+      (manyInstrumentProjectedSignalScore_eq_signalScore_of_nonsingular
+        (Z m ω) (Gamma m) (e m ω)).symm
+  exact
+    ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hOLS.reduced_form hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas
+      hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
+      hprojected_signal_score_tendsto_zero htrace hH hSigma22 halpha
+
+/-- Assemble the 2SLS projected reduced-form package from the OLS reduced-form
+assembly and projection-trace package, deriving projected signal measurability
+and limits from `P_Z ZΓ = ZΓ` on the a.e. nonsingular instrument branch.
+
+This is the theorem-facing projected-signal bridge for Hansen Theorem 12.19:
+callers only supply the primitive unprojected signal/cross/score WLLNs already
+contained in `hOLS`, not separate projected-signal component assumptions. -/
+theorem
+ManyInstrumentsTwoSLSMomentAssemblyConditions.of_ols_projection_trace_ae_nonsingular
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hH : H.PosDef) (hSigma22 : Sigma22.PosSemidef) (halpha : 0 ≤ alpha) :
+    ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha := by
+  have hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ := by
+    intro m
+    exact
+      manyInstrumentProjectedSignalGram_aestronglyMeasurable_of_ae_nonsingular
+        (μ := μ) (Z := fun ω => Z m ω) (Gamma := Gamma m)
+        (hnonsing m) (hOLS.signal_gram_meas m)
+  have hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ := by
+    intro m
+    exact
+      manyInstrumentProjectedReducedFormCrossGram_aestronglyMeasurable_of_ae_nonsingular
+        (μ := μ) (Z := fun ω => Z m ω) (Gamma := Gamma m)
+        (u2 := fun ω => u2 m ω) (hnonsing m) (hOLS.cross_gram_meas m)
+  have hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ := by
+    intro m
+    exact
+      manyInstrumentProjectedSignalScore_aestronglyMeasurable_of_ae_nonsingular
+        (μ := μ) (Z := fun ω => Z m ω) (Gamma := Gamma m)
+        (e := fun ω => e m ω) (hnonsing m) (hOLS.signal_score_meas m)
+  have hnonsing_eventually : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)) :=
+    Filter.Eventually.of_forall hnonsing
+  exact
+    ManyInstrumentsTwoSLSMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hOLS hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas htrace hnonsing_eventually hH hSigma22 halpha
+
+/-- Assemble the 2SLS `μ = 0` normalized moment-limit package from Hansen's
+projected reduced-form moment components. -/
+theorem ManyInstrumentsLIMLMomentLimitConditions.of_projected_reduced_form_components
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ} {alpha : ℝ}
+    (h : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha) :
+    ManyInstrumentsLIMLMomentLimitConditions
+      μ Z X e (fun _ _ => 0) (H + alpha • Sigma22) (alpha • Sigma2e) := by
+  refine
+    { moment_meas := h.moment_meas
+      score_meas := h.score_meas
+      moment_tendsto := ?_
+      score_tendsto := ?_
+      limit_nonsing := h.limit_nonsing }
+  · have hsignal_plus_error : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentProjectedSignalGram (Z m ω) (Gamma m) +
+            manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω))
+        atTop (fun _ => H + alpha • Sigma22) :=
+      tendstoInMeasure_add h.projected_signal_gram_meas h.projected_error_gram_meas
+        h.projected_signal_gram_tendsto h.projected_error_gram_tendsto
+    have htotal : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentProjectedSignalGram (Z m ω) (Gamma m) +
+              manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) +
+            manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+        atTop (fun _ => H + alpha • Sigma22 + (0 : Matrix k k ℝ)) :=
+      tendstoInMeasure_add
+        (fun m => (h.projected_signal_gram_meas m).add
+          (h.projected_error_gram_meas m))
+        h.projected_cross_gram_meas hsignal_plus_error h.projected_cross_gram_tendsto_zero
+    refine TendstoInMeasure.congr' ?_ ?_ htotal
+    · filter_upwards [eventually_gt_atTop 0] with m hm
+      exact ae_of_all μ (fun ω => by
+        haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+        change
+          manyInstrumentProjectedSignalGram (Z m ω) (Gamma m) +
+                manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) +
+              manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω) =
+            limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0
+        rw [h.reduced_form m ω,
+          manyInstrumentProjectedReducedForm_normalizedMomentMatrix_zero])
+    · exact ae_of_all μ (fun _ => by simp)
+  · have hscore_sum : TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω) +
+            manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω))
+        atTop (fun _ => (0 : k → ℝ) + alpha • Sigma2e) :=
+      tendstoInMeasure_add h.projected_signal_score_meas h.projected_error_score_meas
+        h.projected_signal_score_tendsto_zero h.projected_error_score_tendsto
+    refine TendstoInMeasure.congr' ?_ ?_ hscore_sum
+    · filter_upwards [eventually_gt_atTop 0] with m hm
+      exact ae_of_all μ (fun ω => by
+        haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+        change
+          manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω) +
+              manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) =
+            limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0
+        rw [h.reduced_form m ω,
+          manyInstrumentProjectedReducedForm_normalizedMomentVector_zero])
+    · exact ae_of_all μ (fun _ => by simp)
+
+set_option maxHeartbeats 900000 in
+-- Product-space synthesis for the inverse/product/mulVec CMT chain is expensive.
+/-- OLS convergence from normalized Gram and score limits. -/
+theorem olsBetaStar_tendstoInMeasure_of_moment_limits
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {β g : k → ℝ} {Q : Matrix k k ℝ}
+    (h : ManyInstrumentsOLSMomentLimitConditions μ X e Q g)
+    (hmodel : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + Q⁻¹ *ᵥ g) := by
+  let A : ℕ → Ω → Matrix k k ℝ := fun m ω => sampleGram (X m ω)
+  let s : ℕ → Ω → k → ℝ := fun m ω => sampleCrossMoment (X m ω) (e m ω)
+  have hA_meas : ∀ m, AEStronglyMeasurable (A m) μ := by
+    intro m
+    simpa [A] using h.gram_meas m
+  have hs_meas : ∀ m, AEStronglyMeasurable (s m) μ := by
+    intro m
+    simpa [s] using h.score_meas m
+  have hA : TendstoInMeasure μ A atTop (fun _ => Q) := by
+    simpa [A] using h.gram_tendsto
+  have hs : TendstoInMeasure μ s atTop (fun _ => g) := by
+    simpa [s] using h.score_tendsto
+  have hAinv_meas : ∀ m, AEStronglyMeasurable (fun ω => (A m ω)⁻¹) μ :=
+    fun m => aestronglyMeasurable_matrix_inv (hA_meas m)
+  have hAinv : TendstoInMeasure μ
+      (fun m ω => (A m ω)⁻¹) atTop (fun _ => Q⁻¹) :=
+    tendstoInMeasure_matrix_inv (μ := μ) hA_meas hA (fun _ => h.limit_nonsing)
+  have hAinvA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (A m ω)⁻¹ * A m ω) μ := by
+    intro m
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      ((hAinv_meas m).prodMk (hA_meas m))
+  have hAinvA : TendstoInMeasure μ
+      (fun m ω => (A m ω)⁻¹ * A m ω) atTop (fun _ => Q⁻¹ * Q) :=
+    tendstoInMeasure_matrix_mul hAinv_meas hA_meas hAinv hA
+  have hAinvAβ_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => ((A m ω)⁻¹ * A m ω) *ᵥ β) μ := by
+    intro m
+    exact (Continuous.matrix_mulVec continuous_id continuous_const).comp_aestronglyMeasurable
+      (hAinvA_meas m)
+  have hAinvAβ : TendstoInMeasure μ
+      (fun m ω => ((A m ω)⁻¹ * A m ω) *ᵥ β) atTop (fun _ => β) := by
+    have hcont : Continuous (fun M : Matrix k k ℝ => M *ᵥ β) :=
+      Continuous.matrix_mulVec continuous_id continuous_const
+    have hraw := tendstoInMeasure_continuous_comp hAinvA_meas hAinvA hcont
+    refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hraw
+    exact ae_of_all μ (fun _ => by
+      rw [Matrix.nonsing_inv_mul Q h.limit_nonsing]
+      simp)
+  have hAinvs_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (A m ω)⁻¹ *ᵥ s m ω) μ := by
+    intro m
+    exact (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      ((hAinv_meas m).prodMk (hs_meas m))
+  have hAinvs : TendstoInMeasure μ
+      (fun m ω => (A m ω)⁻¹ *ᵥ s m ω) atTop (fun _ => Q⁻¹ *ᵥ g) :=
+    tendstoInMeasure_mulVec hAinv_meas hs_meas hAinv hs
+  have hsum := tendstoInMeasure_add hAinvAβ_meas hAinvs_meas hAinvAβ hAinvs
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hsum
+  filter_upwards [eventually_gt_atTop 0] with m hm
+  exact ae_of_all μ (fun ω => by
+    haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+    have hY : Y m ω = X m ω *ᵥ β + e m ω := hmodel m ω
+    change ((A m ω)⁻¹ * A m ω) *ᵥ β + (A m ω)⁻¹ *ᵥ s m ω =
+      olsBetaStar (X m ω) (Y m ω)
+    rw [hY, olsBetaStar_eq_sampleGramInv_sampleCrossMoment,
+      sampleCrossMoment_linear_model]
+    simp [A, s, Matrix.mulVec_add, Matrix.mulVec_mulVec])
+
+/-- 2SLS convergence as the `μ = 0` k-class/LIML moment-limit case. -/
+theorem twoSLSBetaStar_tendstoInMeasure_of_normalized_moment_limits
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {β g : k → ℝ} {Q : Matrix k k ℝ}
+    (h : ManyInstrumentsLIMLMomentLimitConditions μ Z X e (fun _ _ => 0) Q g)
+    (hmodel : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + Q⁻¹ *ᵥ g) := by
+  have hliml :=
+    limlBetaStar_tendstoInMeasure_of_normalized_moment_limits
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e)
+      (limlMuHat := fun _ _ => 0) (β := β) (g := g) (Q := Q) h hmodel
+  simpa using hliml
+
+/-- Proof-facing condition package for Hansen Theorem 12.19.
+
+The structural fields record the model (12.73), signal condition (12.77), and
+many-instrument ratio (12.76).  The moment fields are the intermediate
+homoskedastic/fourth-moment consequences Hansen uses in (12.78)--(12.81);
+the estimator faces are proved from normalized moment convergence by
+`olsBetaStar_tendstoInMeasure_of_moment_limits`,
+`twoSLSBetaStar_tendstoInMeasure_of_normalized_moment_limits`, and
+`limlBetaStar_tendstoInMeasure_beta_of_normalized_moments`. -/
+structure ManyInstrumentsEstimatorMomentAssemblyConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (β : k → ℝ) (H Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ)
+    (alpha : ℝ) : Prop where
+  alpha_nonneg : 0 ≤ alpha
+  alpha_lt_one : alpha < 1
+  instrument_ratio_tendsto :
+    Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ)) atTop (𝓝 alpha)
+  structural_model : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω
+  reduced_form : ∀ (m : ℕ) (ω : Ω),
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  H_posDef : H.PosDef
+  ols_limit_matrix_nonsingular : IsUnit (H + Sigma22).det
+  twoSLS_limit_matrix_nonsingular : IsUnit (H + alpha • Sigma22).det
+  signal_limit : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  reduced_error_gram_limit : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleGram (u2 m ω))
+    atTop (fun _ => Sigma22)
+  reduced_error_cross_limit : TendstoInMeasure μ
+    (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+    atTop (fun _ => Sigma2e)
+  projected_error_gram_limit : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω))
+    atTop (fun _ => alpha • Sigma22)
+  projected_error_cross_limit : TendstoInMeasure μ
+    (fun (m : ℕ) ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω))
+    atTop (fun _ => alpha • Sigma2e)
+  ols_moments : ManyInstrumentsOLSMomentLimitConditions
+    μ X e (H + Sigma22) Sigma2e
+  twoSLS_moments : ManyInstrumentsLIMLMomentLimitConditions
+    μ Z X e (fun _ _ => 0) (H + alpha • Sigma22) (alpha • Sigma2e)
+  liml_moments : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H
+
+/-- Build the Hansen-facing Theorem 12.19 condition package from the
+reduced-form OLS and projected-2SLS assembly packages.
+
+This keeps the final theorem surface from assuming the OLS and 2SLS
+moment-limit packages directly: they are derived from the signal/error/cross
+component limits that mirror Hansen's many-instrument decomposition. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha where
+  alpha_nonneg := halpha_nonneg
+  alpha_lt_one := halpha_lt_one
+  instrument_ratio_tendsto := hratio
+  structural_model := hstruct
+  reduced_form := hOLS.reduced_form
+  H_posDef := hpos
+  ols_limit_matrix_nonsingular := hOLS.limit_nonsing
+  twoSLS_limit_matrix_nonsingular := h2SLS.limit_nonsing
+  signal_limit := hOLS.signal_gram_tendsto
+  reduced_error_gram_limit := hOLS.reduced_error_gram_tendsto
+  reduced_error_cross_limit := hOLS.reduced_error_score_tendsto
+  projected_error_gram_limit := h2SLS.projected_error_gram_tendsto
+  projected_error_cross_limit := h2SLS.projected_error_score_tendsto
+  ols_moments :=
+    ManyInstrumentsOLSMomentLimitConditions.of_reduced_form_components hOLS
+  twoSLS_moments :=
+    ManyInstrumentsLIMLMomentLimitConditions.of_projected_reduced_form_components h2SLS
+  liml_moments := hLIML
+
+/-- Build the Hansen-facing Theorem 12.19 condition package from reduced-form
+OLS and projected-2SLS assemblies plus Hansen's LIML eigenvalue-adjustment
+limit `μ̂ -> α/(1-α)`.
+
+This wrapper removes the need to assume the LIML zero-score moment package
+separately once the OLS and 2SLS moment limits have been proved. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha))) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hpos hOLS h2SLS
+    (ManyInstrumentsLIMLMomentConsistencyConditions.of_ols_twoSLS_moments_mu_tendsto_posDef
+      (μ := μ) (Z := Z) (X := X) (e := e) (limlMuHat := limlMuHat)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      (ManyInstrumentsOLSMomentLimitConditions.of_reduced_form_components hOLS)
+      (ManyInstrumentsLIMLMomentLimitConditions.of_projected_reduced_form_components h2SLS)
+      hmu_meas hmu_tendsto halpha_lt_one hpos)
+
+/-- Build the Hansen-facing Theorem 12.19 condition package from reduced-form
+OLS and projected-2SLS assemblies plus the named LIML eigenvalue limit package.
+
+This is the certificate-shaped variant of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto`. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hpos hOLS h2SLS
+    (ManyInstrumentsLIMLEigenvalueLimitConditions.toLIMLMomentConsistencyConditions_posDef
+      (μ := μ) (Z := Z) (X := X) (e := e) (limlMuHat := limlMuHat)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hmu
+      (ManyInstrumentsOLSMomentLimitConditions.of_reduced_form_components hOLS)
+      (ManyInstrumentsLIMLMomentLimitConditions.of_projected_reduced_form_components h2SLS)
+      halpha_lt_one hpos)
+
+/-- Build the Hansen-facing Theorem 12.19 condition package from reduced-form
+OLS/projected-2SLS assemblies plus the sample LIML eigenvalue problem.
+
+This is the theorem-facing bridge from the sample eigenvalue adjustment
+`μ̂_n - (ℓ_n/n)/(1-ℓ_n/n) = o_p(1)` and Hansen's `ℓ_n/n -> α` to the LIML
+cancellation package used for consistency. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hpos hOLS h2SLS
+    (hmu.toLIMLEigenvalueLimitConditions
+      (ι := ι) (μ := μ) hratio halpha_lt_one)
+
+/-- Ratio-facing variant of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies`.
+
+The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
+assumption `ℓ_n/n -> α`. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hpos hOLS h2SLS hLIML
+
+/-- Ratio-facing variant of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto`.
+
+The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
+assumption `ℓ_n/n -> α`. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha))) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hpos hOLS h2SLS hmu_meas hmu_tendsto
+
+/-- Ratio-facing variant of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions`.
+
+The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
+assumption `ℓ_n/n -> α`. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hpos hOLS h2SLS hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing variant of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem`.
+
+The side condition `0 ≤ α` is derived from Hansen's primitive instrument-ratio
+assumption `ℓ_n/n -> α`. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_sample_eigenvalue_problem
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hpos hOLS h2SLS hmu
+
+/-- Build the Hansen-facing Theorem 12.19 condition package from reduced-form
+OLS components and the lower-level projection-trace consequences for the 2SLS
+projected-error moments.
+
+This composes `ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components`
+with `ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies`, so
+callers can stay at Hansen's signal/error/projection-trace layer. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (h2SLS_nonsing : IsUnit (H + alpha • Sigma22).det)
+    (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
+    ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hOLS.reduced_form hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas
+      hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
+      hprojected_signal_score_tendsto_zero htrace h2SLS_nonsing
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hpos hOLS h2SLS hLIML
+
+/-- Projection-trace theorem-facing constructor with the 2SLS limit
+nonsingularity discharged from positive semidefiniteness of `Σ₂₂`.
+
+This is the Hansen-facing route when the remaining projection-trace fields have
+already been derived from homoskedasticity/fourth-moment assumptions: the caller
+does not also need to prove `det (H + αΣ₂₂)` is a unit by hand. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hSigma22 : Sigma22.PosSemidef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hpos hOLS
+    hprojected_signal_gram_meas hprojected_cross_gram_meas
+    hprojected_signal_score_meas hprojected_signal_gram_tendsto
+    hprojected_cross_gram_tendsto_zero hprojected_signal_score_tendsto_zero
+    htrace
+    (manyInstruments_twoSLS_limit_matrix_nonsingular_of_posSemidef
+      hpos hSigma22 halpha_nonneg)
+    hLIML
+
+/-- Projection-trace theorem-facing constructor with Hansen's LIML eigenvalue
+adjustment limit `μ̂ -> α/(1-α)`.
+
+This is the assembly-level route to Theorem 12.19 once the OLS reduced-form
+package and the projected-error trace package are available.  It derives both
+the projected 2SLS moment package and the LIML zero-score package, so callers
+do not need to assume either one directly. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hSigma22 : Sigma22.PosSemidef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha))) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
+    ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hOLS.reduced_form hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas
+      hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
+      hprojected_signal_score_tendsto_zero htrace hpos hSigma22 halpha_nonneg
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hpos hOLS h2SLS
+      hmu_meas hmu_tendsto
+
+/-- Theorem-facing constructor from OLS reduced-form assembly plus the
+projection-trace projected-error package.
+
+Compared with `of_projection_trace_assemblies_posSemidef_mu_tendsto`, this
+wrapper also derives the projected signal Gram, signal/error cross-Gram, and
+signal-score limits from the OLS reduced-form limits using `P_Z ZΓ = ZΓ` on the
+eventual-a.e. nonsingular instrument branch.  The remaining projected 2SLS
+substance is therefore concentrated in the trace-remainder package. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef)
+    (hSigma22 : Sigma22.PosSemidef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha))) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
+    ManyInstrumentsTwoSLSMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hOLS hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas htrace
+      hnonsing hH hSigma22 halpha_nonneg
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hH hOLS h2SLS
+      hmu_meas hmu_tendsto
+
+/-- Theorem-facing constructor from the named reduced-form WLLN package, the
+two homoskedastic projection remainders, and the current LIML eigenvalue-limit
+package.
+
+This is the tightest current 12.19 condition constructor: OLS moments are
+derived from `ManyInstrumentsReducedFormWLLNConditions`; projected-error moments
+are derived from the trace ratio plus the two projection remainders; projected
+signal moments are derived from `P_Z ZΓ = ZΓ` on the eventual-a.e. nonsingular
+instrument branch. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+      μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e :=
+    ManyInstrumentsReducedFormWLLNConditions.toOLSMomentAssemblyConditions hRF
+  let htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha :=
+    ManyInstrumentsProjectedTraceMomentConditions.of_reduced_form_wlln_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hratio hnonsing hRF hproj
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF.signal_limit_posDef
+      hRF.reduced_error_limit_posSemidef hOLS hprojected_signal_gram_meas
+      hprojected_cross_gram_meas hprojected_signal_score_meas htrace hnonsing
+      hmu.meas hmu.tendsto
+
+/-- The reduced-form WLLN/projection-remainder constructor with the sample
+LIML eigenvalue problem as input.
+
+This wrapper derives `μ̂_n ->p α/(1-α)` from
+`ManyInstrumentsLIMLSampleEigenvalueProblemConditions` before applying the
+existing many-instrument LIML cancellation route. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_sample_eigenvalue_problem
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF
+    hprojected_signal_gram_meas hprojected_cross_gram_meas
+    hprojected_signal_score_meas hproj hnonsing
+    (hmu.toLIMLEigenvalueLimitConditions
+      (ι := ι) (μ := μ) hratio halpha_lt_one)
+
+/-- Theorem-facing reduced-form WLLN constructor from raw homoskedastic
+projection-remainder fields and the named LIML eigenvalue limit package.
+
+This variant derives the `trace_ratio_meas` field of
+`ManyInstrumentsHomoskedasticProjectionRemainderConditions` from a.e.
+nonsingular instruments and accepts `ManyInstrumentsLIMLEigenvalueLimitConditions`
+directly.  The three displayed Theorem 12.19 probability limits are still the
+same limits proved by `manyInstruments_estimators_minus_beta_theorem12_19`. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_ae_nonsingular_remainders
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      hnonsing hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero
+  have hnonsing_eventually : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)) :=
+    Filter.Eventually.of_forall hnonsing
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF
+      hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas hproj hnonsing_eventually
+      (show ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+          μ limlMuHat alpha from hmu)
+
+/-- Theorem-facing constructor from the named reduced-form WLLN package and the
+two homoskedastic projection remainders, deriving all projected signal
+component measurability and limits from the primitive reduced-form package on
+an a.e. nonsingular instrument branch.
+
+Compared with `of_reduced_form_wlln_projection_remainders`, this version no
+longer asks for projected signal Gram, cross-Gram, or score measurability: they
+are inherited from the corresponding unprojected fields in `hRF`. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+      μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e :=
+    ManyInstrumentsReducedFormWLLNConditions.toOLSMomentAssemblyConditions hRF
+  have hnonsing_eventually : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)) :=
+    Filter.Eventually.of_forall hnonsing
+  let htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha :=
+    ManyInstrumentsProjectedTraceMomentConditions.of_reduced_form_wlln_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hratio hnonsing_eventually hRF hproj
+  let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
+    ManyInstrumentsTwoSLSMomentAssemblyConditions.of_ols_projection_trace_ae_nonsingular
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hOLS htrace hnonsing hRF.signal_limit_posDef
+      hRF.reduced_error_limit_posSemidef halpha_nonneg
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF.signal_limit_posDef
+      hOLS h2SLS hmu
+
+/-- Theorem-facing reduced-form WLLN constructor from raw homoskedastic
+projection-remainder fields and a.e. nonsingular instruments.
+
+This is the strongest currently formalized primitive route to the Theorem
+12.19 condition package: unprojected reduced-form WLLNs come from `hRF`,
+projected signal components are derived from `P_Z ZΓ = ZΓ`, trace-ratio
+measurability/convergence is derived from nonsingularity and the instrument
+ratio, and the only remaining projected-error inputs are the two homoskedastic
+trace-remainder WLLNs plus projected-error measurability. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2 :=
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_ae_nonsingular_remainders
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      hnonsing hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hproj hnonsing
+      (show ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+          μ limlMuHat alpha from hmu)
+
+namespace ManyInstrumentsEstimatorMomentAssemblyConditions
+
+open ManyInstrumentsHomoskedasticProjectionRemainderConditions
+
+/-- Theorem-facing reduced-form WLLN constructor with sample LIML eigenvalue
+input and entrywise projected-error trace remainders.
+
+This is the non-stacked analogue of
+`of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders`:
+the reduced-form WLLN package is already available, projected-error
+measurability is derived from finite-sample measurability of `Z`, `u₂`, and
+`e`, scalar entrywise trace-remainder WLLNs assemble the full homoskedastic
+projection package, and the LIML adjustment-gap WLLN supplies
+`μ̂_n ->p α / (1 - α)`. -/
+theorem of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
+      μ Z e u2 :=
+    of_entrywise_measurable_ae_nonsingular_remainders
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      hnonsing hZ_meas hu2_meas he_meas hentry
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hproj hnonsing
+      (hmu.toLIMLEigenvalueLimitConditions
+        (ι := ι) (μ := μ) hratio halpha_lt_one)
+
+/-- Theorem-facing reduced-form WLLN constructor with the remaining projected
+error and LIML eigenvalue gaps reduced to scalar Chapter 7 WLLNs.
+
+Compared with
+`of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders`,
+this version does not take the entrywise projected-error package or the sample
+eigenvalue problem package as primitives.  The projected-error package is
+assembled from scalar row WLLNs, and the LIML sample-eigenvalue package is
+assembled from the scalar adjustment-gap WLLN. -/
+theorem of_reduced_form_wlln_ae_nonsingular_scalar_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions
+
+set_option linter.style.longLine false in
+/-- Theorem-facing reduced-form WLLN constructor with the projected-error
+remainders supplied by their exact canonical row averages.
+
+This is the narrow Hansen-facing boundary for the homoskedastic projection
+step: the caller proves convergence of the finite-sample canonical row
+averages defined from `P_Z*`, `u₂`, and `e`; the entrywise projected-error
+package and the sample LIML eigenvalue package are assembled internally. -/
+theorem of_reduced_form_wlln_ae_nonsingular_canonical_row_average_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hcanonical.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions
+
+set_option linter.style.longLine false in
+/-- Theorem-facing reduced-form WLLN constructor with canonical projected-error
+row averages and a finite-sample Rayleigh/eigenvalue adjustment-gap WLLN.
+
+This keeps the remaining LIML primitive at Hansen's generalized Rayleigh
+eigenvalue problem for `[Y X]`, then forgets only that audit field to reuse the
+existing sample-eigenvalue constructor. -/
+theorem of_reduced_form_wlln_ae_nonsingular_canonical_row_average_rayleigh_adjustment_gap
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_canonical_row_average_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hcanonical
+    hrayleigh.toAdjustmentGapWLLNConditions
+
+set_option linter.style.longLine false in
+/-- Theorem-facing reduced-form WLLN constructor with the projected-error
+remainders supplied by finite-dimensional row WLLNs.
+
+Compared with
+`of_reduced_form_wlln_ae_nonsingular_scalar_wlln_sample_eigenvalue`, this
+keeps the projected-error input at the matrix/vector row-process level and
+only decomposes to coordinates internally. -/
+theorem of_reduced_form_wlln_ae_nonsingular_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions
+
+set_option linter.style.longLine false in
+/-- Theorem-facing reduced-form WLLN constructor with row-WLLN projected-error
+remainders and Hansen's finite-sample Rayleigh adjustment-gap input.
+
+This removes the direct canonical-row-average and scalar sample-eigenvalue
+primitives from the caller boundary: the canonical averages are derived from
+the row-WLLN package, and the sample-eigenvalue adjustment package is derived
+from the finite-sample Rayleigh certificate. -/
+theorem of_reduced_form_wlln_ae_nonsingular_row_wlln_rayleigh_adjustment_gap
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_canonical_row_average_rayleigh_adjustment_gap
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hremainder.toCanonicalRowAverageConditions
+    hrayleigh
+
+set_option linter.style.longLine false in
+/-- Theorem-facing reduced-form WLLN constructor from one joint row process for
+the projected-error trace remainders and Hansen's finite-sample Rayleigh
+adjustment gap.
+
+This is the condition-package analogue of the direct joint-row endpoints.  It
+keeps the remaining stochastic input as a single row process and derives both
+the projected-error row-WLLN package and the LIML Rayleigh adjustment-gap
+package internally. -/
+theorem of_reduced_form_wlln_ae_nonsingular_projected_error_rayleigh_joint_row_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_row_wlln_rayleigh_adjustment_gap
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hjoint.toProjectedErrorRowWLLNConditions
+    hjoint.toRayleighAdjustmentGapWLLNConditions
+
+set_option linter.style.longLine false in
+/-- Theorem-facing reduced-form WLLN constructor from one raw joint row
+process for the projected-error trace remainders and LIML Rayleigh
+adjustment gap.
+
+This wrapper moves the public boundary one step closer to Hansen's
+homoskedastic row calculation: the component row-WLLN packages are derived
+from a single integrable iid row object by continuous projection. -/
+theorem of_reduced_form_wlln_ae_nonsingular_raw_projected_error_rayleigh_joint_row_wlln
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_projected_error_rayleigh_joint_row_wlln
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat)
+    (gram_row := fun i ω => (row i ω).1.1)
+    (cross_row := fun i ω => (row i ω).1.2)
+    (gap_row := fun i ω => (row i ω).2) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas
+    (ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions.of_raw_joint_row
+      (μ := μ) (ι := ι) (Z := Z) (X := X) (Y := Y) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row)
+      hrayleigh hgram_remainder_eq_avg hcross_remainder_eq_avg
+      hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident
+      hrow_mean_zero)
+
+set_option linter.style.longLine false in
+/-- Ratio-facing package constructor for Theorem 12.19 from one raw iid joint
+row process for the projected-error trace remainders and LIML Rayleigh
+adjustment gap.
+
+This removes the redundant `0 ≤ α` caller premise from the raw-row constructor:
+nonnegativity follows from Hansen's instrument-count ratio limit. -/
+theorem of_reduced_form_wlln_ae_nonsingular_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_raw_projected_error_rayleigh_joint_row_wlln
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hrayleigh hgram_remainder_eq_avg hcross_remainder_eq_avg
+    hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident hrow_mean_zero
+
+end ManyInstrumentsEstimatorMomentAssemblyConditions
+
+/-- Theorem-facing constructor from stacked row WLLNs, the two homoskedastic
+projection remainders, and Hansen's LIML eigenvalue adjustment limit.
+
+This composes `ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln`
+with `ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders`.
+Thus the unprojected reduced-form error Gram and error-score WLLNs are derived
+from ordinary Chapter 7 iid-row WLLNs, rather than being supplied as fields of
+the 12.19 condition package. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (stackErrors e m ω)) μ)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
+      μ Z (fun m ω => stackErrors e m ω) (fun m ω => stackRegressors u2 m ω))
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+      μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e :=
+    ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hsignal_gram_meas hcross_gram_meas
+      hsignal_score_meas hsignal_gram_tendsto hcross_gram_tendsto_zero
+      hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF
+      hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas hproj hnonsing hmu
+
+/-- Theorem-facing constructor from stacked row WLLNs, a.e. nonsingular
+instrument Grams, raw projected-error trace remainders, and Hansen's LIML
+eigenvalue adjustment limit.
+
+Compared with `of_stacked_error_wlln_projection_remainders`, this route derives
+the projected signal Gram/cross/score measurability and limits from the
+unprojected reduced-form WLLN package on the a.e. nonsingular instrument branch.
+The only projected-error inputs that remain are the two substantive
+homoskedastic trace-remainder WLLNs and their measurability fields. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_ae_nonsingular_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorGram
+          (Z m ω) (stackRegressors u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorCross
+          (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e :=
+    ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hsignal_gram_meas hcross_gram_meas
+      hsignal_score_meas hsignal_gram_tendsto hcross_gram_tendsto_zero
+      hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+      hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu
+
+/-- Theorem-facing constructor from primitive transformed instrument WLLNs,
+Chapter 7 stacked-row WLLNs for reduced-form errors, a.e. nonsingular
+instrument Grams, raw projected-error trace remainders, and Hansen's LIML
+eigenvalue adjustment limit.
+
+This is the tightest current route for the many-instrument theorem.  It keeps
+the primitive `Q̂_ZZ`, `Q̂_Zu₂`, and `n⁻¹Z'e` inputs in the named
+`ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions` package, derives the
+ordinary reduced-form WLLNs from Chapter 7, derives projected signal components
+from `P_Z ZΓ = ZΓ`, and leaves only the two homoskedastic projection-remainder
+WLLNs plus the sample LIML eigenvalue limit as substantive 12.19 inputs. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorGram
+          (Z m ω) (stackRegressors u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorCross
+          (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e :=
+    ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_primitive_instrument_moment_wlln
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hinst hint_outer hindep_outer
+      hident_outer hSigma22 hint_cross hindep_cross hident_cross hSigma2e
+      hH hSigma22_psd
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+      hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu
+
+/-- The tightest current theorem-facing constructor with the sample LIML
+eigenvalue problem instead of a direct `μ̂ -> α/(1-α)` limit certificate.
+
+This composes the primitive transformed-instrument WLLN route with
+`ManyInstrumentsLIMLSampleEigenvalueProblemConditions.toLIMLEigenvalueLimitConditions`.
+It does not prove the remaining raw many-instrument eigenvalue/Rayleigh
+argument; the substantive LIML input is still the adjustment-gap WLLN. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorGram
+          (Z m ω) (stackRegressors u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorCross
+          (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+    hscore_meas hinst hint_outer hindep_outer hident_outer hSigma22
+    hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+    hnonsing hprojected_error_gram_meas hprojected_error_cross_meas
+    hprojected_error_gram_trace_remainder_tendsto_zero
+    hprojected_error_cross_trace_remainder_tendsto_zero
+    (hmu.toLIMLEigenvalueLimitConditions
+      (ι := ι) (μ := μ) hratio halpha_lt_one)
+
+set_option linter.style.longLine false in
+/-- The tight primitive/sample-eigenvalue Theorem 12.19 route with
+projected-error measurability derived from finite-sample measurability.
+
+Compared with
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue`,
+this wrapper no longer asks for measurability of
+`u₂'P_Z*u₂/n` or `u₂'P_Z*e/n` directly.  It derives those fields from
+measurability of `Z m`, row measurability of the stacked reduced-form error
+process `u₂`, and row measurability of `e`; the two homoskedastic
+trace-remainder WLLNs and the sample LIML eigenvalue adjustment gap remain as
+the substantive stochastic inputs. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
+      μ Z (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) :=
+    ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_stacked_measurable_ae_nonsingular_remainders
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      hnonsing hZ_meas hu2_meas he_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+      hscore_meas hinst hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+      hnonsing hproj.projected_error_gram_meas
+      hproj.projected_error_cross_meas
+      hproj.projected_error_gram_trace_remainder_tendsto_zero
+      hproj.projected_error_cross_trace_remainder_tendsto_zero hmu
+
+set_option linter.style.longLine false in
+/-- The tight primitive/sample-eigenvalue Theorem 12.19 route with
+projected-error trace remainders supplied entrywise.
+
+Compared with
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders`,
+this wrapper reduces the remaining homoskedastic projection input to scalar
+WLLNs for each Gram entry and score coordinate.  Finite-sample projected-error
+measurability and the full matrix/vector remainder package are then derived by
+`ManyInstrumentsHomoskedasticProjectionRemainderConditions.of_stacked_entrywise_measurable_ae_nonsingular_remainders`. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hentry :
+      ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+    hscore_meas hinst hint_outer hindep_outer hident_outer hSigma22
+    hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+    hnonsing hZ_meas hu2_meas he_meas
+    hentry.gram_tendsto_zero hentry.cross_tendsto_zero hmu
+
+/-- Theorem-facing constructor replacing the primitive transformed-instrument
+WLLN package by fixed-codomain compressed-signal WLLNs.
+
+This is the current tightest route when `ZΓ` has been identified with a fixed
+`k`-dimensional row process.  The raw varying-dimension `Q̂_ZZ`, `Q̂_Zu₂`, and
+`n⁻¹Z'e` WLLNs are then derived by
+`ManyInstrumentsCompressedSignalWLLNConditions.toPrimitiveInstrumentMomentWLLNConditions`;
+the projected-error trace remainders and sample LIML eigenvalue adjustment gap
+remain explicit inputs. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_compressed_signal_wlln_ae_nonsingular_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcomp : ManyInstrumentsCompressedSignalWLLNConditions
+      μ Z Gamma signal e u2 H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorGram
+          (Z m ω) (stackRegressors u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorCross
+          (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+    hscore_meas hcomp.toPrimitiveInstrumentMomentWLLNConditions
+    hint_outer hindep_outer hident_outer hSigma22 hint_cross hindep_cross
+    hident_cross hSigma2e hH hSigma22_psd hnonsing
+    hprojected_error_gram_meas hprojected_error_cross_meas
+    hprojected_error_gram_trace_remainder_tendsto_zero
+    hprojected_error_cross_trace_remainder_tendsto_zero hmu
+
+set_option linter.style.longLine false in
+/-- Theorem-facing constructor from one iid compressed row process.
+
+This wrapper combines the compressed-signal WLLN route with the measurable
+projection-remainder route.  From joint iid rows `((ZΓ)_i, u₂ᵢ, eᵢ)` it derives
+the primitive transformed-instrument WLLNs and the independence/identical-law
+fields for the ordinary reduced-form error WLLNs.  It still leaves the
+integrability and mean identities, the two homoskedastic trace-remainder WLLNs,
+and the sample LIML eigenvalue adjustment gap as explicit stochastic inputs. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_measurable_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H :=
+    ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions.of_iid_compressed_signal
+      (μ := μ) (Z := Z) (Gamma := Gamma) (signal := signal) (e := e)
+      (u2 := u2) (H := H)
+      hcompressed hsignal_meas hjoint_indep hjoint_ident hsignal_norm_sq
+      hsignal_gram_limit hsym_cross_integrable hsym_cross_mean_zero
+      hsignal_score_integrable hsignal_score_mean_zero
+  have hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))) := by
+    have hindep : iIndepFun
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω)) μ := by
+      simpa [Function.comp] using
+        hjoint_indep.comp
+          (fun (_ : ℕ) (z : ((k → ℝ) × (k → ℝ)) × ℝ) =>
+            Matrix.vecMulVec z.1.2 z.1.2)
+          (fun (_ : ℕ) => measurable_manyInstrumentReducedErrorOuter_joint)
+    intro i j hij
+    exact hindep.indepFun hij
+  have hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ := by
+    intro i
+    simpa [Function.comp] using
+      (hjoint_ident i).comp measurable_manyInstrumentReducedErrorOuter_joint
+  have hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)) := by
+    have hindep : iIndepFun (fun i ω => e i ω • u2 i ω) μ := by
+      simpa [Function.comp] using
+        hjoint_indep.comp
+          (fun (_ : ℕ) (z : ((k → ℝ) × (k → ℝ)) × ℝ) => z.2 • z.1.2)
+          (fun (_ : ℕ) => measurable_manyInstrumentReducedErrorScore_joint)
+    intro i j hij
+    exact hindep.indepFun hij
+  have hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ := by
+    intro i
+    simpa [Function.comp] using
+      (hjoint_ident i).comp measurable_manyInstrumentReducedErrorScore_joint
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+      hscore_meas hinst hu2_outer_integrable hindep_outer hident_outer
+      hSigma22 hu2_score_integrable hindep_cross hident_cross hSigma2e
+      hH hSigma22_psd hnonsing hZ_meas hu2_meas he_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu
+
+set_option linter.style.longLine false in
+/-- The iid compressed-signal Theorem 12.19 route with projected-error
+trace remainders supplied entrywise.
+
+This is the most concrete current primitive-facing wrapper in this file.  The
+ordinary reduced-form WLLNs and transformed-instrument WLLNs are derived from
+one iid row process `((ZΓ)_i,u₂_i,e_i)`, while the remaining homoskedastic
+projection step is reduced to scalar entrywise WLLN certificates. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hentry :
+      ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_measurable_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+    hscore_meas hcompressed hsignal_meas hjoint_indep hjoint_ident
+    hsignal_norm_sq hsignal_gram_limit hsym_cross_integrable
+    hsym_cross_mean_zero hsignal_score_integrable hsignal_score_mean_zero
+    hu2_outer_integrable hSigma22 hu2_score_integrable hSigma2e hH
+    hSigma22_psd hnonsing hZ_meas hu2_meas he_meas
+    hentry.gram_tendsto_zero hentry.cross_tendsto_zero hmu
+
+/-- Projection-trace theorem-facing constructor from raw reduced-form OLS
+components, with both OLS and 2SLS limit nonsingularity discharged from
+`H.PosDef`, `Σ₂₂.PosSemidef`, and `0 ≤ α`.
+
+This is the most direct Hansen-facing assembly currently available for
+Theorem 12.19: after the substantive OLS WLLNs, projection-trace remainders,
+and LIML zero-score package are supplied, no separate determinant assumptions
+for `(H + Σ₂₂)` or `(H + αΣ₂₂)` remain. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_components_posSemidef
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef)
+    (hSigma22 : Sigma22.PosSemidef)
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hreduced_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram (u2 m ω)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω)) μ)
+    (hreduced_error_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hreduced_error_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleGram (u2 m ω))
+      atTop (fun _ => Sigma22))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hreduced_error_score_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => Sigma2e))
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hLIML : ManyInstrumentsLIMLMomentConsistencyConditions μ Z X e limlMuHat H) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e :=
+    ManyInstrumentsOLSMomentAssemblyConditions.of_components_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hsignal_gram_meas
+      hreduced_error_gram_meas hcross_gram_meas hsignal_score_meas
+      hreduced_error_score_meas hsignal_gram_tendsto
+      hreduced_error_gram_tendsto hcross_gram_tendsto_zero
+      hsignal_score_tendsto_zero hreduced_error_score_tendsto hH hSigma22
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hH hSigma22 hOLS
+      hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas
+      hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
+      hprojected_signal_score_tendsto_zero htrace hLIML
+
+/-- Direct projection-trace constructor with Hansen's LIML eigenvalue adjustment
+limit `μ̂ -> α/(1-α)`.
+
+This is the most direct currently formalized route to the full Theorem 12.19
+condition package: it composes the reduced-form OLS component limits, the
+projection-trace 2SLS component limits, positivity-derived nonsingularity, and
+the existing LIML cancellation theorem. -/
+theorem ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_components_posSemidef_mu_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef)
+    (hSigma22 : Sigma22.PosSemidef)
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hreduced_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram (u2 m ω)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω)) μ)
+    (hreduced_error_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hreduced_error_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleGram (u2 m ω))
+      atTop (fun _ => Sigma22))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hreduced_error_score_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => Sigma2e))
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha))) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e :=
+    ManyInstrumentsOLSMomentAssemblyConditions.of_components_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hsignal_gram_meas
+      hreduced_error_gram_meas hcross_gram_meas hsignal_score_meas
+      hreduced_error_score_meas hsignal_gram_tendsto
+      hreduced_error_gram_tendsto hcross_gram_tendsto_zero
+      hsignal_score_tendsto_zero hreduced_error_score_tendsto hH hSigma22
+  let h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e alpha :=
+    ManyInstrumentsTwoSLSMomentAssemblyConditions.of_projection_trace_components_posSemidef
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      hreduced hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas
+      hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
+      hprojected_signal_score_tendsto_zero htrace hH hSigma22 halpha_nonneg
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_tendsto
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hH hOLS h2SLS
+      hmu_meas hmu_tendsto
+
+/-- Centered proof-facing condition package for Hansen Theorem 12.19.
+
+Bekker-style many-instrument arguments naturally prove the centered displayed
+limits.  This package avoids requiring separate uncentered estimator-limit
+fields when the centered faces are already available. -/
+structure ManyInstrumentsCenteredEstimatorLimitConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (β : k → ℝ) (H Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ)
+    (alpha : ℝ) : Prop where
+  ols_centered : TendstoInMeasure μ
+    (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+    atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e)
+  twoSLS_centered : TendstoInMeasure μ
+    (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+    atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha)
+  liml_centered : TendstoInMeasure μ
+    (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+    atTop (fun _ => (0 : k → ℝ))
+
+/-- Hansen Theorem 12.19: with `ℓ_n/n -> α`, OLS and 2SLS have the displayed
+inconsistent probability limits, while LIML is consistent. -/
+theorem manyInstruments_estimators_theorem12_19
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  ⟨by
+      simpa [manyInstrumentsOLSBias] using
+        olsBetaStar_tendstoInMeasure_of_moment_limits
+          (μ := μ) (X := X) (Y := Y) (e := e)
+          (β := β) (g := Sigma2e) (Q := H + Sigma22)
+          h.ols_moments h.structural_model,
+    by
+      simpa [manyInstrumentsTwoSLSBias] using
+        twoSLSBetaStar_tendstoInMeasure_of_normalized_moment_limits
+          (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e)
+          (β := β) (g := alpha • Sigma2e) (Q := H + alpha • Sigma22)
+          h.twoSLS_moments h.structural_model,
+    limlBetaStar_tendstoInMeasure_beta_of_normalized_moments
+      h.liml_moments h.structural_model⟩
+
+section ManyInstrumentsTheorem1219EntrywiseSampleEigenvalueEndpoint
+
+open ManyInstrumentsEstimatorMomentAssemblyConditions
+
+/-- Hansen Theorem 12.19 directly from reduced-form WLLNs, a.e. nonsingular
+instruments, entrywise projected-error trace remainders, and the sample LIML
+eigenvalue adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hentry hmu)
+
+/-- Ratio-facing reduced-form endpoint for Hansen Theorem 12.19.
+
+This removes the explicit `0 ≤ α` caller obligation from
+`manyInstruments_estimators_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue`;
+it follows from Hansen's instrument-ratio convergence assumption. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hentry hmu
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.19 directly from reduced-form WLLNs, canonical
+projected-error row-average convergence, and a scalar LIML adjustment-gap WLLN.
+
+This endpoint exposes the exact finite-sample canonical projected-error
+averages as the projection primitive, rather than requiring callers to first
+package their consequences entrywise. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+    hu2_meas he_meas hcanonical.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions
+
+set_option linter.style.longLine false in
+/-- Ratio-facing reduced-form canonical-row endpoint for Hansen Theorem 12.19. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hcanonical hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing Hansen Theorem 12.19 endpoint from reduced-form WLLNs,
+canonical projected-error row averages, and the finite-sample Rayleigh
+adjustment-gap WLLN.
+
+This is the uncentered companion to
+`manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_of_card_ratio_autoMeas`.
+It keeps the LIML primitive at Hansen's finite-sample generalized Rayleigh
+problem while exposing the projected-error input in exact canonical-row
+notation. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_canonical_row_average_rayleigh_adjustment_gap
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hcanonical hrayleigh)
+
+set_option linter.style.longLine false in
+/-- Canonical-row Rayleigh Hansen Theorem 12.19 in textbook k-class notation.
+
+This is the strongest canonical-row/Rayleigh theorem-facing facade with LIML
+written directly as `limlKClassBetaStar ... κ̂`, where `κ̂ = μ̂ + 1`. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_kappa_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hbase :=
+    manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hcanonical hrayleigh
+  have hliml : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hbase.2.2
+    intro m
+    exact ae_of_all μ (fun ω => by
+      simp [limlBetaStar_eq_kClass_add_one, hkappa m ω])
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+/-- Hansen Theorem 12.19 directly from one iid compressed-signal row process,
+a.e. nonsingular instruments, entrywise projected-error trace remainders, and
+the sample LIML eigenvalue adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_iid_compressed_signal_entrywise_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hentry :
+      ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := fun m ω => stackErrors e m ω)
+    (u2 := fun m ω => stackRegressors u2 m ω)
+    (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
+      (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+        hscore_meas hcompressed hsignal_meas hjoint_indep hjoint_ident
+        hsignal_norm_sq hsignal_gram_limit hsym_cross_integrable
+        hsym_cross_mean_zero hsignal_score_integrable hsignal_score_mean_zero
+        hu2_outer_integrable hSigma22 hu2_score_integrable hSigma2e hH
+        hSigma22_psd hnonsing hZ_meas hu2_meas he_meas hentry hmu)
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.19 from reduced-form WLLNs and scalar sample-average WLLNs
+for the projected-error trace remainders and LIML eigenvalue adjustment gap.
+
+This is the theorem-facing endpoint when the remaining many-instrument
+projection/eigenvalue work has been reduced to ordinary scalar row WLLNs. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+    hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions
+
+set_option linter.style.longLine false in
+/-- Ratio-facing reduced-form scalar-WLLN endpoint for Hansen Theorem 12.19.
+
+This removes the explicit `0 ≤ α` caller obligation from
+`manyInstruments_estimators_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue`;
+it follows from Hansen's instrument-ratio convergence assumption. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.19 from reduced-form WLLNs, matrix/vector row WLLNs for
+the projected-error trace remainders, and a scalar LIML adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+    hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions
+
+set_option linter.style.longLine false in
+/-- Ratio-facing reduced-form row-WLLN endpoint for Hansen Theorem 12.19. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing Hansen Theorem 12.19 endpoint from reduced-form WLLNs,
+projected-error row WLLNs, and the finite-sample Rayleigh adjustment-gap WLLN.
+
+Compared with
+`manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio`,
+this replaces the scalar sample-eigenvalue adjustment package by Hansen's
+finite-sample generalized Rayleigh certificate for `[Y X]`. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_row_wlln_rayleigh_adjustment_gap
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hremainder hrayleigh)
+
+set_option linter.style.longLine false in
+/-- Row-WLLN Rayleigh Hansen Theorem 12.19 in textbook k-class notation.
+
+This is the row-WLLN companion of
+`manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_kappa_of_card_ratio`:
+it consumes the matrix/vector projected-error row-WLLN package directly and
+writes LIML as `limlKClassBetaStar ... κ̂`, where `κ̂ = μ̂ + 1`. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_kappa_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hbase :=
+    manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hremainder hrayleigh
+  have hliml : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hbase.2.2
+    intro m
+    exact ae_of_all μ (fun ω => by
+      simp [limlBetaStar_eq_kClass_add_one, hkappa m ω])
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.19 from a single joint row process for the
+projected-error trace remainders.
+
+This is the uncentered counterpart to
+`manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_joint_row_wlln_sample_eigenvalue_autoMeas`:
+the separate matrix and vector row-WLLN independence/identical-law fields are
+derived by measurable projection from one joint row process. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_joint_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+    hu2_meas he_meas
+    (ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions.of_joint_wlln
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      (gram_row := gram_row) (cross_row := cross_row)
+      hgram_remainder_eq_avg hcross_remainder_eq_avg hgram_integrable
+      hcross_integrable hjoint_indep hjoint_ident hgram_mean_zero
+      hcross_mean_zero)
+    hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing version of the uncentered joint-row Theorem 12.19 endpoint. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_joint_row_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_joint_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hgram_remainder_eq_avg hcross_remainder_eq_avg hgram_integrable
+    hcross_integrable hjoint_indep hjoint_ident hgram_mean_zero
+    hcross_mean_zero hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing Hansen Theorem 12.19 endpoint from one joint row process for
+the projected-error trace remainders and Hansen's finite-sample Rayleigh
+adjustment gap.
+
+This mirrors the centered joint-row Rayleigh endpoint and removes the separate
+row-WLLN/sample-eigenvalue packages from the uncentered caller boundary. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_of_card_ratio
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hjoint.toProjectedErrorRowWLLNConditions
+    hjoint.toRayleighAdjustmentGapWLLNConditions
+
+set_option linter.style.longLine false in
+/-- Ratio-facing Hansen Theorem 12.19 endpoint from one raw iid joint row
+process for the projected-error trace remainders and LIML Rayleigh adjustment
+gap.
+
+This is the theorem-facing facade over
+`ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions.of_raw_joint_row`. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat)
+    (gram_row := fun i ω => (row i ω).1.1)
+    (cross_row := fun i ω => (row i ω).1.2)
+    (gap_row := fun i ω => (row i ω).2) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    (ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions.of_raw_joint_row
+      (μ := μ) (ι := ι) (Z := Z) (X := X) (Y := Y) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row)
+      hrayleigh hgram_remainder_eq_avg hcross_remainder_eq_avg
+      hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident
+      hrow_mean_zero)
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.19 from one iid compressed-signal row process and scalar
+row-WLLN certificates for the projected-error and LIML eigenvalue remainders. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_iid_compressed_signal_scalar_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω) gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_iid_compressed_signal_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+    hscore_meas hcompressed hsignal_meas hjoint_indep hjoint_ident
+    hsignal_norm_sq hsignal_gram_limit hsym_cross_integrable
+    hsym_cross_mean_zero hsignal_score_integrable hsignal_score_mean_zero
+    hu2_outer_integrable hSigma22 hu2_score_integrable hSigma2e hH
+    hSigma22_psd hnonsing hZ_meas hu2_meas he_meas
+    hremainder.toEntryWLLNConditions hmu.toSampleEigenvalueProblemConditions
+
+end ManyInstrumentsTheorem1219EntrywiseSampleEigenvalueEndpoint
+
+/-- Hansen Theorem 12.19 from centered estimator limits, returning the exact
+centered displayed claims. -/
+theorem manyInstruments_estimators_minus_beta_theorem12_19_of_centered
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  ⟨h.ols_centered, h.twoSLS_centered, h.liml_centered⟩
+
+/-- Uncentered compatibility wrapper from the centered many-instrument package. -/
+theorem manyInstruments_estimators_theorem12_19_of_centered
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω) - β) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) := by
+  have hOLS := tendstoInMeasure_continuous_comp hOLS_meas h.ols_centered
+    (by fun_prop : Continuous fun x : k → ℝ => β + x)
+  have hOLS' : TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) := by
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hOLS
+    intro m
+    exact ae_of_all μ (fun ω => by
+      ext i
+      simp [Pi.add_apply, Pi.sub_apply])
+  have h2 := tendstoInMeasure_continuous_comp h2SLS_meas h.twoSLS_centered
+    (by fun_prop : Continuous fun x : k → ℝ => β + x)
+  have h2' : TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) := by
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl h2
+    intro m
+    exact ae_of_all μ (fun ω => by
+      ext i
+      simp [Pi.add_apply, Pi.sub_apply])
+  have hL := tendstoInMeasure_continuous_comp hLIML_meas h.liml_centered
+    (by fun_prop : Continuous fun x : k → ℝ => β + x)
+  have hL' : TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) := by
+    refine TendstoInMeasure.congr ?_ ?_ hL
+    · intro m
+      exact ae_of_all μ (fun ω => by
+        ext i
+        simp [Pi.add_apply, Pi.sub_apply])
+    · exact ae_of_all μ (fun _ => by
+        ext i
+        simp [Pi.add_apply])
+  exact ⟨hOLS', h2', hL'⟩
+
+/-- Hansen Theorem 12.19 OLS face in centered form:
+`β̂_OLS - β ->p (H + Σ₂₂)^{-1} Σ₂e`. -/
+theorem manyInstruments_olsBetaStar_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hmeas : ∀ m, AEStronglyMeasurable (fun ω => olsBetaStar (X m ω) (Y m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) := by
+  have hlevel : TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) := by
+    simpa [manyInstrumentsOLSBias] using
+      olsBetaStar_tendstoInMeasure_of_moment_limits
+        (μ := μ) (X := X) (Y := Y) (e := e)
+        (β := β) (g := Sigma2e) (Q := H + Sigma22)
+        h.ols_moments h.structural_model
+  have hdiff := tendstoInMeasure_continuous_comp hmeas hlevel
+    (by fun_prop : Continuous fun x : k → ℝ => x - β)
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hdiff
+  exact ae_of_all μ (fun _ => by
+    ext i
+    simp [Pi.sub_apply, Pi.add_apply])
+
+/-- Hansen Theorem 12.19 2SLS face in centered form:
+`β̂_2SLS - β ->p (H + αΣ₂₂)^{-1} αΣ₂e`. -/
+theorem manyInstruments_twoSLSBetaStar_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hmeas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) := by
+  have hlevel : TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) := by
+    simpa [manyInstrumentsTwoSLSBias] using
+      twoSLSBetaStar_tendstoInMeasure_of_normalized_moment_limits
+        (μ := μ) (Z := Z) (X := X) (Y := Y) (e := e)
+        (β := β) (g := alpha • Sigma2e) (Q := H + alpha • Sigma22)
+        h.twoSLS_moments h.structural_model
+  have hdiff := tendstoInMeasure_continuous_comp hmeas hlevel
+    (by fun_prop : Continuous fun x : k → ℝ => x - β)
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hdiff
+  exact ae_of_all μ (fun _ => by
+    ext i
+    simp [Pi.sub_apply, Pi.add_apply])
+
+/-- Hansen Theorem 12.19 LIML face in centered form:
+`β̂_LIML - β ->p 0`. -/
+theorem manyInstruments_limlBetaStar_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hmeas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hliml : TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+    limlBetaStar_tendstoInMeasure_beta_of_normalized_moments
+      h.liml_moments h.structural_model
+  have hdiff := tendstoInMeasure_continuous_comp hmeas hliml
+    (by fun_prop : Continuous fun x : k → ℝ => x - β)
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hdiff
+  exact ae_of_all μ (fun _ => by
+    ext i
+    simp [Pi.sub_apply])
+
+/-- Build the centered Hansen Theorem 12.19 package from the stronger
+many-instrument condition package.  The centered faces are derived from
+moment convergence rather than assumed as primitive estimator limits. -/
+theorem ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha where
+  ols_centered := manyInstruments_olsBetaStar_minus_beta_tendstoInMeasure h hOLS_meas
+  twoSLS_centered :=
+    manyInstruments_twoSLSBetaStar_minus_beta_tendstoInMeasure h h2SLS_meas
+  liml_centered := manyInstruments_limlBetaStar_minus_beta_tendstoInMeasure h hLIML_meas
+
+/-- Centered Theorem 12.19 package from reduced-form OLS assembly,
+projection-trace 2SLS components, and Hansen's LIML eigenvalue adjustment
+limit `μ̂ -> α/(1-α)`.
+
+This bridge derives the centered OLS, 2SLS, and LIML displayed limits from
+moment/projection components.  It asks only for estimator measurability, not
+for any centered estimator limit as an input. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hpos : H.PosDef)
+    (hSigma22 : Sigma22.PosSemidef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hprojected_signal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hprojected_cross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_signal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha)))
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_projection_trace_assemblies_posSemidef_mu_tendsto
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hpos hSigma22 hOLS
+      hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas
+      hprojected_signal_gram_tendsto hprojected_cross_gram_tendsto_zero
+      hprojected_signal_score_tendsto_zero htrace hmu_meas hmu_tendsto)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from OLS reduced-form assembly plus the
+projection-trace projected-error package.
+
+This is the centered analogue of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto`:
+projected signal limits are derived from the OLS reduced-form limits on the
+eventual-a.e. nonsingular instrument branch, and no centered estimator limit is
+assumed. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_ols_projection_trace_components_mu_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef)
+    (hSigma22 : Sigma22.PosSemidef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (htrace : ManyInstrumentsProjectedTraceMomentConditions
+      μ Z e u2 Sigma22 Sigma2e alpha)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ)
+    (hmu_tendsto : TendstoInMeasure μ limlMuHat atTop
+      (fun _ => alpha / (1 - alpha)))
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_ols_projection_trace_components_posSemidef_mu_tendsto
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hH hSigma22 hOLS
+      hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas htrace hnonsing hmu_meas hmu_tendsto)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from the named reduced-form WLLN package,
+the two homoskedastic projection remainders, and the current LIML
+eigenvalue-limit package. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_reduced_form_wlln_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+      μ limlMuHat alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF
+      hprojected_signal_gram_meas hprojected_cross_gram_meas
+      hprojected_signal_score_meas hproj hnonsing hmu)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from the named reduced-form WLLN package,
+the two homoskedastic projection remainders, and the sample LIML eigenvalue
+problem.
+
+This is the centered analogue of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_sample_eigenvalue_problem`:
+it first derives `μ̂_n ->p α/(1-α)` from the adjustment-gap WLLN and Hansen's
+instrument-count ratio, then reuses the existing centered theorem route. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_reduced_form_wlln_sample_eigenvalue_problem
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω)) μ)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_reduced_form_wlln_projection_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF
+    hprojected_signal_gram_meas hprojected_cross_gram_meas
+    hprojected_signal_score_meas hproj hnonsing
+    (hmu.toLIMLEigenvalueLimitConditions
+      (ι := ι) (μ := μ) hratio halpha_lt_one)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from the named reduced-form WLLN package and
+homoskedastic projection remainders, deriving projected signal components from
+the primitive reduced-form package on an a.e. nonsingular instrument branch. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_projection_remainders_ae_nonsingular
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions μ Z e u2)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+      μ limlMuHat alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_projection_remainders_ae_nonsingular
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hproj hnonsing hmu)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from named reduced-form WLLNs, raw
+homoskedastic projection-remainder fields, and the LIML eigenvalue certificate.
+Projected signal components and trace-ratio measurability are both derived from
+the a.e. nonsingular instrument branch. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_wlln_ae_nonsingular_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+      hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from named reduced-form WLLNs, raw
+homoskedastic projection-remainder fields, and the sample LIML eigenvalue
+problem.
+
+The eigenvalue input is the centered adjustment-gap WLLN for
+`μ̂_n - (ℓ_n/n)/(1-ℓ_n/n)`.  The conversion to `μ̂_n ->p α/(1-α)` is handled
+inside this wrapper. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) • sampleGram (u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (u2 m ω) (e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_projection_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hprojected_error_gram_meas hprojected_error_cross_meas
+    hprojected_error_gram_trace_remainder_tendsto_zero
+    hprojected_error_cross_trace_remainder_tendsto_zero
+    (hmu.toLIMLEigenvalueLimitConditions
+      (ι := ι) (μ := μ) hratio halpha_lt_one)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from stacked row WLLNs, projection
+remainders, and Hansen's LIML eigenvalue adjustment limit. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_stacked_error_wlln_projection_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hprojected_signal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ)
+    (hprojected_cross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hprojected_signal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (stackErrors e m ω)) μ)
+    (hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
+      μ Z (fun m ω => stackErrors e m ω) (fun m ω => stackRegressors u2 m ω))
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hmu : ManyInstrumentsLIMLEigenvalueAlphaOverOneMinusAlphaCertificate
+      μ limlMuHat alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := fun m ω => stackErrors e m ω)
+    (u2 := fun m ω => stackRegressors u2 m ω)
+    (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+      hscore_meas hsignal_gram_meas hcross_gram_meas hsignal_score_meas
+      hsignal_gram_tendsto hcross_gram_tendsto_zero hsignal_score_tendsto_zero
+      hint_outer hindep_outer hident_outer hSigma22 hint_cross hindep_cross
+      hident_cross hSigma2e hH hSigma22_psd hprojected_signal_gram_meas
+      hprojected_cross_gram_meas
+      hprojected_signal_score_meas hproj hnonsing hmu)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from stacked row WLLNs, a.e. nonsingular
+instrument Grams, raw projected-error trace remainders, and Hansen's LIML
+eigenvalue adjustment limit.
+
+This is the centered-statistic counterpart of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_error_wlln_ae_nonsingular_projection_remainders`;
+it derives the reduced-form WLLN package from Chapter 7 iid-row WLLNs and then
+uses the a.e. nonsingular projected-signal bridge. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_stacked_wlln_ae_nonsingular_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorGram
+          (Z m ω) (stackRegressors u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorCross
+          (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e :=
+    ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hsignal_gram_meas hcross_gram_meas
+      hsignal_score_meas hsignal_gram_tendsto hcross_gram_tendsto_zero
+      hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+  exact
+    ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_projection_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+      hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu
+      hOLS_meas h2SLS_meas hLIML_meas
+
+/-- Centered Theorem 12.19 package from stacked row WLLNs, a.e. nonsingular
+instrument Grams, raw projected-error trace remainders, and the sample LIML
+eigenvalue problem. -/
+theorem
+ManyInstrumentsCenteredEstimatorLimitConditions.of_stacked_wlln_ae_nonsingular_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ)
+    (hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (stackRegressors u2 m ω)) μ)
+    (hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω)) μ)
+    (hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun (m : ℕ) ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (hcross_gram_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentReducedFormCrossGram
+          (Z m ω) (Gamma m) (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hsignal_score_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m))
+          (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorGram
+          (Z m ω) (stackRegressors u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorCross
+          (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H Sigma22 Sigma2e :=
+    ManyInstrumentsReducedFormWLLNConditions.of_stacked_error_wlln
+      (μ := μ) (Z := Z) (X := X) (Gamma := Gamma) (e := e) (u2 := u2)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      hreduced hgram_meas hscore_meas hsignal_gram_meas hcross_gram_meas
+      hsignal_score_meas hsignal_gram_tendsto hcross_gram_tendsto_zero
+      hsignal_score_tendsto_zero hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+  exact
+    ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+      hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu
+      hOLS_meas h2SLS_meas hLIML_meas
+
+namespace ManyInstrumentsCenteredEstimatorLimitConditions
+
+/-- Centered Theorem 12.19 package from primitive transformed-instrument WLLNs,
+stacked row WLLNs for reduced-form errors, a.e. nonsingular instruments,
+homoskedastic projection-remainder fields, and the sample LIML eigenvalue
+adjustment-gap package.
+
+This is the estimator-limit counterpart of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue`.
+It still leaves the primitive instrument WLLNs, projection remainders, and raw
+sample-eigenvalue adjustment gap as the substantive stochastic inputs. -/
+theorem
+of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hprojected_error_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorGram
+          (Z m ω) (stackRegressors u2 m ω)) μ)
+    (hprojected_error_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        manyInstrumentProjectedErrorCross
+          (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω)) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := fun m ω => stackErrors e m ω)
+    (u2 := fun m ω => stackRegressors u2 m ω)
+    (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+      hscore_meas hinst hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+      hnonsing hprojected_error_gram_meas hprojected_error_cross_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Centered Theorem 12.19 package from primitive transformed-instrument WLLNs
+with projected-error measurability derived from finite-sample measurability.
+
+This is the centered-statistic counterpart of
+`ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders`.
+It leaves the same substantive inputs: primitive transformed-instrument WLLNs,
+ordinary reduced-form error WLLNs, the two homoskedastic trace-remainder WLLNs,
+and the sample LIML eigenvalue adjustment-gap package. -/
+theorem
+of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hinst : ManyInstrumentsPrimitiveInstrumentMomentWLLNConditions
+      μ Z Gamma (fun m ω => stackErrors e m ω)
+        (fun m ω => stackRegressors u2 m ω) H)
+    (hint_outer : Integrable (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hindep_outer :
+      Pairwise ((· ⟂ᵢ[μ] ·) on
+        (fun i ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))))
+    (hident_outer : ∀ i,
+      IdentDistrib
+        (fun ω => Matrix.vecMulVec (u2 i ω) (u2 i ω))
+        (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hint_cross : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hindep_cross :
+      Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • u2 i ω)))
+    (hident_cross : ∀ i,
+      IdentDistrib
+        (fun ω => e i ω • u2 i ω)
+        (fun ω => e 0 ω • u2 0 ω) μ μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hprojected_error_gram_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorGram (Z m ω) (stackRegressors u2 m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleGram (stackRegressors u2 m ω))
+      atTop (fun _ => (0 : Matrix k k ℝ)))
+    (hprojected_error_cross_trace_remainder_tendsto_zero : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        manyInstrumentProjectedErrorCross
+            (Z m ω) (stackRegressors u2 m ω) (stackErrors e m ω) -
+          manyInstrumentProjectionTraceRatio (Z m ω) •
+            sampleCrossMoment (stackRegressors u2 m ω) (stackErrors e m ω))
+      atTop (fun _ => (0 : k → ℝ)))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (e := fun m ω => stackErrors e m ω)
+    (u2 := fun m ω => stackRegressors u2 m ω)
+    (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_stacked_primitive_wlln_ae_nonsingular_sample_eigenvalue_measurable_remainders
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+      hscore_meas hinst hint_outer hindep_outer hident_outer hSigma22
+      hint_cross hindep_cross hident_cross hSigma2e hH hSigma22_psd
+      hnonsing hZ_meas hu2_meas he_meas
+      hprojected_error_gram_trace_remainder_tendsto_zero
+      hprojected_error_cross_trace_remainder_tendsto_zero hmu)
+    hOLS_meas h2SLS_meas hLIML_meas
+
+end ManyInstrumentsCenteredEstimatorLimitConditions
+
+section ManyInstrumentsTheorem1219CenteredEntrywiseSampleEigenvalueEndpoint
+
+open ManyInstrumentsHomoskedasticProjectionRemainderConditions
+open ManyInstrumentsCenteredEstimatorLimitConditions
+
+namespace ManyInstrumentsCenteredEstimatorLimitConditions
+
+/-- Centered Theorem 12.19 package from reduced-form WLLNs, a.e. nonsingular
+instruments, entrywise projected-error trace remainders, and the sample LIML
+eigenvalue adjustment-gap WLLN.
+
+This is the centered counterpart of the uncentered entrywise/sample-eigenvalue
+constructor.
+It exposes the same primitive boundary while returning the centered estimator
+condition package used by Hansen's displayed bias statements. -/
+theorem
+of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha := by
+  let hproj : ManyInstrumentsHomoskedasticProjectionRemainderConditions
+      μ Z e u2 :=
+    of_entrywise_measurable_ae_nonsingular_remainders
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      hnonsing hZ_meas hu2_meas he_meas hentry
+  exact
+    ManyInstrumentsCenteredEstimatorLimitConditions.of_wlln_ae_nonsingular_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := e) (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+      hproj.projected_error_gram_meas
+      hproj.projected_error_cross_meas
+      hproj.projected_error_gram_trace_remainder_tendsto_zero
+      hproj.projected_error_cross_trace_remainder_tendsto_zero
+      hmu hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Centered Theorem 12.19 package from reduced-form WLLNs with scalar
+projected-error row WLLNs and a scalar LIML adjustment-gap WLLN.
+
+This mirrors the uncentered scalar-WLLN constructor, but returns the centered
+estimator-limit package directly. -/
+theorem
+of_reduced_form_wlln_ae_nonsingular_scalar_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Centered Theorem 12.19 package from reduced-form WLLNs, canonical
+projected-error row-average convergence, and a scalar LIML adjustment-gap WLLN.
+
+This centered constructor keeps the projected-error primitive at the exact
+canonical finite-sample row-average layer and converts it through the existing
+entrywise bridge internally. -/
+theorem
+of_reduced_form_wlln_ae_nonsingular_canonical_row_average_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hcanonical.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Centered Theorem 12.19 package from reduced-form WLLNs with matrix/vector
+projected-error row WLLNs and a scalar LIML adjustment-gap WLLN.
+
+This is the centered condition-package analogue of the row-WLLN estimator
+endpoint. -/
+theorem
+of_reduced_form_wlln_ae_nonsingular_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    ManyInstrumentsCenteredEstimatorLimitConditions
+      μ Z X Y limlMuHat β H Sigma22 Sigma2e alpha :=
+  of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+    hZ_meas hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions hOLS_meas h2SLS_meas hLIML_meas
+
+end ManyInstrumentsCenteredEstimatorLimitConditions
+
+/-- Hansen Theorem 12.19 in centered form directly from reduced-form WLLNs,
+a.e. nonsingular instruments, entrywise projected-error trace remainders, and
+the sample LIML eigenvalue adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_centered
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (limlMuHat := limlMuHat)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+      (of_reduced_form_wlln_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+        (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+        (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+        (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+        halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing
+        hZ_meas hu2_meas he_meas hentry hmu hOLS_meas h2SLS_meas hLIML_meas)
+
+set_option linter.style.longLine false in
+/-- Ratio-facing centered reduced-form endpoint for Hansen Theorem 12.19.
+
+This removes the explicit `0 ≤ α` caller obligation from the centered
+entrywise/sample-eigenvalue endpoint; it follows from Hansen's instrument-ratio
+convergence assumption. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hentry hmu hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Auto-measurable centered entrywise/sample-eigenvalue endpoint for Hansen
+Theorem 12.19.
+
+This is the same theorem as
+`manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue`,
+but estimator measurability is derived from the reduced-form equation,
+structural equation, row measurability, and the LIML eigenvalue measurability
+stored in the sample-eigenvalue package. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hmeas :=
+    manyInstruments_estimator_measurability_of_reduced_form
+      (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      hRF.reduced_form hstruct hZ_meas hu2_meas he_meas hmu.meas
+  exact
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hentry hmu hmeas.1 hmeas.2.1 hmeas.2.2
+
+set_option linter.style.longLine false in
+/-- Ratio-facing auto-measurable centered entrywise/sample-eigenvalue endpoint
+for Hansen Theorem 12.19. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hentry : ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+      μ Z e u2)
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hentry hmu
+
+set_option linter.style.longLine false in
+/-- Centered Hansen Theorem 12.19 directly from one iid compressed-signal row
+process, a.e. nonsingular instruments, entrywise projected-error trace
+remainders, and the sample LIML eigenvalue adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_entrywise_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hentry :
+      ManyInstrumentsProjectedErrorTraceRemainderEntryWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω))
+    (hmu : ManyInstrumentsLIMLSampleEigenvalueProblemConditions
+      (ι := ι) μ limlMuHat)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_centered
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (limlMuHat := limlMuHat)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    (ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      (ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+        (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+        (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
+        (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+        (alpha := alpha)
+        halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+        hscore_meas hcompressed hsignal_meas hjoint_indep hjoint_ident
+        hsignal_norm_sq hsignal_gram_limit hsym_cross_integrable
+        hsym_cross_mean_zero hsignal_score_integrable hsignal_score_mean_zero
+        hu2_outer_integrable hSigma22 hu2_score_integrable hSigma2e hH
+        hSigma22_psd hnonsing hZ_meas hu2_meas he_meas hentry hmu)
+      hOLS_meas h2SLS_meas hLIML_meas)
+
+set_option linter.style.longLine false in
+/-- Centered Hansen Theorem 12.19 from reduced-form WLLNs and scalar
+sample-average WLLNs for the projected-error trace remainders and LIML
+eigenvalue adjustment gap. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+    hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Ratio-facing centered reduced-form scalar-WLLN endpoint for Hansen
+Theorem 12.19.
+
+This removes the explicit `0 ≤ α` caller obligation from the centered scalar
+WLLN endpoint; it follows from Hansen's instrument-ratio convergence
+assumption. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Auto-measurable centered reduced-form scalar-WLLN endpoint for Hansen
+Theorem 12.19.
+
+This removes the three finite-sample estimator measurability premises from
+`manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue`.
+They follow from the reduced-form equation, structural equation, row
+measurability of `Z`, `u₂`, `e`, and the sample LIML adjustment measurability
+already recorded in the eigenvalue-gap package. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hmeas :=
+    manyInstruments_estimator_measurability_of_reduced_form
+      (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      hRF.reduced_form hstruct hZ_meas hu2_meas he_meas hmu.meas
+  exact
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hremainder hmu hmeas.1 hmeas.2.1 hmeas.2.2
+
+set_option linter.style.longLine false in
+/-- Ratio-facing auto-measurable centered scalar-WLLN endpoint for Hansen
+Theorem 12.19. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_scalar_wlln_sample_eigenvalue_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu
+
+set_option linter.style.longLine false in
+/-- Auto-measurable centered reduced-form canonical-row endpoint for Hansen
+Theorem 12.19.
+
+This is the theorem-facing canonical projected-error route: estimator
+measurability is derived from the reduced-form and structural equations, while
+the projection input is exactly
+`ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions`. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_sample_eigenvalue_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hmeas :=
+    manyInstruments_estimator_measurability_of_reduced_form
+      (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      hRF.reduced_form hstruct hZ_meas hu2_meas he_meas hmu.meas
+  exact
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hcanonical.toEntryWLLNConditions
+      hmu.toSampleEigenvalueProblemConditions hmeas.1 hmeas.2.1 hmeas.2.2
+
+set_option linter.style.longLine false in
+/-- Ratio-facing auto-measurable centered canonical-row endpoint for Hansen
+Theorem 12.19. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_sample_eigenvalue_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_sample_eigenvalue_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hcanonical hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing auto-measurable centered canonical-row endpoint for Hansen
+Theorem 12.19 with the LIML eigenvalue input stated as the finite-sample
+Rayleigh adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_sample_eigenvalue_of_card_ratio_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hcanonical hrayleigh.toAdjustmentGapWLLNConditions
+
+set_option linter.style.longLine false in
+/-- Centered canonical-row Rayleigh Hansen Theorem 12.19 in textbook k-class
+notation.
+
+This is the centered auto-measurable companion of
+`manyInstruments_estimators_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_kappa_of_card_ratio`. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_kappa_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hcanonical :
+      ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
+        μ Z e u2)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hbase :=
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_of_card_ratio_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hcanonical hrayleigh
+  have hliml : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hbase.2.2
+    intro m
+    exact ae_of_all μ (fun ω => by
+      simp [limlBetaStar_eq_kClass_add_one, hkappa m ω])
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+set_option linter.style.longLine false in
+/-- Ratio-facing auto-measurable centered row-WLLN endpoint for Hansen
+Theorem 12.19 with the LIML eigenvalue input stated as the finite-sample
+Rayleigh adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_canonical_row_average_rayleigh_adjustment_gap_of_card_ratio_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder.toCanonicalRowAverageConditions hrayleigh
+
+set_option linter.style.longLine false in
+/-- Centered row-WLLN Rayleigh Hansen Theorem 12.19 in textbook k-class
+notation.
+
+This is the centered auto-measurable companion of
+`manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_kappa_of_card_ratio`. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_kappa_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hrayleigh :
+      ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+        (ι := ι) μ Z X Y limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hbase :=
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_of_card_ratio_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hremainder hrayleigh
+  have hliml : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hbase.2.2
+    intro m
+    exact ae_of_all μ (fun ω => by
+      simp [limlBetaStar_eq_kClass_add_one, hkappa m ω])
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+set_option linter.style.longLine false in
+/-- Centered Hansen Theorem 12.19 from reduced-form WLLNs, matrix/vector row
+WLLNs for the projected-error trace remainders, and a scalar LIML
+adjustment-gap WLLN. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_entrywise_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+    hu2_meas he_meas hremainder.toEntryWLLNConditions
+    hmu.toSampleEigenvalueProblemConditions hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Ratio-facing centered reduced-form row-WLLN endpoint for Hansen
+Theorem 12.19. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu hOLS_meas h2SLS_meas hLIML_meas
+
+set_option linter.style.longLine false in
+/-- Auto-measurable centered reduced-form row-WLLN endpoint for Hansen
+Theorem 12.19.
+
+This removes the three finite-sample estimator measurability premises from
+`manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue`.
+They follow from the reduced-form equation, structural equation, row
+measurability of `Z`, `u₂`, `e`, and the sample LIML adjustment measurability
+already recorded in the eigenvalue-gap package. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hmeas :=
+    manyInstruments_estimator_measurability_of_reduced_form
+      (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (β := β)
+      hRF.reduced_form hstruct hZ_meas hu2_meas he_meas hmu.meas
+  exact
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hremainder hmu hmeas.1 hmeas.2.1 hmeas.2.2
+
+set_option linter.style.longLine false in
+/-- Ratio-facing auto-measurable centered row-WLLN endpoint for Hansen
+Theorem 12.19. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu
+
+set_option linter.style.longLine false in
+/-- Auto-measurable centered Theorem 12.19 endpoint from a single joint row
+process for the projected-error trace remainders.
+
+Compared with
+`manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_autoMeas`,
+this wrapper derives the separate Gram and score row-WLLN independence and
+identical-law fields from one joint row process. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_joint_row_wlln_sample_eigenvalue_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+    hu2_meas he_meas
+    (ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions.of_joint_wlln
+      (μ := μ) (Z := Z) (e := e) (u2 := u2)
+      (gram_row := gram_row) (cross_row := cross_row)
+      hgram_remainder_eq_avg hcross_remainder_eq_avg hgram_integrable
+      hcross_integrable hjoint_indep hjoint_ident hgram_mean_zero
+      hcross_mean_zero)
+    hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing version of the joint-row projected-error remainder endpoint
+for Hansen Theorem 12.19. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_joint_row_wlln_sample_eigenvalue_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, gram_row i ω)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, cross_row i ω)
+    (hgram_integrable : Integrable (gram_row 0) μ)
+    (hcross_integrable : Integrable (cross_row 0) μ)
+    (hjoint_indep : iIndepFun (fun i ω => (gram_row i ω, cross_row i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => (gram_row i ω, cross_row i ω))
+        (fun ω => (gram_row 0 ω, cross_row 0 ω)) μ μ)
+    (hgram_mean_zero : μ[gram_row 0] = 0)
+    (hcross_mean_zero : μ[cross_row 0] = 0)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_joint_row_wlln_sample_eigenvalue_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hgram_remainder_eq_avg hcross_remainder_eq_avg hgram_integrable
+    hcross_integrable hjoint_indep hjoint_ident hgram_mean_zero
+    hcross_mean_zero hmu
+
+set_option linter.style.longLine false in
+/-- Ratio-facing centered Theorem 12.19 endpoint from one joint row process for
+the projected-error trace remainders and Hansen's finite-sample Rayleigh
+adjustment gap.
+
+This is the strongest centered row-process facade in this file: the separate
+projected-error row-WLLN and LIML adjustment-gap packages are both derived from
+`ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions`. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_rayleigh_adjustment_gap_of_card_ratio_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hjoint.toProjectedErrorRowWLLNConditions
+    hjoint.toRayleighAdjustmentGapWLLNConditions
+
+set_option linter.style.longLine false in
+/-- Ratio-facing centered Hansen Theorem 12.19 endpoint from one raw iid joint
+row process for the projected-error trace remainders and LIML Rayleigh
+adjustment gap. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat)
+    (gram_row := fun i ω => (row i ω).1.1)
+    (cross_row := fun i ω => (row i ω).1.2)
+    (gap_row := fun i ω => (row i ω).2) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    (ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions.of_raw_joint_row
+      (μ := μ) (ι := ι) (Z := Z) (X := X) (Y := Y) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row)
+      hrayleigh hgram_remainder_eq_avg hcross_remainder_eq_avg
+      hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident
+      hrow_mean_zero)
+
+set_option linter.style.longLine false in
+/-- Centered Hansen Theorem 12.19 from one iid compressed-signal row process and
+scalar row-WLLN certificates for the projected-error and LIML eigenvalue
+remainders. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_scalar_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω) gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_centered
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (limlMuHat := limlMuHat)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    (ManyInstrumentsCenteredEstimatorLimitConditions.of_theorem_conditions
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      (ManyInstrumentsEstimatorMomentAssemblyConditions.of_iid_compressed_signal_ae_nonsingular_sample_eigenvalue_entrywise_remainders
+        (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+        (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
+        (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+        (alpha := alpha)
+        halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+        hscore_meas hcompressed hsignal_meas hjoint_indep hjoint_ident
+        hsignal_norm_sq hsignal_gram_limit hsym_cross_integrable
+        hsym_cross_mean_zero hsignal_score_integrable hsignal_score_mean_zero
+        hu2_outer_integrable hSigma22 hu2_score_integrable hSigma2e hH
+        hSigma22_psd hnonsing hZ_meas hu2_meas he_meas
+        hremainder.toEntryWLLNConditions hmu.toSampleEigenvalueProblemConditions)
+      hOLS_meas h2SLS_meas hLIML_meas)
+
+set_option linter.style.longLine false in
+/-- Auto-measurable centered iid compressed-signal endpoint for Hansen Theorem
+12.19.
+
+This wrapper removes the three estimator-measurability premises from
+`manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_scalar_wlln_sample_eigenvalue`.
+They are derived from the reduced-form equation, the structural equation,
+row measurability of `Z`, `u₂`, and `e`, and the LIML adjustment measurability
+carried by the sample-eigenvalue WLLN package. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_scalar_wlln_sample_eigenvalue_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω) gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hu2_stack_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => stackRegressors u2 m ω) μ := by
+    intro m
+    simpa [stackRegressors] using
+      (stackMatrix_aestronglyMeasurable
+        (μ := μ) (n := m) (X := u2) hu2_meas)
+  have he_stack_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => stackErrors e m ω) μ := by
+    intro m
+    exact
+      manyInstrumentVector_aestronglyMeasurable_of_entries (μ := μ)
+        (v := fun ω => stackErrors e m ω)
+        (fun i => by simpa [stackErrors] using he_meas i.val)
+  have hmeas :=
+    manyInstruments_estimator_measurability_of_reduced_form
+      (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (e := fun m ω => stackErrors e m ω)
+      (u2 := fun m ω => stackRegressors u2 m ω)
+      (limlMuHat := limlMuHat) (β := β)
+      hreduced hstruct hZ_meas hu2_stack_meas he_stack_meas hmu.meas
+  exact
+    manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_scalar_wlln_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+      (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
+      (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+      (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hreduced hstruct hgram_meas
+      hscore_meas hcompressed hsignal_meas hjoint_indep hjoint_ident
+      hsignal_norm_sq hsignal_gram_limit hsym_cross_integrable
+      hsym_cross_mean_zero hsignal_score_integrable hsignal_score_mean_zero
+      hu2_outer_integrable hSigma22 hu2_score_integrable hSigma2e hH
+      hSigma22_psd hnonsing hZ_meas hu2_meas he_meas hremainder hmu
+      hmeas.1 hmeas.2.1 hmeas.2.2
+
+set_option linter.style.longLine false in
+/-- Ratio-facing auto-measurable iid compressed-signal endpoint for Hansen
+Theorem 12.19.
+
+This is the iid compressed-row analogue of the reduced-form ratio-facing
+wrappers: the nonnegativity of Hansen's instrument ratio limit `α` is derived
+from `ℓ_n / n -> α`, so callers do not provide it separately. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_scalar_wlln_sample_eigenvalue_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {signal : ℕ → Ω → k → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {u2 : ℕ → Ω → k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : k → k → ℕ → Ω → ℝ}
+    {cross_row : k → ℕ → Ω → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hreduced : ∀ (m : ℕ) (ω : Ω),
+      X m ω = manyInstrumentSignal (Z m ω) (Gamma m) +
+        stackRegressors u2 m ω)
+    (hstruct : ∀ (m : ℕ) (ω : Ω),
+      Y m ω = X m ω *ᵥ β + stackErrors e m ω)
+    (hgram_meas : ∀ m, AEStronglyMeasurable (fun ω => sampleGram (X m ω)) μ)
+    (hscore_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (stackErrors e m ω)) μ)
+    (hcompressed : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentSignal (Z m ω) (Gamma m) = stackRegressors signal m ω)
+    (hsignal_meas : ∀ i, AEStronglyMeasurable (signal i) μ)
+    (hjoint_indep : iIndepFun
+      (fun i ω => ((signal i ω, u2 i ω), e i ω)) μ)
+    (hjoint_ident : ∀ i,
+      IdentDistrib
+        (fun ω => ((signal i ω, u2 i ω), e i ω))
+        (fun ω => ((signal 0 ω, u2 0 ω), e 0 ω)) μ μ)
+    (hsignal_norm_sq : Integrable (fun ω => ‖signal 0 ω‖ ^ 2) μ)
+    (hsignal_gram_limit : H = popGram μ signal)
+    (hsym_cross_integrable : Integrable
+      (fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)) μ)
+    (hsym_cross_mean_zero :
+      μ[fun ω => manyInstrumentSymCrossRow (signal 0 ω) (u2 0 ω)] = 0)
+    (hsignal_score_integrable : Integrable (fun ω => e 0 ω • signal 0 ω) μ)
+    (hsignal_score_mean_zero : μ[fun ω => e 0 ω • signal 0 ω] = 0)
+    (hu2_outer_integrable : Integrable
+      (fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)) μ)
+    (hSigma22 : Sigma22 = μ[fun ω => Matrix.vecMulVec (u2 0 ω) (u2 0 ω)])
+    (hu2_score_integrable : Integrable (fun ω => e 0 ω • u2 0 ω) μ)
+    (hSigma2e : Sigma2e = μ[fun ω => e 0 ω • u2 0 ω])
+    (hH : H.PosDef) (hSigma22_psd : Sigma22.PosSemidef)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ i, AEStronglyMeasurable (u2 i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+        μ Z (fun m ω => stackErrors e m ω)
+          (fun m ω => stackRegressors u2 m ω) gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_estimators_minus_beta_theorem12_19_of_iid_compressed_signal_scalar_wlln_sample_eigenvalue_autoMeas
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma)
+    (signal := signal) (e := e) (u2 := u2) (limlMuHat := limlMuHat)
+    (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hreduced hstruct hgram_meas hscore_meas
+    hcompressed hsignal_meas hjoint_indep hjoint_ident hsignal_norm_sq
+    hsignal_gram_limit hsym_cross_integrable hsym_cross_mean_zero
+    hsignal_score_integrable hsignal_score_mean_zero hu2_outer_integrable
+    hSigma22 hu2_score_integrable hSigma2e hH hSigma22_psd hnonsing
+    hZ_meas hu2_meas he_meas hremainder hmu
+
+end ManyInstrumentsTheorem1219CenteredEntrywiseSampleEigenvalueEndpoint
+
+/-- Hansen Theorem 12.19 LIML consistency in k-class notation, using
+`κ̂ = μ̂ + 1`. -/
+theorem manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hmeas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hliml := manyInstruments_limlBetaStar_minus_beta_tendstoInMeasure h hmeas
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+/-- K-class version of Hansen Theorem 12.19 for any estimator sequence `κ̂`
+known pointwise to satisfy `κ̂ = μ̂ + 1`. -/
+theorem manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hmeas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hκ := manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure h hmeas
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+/-- Hansen Theorem 12.19 LIML consistency in k-class notation,
+`κ̂ = μ̂ + 1`, stated in the uncentered textbook form. -/
+theorem manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1))
+      atTop (fun _ => β) := by
+  have hliml := (manyInstruments_estimators_theorem12_19 h).2.2
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+/-- K-class version of Hansen Theorem 12.19 for any estimator sequence `κ̂`
+known pointwise to satisfy `κ̂ = μ̂ + 1`, stated in the uncentered textbook
+form `β̂_LIML ->p β`. -/
+theorem manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hκ := manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure h
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+namespace ManyInstrumentsTheorem1219.ProjectedRayleigh
+
+set_option linter.style.longLine false in
+/-- Package-level Rayleigh endpoint for Hansen Theorem 12.19 LIML consistency
+in k-class notation `κ̂ = μ̂ + 1`.
+
+This is the bundled-condition analogue of the raw joint-row wrapper below:
+callers who already have
+`ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions` need not unpack it
+just to rewrite LIML into Hansen's displayed k-class form. -/
+theorem liml_add_one_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1))
+      atTop (fun _ => β) := by
+  have hliml :=
+    (manyInstruments_estimators_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint).2.2
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+set_option linter.style.longLine false in
+/-- Package-level k-class version of Hansen Theorem 12.19 for any pointwise
+`κ̂ = μ̂ + 1` sequence. -/
+theorem liml_kappa_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hκ :=
+    liml_add_one_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.19 in textbook k-class notation over the bundled
+projected-error/Rayleigh row-WLLN condition package. -/
+theorem estimators_kappa_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hbase :=
+    manyInstruments_estimators_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint
+  have hliml :=
+    liml_kappa_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+      (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+      (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint hkappa
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+set_option linter.style.longLine false in
+/-- Centered package-level Rayleigh endpoint for Hansen Theorem 12.19 LIML
+consistency in k-class notation `κ̂ = μ̂ + 1`. -/
+theorem liml_add_one_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hliml :=
+    (manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint).2.2
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+set_option linter.style.longLine false in
+/-- Centered package-level k-class version of Hansen Theorem 12.19 for any
+pointwise `κ̂ = μ̂ + 1` sequence. -/
+theorem liml_kappa_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hκ :=
+    liml_add_one_minus_beta_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+set_option linter.style.longLine false in
+/-- Centered Hansen Theorem 12.19 in textbook k-class notation over the
+bundled projected-error/Rayleigh row-WLLN condition package. -/
+theorem estimators_kappa_minus_beta_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hjoint :
+      ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+        (ι := ι) μ Z X Y e u2 limlMuHat gram_row cross_row gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hbase :=
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint
+  have hliml :=
+    liml_kappa_minus_beta_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+      (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+      (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hjoint hkappa
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+end ManyInstrumentsTheorem1219.ProjectedRayleigh
+
+namespace ManyInstrumentsTheorem1219.RawRayleigh
+
+set_option linter.style.longLine false in
+/-- Raw joint-row Rayleigh endpoint for Hansen Theorem 12.19 LIML
+consistency in k-class notation `κ̂ = μ̂ + 1`.
+
+This is a thin notation bridge over
+`manyInstruments_estimators_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio`. -/
+theorem
+liml_add_one_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1))
+      atTop (fun _ => β) := by
+  have hliml :=
+    (manyInstruments_estimators_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hrayleigh hgram_remainder_eq_avg
+      hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
+      hrow_indep hrow_ident hrow_mean_zero).2.2
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+set_option linter.style.longLine false in
+/-- Centered raw joint-row Rayleigh endpoint for Hansen Theorem 12.19 LIML
+consistency in k-class notation `κ̂ = μ̂ + 1`. -/
+theorem
+liml_add_one_centered_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hliml :=
+    (manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hrayleigh hgram_remainder_eq_avg
+      hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
+      hrow_indep hrow_ident hrow_mean_zero).2.2
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+set_option linter.style.longLine false in
+/-- Raw joint-row Rayleigh endpoint for any pointwise
+`κ̂ = μ̂ + 1` sequence, stated in the uncentered Hansen Theorem 12.19 k-class
+form. -/
+theorem
+liml_kappa_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hκ :=
+    liml_add_one_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hrayleigh hgram_remainder_eq_avg
+      hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
+      hrow_indep hrow_ident hrow_mean_zero
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.19 in the textbook k-class notation.
+
+This bundles the OLS and 2SLS probability limits with LIML written as
+`limlKClassBetaStar ... κ̂`, where `κ̂ = μ̂ + 1`, over the strongest raw
+joint-row Rayleigh facade. -/
+theorem
+estimators_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hbase :=
+    manyInstruments_estimators_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hrayleigh hgram_remainder_eq_avg
+      hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
+      hrow_indep hrow_ident hrow_mean_zero
+  have hliml :=
+    liml_kappa_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+      (row := row) (β := β) (H := H) (Sigma22 := Sigma22)
+      (Sigma2e := Sigma2e) (alpha := alpha) halpha_lt_one hratio
+      hstruct hRF hnonsing hZ_meas hu2_meas he_meas hrayleigh
+      hgram_remainder_eq_avg hcross_remainder_eq_avg
+      hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident
+      hrow_mean_zero hkappa
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+set_option linter.style.longLine false in
+/-- Centered raw joint-row Rayleigh endpoint for any pointwise
+`κ̂ = μ̂ + 1` sequence. -/
+theorem
+liml_kappa_centered_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hκ :=
+    liml_add_one_centered_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hrayleigh hgram_remainder_eq_avg
+      hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
+      hrow_indep hrow_ident hrow_mean_zero
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+set_option linter.style.longLine false in
+/-- Centered Hansen Theorem 12.19 in textbook k-class notation.
+
+This bundles the centered OLS and 2SLS probability limits with LIML written as
+`limlKClassBetaStar ... κ̂`, where `κ̂ = μ̂ + 1`, over the strongest raw
+joint-row Rayleigh facade. -/
+theorem
+estimators_centered_tendstoInMeasure
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {row : ℕ → Ω → (Matrix k k ℝ × (k → ℝ)) × ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hrayleigh : ∀ m ω,
+      LIMLRayleighMinimizer
+        (manyInstrumentsLIMLSampleRayleighNumerator (Z m ω) (X m ω) (Y m ω))
+        (manyInstrumentsLIMLSampleRayleighDenominator (Z m ω) (X m ω) (Y m ω))
+        (limlMuHat m ω))
+    (hgram_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorGramTraceRemainder (Z m ω) (u2 m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.1)
+    (hcross_remainder_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      manyInstrumentProjectedErrorCrossTraceRemainder (Z m ω) (u2 m ω) (e m ω) =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).1.2)
+    (hadjustment_gap_eq_avg : ∀ (m : ℕ) (ω : Ω),
+      limlMuHat m ω -
+          manyInstrumentsLIMLEigenvalueCardRatioAdjustment (ι := ι) m =
+        (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, (row i ω).2)
+    (hrow_integrable : Integrable (row 0) μ)
+    (hrow_indep : iIndepFun row μ)
+    (hrow_ident : ∀ i, IdentDistrib (row i) (row 0) μ μ)
+    (hrow_mean_zero : μ[row 0] = 0)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hbase :=
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_raw_projected_error_rayleigh_joint_row_wlln_of_card_ratio_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (row := row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hrayleigh hgram_remainder_eq_avg
+      hcross_remainder_eq_avg hadjustment_gap_eq_avg hrow_integrable
+      hrow_indep hrow_ident hrow_mean_zero
+  have hliml :=
+    liml_kappa_centered_tendstoInMeasure
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+      (row := row) (β := β) (H := H) (Sigma22 := Sigma22)
+      (Sigma2e := Sigma2e) (alpha := alpha) halpha_lt_one hratio
+      hstruct hRF hnonsing hZ_meas hu2_meas he_meas hrayleigh
+      hgram_remainder_eq_avg hcross_remainder_eq_avg
+      hadjustment_gap_eq_avg hrow_integrable hrow_indep hrow_ident
+      hrow_mean_zero hkappa
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+end ManyInstrumentsTheorem1219.RawRayleigh
+
+set_option linter.style.longLine false in
+/-- Row-WLLN Hansen Theorem 12.19 LIML consistency in k-class notation
+`κ̂ = μ̂ + 1`.
+
+This theorem-facing wrapper avoids asking callers to first cite the
+`limlBetaStar` endpoint and then rewrite to Hansen's displayed k-class form. -/
+theorem
+manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1))
+      atTop (fun _ => β) := by
+  have hliml :=
+    (manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hremainder hmu).2.2
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+set_option linter.style.longLine false in
+/-- Ratio-facing row-WLLN k-class endpoint for Hansen Theorem 12.19. -/
+theorem
+manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1))
+      atTop (fun _ => β) :=
+  manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu
+
+set_option linter.style.longLine false in
+/-- Row-WLLN Hansen Theorem 12.19 LIML consistency for any k-class sequence
+`κ̂` known pointwise to satisfy `κ̂ = μ̂ + 1`. -/
+theorem
+manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hκ :=
+    manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hremainder hmu
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+set_option linter.style.longLine false in
+/-- Ratio-facing row-WLLN k-class endpoint for any pointwise
+`κ̂ = μ̂ + 1` sequence. -/
+theorem
+manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+    (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu hkappa
+
+set_option linter.style.longLine false in
+/-- Centered row-WLLN Hansen Theorem 12.19 LIML consistency in k-class notation
+`κ̂ = μ̂ + 1`.
+
+This is the centered version of
+`manyInstruments_limlKClassBetaStar_add_one_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue`;
+it reuses the auto-measurable centered estimator endpoint and only rewrites
+`limlBetaStar` into Hansen's k-class notation. -/
+theorem
+manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hliml :=
+    (manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hremainder hmu).2.2
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hliml
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [limlBetaStar_eq_kClass_add_one])
+
+set_option linter.style.longLine false in
+/-- Ratio-facing centered row-WLLN k-class endpoint for Hansen Theorem 12.19. -/
+theorem
+manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω + 1) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+    (cross_row := cross_row) (gap_row := gap_row) (β := β)
+    (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu
+
+set_option linter.style.longLine false in
+/-- Centered row-WLLN k-class endpoint for any pointwise
+`κ̂ = μ̂ + 1` sequence. -/
+theorem
+manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_nonneg : 0 ≤ alpha)
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hκ :=
+    manyInstruments_limlKClassBetaStar_add_one_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_nonneg halpha_lt_one hratio hstruct hRF hnonsing hZ_meas
+      hu2_meas he_meas hremainder hmu
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hκ
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [hkappa m ω])
+
+set_option linter.style.longLine false in
+/-- Ratio-facing centered row-WLLN k-class endpoint for any pointwise
+`κ̂ = μ̂ + 1` sequence. -/
+theorem
+manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+    (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+    (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+    (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+    (alpha := alpha)
+    (manyInstruments_alpha_nonneg_of_card_ratio_tendsto (ι := ι) hratio)
+    halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+    hremainder hmu hkappa
+
+set_option linter.style.longLine false in
+/-- Row-WLLN Hansen Theorem 12.19 in textbook k-class notation.
+
+This bundles the OLS and 2SLS probability limits with LIML written directly as
+`limlKClassBetaStar ... κ̂`, where `κ̂ = μ̂ + 1`, at the row-WLLN
+sample-eigenvalue boundary. -/
+theorem
+manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_kappa_of_card_ratio
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) := by
+  have hbase :=
+    manyInstruments_estimators_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hremainder hmu
+  have hliml :=
+    manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+      (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+      (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hremainder hmu hkappa
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+set_option linter.style.longLine false in
+/-- Centered row-WLLN Hansen Theorem 12.19 in textbook k-class notation.
+
+This bundles the centered OLS and 2SLS probability limits with LIML written
+directly as `limlKClassBetaStar ... κ̂ - β`, where `κ̂ = μ̂ + 1`, and derives
+estimator measurability from the reduced-form data. -/
+theorem
+manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_kappa_of_card_ratio_autoMeas
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {gram_row : ℕ → Ω → Matrix k k ℝ}
+    {cross_row : ℕ → Ω → k → ℝ}
+    {gap_row : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio :
+      Tendsto (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+        atTop (𝓝 alpha))
+    (hstruct : ∀ (m : ℕ) (ω : Ω), Y m ω = X m ω *ᵥ β + e m ω)
+    (hRF : ManyInstrumentsReducedFormWLLNConditions
+      μ Z X Gamma e u2 H Sigma22 Sigma2e)
+    (hnonsing : ∀ m, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)))
+    (hZ_meas : ∀ m, AEStronglyMeasurable (Z m) μ)
+    (hu2_meas : ∀ m, AEStronglyMeasurable (u2 m) μ)
+    (he_meas : ∀ m, AEStronglyMeasurable (e m) μ)
+    (hremainder :
+      ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+        μ Z e u2 gram_row cross_row)
+    (hmu :
+      ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+        (ι := ι) μ limlMuHat gap_row)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hbase :=
+    manyInstruments_estimators_minus_beta_theorem12_19_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio_autoMeas
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (gram_row := gram_row)
+      (cross_row := cross_row) (gap_row := gap_row) (β := β)
+      (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e) (alpha := alpha)
+      halpha_lt_one hratio hstruct hRF hnonsing hZ_meas hu2_meas he_meas
+      hremainder hmu
+  have hliml :=
+    manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure_of_reduced_form_row_wlln_sample_eigenvalue_of_card_ratio
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (Gamma := Gamma) (e := e)
+      (u2 := u2) (limlMuHat := limlMuHat) (kappaHat := kappaHat)
+      (gram_row := gram_row) (cross_row := cross_row) (gap_row := gap_row)
+      (β := β) (H := H) (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
+      (alpha := alpha) halpha_lt_one hratio hstruct hRF hnonsing
+      hZ_meas hu2_meas he_meas hremainder hmu hkappa
+  exact ⟨hbase.1, hbase.2.1, hliml⟩
+
+/-- Hansen Theorem 12.19 assembled in the centered form: OLS and 2SLS have
+the displayed many-instrument asymptotic biases, while LIML is centered
+`o_p(1)`. -/
+theorem manyInstruments_estimators_minus_beta_theorem12_19
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+  exact
+    ⟨manyInstruments_olsBetaStar_minus_beta_tendstoInMeasure h hOLS_meas,
+      manyInstruments_twoSLSBetaStar_minus_beta_tendstoInMeasure h h2SLS_meas,
+      manyInstruments_limlBetaStar_minus_beta_tendstoInMeasure h hLIML_meas⟩
+
+/-- Hansen Theorem 12.19 in textbook k-class notation over the canonical
+many-instrument condition package. -/
+theorem manyInstruments_estimators_theorem12_19_kappa
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+      atTop (fun _ => β + manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω))
+      atTop (fun _ => β) :=
+  ⟨(manyInstruments_estimators_theorem12_19 h).1,
+    (manyInstruments_estimators_theorem12_19 h).2.1,
+    manyInstruments_limlKClassBetaStar_kappa_tendstoInMeasure h hkappa⟩
+
+/-- Hansen Theorem 12.19 in the centered textbook form, with LIML written
+directly in k-class notation over the canonical many-instrument condition
+package. -/
+theorem manyInstruments_estimators_minus_beta_theorem12_19_kappa
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat kappaHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {alpha : ℝ}
+    (h : ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H Sigma22 Sigma2e alpha)
+    (hkappa : ∀ m ω, kappaHat m ω = limlMuHat m ω + 1)
+    (hOLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => olsBetaStar (X m ω) (Y m ω)) μ)
+    (h2SLS_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) μ)
+    (hLIML_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω)) μ) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => olsBetaStar (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsOLSBias H Sigma22 Sigma2e) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω) - β)
+      atTop (fun _ => manyInstrumentsTwoSLSBias H Sigma22 Sigma2e alpha) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        limlKClassBetaStar (Z m ω) (X m ω) (Y m ω) (kappaHat m ω) - β)
+      atTop (fun _ => (0 : k → ℝ)) :=
+  ⟨manyInstruments_olsBetaStar_minus_beta_tendstoInMeasure h hOLS_meas,
+    manyInstruments_twoSLSBetaStar_minus_beta_tendstoInMeasure h h2SLS_meas,
+    manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure
+      h hLIML_meas hkappa⟩
+
+/-! ## Raw conditional model and generalized-pencil route
+
+The compatibility interfaces above include sample-average decompositions of
+projected quadratic forms and of the LIML eigenvalue gap.  Those are not raw
+many-instrument assumptions: projection couples all observations, and a
+generalized eigenvalue is not an additive row statistic.  The declarations
+below provide the canonical replacement boundary.  Projected quadratic forms
+are controlled by conditional mean-square bounds, while the LIML adjustment
+is obtained by continuous mapping from the normalized sample pencil.
+-/
+
+/-- Loading from the reduced-form signal `s = ZΓ` into the joint data row
+`[Y X]`: its first column is `s'β` and its remaining columns are `s`. -/
+noncomputable def manyInstrumentsStructuralLoading
+    (β : k → ℝ) : Matrix k (Sum Unit k) ℝ :=
+  fun i j => match j with
+    | Sum.inl _ => β i
+    | Sum.inr h => if i = h then 1 else 0
+
+/-- Structural-residual direction `[1; -β]`.  It annihilates the signal
+loading and therefore attains the smallest limiting LIML root. -/
+def manyInstrumentsStructuralResidualDirection
+    (β : k → ℝ) : Sum Unit k → ℝ
+  | Sum.inl _ => 1
+  | Sum.inr j => -β j
+
+/-- Full reduced-form error row `[e,u₂]`. -/
+noncomputable def manyInstrumentsReducedFormErrorData
+    {n : Type*} [Fintype n]
+    (e : n → ℝ) (u2 : Matrix n k ℝ) : Matrix n (Sum Unit k) ℝ :=
+  Matrix.fromCols (fun i (_ : Unit) => e i) u2
+
+/-- Hansen's primitive reduced-form error row `[u₁,u₂]` in (12.74).
+
+The separate name prevents the first coordinate from being confused with the
+structural error `e = u₁ - β'u₂` used by the internal proof engine. -/
+noncomputable def manyInstrumentsHansenReducedFormErrorData
+    {n : Type*} [Fintype n]
+    (u1 : n → ℝ) (u2 : Matrix n k ℝ) : Matrix n (Sum Unit k) ℝ :=
+  Matrix.fromCols (fun i (_ : Unit) => u1 i) u2
+
+/-- Hansen's structural error `e = u₁ - β'u₂` from the reduced form (12.73). -/
+noncomputable def manyInstrumentsStructuralError
+    {n : Type*} [Fintype n]
+    (u1 : n → ℝ) (u2 : Matrix n k ℝ) (β : k → ℝ) : n → ℝ :=
+  fun i => u1 i - dotProduct (u2 i) β
+
+/-- Loading that maps Hansen's primitive row `[u₁,u₂]` to the internal
+structural-error row `[u₁ - β'u₂,u₂]`. -/
+noncomputable def manyInstrumentsStructuralErrorLoading
+    (β : k → ℝ) : Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  fun i j => match i, j with
+    | Sum.inl _, Sum.inl _ => 1
+    | Sum.inl _, Sum.inr _ => 0
+    | Sum.inr a, Sum.inl _ => -β a
+    | Sum.inr a, Sum.inr b => if a = b then 1 else 0
+
+/-- The internal covariance of `[e,u₂]`, derived by congruence from Hansen's
+primitive covariance `Σ = Var([u₁,u₂] | Z)` in (12.74). -/
+noncomputable def manyInstrumentsStructuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (manyInstrumentsStructuralErrorLoading β)ᵀ * Sigma *
+    manyInstrumentsStructuralErrorLoading β
+
+@[simp]
+theorem manyInstrumentsHansenReducedFormErrorData_mul_structuralErrorLoading
+    {n : Type*} [Fintype n]
+    (u1 : n → ℝ) (u2 : Matrix n k ℝ) (β : k → ℝ) :
+    manyInstrumentsHansenReducedFormErrorData u1 u2 *
+        manyInstrumentsStructuralErrorLoading β =
+      manyInstrumentsReducedFormErrorData
+        (manyInstrumentsStructuralError u1 u2 β) u2 := by
+  classical
+  ext i j
+  cases j with
+  | inl u =>
+      simp [manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData, manyInstrumentsStructuralError,
+        manyInstrumentsStructuralErrorLoading, Matrix.mul_apply, dotProduct]
+      ring
+  | inr a =>
+      simp [manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData,
+        manyInstrumentsStructuralErrorLoading, Matrix.mul_apply]
+
+private theorem manyInstrumentsStructuralErrorLoading_mulVec_injective
+    (β : k → ℝ) :
+    Function.Injective (manyInstrumentsStructuralErrorLoading β).mulVec := by
+  intro x y hxy
+  funext j
+  cases j with
+  | inl u =>
+      simpa [manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct]
+        using congrFun hxy (Sum.inl u)
+  | inr a =>
+      have h0 := congrFun hxy (Sum.inl ())
+      have ha := congrFun hxy (Sum.inr a)
+      simp [manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct] at h0 ha
+      linear_combination ha + β a * h0
+
+/-- Positive definiteness of Hansen's primitive covariance is preserved by
+the invertible loading into the internal `[e,u₂]` coordinates. -/
+theorem manyInstrumentsStructuralErrorCovariance_posDef
+    (β : k → ℝ) {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hSigma : Sigma.PosDef) :
+    (manyInstrumentsStructuralErrorCovariance β Sigma).PosDef := by
+  simpa [manyInstrumentsStructuralErrorCovariance, Matrix.conjTranspose]
+    using hSigma.conjTranspose_mul_mul_same
+      (manyInstrumentsStructuralErrorLoading_mulVec_injective β)
+
+/-- Loading from the structural-error row `[e,u₂]` to the reduced-form error
+row `[e + u₂'β,u₂]` of the joint data `[Y,X]`.
+
+This distinction matters for the LIML pencil: the covariance in the raw model
+is indexed by `[e,u₂]`, whereas the finite-sample pencil is formed from
+`[Y,X]`. -/
+noncomputable def manyInstrumentsReducedFormErrorLoading
+    (β : k → ℝ) : Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  fun i j => match i, j with
+    | Sum.inl _, Sum.inl _ => 1
+    | Sum.inl _, Sum.inr _ => 0
+    | Sum.inr a, Sum.inl _ => β a
+    | Sum.inr a, Sum.inr b => if a = b then 1 else 0
+
+/-- Covariance of the reduced-form error row `[e + u₂'β,u₂]`, obtained from
+the raw structural-error covariance `Cov[e,u₂]` by congruence. -/
+noncomputable def manyInstrumentsJointReducedFormCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (manyInstrumentsReducedFormErrorLoading β)ᵀ * Sigma *
+    manyInstrumentsReducedFormErrorLoading β
+
+private theorem manyInstrumentsReducedFormErrorLoading_mulVec_injective
+    (β : k → ℝ) :
+    Function.Injective (manyInstrumentsReducedFormErrorLoading β).mulVec := by
+  intro x y hxy
+  funext j
+  cases j with
+  | inl u =>
+      simpa [manyInstrumentsReducedFormErrorLoading, Matrix.mulVec, dotProduct]
+        using congrFun hxy (Sum.inl u)
+  | inr a =>
+      have h0 := congrFun hxy (Sum.inl ())
+      have ha := congrFun hxy (Sum.inr a)
+      simp [manyInstrumentsReducedFormErrorLoading, Matrix.mulVec, dotProduct] at h0 ha
+      calc
+        x (Sum.inr a) =
+            (β a * x (Sum.inl ()) + x (Sum.inr a)) - β a * x (Sum.inl ()) := by
+          ring
+        _ = (β a * y (Sum.inl ()) + y (Sum.inr a)) - β a * y (Sum.inl ()) := by
+          rw [ha, h0]
+        _ = y (Sum.inr a) := by ring
+
+/-- Positive definiteness of the raw structural-error covariance is preserved
+by the invertible loading into the joint `[Y,X]` reduced form. -/
+theorem manyInstrumentsJointReducedFormCovariance_posDef
+    (β : k → ℝ) {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hSigma : Sigma.PosDef) :
+    (manyInstrumentsJointReducedFormCovariance β Sigma).PosDef := by
+  simpa [manyInstrumentsJointReducedFormCovariance, Matrix.conjTranspose]
+    using hSigma.conjTranspose_mul_mul_same
+      (manyInstrumentsReducedFormErrorLoading_mulVec_injective β)
+
+@[simp]
+private theorem manyInstrumentsStructuralErrorLoading_mul_reducedFormErrorLoading
+    (β : k → ℝ) :
+    manyInstrumentsStructuralErrorLoading β *
+        manyInstrumentsReducedFormErrorLoading β = 1 := by
+  classical
+  ext i j
+  cases i <;> cases j <;>
+    simp [manyInstrumentsStructuralErrorLoading,
+      manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+      Matrix.one_apply, eq_comm]
+
+/-- Transforming Hansen's covariance from `[u₁,u₂]` to `[e,u₂]` and then
+back to the joint reduced-form coordinates recovers exactly the covariance
+`Σ` printed in (12.74). -/
+@[simp]
+theorem manyInstrumentsJointReducedFormCovariance_structuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    manyInstrumentsJointReducedFormCovariance β
+        (manyInstrumentsStructuralErrorCovariance β Sigma) = Sigma := by
+  rw [manyInstrumentsJointReducedFormCovariance,
+    manyInstrumentsStructuralErrorCovariance]
+  calc
+    (manyInstrumentsReducedFormErrorLoading β)ᵀ *
+          ((manyInstrumentsStructuralErrorLoading β)ᵀ * Sigma *
+            manyInstrumentsStructuralErrorLoading β) *
+          manyInstrumentsReducedFormErrorLoading β =
+        (manyInstrumentsStructuralErrorLoading β *
+          manyInstrumentsReducedFormErrorLoading β)ᵀ * Sigma *
+          (manyInstrumentsStructuralErrorLoading β *
+            manyInstrumentsReducedFormErrorLoading β) := by
+      rw [Matrix.transpose_mul]
+      noncomm_ring
+    _ = Sigma := by simp
+
+/-- The `u₂u₂'` block of Hansen's full reduced-form error covariance. -/
+def manyInstrumentsSigma22
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : Matrix k k ℝ :=
+  fun a b => Sigma (Sum.inr a) (Sum.inr b)
+
+/-- The `u₂e` block of Hansen's full reduced-form error covariance. -/
+def manyInstrumentsSigma2e
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : k → ℝ :=
+  fun a => Sigma (Sum.inr a) (Sum.inl ())
+
+/-- Hansen's covariance `Σ₂e = Σ₂₁ - Σ₂₂β`, where `Σ` is the primitive
+covariance of `[u₁,u₂]` in (12.74) and `e = u₁ - β'u₂`. -/
+noncomputable def manyInstrumentsHansenSigma2e
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : k → ℝ :=
+  manyInstrumentsSigma2e Sigma - manyInstrumentsSigma22 Sigma *ᵥ β
+
+@[simp]
+theorem manyInstrumentsSigma22_structuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    manyInstrumentsSigma22
+        (manyInstrumentsStructuralErrorCovariance β Sigma) =
+      manyInstrumentsSigma22 Sigma := by
+  classical
+  ext a b
+  simp [manyInstrumentsSigma22, manyInstrumentsStructuralErrorCovariance,
+    manyInstrumentsStructuralErrorLoading, Matrix.mul_apply]
+
+@[simp]
+theorem manyInstrumentsSigma2e_structuralErrorCovariance
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    manyInstrumentsSigma2e
+        (manyInstrumentsStructuralErrorCovariance β Sigma) =
+      manyInstrumentsHansenSigma2e β Sigma := by
+  classical
+  ext a
+  simp [manyInstrumentsSigma2e, manyInstrumentsHansenSigma2e,
+    manyInstrumentsSigma22, manyInstrumentsStructuralErrorCovariance,
+    manyInstrumentsStructuralErrorLoading, Matrix.mul_apply, Matrix.mulVec,
+    dotProduct]
+  ring
+
+/-- Normalized full reduced-error projected moment `n⁻¹u'P_Zu`.
+
+Unlike `sampleGram (P_Z u)`, this is Hansen's quadratic form directly and
+does not hide symmetry/idempotence behind a transformed-row representation. -/
+noncomputable def manyInstrumentsProjectedFullErrorMoment
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (e : n → ℝ) (u2 : Matrix n k ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  let U := manyInstrumentsReducedFormErrorData e u2
+  (Fintype.card n : ℝ)⁻¹ • (Uᵀ * instrumentProjectionStar Z * U)
+
+/-- Centered projected reduced-error moment from Hansen's conditional
+homoskedastic calculation. -/
+noncomputable def manyInstrumentsProjectedFullErrorCentered
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (e : n → ℝ) (u2 : Matrix n k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  manyInstrumentsProjectedFullErrorMoment Z e u2 -
+    manyInstrumentProjectionTraceRatio Z • Sigma
+
+/-- Hansen's normalized finite-sample LIML pencil
+`(n⁻¹[Y X]'P_Z[Y X], n⁻¹[Y X]'M_Z[Y X])`. -/
+noncomputable def manyInstrumentsLIMLNormalizedSamplePencil
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (m : ℕ) (ω : Ω) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+      Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  ((m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighNumerator
+      (Z m ω) (X m ω) (Y m ω),
+    (m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighDenominator
+      (Z m ω) (X m ω) (Y m ω))
+
+/-- Limiting numerator of the many-instrument LIML pencil:
+`B'HB + αΣ`. -/
+noncomputable def manyInstrumentsLIMLLimitNumerator
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (manyInstrumentsStructuralLoading β)ᵀ * H *
+      manyInstrumentsStructuralLoading β +
+        alpha • manyInstrumentsJointReducedFormCovariance β Sigma
+
+/-- Limiting denominator of the many-instrument LIML pencil: `(1-α)Σ`. -/
+noncomputable def manyInstrumentsLIMLLimitDenominator
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (1 - alpha) • manyInstrumentsJointReducedFormCovariance β Sigma
+
+/-- If Hansen's conditional covariance in (12.74) is zero, the limiting LIML
+denominator is zero.  The printed assumptions of Theorem 12.19 permit this
+exact-fit case. -/
+theorem manyInstrumentsLIMLLimitDenominator_eq_zero_of_covariance_eq_zero
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (hSigma : Sigma = 0) :
+    manyInstrumentsLIMLLimitDenominator β Sigma alpha = 0 := by
+  subst Sigma
+  simp [manyInstrumentsLIMLLimitDenominator,
+    manyInstrumentsJointReducedFormCovariance]
+
+/-- Hansen's displayed generalized-Rayleigh minimization in Theorem 12.19 is
+not well-defined under the printed assumptions alone: when the conditional
+covariance in (12.74) is zero, no admissible vector has a positive denominator.
+This is why the concrete-root consistency endpoint below explicitly assumes a
+positive-definite covariance. -/
+theorem manyInstrumentsLIMLLimit_no_rayleighMinimizer_of_covariance_eq_zero
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha mu : ℝ)
+    (hSigma : Sigma = 0) :
+    ¬ LIMLRayleighMinimizer
+        (manyInstrumentsLIMLLimitNumerator β H Sigma alpha)
+        (manyInstrumentsLIMLLimitDenominator β Sigma alpha) mu := by
+  subst Sigma
+  intro hmin
+  obtain ⟨g, hg, _⟩ := hmin.1
+  rw [limlRayleighAdmissible,
+    manyInstrumentsLIMLLimitDenominator,
+    manyInstrumentsJointReducedFormCovariance] at hg
+  simp at hg
+
+omit [Fintype k] [DecidableEq k] in
+@[simp]
+theorem manyInstrumentsStructuralResidualDirection_inl
+    (β : k → ℝ) (u : Unit) :
+    manyInstrumentsStructuralResidualDirection β (Sum.inl u) = 1 := rfl
+
+omit [Fintype k] [DecidableEq k] in
+@[simp]
+theorem manyInstrumentsStructuralResidualDirection_inr
+    (β : k → ℝ) (j : k) :
+    manyInstrumentsStructuralResidualDirection β (Sum.inr j) = -β j := rfl
+
+/-- The structural-residual direction annihilates the signal loading. -/
+theorem manyInstrumentsStructuralLoading_mulVec_residualDirection
+    (β : k → ℝ) :
+    manyInstrumentsStructuralLoading β *ᵥ
+        manyInstrumentsStructuralResidualDirection β = 0 := by
+  ext i
+  simp [manyInstrumentsStructuralLoading,
+    manyInstrumentsStructuralResidualDirection, Matrix.mulVec, dotProduct]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The structural-residual direction is nonzero. -/
+theorem manyInstrumentsStructuralResidualDirection_ne_zero
+    (β : k → ℝ) : manyInstrumentsStructuralResidualDirection β ≠ 0 := by
+  intro h
+  have hh := congrFun h (Sum.inl ())
+  simp at hh
+
+private theorem manyInstruments_signal_quadratic_eq
+    (H : Matrix k k ℝ) (β : k → ℝ) (g : Sum Unit k → ℝ) :
+    g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β) *ᵥ g) =
+      (manyInstrumentsStructuralLoading β *ᵥ g) ⬝ᵥ
+        (H *ᵥ (manyInstrumentsStructuralLoading β *ᵥ g)) := by
+  calc
+    g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β) *ᵥ g) =
+        g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ *
+          (H * manyInstrumentsStructuralLoading β)) *ᵥ g) := by
+      rw [Matrix.mul_assoc]
+    _ = g ⬝ᵥ ((manyInstrumentsStructuralLoading β)ᵀ *ᵥ
+          (H *ᵥ (manyInstrumentsStructuralLoading β *ᵥ g))) := by
+      rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
+    _ = (manyInstrumentsStructuralLoading β *ᵥ g) ⬝ᵥ
+        (H *ᵥ (manyInstrumentsStructuralLoading β *ᵥ g)) := by
+      conv_lhs =>
+        rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]
+        simp
+      rw [Matrix.mulVec_mulVec]
+
+private theorem manyInstruments_limit_numerator_quadratic
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (g : Sum Unit k → ℝ) :
+    g ⬝ᵥ (manyInstrumentsLIMLLimitNumerator β H Sigma alpha *ᵥ g) =
+      g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ * H *
+        manyInstrumentsStructuralLoading β) *ᵥ g) +
+        alpha * (g ⬝ᵥ
+          (manyInstrumentsJointReducedFormCovariance β Sigma *ᵥ g)) := by
+  rw [manyInstrumentsLIMLLimitNumerator, Matrix.add_mulVec, dotProduct_add,
+    Matrix.smul_mulVec, dotProduct_smul]
+  rfl
+
+private theorem manyInstruments_limit_denominator_quadratic
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (g : Sum Unit k → ℝ) :
+    g ⬝ᵥ (manyInstrumentsLIMLLimitDenominator β Sigma alpha *ᵥ g) =
+      (1 - alpha) * (g ⬝ᵥ
+        (manyInstrumentsJointReducedFormCovariance β Sigma *ᵥ g)) := by
+  rw [manyInstrumentsLIMLLimitDenominator, Matrix.smul_mulVec,
+    dotProduct_smul]
+  rfl
+
+/-- The positive-denominator Rayleigh minimum of the limiting
+many-instrument pencil is `α/(1-α)`.
+
+The witness is `[1;-β]`; positive definiteness of `Σ` makes it admissible.
+The lower bound is the nonnegative signal quadratic form. -/
+theorem manyInstrumentsLIMLLimit_rayleighMinimizer
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (hH : H.PosSemidef) (hSigma : Sigma.PosDef) (halpha : alpha < 1) :
+    LIMLRayleighMinimizer
+      (manyInstrumentsLIMLLimitNumerator β H Sigma alpha)
+      (manyInstrumentsLIMLLimitDenominator β Sigma alpha)
+      (alpha / (1 - alpha)) := by
+  have hc : 0 < 1 - alpha := by linarith
+  have hc0 : 1 - alpha ≠ 0 := hc.ne'
+  have hg0 : manyInstrumentsStructuralResidualDirection β ≠ 0 :=
+    manyInstrumentsStructuralResidualDirection_ne_zero β
+  have hJoint : (manyInstrumentsJointReducedFormCovariance β Sigma).PosDef :=
+    manyInstrumentsJointReducedFormCovariance_posDef β hSigma
+  have hq0 : 0 < manyInstrumentsStructuralResidualDirection β ⬝ᵥ
+      (manyInstrumentsJointReducedFormCovariance β Sigma *ᵥ
+        manyInstrumentsStructuralResidualDirection β) :=
+    hJoint.dotProduct_mulVec_pos hg0
+  constructor
+  · refine ⟨manyInstrumentsStructuralResidualDirection β, ?_, ?_⟩
+    · rw [limlRayleighAdmissible,
+        manyInstruments_limit_denominator_quadratic]
+      positivity
+    · rw [limlRayleighQuotient,
+        manyInstruments_limit_numerator_quadratic,
+        manyInstruments_limit_denominator_quadratic,
+        manyInstruments_signal_quadratic_eq,
+        manyInstrumentsStructuralLoading_mulVec_residualDirection]
+      simp
+      field_simp [hc0, hq0.ne']
+  · intro g hg
+    have hden : 0 < (1 - alpha) * (g ⬝ᵥ
+        (manyInstrumentsJointReducedFormCovariance β Sigma *ᵥ g)) := by
+      rw [limlRayleighAdmissible,
+        manyInstruments_limit_denominator_quadratic] at hg
+      exact hg
+    have hsignal : 0 ≤ g ⬝ᵥ
+        (((manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β) *ᵥ g) := by
+      rw [manyInstruments_signal_quadratic_eq]
+      exact hH.dotProduct_mulVec_nonneg _
+    rw [limlRayleighQuotient,
+      manyInstruments_limit_numerator_quadratic,
+      manyInstruments_limit_denominator_quadratic]
+    apply (le_div_iff₀ hden).2
+    field_simp [hc0]
+    nlinarith
+
+/-- Chapter 11 rank-one generalized-pencil lower-bound certificate for the
+same limiting root. -/
+theorem manyInstrumentsLIMLLimit_generalizedEigenProductLowerBound
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (hH : H.PosSemidef) (halpha : alpha < 1) :
+    generalizedEigenDetProductLowerBound
+      (manyInstrumentsLIMLLimitNumerator β H Sigma alpha)
+      (manyInstrumentsLIMLLimitDenominator β Sigma alpha)
+      (fun _ : Unit => alpha / (1 - alpha)) := by
+  apply generalizedEigenDetProductLowerBound_rankOne_of_rayleigh_bound
+  intro g hnorm
+  have hc : 0 < 1 - alpha := by linarith
+  have hc0 : 1 - alpha ≠ 0 := hc.ne'
+  have hsignal : 0 ≤ g ⬝ᵥ
+      (((manyInstrumentsStructuralLoading β)ᵀ * H *
+        manyInstrumentsStructuralLoading β) *ᵥ g) := by
+    rw [manyInstruments_signal_quadratic_eq]
+    exact hH.dotProduct_mulVec_nonneg _
+  rw [manyInstruments_limit_numerator_quadratic]
+  rw [manyInstruments_limit_denominator_quadratic] at hnorm
+  have hq : g ⬝ᵥ
+      (manyInstrumentsJointReducedFormCovariance β Sigma *ᵥ g) =
+        (1 - alpha)⁻¹ := by
+    field_simp [hc0]
+    nlinarith
+  rw [hq]
+  field_simp [hc0]
+  nlinarith
+
+namespace LIMLRayleighMinimizer
+
+omit [Fintype k] [DecidableEq k] in
+/-- Two minimum-value certificates for the same positive-denominator
+Rayleigh problem have the same scalar value. -/
+theorem value_unique
+    {d : Type*} [Fintype d]
+    {A B : Matrix d d ℝ} {x y : ℝ}
+    (hx : LIMLRayleighMinimizer A B x)
+    (hy : LIMLRayleighMinimizer A B y) : x = y := by
+  rcases hx.value with ⟨gx, hgx, hvx⟩
+  rcases hy.value with ⟨gy, hgy, hvy⟩
+  apply le_antisymm
+  · simpa [hvy] using hx.lower_bound gy hgy
+  · simpa [hvx] using hy.lower_bound gx hgx
+
+end LIMLRayleighMinimizer
+
+omit [Fintype k] [DecidableEq k] in
+noncomputable local instance manyInstrumentsAnyMatrixMeasurableSpace
+    {r c : Type*} [Fintype r] [Fintype c] :
+    MeasurableSpace (Matrix r c ℝ) :=
+  matrixBorelMeasurableSpace r c
+
+omit [Fintype k] [DecidableEq k] in
+local instance manyInstrumentsAnyMatrixBorelSpace
+    {r c : Type*} [Fintype r] [Fintype c] :
+    BorelSpace (Matrix r c ℝ) :=
+  matrixBorelSpace r c
+
+private noncomputable def manyInstrumentsStructuralErrorMap
+    (β : k → ℝ) :
+    (Sum Unit k → ℝ) →L[ℝ] (Sum Unit k → ℝ) :=
+  (Matrix.toLin' (manyInstrumentsStructuralErrorLoading β)ᵀ).toContinuousLinearMap
+
+@[simp] private theorem manyInstrumentsStructuralErrorMap_apply
+    {n : Type*} [Fintype n] (u1 : n → ℝ) (u2 : Matrix n k ℝ)
+    (β : k → ℝ) (i : n) :
+    manyInstrumentsStructuralErrorMap β
+        (manyInstrumentsHansenReducedFormErrorData u1 u2 i) =
+      manyInstrumentsReducedFormErrorData
+        (manyInstrumentsStructuralError u1 u2 β) u2 i := by
+  classical
+  ext j
+  cases j with
+  | inl u =>
+      simp [manyInstrumentsStructuralErrorMap, Matrix.toLin'_apply,
+        manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData, manyInstrumentsStructuralError,
+        manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct,
+        mul_comm]
+      ring
+  | inr a =>
+      simp [manyInstrumentsStructuralErrorMap, Matrix.toLin'_apply,
+        manyInstrumentsHansenReducedFormErrorData,
+        manyInstrumentsReducedFormErrorData,
+        manyInstrumentsStructuralErrorLoading, Matrix.mulVec, dotProduct]
+
+private theorem manyInstruments_vecMulVec_structuralErrorMap
+    (β : k → ℝ) (x : Sum Unit k → ℝ) :
+    Matrix.vecMulVec (manyInstrumentsStructuralErrorMap β x)
+        (manyInstrumentsStructuralErrorMap β x) =
+      (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        Matrix.vecMulVec x x * manyInstrumentsStructuralErrorLoading β := by
+  change Matrix.vecMulVec
+      ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x)
+      ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x) = _
+  calc
+    Matrix.vecMulVec
+        ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x)
+        ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x) =
+      (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        Matrix.vecMulVec x
+          ((manyInstrumentsStructuralErrorLoading β)ᵀ *ᵥ x) := by
+            rw [Matrix.mul_vecMulVec]
+    _ = (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        (Matrix.vecMulVec x x *
+          ((manyInstrumentsStructuralErrorLoading β)ᵀ)ᵀ) := by
+            rw [Matrix.vecMulVec_mul, Matrix.vecMul_transpose]
+    _ = (manyInstrumentsStructuralErrorLoading β)ᵀ *
+        Matrix.vecMulVec x x * manyInstrumentsStructuralErrorLoading β := by
+            simp [Matrix.mul_assoc]
+
+/-- Hansen-facing conditional error model for (12.74)--(12.75).
+
+Its primitive row is exactly `[u₁,u₂]`, its conditional covariance is exactly
+Hansen's `Σ`, and the structural error is derived later as `e = u₁ - β'u₂`.
+No transformed conditional moment is included as an assumption. -/
+structure ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (u1 : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (B : ℝ) : Prop where
+  instrument_measurable : ∀ m, Measurable (Z m)
+  error_row_memLp_four : ∀ m (i : Fin m), MemLp
+    (fun ω => manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i) 4 μ
+  rows_conditionally_independent : ∀ m,
+    iCondIndepFun (conditioningSpace (Z m))
+      (conditioningSpace_le (instrument_measurable m))
+      (fun i ω => manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i) μ
+  conditional_mean_zero : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i)
+      (Z m) =ᵐ[μ] 0
+  conditional_second_moment : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => Matrix.vecMulVec
+        (manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i)
+        (manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i))
+      (Z m) =ᵐ[μ] fun _ => Sigma
+  fourth_bound_nonneg : 0 ≤ B
+  conditional_fourth_bound : ∀ m (i : Fin m),
+    ∀ᵐ ω ∂μ, condExpOn μ
+      (fun ω' => ‖manyInstrumentsHansenReducedFormErrorData
+        (u1 m ω') (u2 m ω') i‖ ^ 4) (Z m) ω ≤ B
+
+/-- Fourth-moment bound after the fixed loading from Hansen's `[u₁,u₂]` row
+to the internal `[e,u₂]` row. -/
+noncomputable def manyInstrumentsStructuralFourthMomentBound
+    (β : k → ℝ) (B : ℝ) : ℝ :=
+  ‖manyInstrumentsStructuralErrorMap β‖ ^ 4 * B
+
+/-- Internal conditional-homoskedastic, conditionally independent,
+bounded-fourth-moment model for the transformed row `[e,u₂]`.
+
+No projected quadratic-form convergence and no LIML eigenvalue convergence is
+a field.  The Hansen-facing package above uses the primitive row `[u₁,u₂]` and
+derives this proof-engine model through the structural-error loading. -/
+structure ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (B : ℝ) : Prop where
+  instrument_measurable : ∀ m, Measurable (Z m)
+  error_row_memLp_four : ∀ m (i : Fin m), MemLp
+    (fun ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i) 4 μ
+  rows_conditionally_independent : ∀ m,
+    iCondIndepFun (conditioningSpace (Z m))
+      (conditioningSpace_le (instrument_measurable m))
+      (fun i ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i) μ
+  conditional_mean_zero : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)
+      (Z m) =ᵐ[μ] 0
+  conditional_second_moment : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => Matrix.vecMulVec
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i))
+      (Z m) =ᵐ[μ] fun _ => Sigma
+  fourth_bound_nonneg : 0 ≤ B
+  conditional_fourth_bound : ∀ m (i : Fin m),
+    ∀ᵐ ω ∂μ, condExpOn μ
+      (fun ω' => ‖manyInstrumentsReducedFormErrorData
+        (e m ω') (u2 m ω') i‖ ^ 4) (Z m) ω ≤ B
+
+omit [∀ m, DecidableEq (ι m)] in
+/-- Hansen's primitive conditional model implies the internal `[e,u₂]` model
+by the fixed loading `e = u₁ - β'u₂`.  The covariance and fourth-moment bound
+are conclusions of the transformation, not additional assumptions. -/
+theorem ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel.toStructuralErrorModel
+    [StandardBorelSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel
+      (ι := ι) μ Z u1 u2 Sigma B)
+    (β : k → ℝ) :
+    ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      (ι := ι) μ Z
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 (manyInstrumentsStructuralErrorCovariance β Sigma)
+        (manyInstrumentsStructuralFourthMomentBound β B) where
+  instrument_measurable := h.instrument_measurable
+  error_row_memLp_four := by
+    intro m i
+    let T := manyInstrumentsStructuralErrorMap β
+    have hmap := (h.error_row_memLp_four m i).continuousLinearMap_comp T
+    simpa [T, Function.comp_def] using hmap
+  rows_conditionally_independent := by
+    intro m
+    let T := manyInstrumentsStructuralErrorMap β
+    have hcomp := (h.rows_conditionally_independent m).comp
+      (fun _ => T) (fun _ => T.continuous.measurable)
+    simpa [T, Function.comp_def] using hcomp
+  conditional_mean_zero := by
+    intro m i
+    let U : Ω → Sum Unit k → ℝ := fun ω =>
+      manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i
+    let T := manyInstrumentsStructuralErrorMap β
+    have hUint : Integrable U μ :=
+      (h.error_row_memLp_four m i).integrable (by norm_num)
+    have hcomm :
+        T ∘ condExpOn μ U (Z m) =ᵐ[μ] condExpOn μ (T ∘ U) (Z m) := by
+      simpa [condExpOn] using
+        (T.comp_condExp_comm (μ := μ) (m := conditioningSpace (Z m)) hUint)
+    have hzero : T ∘ condExpOn μ U (Z m) =ᵐ[μ] 0 := by
+      filter_upwards [h.conditional_mean_zero m i] with ω hω
+      change T (condExpOn μ U (Z m) ω) = 0
+      rw [show condExpOn μ U (Z m) ω = 0 by simpa [U] using hω]
+      exact map_zero T
+    have htarget := hcomm.symm.trans hzero
+    simpa [T, U, Function.comp_def] using htarget
+  conditional_second_moment := by
+    intro m i
+    let U : Ω → Sum Unit k → ℝ := fun ω =>
+      manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i
+    have hU4 (c : Sum Unit k) : MemLp (fun ω => U ω c) 4 μ := by
+      simpa [U] using (h.error_row_memLp_four m i).eval c
+    have hOuter : Integrable (fun ω => Matrix.vecMulVec (U ω) (U ω)) μ :=
+      vecMulVec_integrable_of_coordinate_memLp_four hU4
+    have htransform := condExpOn_matrix_mul_left_right
+      (μ := μ) (Z := Z m)
+      (manyInstrumentsStructuralErrorLoading β)ᵀ
+      (manyInstrumentsStructuralErrorLoading β) hOuter
+      (h.conditional_second_moment m i)
+    have hpoint :
+        (fun ω => Matrix.vecMulVec
+          (manyInstrumentsStructuralErrorMap β (U ω))
+          (manyInstrumentsStructuralErrorMap β (U ω))) =
+        fun ω => (manyInstrumentsStructuralErrorLoading β)ᵀ *
+          Matrix.vecMulVec (U ω) (U ω) *
+            manyInstrumentsStructuralErrorLoading β := by
+      funext ω
+      exact manyInstruments_vecMulVec_structuralErrorMap β (U ω)
+    rw [← hpoint] at htransform
+    simpa [U, manyInstrumentsStructuralErrorCovariance] using htransform
+  fourth_bound_nonneg := by
+    exact mul_nonneg (pow_nonneg (norm_nonneg _) _) h.fourth_bound_nonneg
+  conditional_fourth_bound := by
+    intro m i
+    let U : Ω → Sum Unit k → ℝ := fun ω =>
+      manyInstrumentsHansenReducedFormErrorData (u1 m ω) (u2 m ω) i
+    let T := manyInstrumentsStructuralErrorMap β
+    let c : ℝ := ‖T‖ ^ 4
+    have hU4 : MemLp U 4 μ := by
+      simpa [U] using h.error_row_memLp_four m i
+    have hTU4 : MemLp (T ∘ U) 4 μ := hU4.continuousLinearMap_comp T
+    have hUInt : Integrable (fun ω => ‖U ω‖ ^ 4) μ :=
+      hU4.integrable_norm_pow'
+    have hTUInt : Integrable (fun ω => ‖T (U ω)‖ ^ 4) μ := by
+      simpa [Function.comp_def] using hTU4.integrable_norm_pow'
+    have hscaledInt : Integrable (fun ω => c * ‖U ω‖ ^ 4) μ :=
+      hUInt.const_mul c
+    have hpoint : ∀ ω, ‖T (U ω)‖ ^ 4 ≤ c * ‖U ω‖ ^ 4 := by
+      intro ω
+      calc
+        ‖T (U ω)‖ ^ 4 ≤ (‖T‖ * ‖U ω‖) ^ 4 := by
+          gcongr
+          exact T.le_opNorm (U ω)
+        _ = c * ‖U ω‖ ^ 4 := by simp [c, mul_pow]
+    have hmono :
+        condExpOn μ (fun ω => ‖T (U ω)‖ ^ 4) (Z m) ≤ᵐ[μ]
+          condExpOn μ (fun ω => c * ‖U ω‖ ^ 4) (Z m) := by
+      simpa [condExpOn] using condExp_mono hTUInt hscaledInt
+        (ae_of_all μ hpoint)
+    have hscale :
+        condExpOn μ (fun ω => c * ‖U ω‖ ^ 4) (Z m) =ᵐ[μ]
+          fun ω => c * condExpOn μ (fun ω => ‖U ω‖ ^ 4) (Z m) ω := by
+      simpa [condExpOn, Pi.smul_apply, smul_eq_mul] using
+        (condExp_smul (μ := μ) (m := conditioningSpace (Z m))
+          c (fun ω => ‖U ω‖ ^ 4))
+    filter_upwards [hmono, hscale, h.conditional_fourth_bound m i] with ω hle hscaleω hbound
+    calc
+      condExpOn μ
+          (fun ω' => ‖manyInstrumentsReducedFormErrorData
+            (manyInstrumentsStructuralError (u1 m ω') (u2 m ω') β)
+            (u2 m ω') i‖ ^ 4) (Z m) ω =
+          condExpOn μ (fun ω' => ‖T (U ω')‖ ^ 4) (Z m) ω := by
+            congr 2
+            funext ω'
+            rw [show T (U ω') = manyInstrumentsReducedFormErrorData
+              (manyInstrumentsStructuralError (u1 m ω') (u2 m ω') β)
+              (u2 m ω') i by simp [T, U]]
+      _ ≤ condExpOn μ (fun ω' => c * ‖U ω'‖ ^ 4) (Z m) ω := hle
+      _ = c * condExpOn μ (fun ω' => ‖U ω'‖ ^ 4) (Z m) ω := hscaleω
+      _ ≤ c * B := mul_le_mul_of_nonneg_left hbound (pow_nonneg (norm_nonneg _) _)
+      _ = manyInstrumentsStructuralFourthMomentBound β B := by
+        rfl
+
+/-- Internal non-circular raw model package for Hansen Theorem 12.19.
+
+Its error coordinates are the transformed proof coordinates `[e,u₂]`.  The
+Hansen-facing package below instead takes primitive errors `[u₁,u₂]`, with `Σ`
+exactly as in (12.74), and derives this package through a fixed loading.
+
+In particular it contains neither estimator limits, projected-form WLLNs, nor
+an assumed LIML adjustment/eigenvalue gap. -/
+structure ManyInstrumentsTransformedErrorRawModelConditions
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (alpha B : ℝ) : Prop where
+  reduced_form : ∀ m ω,
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  structural : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω
+  instrument_ratio : Tendsto
+    (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+    atTop (𝓝 alpha)
+  alpha_lt_one : alpha < 1
+  signal_gram_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ
+  signal_gram_tendsto : TendstoInMeasure μ
+    (fun m ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  signal_posDef : H.PosDef
+  /-- Corrected LIML nondegeneracy assumption.  Hansen (12.74) identifies the
+  covariance but does not explicitly state positive definiteness. -/
+  error_covariance_posDef : Sigma.PosDef
+  instrument_gram_nonsingular : ∀ m, ∀ᵐ ω ∂μ,
+    Nonempty (Invertible ((Z m ω)ᵀ * Z m ω))
+  errors : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+    (ι := ι) μ Z e u2 Sigma B
+
+/-- Corrected Hansen-facing raw condition package for Theorem 12.19.
+
+The primitive errors are exactly `[u₁,u₂]`; `Σ` is exactly their conditional
+covariance in Hansen (12.74); and `e = u₁ - β'u₂` is derived rather than
+silently substituted into the covariance assumption.  The package also makes
+explicit (12.77), conditional row independence used in Hansen's calculation,
+and the instrument-rank condition used to identify `P_Z` with the Star
+projection.  It contains no estimator limit, projected-form WLLN, or assumed
+LIML eigenvalue limit. -/
+structure ManyInstrumentsPrimitiveErrorRawModelConditions
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (u1 : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (alpha B : ℝ) : Prop where
+  reduced_form : ∀ m ω,
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  structural : ∀ m ω, Y m ω = X m ω *ᵥ β +
+    manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β
+  instrument_ratio : Tendsto
+    (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+    atTop (𝓝 alpha)
+  alpha_lt_one : alpha < 1
+  signal_gram_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ
+  signal_gram_tendsto : TendstoInMeasure μ
+    (fun m ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  signal_posDef : H.PosDef
+  /-- Corrected LIML nondegeneracy assumption.  Hansen's (12.74) specifies
+  `Σ = Var([u₁,u₂] | Z)` but does not explicitly require `Σ.PosDef`. -/
+  error_covariance_posDef : Sigma.PosDef
+  instrument_gram_nonsingular : ∀ m, ∀ᵐ ω ∂μ,
+    Nonempty (Invertible ((Z m ω)ᵀ * Z m ω))
+  errors : ManyInstrumentsHansenConditionalHomoskedasticFourthMomentModel
+    (ι := ι) μ Z u1 u2 Sigma B
+
+/-- Thin bridge from the literal Hansen `[u₁,u₂]` package to the existing
+internal `[e,u₂]` raw endpoint. -/
+theorem ManyInstrumentsPrimitiveErrorRawModelConditions.toRawModelConditions
+    [StandardBorelSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B : ℝ}
+    (h : ManyInstrumentsPrimitiveErrorRawModelConditions
+      μ Z X Y Gamma u1 u2 β H Sigma alpha B) :
+    ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 β H (manyInstrumentsStructuralErrorCovariance β Sigma) alpha
+        (manyInstrumentsStructuralFourthMomentBound β B) where
+  reduced_form := h.reduced_form
+  structural := h.structural
+  instrument_ratio := h.instrument_ratio
+  alpha_lt_one := h.alpha_lt_one
+  signal_gram_measurable := h.signal_gram_measurable
+  signal_gram_tendsto := h.signal_gram_tendsto
+  signal_posDef := h.signal_posDef
+  error_covariance_posDef :=
+    manyInstrumentsStructuralErrorCovariance_posDef β h.error_covariance_posDef
+  instrument_gram_nonsingular := h.instrument_gram_nonsingular
+  errors := h.errors.toStructuralErrorModel β
+
+/-- Honest concentration input for Hansen's projected quadratic form.
+
+The `O(1/n)` entrywise mean-square bounds are the direct consequences of
+conditional homoskedasticity, bounded conditional fourth moments, projection
+symmetry/idempotence, `tr(P_Z)=ℓ`, and `Σ_j P_ij²=P_ii`.  Unlike the legacy row
+packages, this does not assert that a projected quadratic form is an iid row
+average. -/
+structure ManyInstrumentsProjectionQuadraticMeanSquareConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (C : ℝ) : Prop where
+  bound_nonneg : 0 ≤ C
+  centered_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma) μ
+  entry_sq_integrable : ∀ m (a b : Sum Unit k), Integrable
+    (fun ω => ‖manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ)) μ
+  entry_mean_square_bound : ∀ a b : Sum Unit k, ∀ᶠ m in atTop,
+    (∫ ω, ‖manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ) ∂μ) ≤ C / (m : ℝ)
+
+private theorem manyInstruments_tendstoInMeasure_zero_of_integral_sq_le_inv
+    {E : ℕ → Ω → ℝ} {C : ℝ}
+    (hInt : ∀ m, Integrable (fun ω => ‖E m ω‖ ^ (2 : ℝ)) μ)
+    (hbound : ∀ᶠ m in atTop,
+      (∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ) ≤ C / (m : ℝ)) :
+    TendstoInMeasure μ E atTop (fun _ => 0) := by
+  have hupper : Tendsto (fun m : ℕ => C / (m : ℝ)) atTop (𝓝 0) :=
+    tendsto_natCast_atTop_atTop.const_div_atTop C
+  have hnonneg : ∀ᶠ m in atTop,
+      (0 : ℝ) ≤ ∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ :=
+    Eventually.of_forall fun m => integral_nonneg fun ω =>
+      Real.rpow_nonneg (norm_nonneg (E m ω)) _
+  have hmoment : Tendsto
+      (fun m => ∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ) atTop (𝓝 0) :=
+    tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hupper hnonneg hbound
+  have hscaled : Tendsto
+      (fun m => (∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ) /
+        (fun _ : ℕ => (1 : ℝ)) m ^ (2 : ℝ)) atTop (𝓝 0) := by
+    simpa using hmoment
+  have hraw := TendstoInMeasure.of_integral_norm_rpow_scaled_tendsto_zero
+    (μ := μ) (X := E) (a := fun _ : ℕ => (1 : ℝ)) (p := (2 : ℝ))
+    (by norm_num) (Eventually.of_forall fun _ => by norm_num) hInt hscaled
+  simpa using hraw
+
+omit [DecidableEq k] in
+/-- Conditional-projection `O(1/n)` mean-square bounds imply the centered
+matrix WLLN, entrywise and hence jointly in the fixed `(1+k)` dimension. -/
+theorem ManyInstrumentsProjectionQuadraticMeanSquareConditions.centered_tendsto_zero
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {C : ℝ}
+    (h : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorCentered
+        (Z m ω) (e m ω) (u2 m ω) Sigma)
+      atTop (fun _ => (0 : Matrix (Sum Unit k) (Sum Unit k) ℝ)) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  exact manyInstruments_tendstoInMeasure_zero_of_integral_sq_le_inv
+    (μ := μ) (E := fun m ω => manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma a b)
+    (h.entry_sq_integrable · a b) (h.entry_mean_square_bound a b)
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentsProjectedFullErrorMoment_inr_inr
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (e : n → ℝ) (u2 : Matrix n k ℝ) :
+    (manyInstrumentsProjectedFullErrorMoment Z e u2).submatrix Sum.inr Sum.inr =
+      manyInstrumentProjectedErrorGram Z u2 := by
+  have hdirect : manyInstrumentProjectedErrorGram Z u2 =
+      (Fintype.card n : ℝ)⁻¹ •
+        (u2ᵀ * instrumentProjectionStar Z * u2) := by
+    rw [manyInstrumentProjectedErrorGram, sampleGram, Matrix.transpose_mul,
+      instrumentProjectionStar_transpose]
+    congr 1
+    rw [Matrix.mul_assoc, Matrix.mul_assoc,
+      ← Matrix.mul_assoc (instrumentProjectionStar Z),
+      instrumentProjectionStar_idempotent]
+  rw [hdirect]
+  ext a b
+  simp [manyInstrumentsProjectedFullErrorMoment,
+    manyInstrumentsReducedFormErrorData, Matrix.mul_apply]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentsProjectedFullErrorMoment_inr_inl
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (e : n → ℝ) (u2 : Matrix n k ℝ) :
+    (fun a => manyInstrumentsProjectedFullErrorMoment Z e u2
+      (Sum.inr a) (Sum.inl ())) =
+        manyInstrumentProjectedErrorCross Z u2 e := by
+  rw [manyInstrumentProjectedErrorCross, sampleCrossMoment,
+    Matrix.transpose_mul, instrumentProjectionStar_transpose]
+  ext a
+  simp [manyInstrumentsProjectedFullErrorMoment,
+    manyInstrumentsReducedFormErrorData, Matrix.mul_apply, Matrix.mulVec,
+    dotProduct]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem ManyInstrumentsProjectionQuadraticMeanSquareConditions.projected_meas
+    [Finite k]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {C : ℝ}
+    (h : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C)
+    (htrace_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ) :
+    ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) μ := by
+  classical
+  letI := Fintype.ofFinite k
+  intro m
+  have hideal : AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω) • Sigma) μ := by
+    change AEStronglyMeasurable
+      (fun ω a b => manyInstrumentProjectionTraceRatio (Z m ω) * Sigma a b) μ
+    rw [aestronglyMeasurable_iff_aemeasurable, aemeasurable_pi_iff]
+    intro a
+    rw [aemeasurable_pi_iff]
+    intro b
+    exact ((htrace_meas m).mul_const (Sigma a b)).aemeasurable
+  refine ((h.centered_meas m).add hideal).congr (ae_of_all μ fun ω => ?_)
+  simp [manyInstrumentsProjectedFullErrorCentered]
+
+omit [DecidableEq k] in
+/-- Combining the honest projected-form concentration bound with projection
+trace convergence gives `n⁻¹u'P_Zu ->p αΣ`. -/
+theorem ManyInstrumentsProjectionQuadraticMeanSquareConditions.projected_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {C alpha : ℝ}
+    (h : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C)
+    (htrace_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ)
+    (htrace : TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectionTraceRatio (Z m ω))
+      atTop (fun _ => alpha)) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω))
+      atTop (fun _ => alpha • Sigma) := by
+  have hideal : TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectionTraceRatio (Z m ω) • Sigma)
+      atTop (fun _ => alpha • Sigma) := by
+    have hSigma : TendstoInMeasure μ
+        (fun _ : ℕ => fun _ : Ω => Sigma) atTop (fun _ => Sigma) := by
+      exact tendstoInMeasure_of_tendsto_ae
+        (fun _ => aestronglyMeasurable_const)
+        (ae_of_all μ fun _ => tendsto_const_nhds)
+    exact tendstoInMeasure_smul_matrix htrace_meas
+      (fun _ => aestronglyMeasurable_const) htrace hSigma
+  exact TendstoInMeasure.of_sub_tendsto_zero_matrix
+    (by simpa [manyInstrumentsProjectedFullErrorCentered] using
+      h.centered_tendsto_zero) hideal
+
+omit [DecidableEq k] in
+/-- The raw model supplies projection-trace convergence and measurability;
+therefore the only additional input needed for the full projected-error WLLN
+is the honest conditional mean-square concentration bound. -/
+theorem ManyInstrumentsTransformedErrorRawModelConditions.projected_full_error_tendsto
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω))
+      atTop (fun _ => alpha • Sigma) := by
+  apply hquad.projected_tendsto
+  · intro m
+    exact manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (hraw.instrument_gram_nonsingular m)
+  · exact
+      manyInstrumentProjectionTraceRatio_tendstoInMeasure_of_eventually_ae_card_ratio_nonsingular
+        hraw.instrument_ratio
+        (Eventually.of_forall hraw.instrument_gram_nonsingular)
+
+omit [DecidableEq k] in
+/-- The `u₂u₂'` principal block of the full projected-error concentration is
+the projected-error Gram used in the 2SLS bread. -/
+theorem ManyInstrumentsTransformedErrorRawModelConditions.projected_error_gram_tendsto
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω))
+      atTop (fun _ => alpha • manyInstrumentsSigma22 Sigma) := by
+  have hfull := hraw.projected_full_error_tendsto hquad
+  have htrace_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ := fun m =>
+    manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (hraw.instrument_gram_nonsingular m)
+  have hblock := tendstoInMeasure_continuous_comp
+    (hquad.projected_meas htrace_meas) hfull
+      (continuous_id.matrix_submatrix Sum.inr Sum.inr)
+  refine TendstoInMeasure.congr (fun m => ae_of_all μ fun ω => ?_)
+    (ae_of_all μ fun _ => ?_) hblock
+  · exact manyInstrumentsProjectedFullErrorMoment_inr_inr
+      (Z m ω) (e m ω) (u2 m ω)
+  · ext a b
+    simp [manyInstrumentsSigma22]
+
+omit [DecidableEq k] in
+/-- The `u₂e` block of the full projected-error concentration is the projected
+error score used in the 2SLS numerator. -/
+theorem ManyInstrumentsTransformedErrorRawModelConditions.projected_error_cross_tendsto
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω))
+      atTop (fun _ => alpha • manyInstrumentsSigma2e Sigma) := by
+  have hfull := hraw.projected_full_error_tendsto hquad
+  have htrace_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ := fun m =>
+    manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (hraw.instrument_gram_nonsingular m)
+  have hentry_cont : Continuous
+      (fun M : Matrix (Sum Unit k) (Sum Unit k) ℝ =>
+        fun a => M (Sum.inr a) (Sum.inl ())) := by
+    fun_prop
+  have hblock := tendstoInMeasure_continuous_comp
+    (hquad.projected_meas htrace_meas) hfull hentry_cont
+  refine TendstoInMeasure.congr (fun m => ae_of_all μ fun ω => ?_)
+    (ae_of_all μ fun _ => ?_) hblock
+  · exact manyInstrumentsProjectedFullErrorMoment_inr_inl
+      (Z m ω) (e m ω) (u2 m ω)
+  · ext a
+    simp [manyInstrumentsSigma2e]
+
+/-- The honest full projected-error concentration bound supplies the two
+projected reduced-form error limits needed by the 2SLS assembly.  All signal
+terms are transported from the unprojected OLS assembly using `P_Z ZΓ = ZΓ` on
+the raw model's a.e. nonsingular branch. -/
+theorem ManyInstrumentsTransformedErrorRawModelConditions.toTwoSLSMomentAssemblyConditions
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) alpha := by
+  let hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      Nonempty (Invertible ((Z m ω)ᵀ * Z m ω)) :=
+    Eventually.of_forall hraw.instrument_gram_nonsingular
+  have htrace_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ := fun m =>
+    manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (hraw.instrument_gram_nonsingular m)
+  have hfull_meas := hquad.projected_meas htrace_meas
+  have hsignal_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m)) μ := by
+    intro m
+    refine (hOLS.signal_gram_meas m).congr ?_
+    filter_upwards [hraw.instrument_gram_nonsingular m] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact (manyInstrumentProjectedSignalGram_eq_signalGram_of_nonsingular
+      (Z m ω) (Gamma m)).symm
+  have hcross_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ := by
+    intro m
+    refine (hOLS.cross_gram_meas m).congr ?_
+    filter_upwards [hraw.instrument_gram_nonsingular m] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact (manyInstrumentProjectedReducedFormCrossGram_eq_crossGram_of_nonsingular
+      (Z m ω) (Gamma m) (u2 m ω)).symm
+  have hsignal_score_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedSignalScore
+        (Z m ω) (Gamma m) (e m ω)) μ := by
+    intro m
+    refine (hOLS.signal_score_meas m).congr ?_
+    filter_upwards [hraw.instrument_gram_nonsingular m] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact (manyInstrumentProjectedSignalScore_eq_signalScore_of_nonsingular
+      (Z m ω) (Gamma m) (e m ω)).symm
+  have herror_gram_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω)) μ := by
+    intro m
+    have hblock := (continuous_id.matrix_submatrix Sum.inr Sum.inr)
+      |>.comp_aestronglyMeasurable (hfull_meas m)
+    refine hblock.congr (ae_of_all μ fun ω => ?_)
+    exact manyInstrumentsProjectedFullErrorMoment_inr_inr
+      (Z m ω) (e m ω) (u2 m ω)
+  have herror_cross_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectedErrorCross
+        (Z m ω) (u2 m ω) (e m ω)) μ := by
+    intro m
+    have hentry_cont : Continuous
+        (fun M : Matrix (Sum Unit k) (Sum Unit k) ℝ =>
+          fun a => M (Sum.inr a) (Sum.inl ())) := by
+      fun_prop
+    have hblock := hentry_cont.comp_aestronglyMeasurable (hfull_meas m)
+    refine hblock.congr (ae_of_all μ fun ω => ?_)
+    exact manyInstrumentsProjectedFullErrorMoment_inr_inl
+      (Z m ω) (e m ω) (u2 m ω)
+  have hsignal_gram_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectedSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H) := by
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hOLS.signal_gram_tendsto
+    filter_upwards [hnonsing] with m hm
+    filter_upwards [hm] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact (manyInstrumentProjectedSignalGram_eq_signalGram_of_nonsingular
+      (Z m ω) (Gamma m)).symm
+  have hcross_gram_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectedReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) atTop (fun _ => 0) := by
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hOLS.cross_gram_tendsto_zero
+    filter_upwards [hnonsing] with m hm
+    filter_upwards [hm] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact (manyInstrumentProjectedReducedFormCrossGram_eq_crossGram_of_nonsingular
+      (Z m ω) (Gamma m) (u2 m ω)).symm
+  have hsignal_score_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectedSignalScore
+        (Z m ω) (Gamma m) (e m ω)) atTop (fun _ => 0) := by
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hOLS.signal_score_tendsto_zero
+    filter_upwards [hnonsing] with m hm
+    filter_upwards [hm] with ω hω
+    rcases hω with ⟨inst⟩
+    letI : Invertible ((Z m ω)ᵀ * Z m ω) := inst
+    exact (manyInstrumentProjectedSignalScore_eq_signalScore_of_nonsingular
+      (Z m ω) (Gamma m) (e m ω)).symm
+  refine
+    { reduced_form := hraw.reduced_form
+      moment_meas := ?_
+      score_meas := ?_
+      projected_signal_gram_meas := hsignal_gram_meas
+      projected_error_gram_meas := herror_gram_meas
+      projected_cross_gram_meas := hcross_gram_meas
+      projected_signal_score_meas := hsignal_score_meas
+      projected_error_score_meas := herror_cross_meas
+      projected_signal_gram_tendsto := hsignal_gram_tendsto
+      projected_error_gram_tendsto := hraw.projected_error_gram_tendsto hquad
+      projected_cross_gram_tendsto_zero := hcross_gram_tendsto
+      projected_signal_score_tendsto_zero := hsignal_score_tendsto
+      projected_error_score_tendsto := hraw.projected_error_cross_tendsto hquad
+      limit_nonsing := ?_ }
+  · intro m
+    have hsum := ((hsignal_gram_meas m).add (herror_gram_meas m)).add
+      (hcross_gram_meas m)
+    refine hsum.congr (ae_of_all μ fun ω => ?_)
+    change
+      manyInstrumentProjectedSignalGram (Z m ω) (Gamma m) +
+          manyInstrumentProjectedErrorGram (Z m ω) (u2 m ω) +
+        manyInstrumentProjectedReducedFormCrossGram
+          (Z m ω) (Gamma m) (u2 m ω) =
+      limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0
+    rw [hraw.reduced_form m ω,
+      manyInstrumentProjectedReducedForm_normalizedMomentMatrix_zero]
+  · intro m
+    have hsum := (hsignal_score_meas m).add (herror_cross_meas m)
+    refine hsum.congr (ae_of_all μ fun ω => ?_)
+    change
+      manyInstrumentProjectedSignalScore (Z m ω) (Gamma m) (e m ω) +
+        manyInstrumentProjectedErrorCross (Z m ω) (u2 m ω) (e m ω) =
+      limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0
+    rw [hraw.reduced_form m ω,
+      manyInstrumentProjectedReducedForm_normalizedMomentVector_zero]
+  · apply manyInstruments_twoSLS_limit_matrix_nonsingular_of_posSemidef
+      hraw.signal_posDef
+    · simpa [manyInstrumentsSigma22] using
+        hraw.error_covariance_posDef.posSemidef.submatrix Sum.inr
+    · exact manyInstruments_alpha_nonneg_of_card_ratio_tendsto
+        hraw.instrument_ratio
+
+/-- Reconstruct the normalized joint `[Y,X]` moment from the regressor Gram,
+regressor/error score, and structural-error second moment under `Y = Xβ + e`.
+
+Writing `B = [β,I]` and `c = [1,0]`, this is
+`B'AB + B'sc' + cs'B + qcc'`.  The map is useful for both the ordinary and
+projected moments and keeps the normalized-pencil proof at the same moment
+layer already used by the OLS and 2SLS faces of Theorem 12.19. -/
+noncomputable def manyInstrumentsStructuralJointMoment
+    (β : k → ℝ) (A : Matrix k k ℝ) (s : k → ℝ) (q : ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ
+  | Sum.inl _, Sum.inl _ =>
+      β ⬝ᵥ (A *ᵥ β) + β ⬝ᵥ s + β ⬝ᵥ s + q
+  | Sum.inl _, Sum.inr b => β ⬝ᵥ (fun a => A a b) + s b
+  | Sum.inr a, Sum.inl _ => (A *ᵥ β) a + s a
+  | Sum.inr a, Sum.inr b => A a b
+
+private theorem manyInstruments_sumSwap2
+    {a b : Type*} [Fintype a] [Fintype b] (f : a → b → ℝ) :
+    (∑ i, ∑ j, f i j) = ∑ j, ∑ i, f i j := Finset.sum_comm
+
+private theorem manyInstruments_sumSwap3
+    {a b c : Type*} [Fintype a] [Fintype b] [Fintype c]
+    (f : a → b → c → ℝ) :
+    (∑ i, ∑ j, ∑ h, f i j h) = ∑ j, ∑ h, ∑ i, f i j h := by
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro j _
+  rw [Finset.sum_comm]
+
+private theorem manyInstruments_sumRotate3
+    {a b c : Type*} [Fintype a] [Fintype b] [Fintype c]
+    (f : a → b → c → ℝ) :
+    (∑ i, ∑ j, ∑ h, f i j h) = ∑ h, ∑ i, ∑ j, f i j h := by
+  calc
+    (∑ i, ∑ j, ∑ h, f i j h) = ∑ i, ∑ h, ∑ j, f i j h := by
+      apply Finset.sum_congr rfl
+      intro i _
+      rw [Finset.sum_comm]
+    _ = ∑ h, ∑ i, ∑ j, f i j h := Finset.sum_comm
+
+private theorem manyInstruments_sumPerm4
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    (f : a → b → c → d → ℝ) :
+    (∑ i, ∑ j, ∑ h, ∑ l, f i j h l) =
+      ∑ l, ∑ j, ∑ i, ∑ h, f i j h l := by
+  calc
+    (∑ i, ∑ j, ∑ h, ∑ l, f i j h l) =
+        ∑ i, ∑ j, ∑ l, ∑ h, f i j h l := by
+      apply Finset.sum_congr rfl
+      intro i _
+      apply Finset.sum_congr rfl
+      intro j _
+      rw [Finset.sum_comm]
+    _ = ∑ i, ∑ l, ∑ j, ∑ h, f i j h l := by
+      apply Finset.sum_congr rfl
+      intro i _
+      rw [Finset.sum_comm]
+    _ = ∑ l, ∑ i, ∑ j, ∑ h, f i j h l := Finset.sum_comm
+    _ = ∑ l, ∑ j, ∑ i, ∑ h, f i j h l := by
+      apply Finset.sum_congr rfl
+      intro l _
+      rw [Finset.sum_comm]
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_normalizedRayleighNumerator_eq_structuralJointMoment
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y e : n → ℝ)
+    (u2 : Matrix n k ℝ) (β : k → ℝ)
+    (hY : Y = X *ᵥ β + e) :
+    (Fintype.card n : ℝ)⁻¹ •
+        manyInstrumentsLIMLSampleRayleighNumerator Z X Y =
+      manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar Z X 0)
+        (limlNormalizedMomentVectorStar Z X e 0)
+        (manyInstrumentsProjectedFullErrorMoment Z e u2
+          (Sum.inl ()) (Sum.inl ())) := by
+  subst Y
+  have hP : ∀ i j, instrumentProjectionStar Z i j =
+      instrumentProjectionStar Z j i := by
+    intro i j
+    have hij := congrFun (congrFun (instrumentProjectionStar_transpose Z) j) i
+    simpa using hij
+  ext a b
+  cases a with
+  | inl ua =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            manyInstrumentsProjectedFullErrorMoment,
+            manyInstrumentsReducedFormErrorData,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlNormalizedMomentVectorStar, limlMomentVectorStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+            Matrix.smul_apply, hP, mul_add, add_mul,
+            Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_mul]
+          rw [manyInstruments_sumPerm4
+            (fun (i : n) (a : k) (j : n) (b : k) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (X j b * β b * instrumentProjectionStar Z i j *
+                  (X i a * β a)))]
+          rw [manyInstruments_sumSwap3
+            (fun (i : n) (a : k) (j : n) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (e j * instrumentProjectionStar Z i j * (X i a * β a)))]
+          rw [manyInstruments_sumRotate3
+            (fun (i j : n) (a : k) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (X j a * β a * instrumentProjectionStar Z i j * e i))]
+          have hquad (a b : k) (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (X j a * β a * instrumentProjectionStar Z i j *
+                    (X i b * β b)) =
+                β a * ((Fintype.card n : ℝ)⁻¹ *
+                  (X j a * instrumentProjectionStar Z i j * X i b) * β b) := by
+            ring
+          have hcrossSymm (a : k) (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (e j * instrumentProjectionStar Z i j * (X i a * β a)) =
+                β a * ((Fintype.card n : ℝ)⁻¹ *
+                  (X i a * instrumentProjectionStar Z j i * e j)) := by
+            rw [hP]
+            ring
+          have hcross (a : k) (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (X j a * β a * instrumentProjectionStar Z i j * e i) =
+                β a * ((Fintype.card n : ℝ)⁻¹ *
+                  (X j a * instrumentProjectionStar Z i j * e i)) := by
+            ring
+          simp_rw [hquad, hcrossSymm, hcross]
+          ring
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlNormalizedMomentVectorStar, limlMomentVectorStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+            Matrix.smul_apply, hP, mul_add, add_mul,
+            Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_mul]
+          rw [manyInstruments_sumRotate3
+            (fun (i j : n) (a : k) =>
+              (Fintype.card n : ℝ)⁻¹ *
+                (X j a * β a * instrumentProjectionStar Z i j * X i b))]
+          rw [manyInstruments_sumSwap2
+            (fun (i j : n) => (Fintype.card n : ℝ)⁻¹ *
+              (e j * instrumentProjectionStar Z i j * X i b))]
+          have hcross (i j : n) :
+              (Fintype.card n : ℝ)⁻¹ *
+                  (e j * instrumentProjectionStar Z i j * X i b) =
+                (Fintype.card n : ℝ)⁻¹ *
+                  (X i b * instrumentProjectionStar Z j i * e j) := by
+            rw [hP]
+            ring
+          simp_rw [hcross]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+  | inr a =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlNormalizedMomentVectorStar, limlMomentVectorStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+            Matrix.smul_apply, hP, mul_add,
+            Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_mul]
+          rw [manyInstruments_sumSwap2
+            (fun (i : n) (b : k) =>
+              ∑ j : n, (Fintype.card n : ℝ)⁻¹ *
+                (X j a * instrumentProjectionStar Z i j * (X i b * β b)))]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighNumerator,
+            manyInstrumentsStructuralJointMoment,
+            limlNormalizedMomentMatrixStar, limlMomentMatrixStar,
+            limlWeightMatrixStar, Matrix.mul_apply, Matrix.smul_apply]
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_sampleGram_rayleighData_eq_structuralJointMoment
+    {n : Type*} [Fintype n] [DecidableEq n]
+    (X : Matrix n k ℝ) (Y e : n → ℝ) (u2 : Matrix n k ℝ)
+    (β : k → ℝ) (hY : Y = X *ᵥ β + e) :
+    sampleGram (manyInstrumentsLIMLSampleRayleighData X Y) =
+      manyInstrumentsStructuralJointMoment β (sampleGram X)
+        (sampleCrossMoment X e)
+        (sampleGram (manyInstrumentsReducedFormErrorData e u2)
+          (Sum.inl ()) (Sum.inl ())) := by
+  subst Y
+  ext a b
+  cases a with
+  | inl ua =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment,
+            manyInstrumentsReducedFormErrorData, sampleGram, sampleCrossMoment,
+            Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.smul_apply,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [manyInstruments_sumSwap3
+            (fun i a b => (Fintype.card n : ℝ)⁻¹ *
+              (X i b * β b * (X i a * β a)))]
+          rw [manyInstruments_sumSwap2
+            (fun i a => (Fintype.card n : ℝ)⁻¹ *
+              (e i * (X i a * β a)))]
+          rw [manyInstruments_sumSwap2
+            (fun i a => (Fintype.card n : ℝ)⁻¹ *
+              (X i a * β a * e i))]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+          ring
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment,
+            sampleGram, sampleCrossMoment,
+            Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.smul_apply,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [Finset.sum_comm]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+  | inr a =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment,
+            sampleGram, sampleCrossMoment,
+            Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.smul_apply,
+            mul_add, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [Finset.sum_comm]
+          simp only [mul_comm, mul_left_comm, mul_assoc]
+      | inr b =>
+          simp [manyInstrumentsLIMLSampleRayleighData,
+            manyInstrumentsStructuralJointMoment, sampleGram,
+            Matrix.mul_apply, Matrix.smul_apply]
+
+omit [Fintype k] [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_normalizedRayleighDenominator_eq_total_sub_numerator
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+    (Fintype.card n : ℝ)⁻¹ •
+        manyInstrumentsLIMLSampleRayleighDenominator Z X Y =
+      sampleGram (manyInstrumentsLIMLSampleRayleighData X Y) -
+        (Fintype.card n : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighNumerator Z X Y := by
+  simp [manyInstrumentsLIMLSampleRayleighDenominator,
+    manyInstrumentsLIMLSampleRayleighNumerator,
+    manyInstrumentsLIMLSampleRayleighData, sampleGram, Matrix.mul_sub,
+    Matrix.sub_mul, Matrix.mul_assoc, smul_sub]
+
+omit [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_structuralJointMoment_limit
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (r : ℝ)
+    (hSigma : Sigma.PosDef) :
+    manyInstrumentsStructuralJointMoment β
+        (H + r • manyInstrumentsSigma22 Sigma)
+        (r • manyInstrumentsSigma2e Sigma)
+        (r * Sigma (Sum.inl ()) (Sum.inl ())) =
+      (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+        r • manyInstrumentsJointReducedFormCovariance β Sigma := by
+  have hsymm : ∀ a b, Sigma a b = Sigma b a := by
+    intro a b
+    have hab := congrFun (congrFun hSigma.isHermitian.eq b) a
+    simpa [Matrix.conjTranspose_apply] using hab
+  ext a b
+  cases a with
+  | inl ua =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsSigma2e, manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            Matrix.mulVec, dotProduct, Matrix.smul_apply, hsymm,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          rw [manyInstruments_sumSwap2
+            (fun x i => β x * (H x i * β i))]
+          simp only [mul_comm, mul_left_comm]
+          ring
+      | inr b =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsSigma2e, manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            dotProduct, Matrix.smul_apply, hsymm,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum,
+            Finset.sum_mul]
+          simp only [mul_left_comm]
+          ring
+  | inr a =>
+      cases b with
+      | inl ub =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsSigma2e, manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            Matrix.mulVec, dotProduct, Matrix.smul_apply, hsymm,
+            mul_add, add_mul, Finset.sum_add_distrib, Finset.mul_sum]
+          simp only [mul_comm, mul_left_comm]
+          ring
+      | inr b =>
+          simp [manyInstrumentsStructuralJointMoment,
+            manyInstrumentsStructuralLoading, manyInstrumentsSigma22,
+            manyInstrumentsJointReducedFormCovariance,
+            manyInstrumentsReducedFormErrorLoading, Matrix.mul_apply,
+            Matrix.smul_apply, hsymm]
+
+omit [MeasurableSpace Ω] in
+private theorem iCondIndepFun_condIndepFun_finset_of_aestronglyMeasurable
+    {mc mΩ : MeasurableSpace Ω} [@StandardBorelSpace Ω mΩ]
+    {μ : @Measure Ω mΩ} [IsProbabilityMeasure μ]
+    {I E : Type*} [TopologicalSpace E] [TopologicalSpace.PseudoMetrizableSpace E]
+    [MeasurableSpace E] [BorelSpace E]
+    {U : I → Ω → E} (hmc : mc ≤ mΩ)
+    (hind : iCondIndepFun mc hmc U μ)
+    (hU : ∀ i, AEStronglyMeasurable (U i) μ)
+    (S T : Finset I) (hST : Disjoint S T) :
+    CondIndepFun mc hmc
+      (fun ω (i : S) => U i ω) (fun ω (i : T) => U i ω) μ := by
+  unfold ProbabilityTheory.iCondIndepFun at hind
+  unfold ProbabilityTheory.CondIndepFun
+  apply ProbabilityTheory.Kernel.iIndepFun.indepFun_finset₀ S T hST hind
+  intro i
+  rw [condExpKernel_comp_trim hmc]
+  exact (hU i).aemeasurable
+
+private theorem integral_sq_sum_le_card_mul_of_centered_uncorrelated
+    {I : Type*} [Fintype I]
+    {Q : I → Ω → ℝ} {B : ℝ}
+    (hQ : ∀ i, MemLp (Q i) 2 μ)
+    (hmean : ∀ i, ∫ ω, Q i ω ∂μ = 0)
+    (hcross : ∀ i j, i ≠ j → ∫ ω, Q i ω * Q j ω ∂μ = 0)
+    (hvar : ∀ i, Var[Q i; μ] ≤ B) :
+    Integrable (fun ω => (∑ i, Q i ω) ^ 2) μ ∧
+      (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) ≤ (Fintype.card I : ℝ) * B := by
+  classical
+  have hsumLp : MemLp (fun ω => ∑ i, Q i ω) 2 μ :=
+    memLp_finset_sum Finset.univ (fun i _ => hQ i)
+  have hsumMean : ∫ ω, ∑ i, Q i ω ∂μ = 0 := by
+    rw [integral_finset_sum Finset.univ]
+    · simp [hmean]
+    · intro i _
+      exact (hQ i).integrable (by norm_num)
+  have hsumSqInt : Integrable (fun ω => (∑ i, Q i ω) ^ 2) μ := by
+    simpa only [Pi.mul_apply, pow_two] using hsumLp.integrable_mul hsumLp
+  refine ⟨hsumSqInt, ?_⟩
+  calc
+    (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) = Var[fun ω => ∑ i, Q i ω; μ] :=
+      (variance_of_integral_eq_zero hsumLp.aemeasurable hsumMean).symm
+    _ = ∑ i, ∑ j, cov[Q i, Q j; μ] := variance_fun_sum hQ
+    _ = ∑ i, Var[Q i; μ] := by
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      rw [← covariance_self (hQ i).aemeasurable]
+      apply Finset.sum_eq_single i
+      · intro j _ hji
+        rw [covariance_eq_sub (hQ i) (hQ j), hmean i, hmean j]
+        simpa only [Pi.mul_apply, mul_zero, sub_zero] using hcross i j hji.symm
+      · simp
+    _ ≤ ∑ _i : I, B := Finset.sum_le_sum fun i _ => hvar i
+    _ = (Fintype.card I : ℝ) * B := by simp
+
+private theorem integral_sq_sum_eq_sum_integral_sq_of_centered_uncorrelated
+    {I : Type*} [Fintype I]
+    {Q : I → Ω → ℝ}
+    (hQ : ∀ i, MemLp (Q i) 2 μ)
+    (hmean : ∀ i, ∫ ω, Q i ω ∂μ = 0)
+    (hcross : ∀ i j, i ≠ j → ∫ ω, Q i ω * Q j ω ∂μ = 0) :
+    Integrable (fun ω => (∑ i, Q i ω) ^ 2) μ ∧
+      (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) =
+        ∑ i, ∫ ω, (Q i ω) ^ 2 ∂μ := by
+  classical
+  have hsumLp : MemLp (fun ω => ∑ i, Q i ω) 2 μ :=
+    memLp_finset_sum Finset.univ (fun i _ => hQ i)
+  have hsumMean : ∫ ω, ∑ i, Q i ω ∂μ = 0 := by
+    rw [integral_finset_sum Finset.univ]
+    · simp [hmean]
+    · intro i _
+      exact (hQ i).integrable (by norm_num)
+  have hsumSqInt : Integrable (fun ω => (∑ i, Q i ω) ^ 2) μ := by
+    simpa only [Pi.mul_apply, pow_two] using hsumLp.integrable_mul hsumLp
+  refine ⟨hsumSqInt, ?_⟩
+  calc
+    (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) = Var[fun ω => ∑ i, Q i ω; μ] :=
+      (variance_of_integral_eq_zero hsumLp.aemeasurable hsumMean).symm
+    _ = ∑ i, ∑ j, cov[Q i, Q j; μ] := variance_fun_sum hQ
+    _ = ∑ i, Var[Q i; μ] := by
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      rw [← covariance_self (hQ i).aemeasurable]
+      apply Finset.sum_eq_single i
+      · intro j _ hji
+        rw [covariance_eq_sub (hQ i) (hQ j), hmean i, hmean j]
+        simpa only [Pi.mul_apply, mul_zero, sub_zero] using hcross i j hji.symm
+      · simp
+    _ = ∑ i, ∫ ω, (Q i ω) ^ 2 ∂μ := by
+      apply Finset.sum_congr rfl
+      intro i _
+      rw [variance_eq_sub (hQ i), hmean i]
+      simp
+
+private theorem integrable_mul_three_of_memLp_four
+    {f g h : Ω → ℝ}
+    (hf : MemLp f 4 μ) (hg : MemLp g 4 μ) (hh : MemLp h 4 μ) :
+    Integrable (fun ω => f ω * g ω * h ω) μ := by
+  have hfg : MemLp (fun ω => f ω * g ω) 2 μ :=
+    mul_memLp_two_of_memLp_four hf hg
+  haveI : ENNReal.HolderTriple (2 : ENNReal) (4 : ENNReal)
+      (ENNReal.ofReal (4 / 3)) := by
+    have hreal : Real.HolderTriple (2 : ℝ) (4 : ℝ) (4 / 3 : ℝ) := by
+      refine ⟨?_, by norm_num, by norm_num⟩
+      norm_num [inv_eq_one_div]
+    simpa using (Real.HolderTriple.ennrealOfReal hreal)
+  have hprod : MemLp (fun ω => (f ω * g ω) * h ω)
+      (ENNReal.ofReal (4 / 3)) μ := by
+    simpa [Pi.mul_apply] using hh.mul hfg
+  exact memLp_one_iff_integrable.mp
+    (hprod.mono_exponent (by norm_num : (1 : ENNReal) ≤ ENNReal.ofReal (4 / 3)))
+
+private theorem condExpOn_four_coordinates_eq_zero_of_unique
+    [StandardBorelSpace Ω]
+    {I d ζ : Type*} [Fintype d] [MeasurableSpace ζ]
+    {Z : Ω → ζ} (hZ : Measurable Z)
+    {U : I → Ω → d → ℝ}
+    (hU4 : ∀ i, MemLp (U i) 4 μ)
+    (hind : iCondIndepFun (conditioningSpace Z) (conditioningSpace_le hZ) U μ)
+    (hmean : ∀ i c, condExpOn μ (fun ω => U i ω c) Z =ᵐ[μ] 0)
+    (i j q r : I) (hij : i ≠ j) (hiq : i ≠ q) (hir : i ≠ r)
+    (a b c d' : d) :
+    condExpOn μ
+      (fun ω => U i ω a * U j ω b * U q ω c * U r ω d') Z =ᵐ[μ] 0 := by
+  classical
+  let S : Finset I := {i}
+  let T : Finset I := {j, q, r}
+  have hST : Disjoint S T := by
+    simp [S, T, hij, hiq, hir]
+  have htuple := iCondIndepFun_condIndepFun_finset_of_aestronglyMeasurable
+    (conditioningSpace_le hZ) hind (fun s => (hU4 s).1) S T hST
+  let si : S := ⟨i, by simp [S]⟩
+  let tj : T := ⟨j, by simp [T]⟩
+  let tq : T := ⟨q, by simp [T]⟩
+  let tr : T := ⟨r, by simp [T]⟩
+  let f : (S → d → ℝ) → ℝ := fun x => x si a
+  let g : (T → d → ℝ) → ℝ := fun x => x tj b * x tq c * x tr d'
+  have hf : Measurable f := by fun_prop
+  have hg : Measurable g := by fun_prop
+  have hscalar : CondIndepFun (conditioningSpace Z) (conditioningSpace_le hZ)
+      (fun ω => U i ω a)
+      (fun ω => U j ω b * U q ω c * U r ω d') μ := by
+    simpa [f, g, si, tj, tq, tr, S, T, Function.comp_def] using htuple.comp hf hg
+  have hi4 := (hU4 i).eval a
+  have hj4 := (hU4 j).eval b
+  have hq4 := (hU4 q).eval c
+  have hr4 := (hU4 r).eval d'
+  have hiInt : Integrable (fun ω => U i ω a) μ := hi4.integrable (by norm_num)
+  have hrestInt : Integrable
+      (fun ω => U j ω b * U q ω c * U r ω d') μ :=
+    integrable_mul_three_of_memLp_four hj4 hq4 hr4
+  have hpair1 : MemLp (fun ω => U i ω a * U j ω b) 2 μ :=
+    mul_memLp_two_of_memLp_four hi4 hj4
+  have hpair2 : MemLp (fun ω => U q ω c * U r ω d') 2 μ :=
+    mul_memLp_two_of_memLp_four hq4 hr4
+  have hallInt : Integrable
+      (fun ω => U i ω a * (U j ω b * U q ω c * U r ω d')) μ := by
+    refine (hpair1.integrable_mul hpair2).congr (ae_of_all μ fun ω => ?_)
+    simp only [Pi.mul_apply]
+    ring
+  have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+    hZ hscalar hiInt hrestInt hallInt
+  have hzero : condExpOn μ
+      (fun ω => U i ω a * (U j ω b * U q ω c * U r ω d')) Z =ᵐ[μ] 0 := by
+    filter_upwards [hfactor, hmean i a] with ω hfac hz
+    rw [hfac, hz]
+    simp
+  simpa [mul_assoc] using hzero
+
+omit [IsProbabilityMeasure μ] in
+private theorem condExpOn_sub_const_mul_eq_zero
+    {ζ : Type*} [MeasurableSpace ζ]
+    {Z : Ω → ζ} {f g : Ω → ℝ}
+    (hf : Integrable f μ) (hg : Integrable g μ)
+    (hfzero : condExpOn μ f Z =ᵐ[μ] 0)
+    (hgzero : condExpOn μ g Z =ᵐ[μ] 0) (c : ℝ) :
+    condExpOn μ (fun ω => f ω - c * g ω) Z =ᵐ[μ] 0 := by
+  have hscale : condExpOn μ (fun ω => c * g ω) Z =ᵐ[μ]
+      fun ω => c * condExpOn μ g Z ω := by
+    simpa [condExpOn, Pi.smul_apply, smul_eq_mul] using
+      (condExp_smul (μ := μ) (m := conditioningSpace Z) c g)
+  have hsub : condExpOn μ (fun ω => f ω - c * g ω) Z =ᵐ[μ]
+      fun ω => condExpOn μ f Z ω - condExpOn μ (fun ω => c * g ω) Z ω := by
+    simpa [condExpOn] using condExp_sub hf (hg.const_mul c) (conditioningSpace Z)
+  filter_upwards [hsub, hscale, hfzero, hgzero] with ω hsubω hscaleω hfω hgω
+  rw [hsubω, hscaleω, hfω, hgω]
+  simp
+
+private theorem condExpOn_centered_pair_mul_eq_zero
+    [StandardBorelSpace Ω]
+    {I d ζ : Type*} [DecidableEq I] [Fintype d] [MeasurableSpace ζ]
+    {Z : Ω → ζ} (hZ : Measurable Z)
+    {U : I → Ω → d → ℝ} {Sigma : d → d → ℝ}
+    (hU4 : ∀ i, MemLp (U i) 4 μ)
+    (hind : iCondIndepFun (conditioningSpace Z) (conditioningSpace_le hZ) U μ)
+    (hmean : ∀ i c, condExpOn μ (fun ω => U i ω c) Z =ᵐ[μ] 0)
+    (hsecond : ∀ i c d',
+      condExpOn μ (fun ω => U i ω c * U i ω d') Z =ᵐ[μ]
+        fun _ => Sigma c d')
+    (i j q r : I)
+    (hneq : ¬ (i = q ∧ j = r)) (hrev : ¬ (i = r ∧ j = q))
+    (a b c d' : d) :
+    condExpOn μ
+      (fun ω =>
+        (U i ω a * U j ω b - if i = j then Sigma a b else 0) *
+        (U q ω c * U r ω d' - if q = r then Sigma c d' else 0)) Z =ᵐ[μ] 0 := by
+  classical
+  have hcoord4 (s : I) (x : d) : MemLp (fun ω => U s ω x) 4 μ :=
+    (hU4 s).eval x
+  have hprod2 (s t : I) (x y : d) :
+      MemLp (fun ω => U s ω x * U t ω y) 2 μ :=
+    mul_memLp_two_of_memLp_four (hcoord4 s x) (hcoord4 t y)
+  have hoff (s t : I) (hst : s ≠ t) (x y : d) :
+      condExpOn μ (fun ω => U s ω x * U t ω y) Z =ᵐ[μ] 0 := by
+    have hrow := hind.condIndepFun hst
+    have hxy : CondIndepFun (conditioningSpace Z) (conditioningSpace_le hZ)
+        (fun ω => U s ω x) (fun ω => U t ω y) μ := by
+      simpa [Function.comp_def] using hrow.comp (measurable_pi_apply x) (measurable_pi_apply y)
+    have hs2 := (hcoord4 s x).mono_exponent (by norm_num : (2 : ENNReal) ≤ 4)
+    have ht2 := (hcoord4 t y).mono_exponent (by norm_num : (2 : ENNReal) ≤ 4)
+    have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+      hZ hxy (hs2.integrable (by norm_num)) (ht2.integrable (by norm_num))
+        (hs2.integrable_mul ht2)
+    filter_upwards [hfactor, hmean s x, hmean t y] with ω hfac hs ht
+    rw [hfac, hs, ht]
+    simp
+  have hdiag (s : I) (x y : d) :
+      condExpOn μ (fun ω => U s ω x * U s ω y - Sigma x y) Z =ᵐ[μ] 0 := by
+    have hprodInt : Integrable (fun ω => U s ω x * U s ω y) μ :=
+      (hprod2 s s x y).integrable (by norm_num)
+    have hsub : condExpOn μ (fun ω => U s ω x * U s ω y - Sigma x y) Z =ᵐ[μ]
+        fun ω => condExpOn μ (fun ω => U s ω x * U s ω y) Z ω -
+          condExpOn μ (fun _ => Sigma x y) Z ω := by
+      simpa [condExpOn] using condExp_sub hprodInt (integrable_const (Sigma x y))
+        (conditioningSpace Z)
+    have hconst : condExpOn μ (fun _ : Ω => Sigma x y) Z = fun _ => Sigma x y := by
+      simpa [condExpOn] using
+        (condExp_const (μ := μ) (conditioningSpace_le hZ) (Sigma x y))
+    filter_upwards [hsub, hsecond s x y] with ω hsubω hsecondω
+    rw [hsubω, hsecondω, hconst]
+    simp
+  by_cases hij : i = j
+  · subst j
+    by_cases hqr : q = r
+    · subst r
+      have hiq : i ≠ q := by
+        intro hiq
+        apply hneq
+        exact ⟨hiq, hiq⟩
+      have hrow := hind.condIndepFun hiq
+      let fi : (d → ℝ) → ℝ := fun x => x a * x b - Sigma a b
+      let fq : (d → ℝ) → ℝ := fun x => x c * x d' - Sigma c d'
+      have hcentered : CondIndepFun (conditioningSpace Z) (conditioningSpace_le hZ)
+          (fun ω => U i ω a * U i ω b - Sigma a b)
+          (fun ω => U q ω c * U q ω d' - Sigma c d') μ := by
+        have hfi : Measurable fi :=
+          ((measurable_pi_apply a).mul (measurable_pi_apply b)).sub measurable_const
+        have hfq : Measurable fq :=
+          ((measurable_pi_apply c).mul (measurable_pi_apply d')).sub measurable_const
+        simpa [fi, fq, Function.comp_def] using hrow.comp hfi hfq
+      have hi2 : MemLp (fun ω => U i ω a * U i ω b - Sigma a b) 2 μ :=
+        (hprod2 i i a b).sub (memLp_const (Sigma a b))
+      have hq2 : MemLp (fun ω => U q ω c * U q ω d' - Sigma c d') 2 μ :=
+        (hprod2 q q c d').sub (memLp_const (Sigma c d'))
+      have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+        hZ hcentered (hi2.integrable (by norm_num)) (hq2.integrable (by norm_num))
+          (hi2.integrable_mul hq2)
+      have hzero : condExpOn μ
+          (fun ω => (U i ω a * U i ω b - Sigma a b) *
+            (U q ω c * U q ω d' - Sigma c d')) Z =ᵐ[μ] 0 := by
+        filter_upwards [hfactor, hdiag i a b, hdiag q c d'] with ω hfac hi hq
+        rw [hfac, hi, hq]
+        simp
+      simpa using hzero
+    · have hfourInt : Integrable
+          (fun ω => U i ω a * U i ω b * U q ω c * U r ω d') μ :=
+        ((hprod2 i i a b).integrable_mul (hprod2 q r c d')).congr
+          (ae_of_all μ fun ω => by simp only [Pi.mul_apply]; ring)
+      have hoffInt : Integrable (fun ω => U q ω c * U r ω d') μ :=
+        (hprod2 q r c d').integrable (by norm_num)
+      by_cases hiq : i = q
+      · subst q
+        have hri : r ≠ i := by simpa [eq_comm] using hqr
+        have hfour := condExpOn_four_coordinates_eq_zero_of_unique hZ hU4 hind hmean
+          r i i i hri hri hri d' a b c
+        have hfour' : condExpOn μ
+            (fun ω => U i ω a * U i ω b * U i ω c * U r ω d') Z =ᵐ[μ] 0 := by
+          simpa [mul_assoc, mul_comm, mul_left_comm] using hfour
+        simpa [hqr, sub_mul, mul_assoc] using
+          (condExpOn_sub_const_mul_eq_zero hfourInt hoffInt hfour'
+            (hoff i r hqr c d') (Sigma a b))
+      · have hqi : q ≠ i := by exact fun h => hiq h.symm
+        have hfour := condExpOn_four_coordinates_eq_zero_of_unique hZ hU4 hind hmean
+          q i i r hqi hqi hqr c a b d'
+        have hfour' : condExpOn μ
+            (fun ω => U i ω a * U i ω b * U q ω c * U r ω d') Z =ᵐ[μ] 0 := by
+          simpa [mul_assoc, mul_comm, mul_left_comm] using hfour
+        simpa [hqr, sub_mul, mul_assoc] using
+          (condExpOn_sub_const_mul_eq_zero hfourInt hoffInt hfour'
+            (hoff q r hqr c d') (Sigma a b))
+  · simp only [if_neg hij]
+    by_cases hqr : q = r
+    · subst r
+      have hfourInt : Integrable
+          (fun ω => U i ω a * U j ω b * U q ω c * U q ω d') μ :=
+        ((hprod2 i j a b).integrable_mul (hprod2 q q c d')).congr
+          (ae_of_all μ fun ω => by simp only [Pi.mul_apply]; ring)
+      have hoffInt : Integrable (fun ω => U i ω a * U j ω b) μ :=
+        (hprod2 i j a b).integrable (by norm_num)
+      by_cases hiq : i = q
+      · subst q
+        have hji : j ≠ i := by exact fun h => hij h.symm
+        have hfour := condExpOn_four_coordinates_eq_zero_of_unique hZ hU4 hind hmean
+          j i i i hji hji hji b a c d'
+        have hfour' : condExpOn μ
+            (fun ω => U i ω a * U j ω b * U i ω c * U i ω d') Z =ᵐ[μ] 0 := by
+          simpa [mul_assoc, mul_comm, mul_left_comm] using hfour
+        simpa [hij, mul_sub, mul_assoc, mul_comm, mul_left_comm] using
+          (condExpOn_sub_const_mul_eq_zero hfourInt hoffInt hfour'
+            (hoff i j hij a b) (Sigma c d'))
+      · have hii : i ≠ q := hiq
+        have hfour := condExpOn_four_coordinates_eq_zero_of_unique hZ hU4 hind hmean
+          i j q q hij hii hii a b c d'
+        simpa [hij, mul_sub, mul_assoc, mul_comm, mul_left_comm] using
+          (condExpOn_sub_const_mul_eq_zero hfourInt hoffInt hfour
+            (hoff i j hij a b) (Sigma c d'))
+    · by_cases hiq : i = q
+      · subst q
+        have hjr : j ≠ r := by
+          intro hjr
+          apply hneq
+          exact ⟨rfl, hjr⟩
+        have hji : j ≠ i := by exact fun h => hij h.symm
+        have hfour := condExpOn_four_coordinates_eq_zero_of_unique hZ hU4 hind hmean
+          j i i r hji hji hjr b a c d'
+        simpa [hij, hqr, mul_assoc, mul_comm, mul_left_comm] using hfour
+      · by_cases hir : i = r
+        · subst r
+          have hjq : j ≠ q := by
+            intro hjq
+            apply hrev
+            exact ⟨rfl, hjq⟩
+          have hji : j ≠ i := by exact fun h => hij h.symm
+          have hfour := condExpOn_four_coordinates_eq_zero_of_unique hZ hU4 hind hmean
+            j i q i hji hjq hji b a c d'
+          simpa [hij, hqr, mul_assoc, mul_comm, mul_left_comm] using hfour
+        · simpa [hij, hqr, mul_assoc] using
+            (condExpOn_four_coordinates_eq_zero_of_unique hZ hU4 hind hmean
+              i j q r hij hiq hir a b c d')
+
+omit [IsProbabilityMeasure μ] in
+private theorem integral_add_mul_add_eq_zero
+    {f g p q : Ω → ℝ}
+    (hf : MemLp f 2 μ) (hg : MemLp g 2 μ)
+    (hp : MemLp p 2 μ) (hq : MemLp q 2 μ)
+    (hfp : ∫ ω, f ω * p ω ∂μ = 0)
+    (hfq : ∫ ω, f ω * q ω ∂μ = 0)
+    (hgp : ∫ ω, g ω * p ω ∂μ = 0)
+    (hgq : ∫ ω, g ω * q ω ∂μ = 0) :
+    ∫ ω, (f ω + g ω) * (p ω + q ω) ∂μ = 0 := by
+  have hfpInt : Integrable (fun ω => f ω * p ω) μ := hf.integrable_mul hp
+  have hfqInt : Integrable (fun ω => f ω * q ω) μ := hf.integrable_mul hq
+  have hgpInt : Integrable (fun ω => g ω * p ω) μ := hg.integrable_mul hp
+  have hgqInt : Integrable (fun ω => g ω * q ω) μ := hg.integrable_mul hq
+  rw [show (fun ω => (f ω + g ω) * (p ω + q ω)) =
+      fun ω => (f ω * p ω + f ω * q ω) + (g ω * p ω + g ω * q ω) by
+        funext ω; ring]
+  have houter := integral_add (hfpInt.add hfqInt) (hgpInt.add hgqInt)
+  have hleft := integral_add hfpInt hfqInt
+  have hright := integral_add hgpInt hgqInt
+  simp only [Pi.add_apply] at houter hleft hright
+  rw [houter, hleft, hright, hfp, hfq, hgp, hgq]
+  norm_num
+
+private theorem sum_oriented_pairs
+    {I : Type*} [Fintype I] [LinearOrder I]
+    (Q : I → I → ℝ) :
+    (∑ i, ∑ j, if i < j then Q i j + Q j i else if i = j then Q i i else 0) =
+      ∑ i, ∑ j, Q i j := by
+  classical
+  let U := ∑ i, ∑ j, if i < j then Q i j else 0
+  let UT := ∑ i, ∑ j, if i < j then Q j i else 0
+  let D := ∑ i, ∑ j, if i = j then Q i j else 0
+  let L := ∑ i, ∑ j, if j < i then Q i j else 0
+  have hleft :
+      (∑ i, ∑ j, if i < j then Q i j + Q j i else if i = j then Q i i else 0) =
+        U + UT + D := by
+    simp only [U, UT, D]
+    rw [← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro j _
+    by_cases hij : i < j
+    · simp [hij, hij.ne]
+    · by_cases heq : i = j
+      · subst j
+        simp
+      · simp [hij, heq]
+  have hswap : UT = L := by
+    simp only [UT, L]
+    rw [Finset.sum_comm]
+  have htotal : (∑ i, ∑ j, Q i j) = U + D + L := by
+    simp only [U, D, L]
+    rw [← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro j _
+    rcases lt_trichotomy i j with hij | hij | hij
+    · simp [hij, hij.ne, hij.asymm]
+    · subst j
+      simp
+    · simp [hij, hij.ne', hij.asymm]
+  rw [hleft, hswap, htotal]
+  ring
+
+private theorem manyInstrumentsProjectedFullErrorCentered_apply_eq_sum
+    {n l d : Type*} [Fintype n] [Fintype l]
+    [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (U : Matrix n d ℝ) (Sigma : Matrix d d ℝ)
+    (a b : d) :
+    ((Fintype.card n : ℝ)⁻¹ • (Uᵀ * instrumentProjectionStar Z * U) -
+        manyInstrumentProjectionTraceRatio Z • Sigma) a b =
+      (Fintype.card n : ℝ)⁻¹ *
+        ∑ i, ∑ j, instrumentProjectionStar Z i j *
+          (U i a * U j b - if i = j then Sigma a b else 0) := by
+  classical
+  simp only [Matrix.sub_apply, Matrix.smul_apply, Matrix.mul_apply,
+    Matrix.transpose_apply, manyInstrumentProjectionTraceRatio, Matrix.trace]
+  rw [Finset.sum_comm]
+  simp_rw [mul_sub, Finset.sum_sub_distrib]
+  have hraw :
+      (∑ x, (∑ y, U y a * instrumentProjectionStar Z y x) * U x b) =
+        ∑ x, ∑ y, instrumentProjectionStar Z y x * (U y a * U x b) := by
+    apply Finset.sum_congr rfl
+    intro x _
+    rw [Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro y _
+    ring
+  have hdiag :
+      (∑ x, ∑ y, instrumentProjectionStar Z y x *
+        if y = x then Sigma a b else 0) =
+          (∑ i, (instrumentProjectionStar Z).diag i) * Sigma a b := by
+    simp [Matrix.diag]
+    rw [Finset.sum_mul]
+  rw [hraw, hdiag]
+  simp only [smul_eq_mul]
+  ring
+
+set_option maxHeartbeats 1000000 in
+-- Expanding and bounding all unordered projected row pairs is heartbeat-heavy.
+omit [DecidableEq k] in
+private theorem manyInstruments_projectedFullErrorCentered_entry_meanSquare
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      μ Z e u2 Sigma B)
+    (m : ℕ) (hm : 0 < m) (a b : Sum Unit k) :
+    MemLp
+        (fun ω => manyInstrumentsProjectedFullErrorCentered
+          (Z m ω) (e m ω) (u2 m ω) Sigma a b) 2 μ ∧
+      (∫ ω, ‖manyInstrumentsProjectedFullErrorCentered
+        (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ) ∂μ) ≤
+        (8 * B) / (m : ℝ) := by
+  classical
+  let U : Fin m → Ω → Sum Unit k → ℝ := fun i ω =>
+    manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i
+  let P : Ω → Matrix (Fin m) (Fin m) ℝ := fun ω =>
+    instrumentProjectionStar (Z m ω)
+  let E : Fin m → Fin m → Ω → ℝ := fun i j ω =>
+    U i ω a * U j ω b - if i = j then Sigma a b else 0
+  let Q : Fin m → Fin m → Ω → ℝ := fun i j ω => P ω i j * E i j ω
+  let R : Fin m × Fin m → Ω → ℝ := fun p ω =>
+    if p.1 < p.2 then Q p.1 p.2 ω + Q p.2 p.1 ω
+    else if p.1 = p.2 then Q p.1 p.1 ω else 0
+  let S : Fin m × Fin m → Ω → ℝ := fun p ω =>
+    if p.1 < p.2 then P ω p.1 p.2 ^ 2 + P ω p.2 p.1 ^ 2
+    else if p.1 = p.2 then P ω p.1 p.1 ^ 2 else 0
+  have hZle := conditioningSpace_le (h.instrument_measurable m)
+  have hZrel : Measurable[conditioningSpace (Z m)] (Z m) :=
+    Measurable.of_comap_le le_rfl
+  have hZentryRel (i : Fin m) (c : ι m) :
+      Measurable[conditioningSpace (Z m)] (fun ω => Z m ω i c) := by
+    have heval : Continuous
+        (fun M : Matrix (Fin m) (ι m) ℝ => M i c) :=
+      (continuous_apply c).comp (continuous_apply i)
+    exact heval.measurable.comp hZrel
+  have hPrel (i j : Fin m) :
+      Measurable[conditioningSpace (Z m)] (fun ω => P ω i j) := by
+    letI : MeasurableSpace Ω := conditioningSpace (Z m)
+    simpa [P] using
+      (instrumentProjectionStar_apply_measurable_of_entries
+        (α := Ω) (n := Fin m) (l := ι m) (Z := Z m) hZentryRel i j)
+  have hPglobal (i j : Fin m) : AEStronglyMeasurable (fun ω => P ω i j) μ :=
+    (hPrel i j).aestronglyMeasurable.mono hZle
+  have hPentrySq (i j : Fin m) (ω : Ω) : P ω i j ^ 2 ≤ (m : ℝ) := by
+    have hij : P ω i j ^ 2 ≤ ∑ q, P ω i q ^ 2 :=
+      Finset.single_le_sum (fun q _ => sq_nonneg (P ω i q)) (Finset.mem_univ j)
+    have hi : (∑ q, P ω i q ^ 2) ≤ ∑ p, ∑ q, P ω p q ^ 2 :=
+      Finset.single_le_sum (fun p _ => Finset.sum_nonneg fun q _ => sq_nonneg (P ω p q))
+        (Finset.mem_univ i)
+    exact hij.trans (hi.trans (by simpa [P] using
+      instrumentProjectionStar_sum_sq_le_card (Z m ω)))
+  have hPbound (i j : Fin m) (ω : Ω) : ‖P ω i j‖ ≤ Real.sqrt (m : ℝ) := by
+    rw [Real.norm_eq_abs]
+    exact Real.abs_le_sqrt (hPentrySq i j ω)
+  have hP2Int (i j : Fin m) : Integrable (fun ω => P ω i j ^ 2) μ := by
+    apply Integrable.of_bound ((hPglobal i j).pow 2) (m : ℝ)
+    exact ae_of_all μ fun ω => by
+      simpa [Real.norm_eq_abs, abs_sq] using hPentrySq i j ω
+  have hU4 (i : Fin m) : MemLp (U i) 4 μ := by
+    simpa [U] using h.error_row_memLp_four m i
+  have hcoord4 (i : Fin m) (c : Sum Unit k) :
+      MemLp (fun ω => U i ω c) 4 μ := (hU4 i).eval c
+  have hprod2 (i j : Fin m) (c d : Sum Unit k) :
+      MemLp (fun ω => U i ω c * U j ω d) 2 μ :=
+    mul_memLp_two_of_memLp_four (hcoord4 i c) (hcoord4 j d)
+  have hE2 (i j : Fin m) : MemLp (E i j) 2 μ := by
+    by_cases hij : i = j
+    · subst j
+      simpa [E] using (hprod2 i i a b).sub (memLp_const (Sigma a b))
+    · simpa [E, hij] using hprod2 i j a b
+  have hQ2 (i j : Fin m) : MemLp (Q i j) 2 μ := by
+    apply MemLp.of_le_mul (hE2 i j)
+    · exact (hPglobal i j).mul (hE2 i j).1
+    · exact ae_of_all μ fun ω => by
+        simp only [Q, Real.norm_eq_abs, abs_mul]
+        exact mul_le_mul_of_nonneg_right (by
+          simpa [Real.norm_eq_abs] using hPbound i j ω) (abs_nonneg _)
+  have hUcond (i : Fin m) (c : Sum Unit k) :
+      condExpOn μ (fun ω => U i ω c) (Z m) =ᵐ[μ] 0 := by
+    have hcoord :
+        (fun ω => condExpOn μ (U i) (Z m) ω c) =ᵐ[μ]
+          condExpOn μ (fun ω => U i ω c) (Z m) := by
+      simpa [condExpOn] using condExp_apply
+        (m := conditioningSpace (Z m)) (μ := μ) (f := U i)
+        ((hU4 i).integrable (by norm_num)) c
+    have hzero : (fun ω => condExpOn μ (U i) (Z m) ω c) =ᵐ[μ] 0 := by
+      filter_upwards [h.conditional_mean_zero m i] with ω hω
+      exact congrFun hω c
+    exact hcoord.symm.trans hzero
+  have hUsecond (i : Fin m) (c d : Sum Unit k) :
+      condExpOn μ (fun ω => U i ω c * U i ω d) (Z m) =ᵐ[μ]
+        fun _ => Sigma c d := by
+    have hOuterInt : Integrable (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) μ :=
+      vecMulVec_integrable_of_coordinate_memLp_four (fun x => hcoord4 i x)
+    have hcoord :
+        (fun ω => condExpOn μ
+          (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) (Z m) ω c d) =ᵐ[μ]
+          condExpOn μ (fun ω => U i ω c * U i ω d) (Z m) := by
+      simpa [condExpOn, Matrix.vecMulVec_apply] using condExp_apply_apply
+        (m := conditioningSpace (Z m)) (μ := μ)
+        (f := fun ω => Matrix.vecMulVec (U i ω) (U i ω)) hOuterInt c d
+    have hmatrix :
+        (fun ω => condExpOn μ
+          (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) (Z m) ω c d) =ᵐ[μ]
+          fun _ => Sigma c d := by
+      filter_upwards [h.conditional_second_moment m i] with ω hω
+      exact congrFun (congrFun hω c) d
+    exact hcoord.symm.trans hmatrix
+  have hEcond (i j : Fin m) : condExpOn μ (E i j) (Z m) =ᵐ[μ] 0 := by
+    by_cases hij : i = j
+    · subst j
+      have hsub : condExpOn μ (E i i) (Z m) =ᵐ[μ]
+          fun ω => condExpOn μ (fun ω => U i ω a * U i ω b) (Z m) ω -
+            condExpOn μ (fun _ => Sigma a b) (Z m) ω := by
+        simpa [condExpOn, E] using condExp_sub
+          ((hprod2 i i a b).integrable (by norm_num))
+          (integrable_const (Sigma a b)) (conditioningSpace (Z m))
+      have hconst : condExpOn μ (fun _ : Ω => Sigma a b) (Z m) =
+          fun _ => Sigma a b := by
+        simpa [condExpOn] using condExp_const (μ := μ) hZle (Sigma a b)
+      filter_upwards [hsub, hUsecond i a b] with ω hsubω hsecondω
+      rw [hsubω, hsecondω, hconst]
+      simp
+    · have hrow := (h.rows_conditionally_independent m).condIndepFun hij
+      have hind : CondIndepFun (conditioningSpace (Z m)) hZle
+          (fun ω => U i ω a) (fun ω => U j ω b) μ := by
+        simpa [U, Function.comp_def] using
+          hrow.comp (measurable_pi_apply a) (measurable_pi_apply b)
+      have hi2 := (hcoord4 i a).mono_exponent (by norm_num : (2 : ENNReal) ≤ 4)
+      have hj2 := (hcoord4 j b).mono_exponent (by norm_num : (2 : ENNReal) ≤ 4)
+      have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+        (h.instrument_measurable m) hind
+        (hi2.integrable (by norm_num)) (hj2.integrable (by norm_num))
+          (hi2.integrable_mul hj2)
+      filter_upwards [hfactor, hUcond i a, hUcond j b] with ω hfac hi hj
+      simp [E, hij, hfac, hi, hj]
+  have hQmean (i j : Fin m) : ∫ ω, Q i j ω ∂μ = 0 := by
+    have hpull : condExpOn μ (Q i j) (Z m) =ᵐ[μ]
+        fun ω => P ω i j * condExpOn μ (E i j) (Z m) ω := by
+      simpa [condExpOn, Q] using condExp_mul_of_aestronglyMeasurable_left
+        (hPrel i j).aestronglyMeasurable
+        ((hQ2 i j).integrable (by norm_num)) ((hE2 i j).integrable (by norm_num))
+    have hzero : condExpOn μ (Q i j) (Z m) =ᵐ[μ] 0 := by
+      filter_upwards [hpull, hEcond i j] with ω hp he
+      simp [hp, he]
+    calc
+      (∫ ω, Q i j ω ∂μ) = ∫ ω, condExpOn μ (Q i j) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using integral_condExp
+          (m := conditioningSpace (Z m)) (μ := μ) (f := Q i j) hZle
+      _ = 0 := by rw [integral_congr_ae hzero]; simp
+  have hQcross (i j q r : Fin m)
+      (hneq : ¬ (i = q ∧ j = r)) (hrev : ¬ (i = r ∧ j = q)) :
+      ∫ ω, Q i j ω * Q q r ω ∂μ = 0 := by
+    have hEcross : condExpOn μ (fun ω => E i j ω * E q r ω) (Z m) =ᵐ[μ] 0 := by
+      simpa [E] using condExpOn_centered_pair_mul_eq_zero
+        (h.instrument_measurable m) hU4 (h.rows_conditionally_independent m)
+          hUcond hUsecond i j q r hneq hrev a b a b
+    have hcoeffRel : AEStronglyMeasurable[conditioningSpace (Z m)]
+        (fun ω => P ω i j * P ω q r) μ :=
+      (hPrel i j).aestronglyMeasurable.mul (hPrel q r).aestronglyMeasurable
+    have hQQInt : Integrable (fun ω => Q i j ω * Q q r ω) μ :=
+      (hQ2 i j).integrable_mul (hQ2 q r)
+    have hEEInt : Integrable (fun ω => E i j ω * E q r ω) μ :=
+      (hE2 i j).integrable_mul (hE2 q r)
+    have hweighted : Integrable
+        (fun ω => (P ω i j * P ω q r) * (E i j ω * E q r ω)) μ := by
+      refine hQQInt.congr (ae_of_all μ fun ω => ?_)
+      simp only [Q]
+      ring
+    have hpull : condExpOn μ (fun ω => Q i j ω * Q q r ω) (Z m) =ᵐ[μ]
+        fun ω => (P ω i j * P ω q r) *
+          condExpOn μ (fun ω => E i j ω * E q r ω) (Z m) ω := by
+      have hpull' := condExp_mul_of_aestronglyMeasurable_left hcoeffRel hweighted hEEInt
+      have hfun : (fun ω => Q i j ω * Q q r ω) =
+          fun ω => (P ω i j * P ω q r) * (E i j ω * E q r ω) := by
+        funext ω
+        simp only [Q]
+        ring
+      simpa only [condExpOn, Pi.mul_apply] using hfun ▸ hpull'
+    have hzero : condExpOn μ (fun ω => Q i j ω * Q q r ω) (Z m) =ᵐ[μ] 0 := by
+      filter_upwards [hpull, hEcross] with ω hp he
+      simp [hp, he]
+    calc
+      (∫ ω, Q i j ω * Q q r ω ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => Q i j ω * Q q r ω) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using integral_condExp
+          (m := conditioningSpace (Z m)) (μ := μ)
+          (f := fun ω => Q i j ω * Q q r ω) hZle
+      _ = 0 := by rw [integral_congr_ae hzero]; simp
+  have hR2 (p : Fin m × Fin m) : MemLp (R p) 2 μ := by
+    rcases p with ⟨i, j⟩
+    by_cases hij : i < j
+    · simpa [R, hij] using (hQ2 i j).add (hQ2 j i)
+    · by_cases heq : i = j
+      · subst j
+        simpa [R] using hQ2 i i
+      · simp [R, hij, heq]
+  have hRmean (p : Fin m × Fin m) : ∫ ω, R p ω ∂μ = 0 := by
+    rcases p with ⟨i, j⟩
+    by_cases hij : i < j
+    · rw [show (fun ω => R (i, j) ω) = fun ω => Q i j ω + Q j i ω by
+          funext ω; simp [R, hij]]
+      rw [integral_add ((hQ2 i j).integrable (by norm_num))
+        ((hQ2 j i).integrable (by norm_num)), hQmean i j, hQmean j i]
+      simp
+    · by_cases heq : i = j
+      · subst j
+        simpa [R] using hQmean i i
+      · simp [R, hij, heq]
+  have hRcross (p q : Fin m × Fin m) (hpq : p ≠ q) :
+      ∫ ω, R p ω * R q ω ∂μ = 0 := by
+    rcases p with ⟨i, j⟩
+    rcases q with ⟨q, r⟩
+    have hpq' : ¬ (i = q ∧ j = r) := by
+      rintro ⟨rfl, rfl⟩
+      exact hpq rfl
+    have hpqSwap : ¬ (j = r ∧ i = q) := by
+      rintro ⟨hjr, hiq⟩
+      exact hpq' ⟨hiq, hjr⟩
+    by_cases hij : i < j
+    · by_cases hqr : q < r
+      · simpa [R, hij, hqr] using integral_add_mul_add_eq_zero
+          (hQ2 i j) (hQ2 j i) (hQ2 q r) (hQ2 r q)
+          (hQcross i j q r hpq' (by omega))
+          (hQcross i j r q (by omega) hpq')
+          (hQcross j i q r (by omega) hpqSwap)
+          (hQcross j i r q hpqSwap (by omega))
+      · by_cases hqeq : q = r
+        · subst r
+          simpa [R, hij] using integral_add_mul_add_eq_zero
+            (hQ2 i j) (hQ2 j i) (hQ2 q q)
+            (memLp_const 0 : MemLp (fun _ : Ω => (0 : ℝ)) 2 μ)
+            (hQcross i j q q (by omega) (by omega)) (by simp)
+            (hQcross j i q q (by omega) (by omega)) (by simp)
+        · simp [R, hij, hqr, hqeq]
+    · by_cases hieq : i = j
+      · subst j
+        by_cases hqr : q < r
+        · simpa [R, hqr] using integral_add_mul_add_eq_zero
+            (hQ2 i i) (memLp_const 0 : MemLp (fun _ : Ω => (0 : ℝ)) 2 μ)
+            (hQ2 q r) (hQ2 r q)
+            (hQcross i i q r (by omega) (by omega))
+            (hQcross i i r q (by omega) (by omega)) (by simp) (by simp)
+        · by_cases hqeq : q = r
+          · subst r
+            simpa [R] using hQcross i i q q hpq' hpq'
+          · simp [R, hqr, hqeq]
+      · simp [R, hij, hieq]
+  have hNorm4Int (i : Fin m) : Integrable (fun ω => ‖U i ω‖ ^ 4) μ :=
+    (hU4 i).integrable_norm_pow'
+  have hNorm4Bound (i : Fin m) : ∫ ω, ‖U i ω‖ ^ 4 ∂μ ≤ B := by
+    calc
+      (∫ ω, ‖U i ω‖ ^ 4 ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => ‖U i ω‖ ^ 4) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using integral_condExp
+          (m := conditioningSpace (Z m)) (μ := μ)
+          (f := fun ω => ‖U i ω‖ ^ 4) hZle
+      _ ≤ ∫ _ω, B ∂μ := by
+        apply integral_mono_ae integrable_condExp (integrable_const B)
+        simpa [U] using h.conditional_fourth_bound m i
+      _ = B := by simp
+  let i0 : Fin m := ⟨0, hm⟩
+  have hVmean : ∫ ω, U i0 ω a * U i0 ω b ∂μ = Sigma a b := by
+    calc
+      (∫ ω, U i0 ω a * U i0 ω b ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => U i0 ω a * U i0 ω b) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using integral_condExp
+          (m := conditioningSpace (Z m)) (μ := μ)
+          (f := fun ω => U i0 ω a * U i0 ω b) hZle
+      _ = ∫ _ω, Sigma a b ∂μ := integral_congr_ae (hUsecond i0 a b)
+      _ = Sigma a b := by simp
+  have hVSqBound : ∫ ω, (U i0 ω a * U i0 ω b) ^ 2 ∂μ ≤ B := by
+    have hpoint : ∀ ω, (U i0 ω a * U i0 ω b) ^ 2 ≤ ‖U i0 ω‖ ^ 4 := by
+      intro ω
+      have ha : |U i0 ω a| ≤ ‖U i0 ω‖ := by
+        simpa [Real.norm_eq_abs] using norm_le_pi_norm (U i0 ω) a
+      have hb : |U i0 ω b| ≤ ‖U i0 ω‖ := by
+        simpa [Real.norm_eq_abs] using norm_le_pi_norm (U i0 ω) b
+      calc
+        (U i0 ω a * U i0 ω b) ^ 2 = |U i0 ω a| ^ 2 * |U i0 ω b| ^ 2 := by
+          rw [mul_pow, sq_abs, sq_abs]
+        _ ≤ ‖U i0 ω‖ ^ 2 * ‖U i0 ω‖ ^ 2 := by gcongr
+        _ = ‖U i0 ω‖ ^ 4 := by ring
+    exact (integral_mono_ae (hprod2 i0 i0 a b).integrable_sq
+      (hNorm4Int i0) (ae_of_all μ hpoint)).trans (hNorm4Bound i0)
+  have hSigmaSq : Sigma a b ^ 2 ≤ B := by
+    have hvar := variance_nonneg (fun ω => U i0 ω a * U i0 ω b) μ
+    rw [variance_eq_sub (hprod2 i0 i0 a b), hVmean] at hvar
+    have hvar' : 0 ≤ (∫ ω, (U i0 ω a * U i0 ω b) ^ 2 ∂μ) - Sigma a b ^ 2 := by
+      simpa only [Pi.pow_apply] using hvar
+    linarith [hVSqBound, hvar']
+  have hESqPoint (i j : Fin m) (ω : Ω) :
+      (E i j ω) ^ 2 ≤ ‖U i ω‖ ^ 4 + ‖U j ω‖ ^ 4 + 2 * Sigma a b ^ 2 := by
+    have ha : |U i ω a| ≤ ‖U i ω‖ := by
+      simpa [Real.norm_eq_abs] using norm_le_pi_norm (U i ω) a
+    have hb : |U j ω b| ≤ ‖U j ω‖ := by
+      simpa [Real.norm_eq_abs] using norm_le_pi_norm (U j ω) b
+    have hxy : (U i ω a * U j ω b) ^ 2 ≤ ‖U i ω‖ ^ 2 * ‖U j ω‖ ^ 2 := by
+      have haSq : U i ω a ^ 2 ≤ ‖U i ω‖ ^ 2 := by
+        simpa [sq_abs] using (sq_le_sq₀ (abs_nonneg _) (norm_nonneg _)).2 ha
+      have hbSq : U j ω b ^ 2 ≤ ‖U j ω‖ ^ 2 := by
+        simpa [sq_abs] using (sq_le_sq₀ (abs_nonneg _) (norm_nonneg _)).2 hb
+      rw [mul_pow]
+      exact mul_le_mul haSq hbSq (sq_nonneg _) (sq_nonneg _)
+    have hprod : 2 * (U i ω a * U j ω b) ^ 2 ≤
+        ‖U i ω‖ ^ 4 + ‖U j ω‖ ^ 4 := by
+      calc
+        2 * (U i ω a * U j ω b) ^ 2 ≤
+            2 * (‖U i ω‖ ^ 2 * ‖U j ω‖ ^ 2) := by gcongr
+        _ ≤ (‖U i ω‖ ^ 2) ^ 2 + (‖U j ω‖ ^ 2) ^ 2 :=
+          by simpa [mul_assoc] using
+            (two_mul_le_add_sq (a := ‖U i ω‖ ^ 2) (b := ‖U j ω‖ ^ 2))
+        _ = ‖U i ω‖ ^ 4 + ‖U j ω‖ ^ 4 := by ring
+    have hsub : (E i j ω) ^ 2 ≤
+        2 * ((U i ω a * U j ω b) ^ 2 +
+          (if i = j then Sigma a b else 0) ^ 2) := by
+      calc
+        (E i j ω) ^ 2 =
+            (U i ω a * U j ω b + -(if i = j then Sigma a b else 0)) ^ 2 := by
+          simp [E, sub_eq_add_neg]
+        _ ≤ 2 * ((U i ω a * U j ω b) ^ 2 +
+            (-(if i = j then Sigma a b else 0)) ^ 2) := add_sq_le
+        _ = 2 * ((U i ω a * U j ω b) ^ 2 +
+            (if i = j then Sigma a b else 0) ^ 2) := by rw [neg_sq]
+    have hs : (if i = j then Sigma a b else 0) ^ 2 ≤ Sigma a b ^ 2 := by
+      split <;> simp [sq_nonneg]
+    linarith
+  have hESqCond (i j : Fin m) :
+      condExpOn μ (fun ω => (E i j ω) ^ 2) (Z m) ≤ᵐ[μ]
+        fun _ => 4 * B := by
+    let F : Ω → ℝ := fun ω =>
+      ‖U i ω‖ ^ 4 + ‖U j ω‖ ^ 4 + 2 * Sigma a b ^ 2
+    have hFInt : Integrable F μ :=
+      ((hNorm4Int i).add (hNorm4Int j)).add (integrable_const (2 * Sigma a b ^ 2))
+    have hmono : condExpOn μ (fun ω => (E i j ω) ^ 2) (Z m) ≤ᵐ[μ]
+        condExpOn μ F (Z m) := by
+      simpa [condExpOn] using condExp_mono (hE2 i j).integrable_sq hFInt
+        (ae_of_all μ (hESqPoint i j))
+    have hsum : condExpOn μ
+        (fun ω => ‖U i ω‖ ^ 4 + ‖U j ω‖ ^ 4) (Z m) =ᵐ[μ]
+        fun ω => condExpOn μ (fun ω => ‖U i ω‖ ^ 4) (Z m) ω +
+          condExpOn μ (fun ω => ‖U j ω‖ ^ 4) (Z m) ω := by
+      simpa [condExpOn] using condExp_add (hNorm4Int i) (hNorm4Int j)
+        (conditioningSpace (Z m))
+    have hconst : condExpOn μ (fun _ : Ω => 2 * Sigma a b ^ 2) (Z m) =
+        fun _ => 2 * Sigma a b ^ 2 := by
+      simpa [condExpOn] using condExp_const (μ := μ) hZle (2 * Sigma a b ^ 2)
+    have htotal : condExpOn μ F (Z m) =ᵐ[μ]
+        fun ω => condExpOn μ (fun ω => ‖U i ω‖ ^ 4) (Z m) ω +
+          condExpOn μ (fun ω => ‖U j ω‖ ^ 4) (Z m) ω +
+            2 * Sigma a b ^ 2 := by
+      have hadd := condExp_add ((hNorm4Int i).add (hNorm4Int j))
+        (integrable_const (2 * Sigma a b ^ 2)) (conditioningSpace (Z m))
+      filter_upwards [show condExpOn μ F (Z m) =ᵐ[μ]
+          fun ω => condExpOn μ (fun ω => ‖U i ω‖ ^ 4 + ‖U j ω‖ ^ 4) (Z m) ω +
+            condExpOn μ (fun _ => 2 * Sigma a b ^ 2) (Z m) ω by
+              simpa [condExpOn, F] using hadd, hsum] with ω haddω hsumω
+      rw [haddω, hsumω, hconst]
+    filter_upwards [hmono, htotal, h.conditional_fourth_bound m i,
+      h.conditional_fourth_bound m j] with ω hmonoω htotalω hi hj
+    rw [htotalω] at hmonoω
+    linarith
+  have hQsq (i j : Fin m) :
+      (∫ ω, (Q i j ω) ^ 2 ∂μ) ≤ ∫ ω, (4 * B) * P ω i j ^ 2 ∂μ := by
+    have hcoeffRel : AEStronglyMeasurable[conditioningSpace (Z m)]
+        (fun ω => P ω i j ^ 2) μ := (hPrel i j).aestronglyMeasurable.pow 2
+    have hweighted : Integrable
+        (fun ω => P ω i j ^ 2 * E i j ω ^ 2) μ := by
+      refine (hQ2 i j).integrable_sq.congr (ae_of_all μ fun ω => ?_)
+      simp only [Q, mul_pow]
+    have hpull : condExpOn μ (fun ω => (Q i j ω) ^ 2) (Z m) =ᵐ[μ]
+        fun ω => P ω i j ^ 2 * condExpOn μ (fun ω => E i j ω ^ 2) (Z m) ω := by
+      simpa [condExpOn, Q, mul_pow] using condExp_mul_of_aestronglyMeasurable_left
+        hcoeffRel hweighted (hE2 i j).integrable_sq
+    calc
+      (∫ ω, (Q i j ω) ^ 2 ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => (Q i j ω) ^ 2) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using integral_condExp
+          (m := conditioningSpace (Z m)) (μ := μ)
+          (f := fun ω => (Q i j ω) ^ 2) hZle
+      _ = ∫ ω, P ω i j ^ 2 *
+          condExpOn μ (fun ω => E i j ω ^ 2) (Z m) ω ∂μ :=
+        integral_congr_ae hpull
+      _ ≤ ∫ ω, (4 * B) * P ω i j ^ 2 ∂μ := by
+        have hleftInt : Integrable
+            (fun ω => P ω i j ^ 2 *
+              condExpOn μ (fun ω => E i j ω ^ 2) (Z m) ω) μ :=
+          integrable_condExp.congr hpull
+        apply integral_mono_ae hleftInt ((hP2Int i j).const_mul (4 * B))
+        filter_upwards [hESqCond i j] with ω hbound
+        simpa [mul_comm] using
+          (mul_le_mul_of_nonneg_right hbound (sq_nonneg (P ω i j)))
+  have hSInt (p : Fin m × Fin m) : Integrable (S p) μ := by
+    rcases p with ⟨i, j⟩
+    by_cases hij : i < j
+    · simpa [S, hij] using (hP2Int i j).add (hP2Int j i)
+    · by_cases heq : i = j
+      · subst j
+        simpa [S] using hP2Int i i
+      · simp [S, hij, heq]
+  have hRsq (p : Fin m × Fin m) :
+      (∫ ω, (R p ω) ^ 2 ∂μ) ≤ ∫ ω, (8 * B) * S p ω ∂μ := by
+    rcases p with ⟨i, j⟩
+    by_cases hij : i < j
+    · have hsumInt : Integrable (fun ω => Q i j ω ^ 2 + Q j i ω ^ 2) μ :=
+        (hQ2 i j).integrable_sq.add (hQ2 j i).integrable_sq
+      have hfirst : (∫ ω, (Q i j ω + Q j i ω) ^ 2 ∂μ) ≤
+          ∫ ω, 2 * (Q i j ω ^ 2 + Q j i ω ^ 2) ∂μ :=
+        integral_mono_ae ((hQ2 i j).add (hQ2 j i)).integrable_sq
+          (hsumInt.const_mul 2) (ae_of_all μ fun _ => add_sq_le)
+      have hqsum := add_le_add (hQsq i j) (hQsq j i)
+      calc
+        (∫ ω, (R (i, j) ω) ^ 2 ∂μ) =
+            ∫ ω, (Q i j ω + Q j i ω) ^ 2 ∂μ := by simp [R, hij]
+        _ ≤ ∫ ω, 2 * (Q i j ω ^ 2 + Q j i ω ^ 2) ∂μ := hfirst
+        _ = 2 * ((∫ ω, Q i j ω ^ 2 ∂μ) + ∫ ω, Q j i ω ^ 2 ∂μ) := by
+          rw [integral_const_mul, integral_add (hQ2 i j).integrable_sq
+            (hQ2 j i).integrable_sq]
+        _ ≤ 2 * ((∫ ω, (4 * B) * P ω i j ^ 2 ∂μ) +
+            ∫ ω, (4 * B) * P ω j i ^ 2 ∂μ) :=
+          mul_le_mul_of_nonneg_left hqsum (by norm_num)
+        _ = ∫ ω, (8 * B) * S (i, j) ω ∂μ := by
+          simp only [S, hij, if_pos]
+          rw [show (fun ω => (8 * B) * (P ω i j ^ 2 + P ω j i ^ 2)) =
+              fun ω => 2 * ((4 * B) * P ω i j ^ 2 + (4 * B) * P ω j i ^ 2) by
+                funext ω; ring]
+          symm
+          calc
+            (∫ ω, 2 * ((4 * B) * P ω i j ^ 2 + (4 * B) * P ω j i ^ 2) ∂μ) =
+                2 * ∫ ω, ((4 * B) * P ω i j ^ 2 + (4 * B) * P ω j i ^ 2) ∂μ :=
+              integral_const_mul 2 _
+            _ = 2 * ((∫ ω, (4 * B) * P ω i j ^ 2 ∂μ) +
+                ∫ ω, (4 * B) * P ω j i ^ 2 ∂μ) := by
+              rw [integral_add ((hP2Int i j).const_mul (4 * B))
+                ((hP2Int j i).const_mul (4 * B))]
+    · by_cases heq : i = j
+      · subst j
+        calc
+          (∫ ω, (R (i, i) ω) ^ 2 ∂μ) = ∫ ω, (Q i i ω) ^ 2 ∂μ := by simp [R]
+          _ ≤ ∫ ω, (4 * B) * P ω i i ^ 2 ∂μ := hQsq i i
+          _ ≤ ∫ ω, (8 * B) * P ω i i ^ 2 ∂μ := by
+            apply integral_mono_ae ((hP2Int i i).const_mul (4 * B))
+              ((hP2Int i i).const_mul (8 * B))
+            exact ae_of_all μ fun ω => by
+              nlinarith [h.fourth_bound_nonneg, sq_nonneg (P ω i i)]
+          _ = ∫ ω, (8 * B) * S (i, i) ω ∂μ := by simp [S]
+      · simp [R, S, hij, heq]
+  have hSsum (ω : Ω) : (∑ p, S p ω) = ∑ i, ∑ j, P ω i j ^ 2 := by
+    rw [Fintype.sum_prod_type]
+    simpa [S] using sum_oriented_pairs (fun i j => P ω i j ^ 2)
+  have hsumRsq : (∑ p, ∫ ω, (R p ω) ^ 2 ∂μ) ≤ (8 * B) * (m : ℝ) := by
+    calc
+      (∑ p, ∫ ω, (R p ω) ^ 2 ∂μ) ≤
+          ∑ p, ∫ ω, (8 * B) * S p ω ∂μ := Finset.sum_le_sum fun p _ => hRsq p
+      _ = ∫ ω, ∑ p, (8 * B) * S p ω ∂μ := by
+        symm
+        apply integral_finset_sum
+        intro p _
+        exact (hSInt p).const_mul (8 * B)
+      _ = ∫ ω, (8 * B) * (∑ i, ∑ j, P ω i j ^ 2) ∂μ := by
+        apply integral_congr_ae
+        exact ae_of_all μ fun ω => by
+          change (∑ p, (8 * B) * S p ω) = (8 * B) * ∑ i, ∑ j, P ω i j ^ 2
+          rw [← Finset.mul_sum, hSsum]
+      _ ≤ ∫ _ω, (8 * B) * (m : ℝ) ∂μ := by
+        apply integral_mono_ae
+        · exact (integrable_finset_sum Finset.univ fun i _ =>
+            integrable_finset_sum Finset.univ fun j _ => hP2Int i j).const_mul (8 * B)
+        · exact integrable_const _
+        · exact ae_of_all μ fun ω => mul_le_mul_of_nonneg_left
+            (by simpa [P] using instrumentProjectionStar_sum_sq_le_card (Z m ω))
+            (mul_nonneg (by norm_num) h.fourth_bound_nonneg)
+      _ = (8 * B) * (m : ℝ) := by simp
+  have hsumMoment := integral_sq_sum_eq_sum_integral_sq_of_centered_uncorrelated
+    hR2 hRmean hRcross
+  have hsumBound : (∫ ω, (∑ p, R p ω) ^ 2 ∂μ) ≤ (8 * B) * (m : ℝ) := by
+    rw [hsumMoment.2]
+    exact hsumRsq
+  have hsumR (ω : Ω) : (∑ p, R p ω) = ∑ i, ∑ j, Q i j ω := by
+    rw [Fintype.sum_prod_type]
+    simpa [R] using sum_oriented_pairs (fun i j => Q i j ω)
+  have hrepr (ω : Ω) :
+      manyInstrumentsProjectedFullErrorCentered
+          (Z m ω) (e m ω) (u2 m ω) Sigma a b =
+        (m : ℝ)⁻¹ * ∑ p, R p ω := by
+    have hraw := manyInstrumentsProjectedFullErrorCentered_apply_eq_sum
+      (Z m ω) (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) Sigma a b
+    calc
+      manyInstrumentsProjectedFullErrorCentered
+          (Z m ω) (e m ω) (u2 m ω) Sigma a b =
+          (m : ℝ)⁻¹ * ∑ i, ∑ j,
+            instrumentProjectionStar (Z m ω) i j *
+              (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i a *
+                manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) j b -
+                  if i = j then Sigma a b else 0) := by
+            simpa [manyInstrumentsProjectedFullErrorCentered,
+              manyInstrumentsProjectedFullErrorMoment] using hraw
+      _ = (m : ℝ)⁻¹ * ∑ i, ∑ j, Q i j ω := by rfl
+      _ = (m : ℝ)⁻¹ * ∑ p, R p ω := by rw [hsumR]
+  have hsumLp : MemLp (fun ω => ∑ p, R p ω) 2 μ :=
+    memLp_finset_sum Finset.univ (fun p _ => hR2 p)
+  have hentryLp : MemLp
+      (fun ω => manyInstrumentsProjectedFullErrorCentered
+        (Z m ω) (e m ω) (u2 m ω) Sigma a b) 2 μ :=
+    (memLp_congr_ae (ae_of_all μ hrepr)).mpr (hsumLp.const_mul (m : ℝ)⁻¹)
+  refine ⟨hentryLp, ?_⟩
+  have hm0 : (m : ℝ) ≠ 0 := by exact_mod_cast ne_of_gt hm
+  calc
+    (∫ ω, ‖manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ) ∂μ) =
+        (m : ℝ)⁻¹ ^ 2 * ∫ ω, (∑ p, R p ω) ^ 2 ∂μ := by
+      calc
+        (∫ ω, ‖manyInstrumentsProjectedFullErrorCentered
+          (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ) ∂μ) =
+            ∫ ω, ((m : ℝ)⁻¹ * ∑ p, R p ω) ^ 2 ∂μ := by
+          apply integral_congr_ae
+          exact ae_of_all μ fun ω => by
+            change ‖manyInstrumentsProjectedFullErrorCentered
+              (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ) =
+                ((m : ℝ)⁻¹ * ∑ p, R p ω) ^ 2
+            rw [hrepr ω]
+            simpa [Real.norm_eq_abs] using sq_abs ((m : ℝ)⁻¹ * ∑ p, R p ω)
+        _ = (m : ℝ)⁻¹ ^ 2 * ∫ ω, (∑ p, R p ω) ^ 2 ∂μ := by
+          simp_rw [mul_pow]
+          rw [integral_const_mul]
+    _ ≤ (m : ℝ)⁻¹ ^ 2 * ((8 * B) * (m : ℝ)) :=
+      mul_le_mul_of_nonneg_left hsumBound (sq_nonneg _)
+    _ = (8 * B) / (m : ℝ) := by field_simp
+
+namespace ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+
+omit [DecidableEq k] in
+/-- Hansen's primitive conditional homoskedasticity and bounded fourth moments
+imply the projected quadratic concentration calculation behind (12.81).
+Entrywise, the centered projected moment has mean square at most `8 * B / n`;
+in particular, the exact `O(1/n)` rate used in Theorem 12.19 is a conclusion,
+not an additional model assumption. -/
+theorem toProjectionQuadraticMeanSquareConditions
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      μ Z e u2 Sigma B) :
+    ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma (8 * B) where
+  bound_nonneg := mul_nonneg (by norm_num) h.fourth_bound_nonneg
+  centered_meas := by
+    intro m
+    change AEStronglyMeasurable
+      (fun ω a b => manyInstrumentsProjectedFullErrorCentered
+        (Z m ω) (e m ω) (u2 m ω) Sigma a b) μ
+    rw [aestronglyMeasurable_iff_aemeasurable, aemeasurable_pi_iff]
+    intro a
+    rw [aemeasurable_pi_iff]
+    intro b
+    by_cases hm : 0 < m
+    · exact (manyInstruments_projectedFullErrorCentered_entry_meanSquare
+        h m hm a b).1.1.aemeasurable
+    · have hm0 : m = 0 := Nat.eq_zero_of_not_pos hm
+      subst m
+      simp [manyInstrumentsProjectedFullErrorCentered,
+        manyInstrumentsProjectedFullErrorMoment, manyInstrumentProjectionTraceRatio]
+  entry_sq_integrable := by
+    intro m a b
+    by_cases hm : 0 < m
+    · exact (manyInstruments_projectedFullErrorCentered_entry_meanSquare
+        h m hm a b).1.integrable_norm_rpow (by norm_num) (by norm_num)
+    · have hm0 : m = 0 := Nat.eq_zero_of_not_pos hm
+      subst m
+      simp [manyInstrumentsProjectedFullErrorCentered,
+        manyInstrumentsProjectedFullErrorMoment, manyInstrumentProjectionTraceRatio]
+  entry_mean_square_bound := by
+    intro a b
+    filter_upwards [eventually_gt_atTop (0 : ℕ)] with m hm
+    exact (manyInstruments_projectedFullErrorCentered_entry_meanSquare
+      h m hm a b).2
+
+end ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+
+omit [DecidableEq k] in
+private theorem manyInstruments_signalErrorCrossMoment_coord_tendsto_zero
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    {H : Matrix k k ℝ}
+    (h : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      μ Z e u2 Sigma B)
+    (hSignal : TendstoInMeasure μ
+      (fun m ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+      atTop (fun _ => H))
+    (a : k) (c : Sum Unit k) :
+    TendstoInMeasure μ
+      (fun m ω => sampleCrossMoment
+        (manyInstrumentSignal (Z m ω) (Gamma m))
+        (fun i => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i c) a)
+      atTop (fun _ => 0) := by
+  let R : ℝ := |H a a| + 1
+  let S : (m : ℕ) → Ω → Matrix (Fin m) k ℝ := fun m ω =>
+    manyInstrumentSignal (Z m ω) (Gamma m)
+  let G : (m : ℕ) → Ω → Matrix k k ℝ := fun m ω =>
+    manyInstrumentSignalGram (Z m ω) (Gamma m)
+  let U : (m : ℕ) → Fin m → Ω → Sum Unit k → ℝ := fun m i ω =>
+    manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i
+  let W : (m : ℕ) → Fin m → Ω → ℝ := fun m i ω =>
+    if G m ω a a ≤ R then S m ω i a else 0
+  let Q : (m : ℕ) → Fin m → Ω → ℝ := fun m i ω => W m i ω * U m i ω c
+  let T : ℕ → Ω → ℝ := fun m ω => (m : ℝ)⁻¹ * ∑ i, Q m i ω
+  have hR : 0 < R := by
+    dsimp [R]
+    linarith [abs_nonneg (H a a)]
+  have hmoment (m : ℕ) (hm : 0 < m) :
+      Integrable (fun ω => ‖T m ω‖ ^ (2 : ℝ)) μ ∧
+        (∫ ω, ‖T m ω‖ ^ (2 : ℝ) ∂μ) ≤
+          (R * |Sigma c c|) / (m : ℝ) := by
+        letI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+        have hZle := conditioningSpace_le (h.instrument_measurable m)
+        have hU2 (i : Fin m) : MemLp (fun ω => U m i ω c) 2 μ := by
+          exact ((h.error_row_memLp_four m i).eval c).mono_exponent (by norm_num)
+        have hUint (i : Fin m) : Integrable (fun ω => U m i ω c) μ :=
+          (hU2 i).integrable (by norm_num)
+        have hWrel (i : Fin m) :
+            AEStronglyMeasurable[conditioningSpace (Z m)] (W m i) μ := by
+          have hZrel : Measurable[conditioningSpace (Z m)] (Z m) :=
+            Measurable.of_comap_le le_rfl
+          have hGrel : Measurable[conditioningSpace (Z m)]
+              (fun ω => G m ω a a) := by
+            dsimp [G, manyInstrumentSignalGram, manyInstrumentSignal, sampleGram]
+            fun_prop
+          have hSrel : Measurable[conditioningSpace (Z m)]
+              (fun ω => S m ω i a) := by
+            dsimp [S, manyInstrumentSignal]
+            fun_prop
+          exact (Measurable.ite (measurableSet_le hGrel measurable_const)
+            hSrel measurable_const).aestronglyMeasurable
+        have hWglobal (i : Fin m) : AEStronglyMeasurable (W m i) μ :=
+          (hWrel i).mono hZle
+        have hWsum (ω : Ω) : ∑ i, (W m i ω) ^ 2 ≤ (m : ℝ) * R := by
+          by_cases hgood : G m ω a a ≤ R
+          · have hdiag := manyInstrumentSignalGram_diag_mul_card
+              (Z m ω) (Gamma m) a
+            change ∑ i, (if G m ω a a ≤ R then S m ω i a else 0) ^ 2 ≤ _
+            simp only [if_pos hgood]
+            calc
+              (∑ i, (S m ω i a) ^ 2) = (m : ℝ) * G m ω a a := by
+                simpa [S, G] using hdiag.symm
+              _ ≤ (m : ℝ) * R :=
+                mul_le_mul_of_nonneg_left hgood (Nat.cast_nonneg m)
+          · simp [W, hgood, mul_nonneg (Nat.cast_nonneg m) hR.le]
+        have hWbound (i : Fin m) : ∀ ω, ‖W m i ω‖ ≤ Real.sqrt ((m : ℝ) * R) := by
+          intro ω
+          rw [Real.norm_eq_abs]
+          apply Real.abs_le_sqrt
+          exact (Finset.single_le_sum (fun j _ => sq_nonneg (W m j ω))
+            (Finset.mem_univ i)).trans (hWsum ω)
+        have hQ2 (i : Fin m) : MemLp (Q m i) 2 μ := by
+          apply MemLp.of_le_mul (hU2 i)
+          · exact (hWglobal i).mul (hU2 i).1
+          · exact ae_of_all μ fun ω => by
+              simp only [Q, Real.norm_eq_abs, abs_mul]
+              exact mul_le_mul_of_nonneg_right (hWbound i ω) (abs_nonneg _)
+        have hUcond (i : Fin m) :
+            condExpOn μ (fun ω => U m i ω c) (Z m) =ᵐ[μ]
+              fun _ => (0 : ℝ) := by
+          have hcoord :
+              (fun ω => condExpOn μ (fun ω => U m i ω) (Z m) ω c) =ᵐ[μ]
+                condExpOn μ (fun ω => U m i ω c) (Z m) := by
+            simpa [condExpOn] using condExp_apply
+              (m := conditioningSpace (Z m)) (μ := μ)
+              (f := fun ω => U m i ω)
+              ((h.error_row_memLp_four m i).integrable (by norm_num)) c
+          have hzero :
+              (fun ω => condExpOn μ (fun ω => U m i ω) (Z m) ω c) =ᵐ[μ]
+                fun _ => (0 : ℝ) := by
+            filter_upwards [h.conditional_mean_zero m i] with ω hω
+            exact congrFun hω c
+          exact hcoord.symm.trans hzero
+        have hQmean (i : Fin m) : ∫ ω, Q m i ω ∂μ = 0 := by
+          have hpull : condExpOn μ (Q m i) (Z m) =ᵐ[μ]
+              fun ω => W m i ω * condExpOn μ (fun ω => U m i ω c) (Z m) ω := by
+            simpa [condExpOn, Q] using
+              condExp_mul_of_aestronglyMeasurable_left (hWrel i)
+                ((hQ2 i).integrable (by norm_num)) (hUint i)
+          have hzero : condExpOn μ (Q m i) (Z m) =ᵐ[μ]
+              fun _ => (0 : ℝ) := by
+            filter_upwards [hpull, hUcond i] with ω hp hu
+            simp [hp, hu]
+          calc
+            (∫ ω, Q m i ω ∂μ) = ∫ ω, condExpOn μ (Q m i) (Z m) ω ∂μ := by
+              symm
+              simpa [condExpOn] using integral_condExp
+                (m := conditioningSpace (Z m)) (μ := μ) (f := Q m i) hZle
+            _ = 0 := by rw [integral_congr_ae hzero]; simp
+        have hQcross (i j : Fin m) (hij : i ≠ j) :
+            ∫ ω, Q m i ω * Q m j ω ∂μ = 0 := by
+          have hrow := (h.rows_conditionally_independent m).condIndepFun hij
+          have hcoordMeas : Measurable
+              (fun x : Sum Unit k → ℝ => x c) := measurable_pi_apply c
+          have hind : CondIndepFun (conditioningSpace (Z m)) hZle
+              (fun ω => U m i ω c) (fun ω => U m j ω c) μ := by
+            simpa [U, Function.comp_def] using hrow.comp hcoordMeas hcoordMeas
+          have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+            (h.instrument_measurable m) hind
+            ((hU2 i).integrable (by norm_num))
+            ((hU2 j).integrable (by norm_num))
+            ((hU2 i).integrable_mul (hU2 j))
+          have hrawzero : condExpOn μ
+              (fun ω => U m i ω c * U m j ω c) (Z m) =ᵐ[μ]
+                fun _ => (0 : ℝ) := by
+            calc
+              condExpOn μ (fun ω => U m i ω c * U m j ω c) (Z m) =ᵐ[μ]
+                  fun ω => condExpOn μ (fun ω => U m i ω c) (Z m) ω *
+                    condExpOn μ (fun ω => U m j ω c) (Z m) ω := by
+                exact hfactor
+              _ =ᵐ[μ] fun _ => (0 : ℝ) := by
+                filter_upwards [hUcond i, hUcond j] with ω hi hj
+                simp [hi, hj]
+          have hWijrel : AEStronglyMeasurable[conditioningSpace (Z m)]
+              (fun ω => W m i ω * W m j ω) μ := (hWrel i).mul (hWrel j)
+          have hpull : condExpOn μ (fun ω => Q m i ω * Q m j ω) (Z m) =ᵐ[μ]
+              fun ω => (W m i ω * W m j ω) *
+                condExpOn μ (fun ω => U m i ω c * U m j ω c) (Z m) ω := by
+            have hprodQ : Integrable (fun ω => Q m i ω * Q m j ω) μ :=
+              (hQ2 i).integrable_mul (hQ2 j)
+            have hweighted : Integrable
+                ((fun ω => W m i ω * W m j ω) *
+                  fun ω => U m i ω c * U m j ω c) μ := by
+              refine hprodQ.congr (ae_of_all μ fun ω => ?_)
+              simp only [Pi.mul_apply, Q]
+              ring
+            have hprodU : Integrable
+                (fun ω => U m i ω c * U m j ω c) μ :=
+              (hU2 i).integrable_mul (hU2 j)
+            have hpullWeighted : condExpOn μ
+                (fun ω => (W m i ω * W m j ω) *
+                  (U m i ω c * U m j ω c)) (Z m) =ᵐ[μ]
+                  fun ω => (W m i ω * W m j ω) *
+                    condExpOn μ (fun ω => U m i ω c * U m j ω c) (Z m) ω := by
+              simpa only [condExpOn, Pi.mul_apply] using
+                condExp_mul_of_aestronglyMeasurable_left hWijrel hweighted hprodU
+            have hfun : (fun ω => Q m i ω * Q m j ω) =
+                fun ω => (W m i ω * W m j ω) *
+                  (U m i ω c * U m j ω c) := by
+              funext ω
+              simp only [Q]
+              ring
+            rw [hfun]
+            exact hpullWeighted
+          have hzero : condExpOn μ (fun ω => Q m i ω * Q m j ω) (Z m) =ᵐ[μ]
+              fun _ => (0 : ℝ) := by
+            filter_upwards [hpull, hrawzero] with ω hp hz
+            simp [hp, hz]
+          calc
+            (∫ ω, Q m i ω * Q m j ω ∂μ) =
+                ∫ ω, condExpOn μ (fun ω => Q m i ω * Q m j ω) (Z m) ω ∂μ := by
+              symm
+              simpa [condExpOn] using integral_condExp
+                (m := conditioningSpace (Z m)) (μ := μ)
+                (f := fun ω => Q m i ω * Q m j ω) hZle
+            _ = 0 := by rw [integral_congr_ae hzero]; simp
+        have hUsqcond (i : Fin m) : condExpOn μ
+            (fun ω => (U m i ω c) ^ 2) (Z m) =ᵐ[μ] fun _ => Sigma c c := by
+          have hcoord :
+              (fun ω => condExpOn μ
+                (fun ω => Matrix.vecMulVec (U m i ω) (U m i ω)) (Z m) ω c c) =ᵐ[μ]
+                condExpOn μ (fun ω => (U m i ω c) ^ 2) (Z m) := by
+            simpa [condExpOn, Matrix.vecMulVec_apply, pow_two] using
+              condExp_apply_apply
+                (m := conditioningSpace (Z m)) (μ := μ)
+                (f := fun ω => Matrix.vecMulVec (U m i ω) (U m i ω))
+                (vecMulVec_integrable_of_coordinate_memLp_four
+                  (fun d => (h.error_row_memLp_four m i).eval d)) c c
+          have hconst :
+              (fun ω => condExpOn μ
+                (fun ω => Matrix.vecMulVec (U m i ω) (U m i ω)) (Z m) ω c c) =ᵐ[μ]
+                fun _ => Sigma c c := by
+            filter_upwards [h.conditional_second_moment m i] with ω hω
+            exact congrFun (congrFun hω c) c
+          exact hcoord.symm.trans hconst
+        have hQiSq (i : Fin m) :
+            (∫ ω, (Q m i ω) ^ 2 ∂μ) =
+              ∫ ω, (W m i ω) ^ 2 * Sigma c c ∂μ := by
+          have hWsqrel : AEStronglyMeasurable[conditioningSpace (Z m)]
+              (fun ω => (W m i ω) ^ 2) μ := (hWrel i).pow 2
+          have hpull : condExpOn μ (fun ω => (Q m i ω) ^ 2) (Z m) =ᵐ[μ]
+              fun ω => (W m i ω) ^ 2 *
+                condExpOn μ (fun ω => (U m i ω c) ^ 2) (Z m) ω := by
+            have hQsq : Integrable (fun ω => (Q m i ω) ^ 2) μ :=
+              (hQ2 i).integrable_sq
+            have hweighted : Integrable
+                ((fun ω => (W m i ω) ^ 2) *
+                  fun ω => (U m i ω c) ^ 2) μ := by
+              simpa only [Pi.mul_apply, Q, mul_pow] using hQsq
+            have hUsq : Integrable (fun ω => (U m i ω c) ^ 2) μ :=
+              (hU2 i).integrable_sq
+            simpa [condExpOn, Q, mul_pow] using
+              condExp_mul_of_aestronglyMeasurable_left hWsqrel hweighted hUsq
+          calc
+            (∫ ω, (Q m i ω) ^ 2 ∂μ) =
+                ∫ ω, condExpOn μ (fun ω => (Q m i ω) ^ 2) (Z m) ω ∂μ := by
+              symm
+              simpa [condExpOn] using integral_condExp
+                (m := conditioningSpace (Z m)) (μ := μ)
+                (f := fun ω => (Q m i ω) ^ 2) hZle
+            _ = ∫ ω, (W m i ω) ^ 2 * Sigma c c ∂μ := by
+              apply integral_congr_ae
+              filter_upwards [hpull, hUsqcond i] with ω hp hu
+              rw [hp, hu]
+        have hsum := integral_sq_sum_eq_sum_integral_sq_of_centered_uncorrelated
+          (fun i => hQ2 i) hQmean hQcross
+        have hsumBound :
+            (∫ ω, (∑ i, Q m i ω) ^ 2 ∂μ) ≤
+              (m : ℝ) * R * |Sigma c c| := by
+          rw [hsum.2]
+          simp_rw [hQiSq]
+          rw [← integral_finset_sum]
+          · calc
+              (∫ ω, ∑ i, (W m i ω) ^ 2 * Sigma c c ∂μ) ≤
+                  ∫ _ω, (m : ℝ) * R * |Sigma c c| ∂μ := by
+                apply integral_mono_ae
+                · exact integrable_finset_sum Finset.univ fun i _ => by
+                    exact Integrable.of_bound
+                      ((hWglobal i).pow 2 |>.mul_const (Sigma c c))
+                      ((Real.sqrt ((m : ℝ) * R)) ^ 2 * |Sigma c c|) (by
+                        filter_upwards [] with ω
+                        rw [norm_mul, Real.norm_eq_abs, abs_sq]
+                        have hsquare : (W m i ω) ^ 2 ≤
+                            (Real.sqrt ((m : ℝ) * R)) ^ 2 := by
+                          rw [← sq_abs]
+                          exact (sq_le_sq₀ (abs_nonneg _)
+                            (Real.sqrt_nonneg _)).2 (by
+                              simpa [Real.norm_eq_abs] using hWbound i ω)
+                        exact mul_le_mul_of_nonneg_right
+                          hsquare (abs_nonneg _))
+                · exact integrable_const _
+                · exact ae_of_all μ fun ω => by
+                    calc
+                      (∑ i, (W m i ω) ^ 2 * Sigma c c) =
+                          (∑ i, (W m i ω) ^ 2) * Sigma c c := by
+                        rw [Finset.sum_mul]
+                      _ ≤ (∑ i, (W m i ω) ^ 2) * |Sigma c c| :=
+                        mul_le_mul_of_nonneg_left (le_abs_self _)
+                          (Finset.sum_nonneg fun _ _ => sq_nonneg _)
+                      _ ≤ ((m : ℝ) * R) * |Sigma c c| :=
+                        mul_le_mul_of_nonneg_right (hWsum ω) (abs_nonneg _)
+              _ = (m : ℝ) * R * |Sigma c c| := by simp
+          · intro i _
+            exact Integrable.of_bound
+              ((hWglobal i).pow 2 |>.mul_const (Sigma c c))
+              ((Real.sqrt ((m : ℝ) * R)) ^ 2 * |Sigma c c|) (by
+                filter_upwards [] with ω
+                rw [norm_mul, Real.norm_eq_abs, abs_sq]
+                have hsquare : (W m i ω) ^ 2 ≤
+                    (Real.sqrt ((m : ℝ) * R)) ^ 2 := by
+                  rw [← sq_abs]
+                  exact (sq_le_sq₀ (abs_nonneg _)
+                    (Real.sqrt_nonneg _)).2 (by
+                      simpa [Real.norm_eq_abs] using hWbound i ω)
+                exact mul_le_mul_of_nonneg_right
+                  hsquare (abs_nonneg _))
+        have hm0 : (m : ℝ) ≠ 0 := by exact_mod_cast ne_of_gt hm
+        have hrepr (ω : Ω) : T m ω = (m : ℝ)⁻¹ * ∑ i, Q m i ω := rfl
+        have hT2 : Integrable (fun ω => ‖T m ω‖ ^ (2 : ℝ)) μ := by
+          have hsumLp : MemLp (fun ω => ∑ i, Q m i ω) 2 μ :=
+            memLp_finset_sum Finset.univ (fun i _ => hQ2 i)
+          have hTLp : MemLp (T m) 2 μ := by
+            exact (memLp_congr_ae (ae_of_all μ hrepr)).mpr
+              (hsumLp.const_mul (m : ℝ)⁻¹)
+          exact hTLp.integrable_norm_rpow (by norm_num) (by norm_num)
+        refine ⟨hT2, ?_⟩
+        calc
+          (∫ ω, ‖T m ω‖ ^ (2 : ℝ) ∂μ) =
+              (m : ℝ)⁻¹ ^ 2 * ∫ ω, (∑ i, Q m i ω) ^ 2 ∂μ := by
+            simp only [T, Real.norm_eq_abs, Real.rpow_two, abs_mul, mul_pow, sq_abs]
+            rw [integral_const_mul]
+          _ ≤ (m : ℝ)⁻¹ ^ 2 * ((m : ℝ) * R * |Sigma c c|) :=
+            mul_le_mul_of_nonneg_left hsumBound (sq_nonneg _)
+          _ = (R * |Sigma c c|) / (m : ℝ) := by field_simp
+  have htrunc : TendstoInMeasure μ T atTop (fun _ => 0) := by
+    apply manyInstruments_tendstoInMeasure_zero_of_integral_sq_le_inv
+      (C := R * |Sigma c c|)
+    · intro m
+      by_cases hm : 0 < m
+      · exact (hmoment m hm).1
+      · have hm0 : m = 0 := Nat.eq_zero_of_not_pos hm
+        subst m
+        simp [T, Q]
+    · filter_upwards [eventually_gt_atTop (0 : ℕ)] with m hm
+      exact (hmoment m hm).2
+  have hGcoord : TendstoInMeasure μ (fun m ω => G m ω a a)
+      atTop (fun _ => H a a) :=
+    TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hSignal a) a
+  have hdev : Tendsto (fun m => μ {ω | (1 : ℝ) ≤ |G m ω a a - H a a|})
+      atTop (𝓝 0) := by
+    simpa [Real.norm_eq_abs] using
+      (tendstoInMeasure_iff_norm.mp hGcoord 1 zero_lt_one)
+  have hbad : Tendsto (fun m => μ {ω | ¬ G m ω a a ≤ R}) atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hdev (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => measure_mono (by
+      intro ω hω
+      simp only [Set.mem_setOf_eq] at hω ⊢
+      have hlt : R < G m ω a a := lt_of_not_ge hω
+      dsimp [R] at hlt
+      have hHle : H a a ≤ |H a a| := le_abs_self _
+      rw [abs_of_nonneg (by linarith : 0 ≤ G m ω a a - H a a)]
+      linarith)
+  have hne : Tendsto (fun m => μ {ω | T m ω ≠
+      sampleCrossMoment (S m ω) (fun i => U m i ω c) a}) atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hbad (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => measure_mono (by
+      intro ω hω
+      simp only [Set.mem_setOf_eq] at hω ⊢
+      intro hgood
+      apply hω
+      simp [T, Q, W, sampleCrossMoment, hgood, S, U, Matrix.mulVec,
+        dotProduct, mul_comm])
+  exact tendstoInMeasure_congr_of_measure_ne_tendsto_zero
+    htrunc hne
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+private theorem manyInstruments_unprojectedFullError_entry_meanSquare
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      μ Z e u2 Sigma B)
+    (m : ℕ) (hm : 0 < m) (a b : Sum Unit k) :
+    Integrable
+        (fun ω => ‖(sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+            (2 : ℝ)) μ ∧
+      (∫ ω, ‖(sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+            (2 : ℝ) ∂μ) ≤ B / (m : ℝ) := by
+  let U : Fin m → Ω → Sum Unit k → ℝ := fun i ω =>
+    manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i
+  let V : Fin m → Ω → ℝ := fun i ω => U i ω a * U i ω b
+  let Q : Fin m → Ω → ℝ := fun i ω => V i ω - Sigma a b
+  have hU4 (i : Fin m) (c : Sum Unit k) :
+      MemLp (fun ω => U i ω c) 4 μ := by
+    simpa [U] using (h.error_row_memLp_four m i).eval c
+  have hV2 (i : Fin m) : MemLp (V i) 2 μ := by
+    simpa [V] using mul_memLp_two_of_memLp_four (hU4 i a) (hU4 i b)
+  have hVint (i : Fin m) : Integrable (V i) μ :=
+    (hV2 i).integrable (by norm_num)
+  have hQ2 (i : Fin m) : MemLp (Q i) 2 μ := by
+    simpa [Q] using (hV2 i).sub (memLp_const (Sigma a b))
+  have hOuterInt (i : Fin m) : Integrable
+      (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) μ :=
+    vecMulVec_integrable_of_coordinate_memLp_four (fun c => hU4 i c)
+  have hVcond (i : Fin m) :
+      condExpOn μ (V i) (Z m) =ᵐ[μ] fun _ => Sigma a b := by
+    have hcoord :
+        (fun ω => condExpOn μ
+          (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) (Z m) ω a b) =ᵐ[μ]
+          condExpOn μ (V i) (Z m) := by
+      simpa [condExpOn, Matrix.vecMulVec_apply, V] using
+        condExp_apply_apply
+          (m := conditioningSpace (Z m)) (μ := μ)
+          (f := fun ω => Matrix.vecMulVec (U i ω) (U i ω))
+          (hOuterInt i) a b
+    have hmatrix :
+        (fun ω => condExpOn μ
+          (fun ω => Matrix.vecMulVec (U i ω) (U i ω)) (Z m) ω a b) =ᵐ[μ]
+          fun _ => Sigma a b := by
+      filter_upwards [h.conditional_second_moment m i] with ω hω
+      exact congrFun (congrFun hω a) b
+    exact hcoord.symm.trans hmatrix
+  have hVmean (i : Fin m) : ∫ ω, V i ω ∂μ = Sigma a b := by
+    calc
+      (∫ ω, V i ω ∂μ) = ∫ ω, condExpOn μ (V i) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using
+          (integral_condExp
+            (m := conditioningSpace (Z m)) (μ := μ) (f := V i)
+            (conditioningSpace_le (h.instrument_measurable m)))
+      _ = ∫ _ω, Sigma a b ∂μ := integral_congr_ae (hVcond i)
+      _ = Sigma a b := by simp
+  have hQmean (i : Fin m) : ∫ ω, Q i ω ∂μ = 0 := by
+    rw [show (fun ω => Q i ω) = fun ω => V i ω - Sigma a b by rfl]
+    rw [integral_sub (hVint i) (integrable_const (Sigma a b)), hVmean i]
+    simp
+  have hQcond (i : Fin m) : condExpOn μ (Q i) (Z m) =ᵐ[μ] 0 := by
+    calc
+      condExpOn μ (Q i) (Z m) =ᵐ[μ]
+          condExpOn μ (V i) (Z m) -
+            condExpOn μ (fun _ => Sigma a b) (Z m) := by
+        simpa [condExpOn, Q] using
+          condExp_sub (hVint i) (integrable_const (Sigma a b))
+            (conditioningSpace (Z m))
+      _ =ᵐ[μ] (fun _ => Sigma a b) - (fun _ => Sigma a b) := by
+        have hconst :
+            condExpOn μ (fun _ : Ω => Sigma a b) (Z m) = fun _ => Sigma a b := by
+          simpa [condExpOn] using
+            (condExp_const (μ := μ)
+              (conditioningSpace_le (h.instrument_measurable m)) (Sigma a b))
+        exact (hVcond i).sub (ae_of_all μ fun ω => congrFun hconst ω)
+      _ =ᵐ[μ] 0 := by simp
+  have hQcross (i j : Fin m) (hij : i ≠ j) :
+      ∫ ω, Q i ω * Q j ω ∂μ = 0 := by
+    have hrow := (h.rows_conditionally_independent m).condIndepFun hij
+    have hphi : Measurable
+        (fun x : Sum Unit k → ℝ => x a * x b - Sigma a b) := by
+      fun_prop
+    have hQind : CondIndepFun
+        (conditioningSpace (Z m))
+        (conditioningSpace_le (h.instrument_measurable m))
+        (Q i) (Q j) μ := by
+      simpa [Q, V, U, Function.comp_def] using hrow.comp hphi hphi
+    have hfactor := condExpOn_mul_eq_mul_condExpOn_of_condIndepFun
+      (h.instrument_measurable m) hQind
+      ((hQ2 i).integrable (by norm_num))
+      ((hQ2 j).integrable (by norm_num))
+      ((hQ2 i).integrable_mul (hQ2 j))
+    have hcondzero :
+        condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) =ᵐ[μ] 0 := by
+      calc
+        condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) =ᵐ[μ]
+            fun ω => condExpOn μ (Q i) (Z m) ω *
+              condExpOn μ (Q j) (Z m) ω := by
+          exact hfactor
+        _ =ᵐ[μ] 0 := by
+          filter_upwards [hQcond i, hQcond j] with ω hi hj
+          simp [hi, hj]
+    calc
+      (∫ ω, Q i ω * Q j ω ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => Q i ω * Q j ω) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using
+          (integral_condExp
+            (m := conditioningSpace (Z m)) (μ := μ)
+            (f := fun ω => Q i ω * Q j ω)
+            (conditioningSpace_le (h.instrument_measurable m)))
+      _ = 0 := by rw [integral_congr_ae hcondzero]; simp
+  have hNorm4Int (i : Fin m) : Integrable (fun ω => ‖U i ω‖ ^ 4) μ := by
+    simpa [U] using (h.error_row_memLp_four m i).integrable_norm_pow'
+  have hNorm4Bound (i : Fin m) : ∫ ω, ‖U i ω‖ ^ 4 ∂μ ≤ B := by
+    calc
+      (∫ ω, ‖U i ω‖ ^ 4 ∂μ) =
+          ∫ ω, condExpOn μ (fun ω => ‖U i ω‖ ^ 4) (Z m) ω ∂μ := by
+        symm
+        simpa [condExpOn] using
+          (integral_condExp
+            (m := conditioningSpace (Z m)) (μ := μ)
+            (f := fun ω => ‖U i ω‖ ^ 4)
+            (conditioningSpace_le (h.instrument_measurable m)))
+      _ ≤ ∫ _ω, B ∂μ := by
+        apply integral_mono_ae integrable_condExp (integrable_const B)
+        simpa [U] using h.conditional_fourth_bound m i
+      _ = B := by simp
+  have hVSqBound (i : Fin m) : ∫ ω, (V i ω) ^ 2 ∂μ ≤ B := by
+    have hpoint : ∀ ω, (V i ω) ^ 2 ≤ ‖U i ω‖ ^ 4 := by
+      intro ω
+      have ha : |U i ω a| ≤ ‖U i ω‖ := by
+        simpa [Real.norm_eq_abs] using norm_le_pi_norm (U i ω) a
+      have hb : |U i ω b| ≤ ‖U i ω‖ := by
+        simpa [Real.norm_eq_abs] using norm_le_pi_norm (U i ω) b
+      calc
+        (V i ω) ^ 2 = |U i ω a| ^ 2 * |U i ω b| ^ 2 := by
+          change (U i ω a * U i ω b) ^ 2 = _
+          rw [mul_pow, sq_abs, sq_abs]
+        _ ≤ ‖U i ω‖ ^ 2 * ‖U i ω‖ ^ 2 := by gcongr
+        _ = ‖U i ω‖ ^ 4 := by ring
+    calc
+      (∫ ω, (V i ω) ^ 2 ∂μ) ≤ ∫ ω, ‖U i ω‖ ^ 4 ∂μ :=
+        integral_mono_ae (hV2 i).integrable_sq (hNorm4Int i) (ae_of_all μ hpoint)
+      _ ≤ B := hNorm4Bound i
+  have hQVarBound (i : Fin m) : Var[Q i; μ] ≤ B := by
+    calc
+      Var[Q i; μ] = Var[V i; μ] := by
+        simpa [Q] using variance_sub_const (hV2 i).1 (Sigma a b)
+      _ = (∫ ω, (V i ω) ^ 2 ∂μ) - (Sigma a b) ^ 2 := by
+        rw [variance_eq_sub (hV2 i), hVmean i]
+        simp only [Pi.pow_apply]
+      _ ≤ ∫ ω, (V i ω) ^ 2 ∂μ := sub_le_self _ (sq_nonneg _)
+      _ ≤ B := hVSqBound i
+  have hsum := integral_sq_sum_le_card_mul_of_centered_uncorrelated
+    hQ2 hQmean hQcross hQVarBound
+  have hsumBound : (∫ ω, (∑ i, Q i ω) ^ 2 ∂μ) ≤ (m : ℝ) * B := by
+    simpa using hsum.2
+  have hsumLp : MemLp (fun ω => ∑ i, Q i ω) 2 μ :=
+    memLp_finset_sum Finset.univ (fun i _ => hQ2 i)
+  have hm0 : (m : ℝ) ≠ 0 := by exact_mod_cast ne_of_gt hm
+  have hrepr (ω : Ω) :
+      (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b =
+        (m : ℝ)⁻¹ * ∑ i, Q i ω := by
+    rw [sampleGram_eq_average_vecMulVec]
+    have houter :
+        (∑ i : Fin m, Matrix.vecMulVec
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)) a b =
+          ∑ i : Fin m,
+            manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i a *
+              manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i b := by
+      simp [Matrix.sum_apply, Matrix.vecMulVec_apply]
+    simp only [Matrix.sub_apply, Matrix.smul_apply]
+    rw [houter]
+    simp [Q, V, U, Finset.sum_sub_distrib]
+    field_simp
+  have hentryLp : MemLp
+      (fun ω => (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b) 2 μ := by
+    exact (memLp_congr_ae (ae_of_all μ hrepr)).mpr
+      (hsumLp.const_mul (m : ℝ)⁻¹)
+  refine ⟨?_, ?_⟩
+  · exact hentryLp.integrable_norm_rpow (by norm_num) (by norm_num)
+  · calc
+      (∫ ω, ‖(sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+            (2 : ℝ) ∂μ) =
+          ∫ ω, ((m : ℝ)⁻¹ * ∑ i, Q i ω) ^ 2 ∂μ := by
+        apply integral_congr_ae
+        exact ae_of_all μ fun ω => by
+          change ‖(sampleGram
+            (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) - Sigma) a b‖ ^
+              (2 : ℝ) = _
+          rw [hrepr]
+          simpa [Real.norm_eq_abs] using (sq_abs ((m : ℝ)⁻¹ * ∑ i, Q i ω))
+      _ = (m : ℝ)⁻¹ ^ 2 * ∫ ω, (∑ i, Q i ω) ^ 2 ∂μ := by
+        simp_rw [mul_pow]
+        rw [integral_const_mul]
+      _ ≤ (m : ℝ)⁻¹ ^ 2 * ((m : ℝ) * B) :=
+        mul_le_mul_of_nonneg_left hsumBound (sq_nonneg _)
+      _ = B / (m : ℝ) := by field_simp
+
+/-- Honest unprojected full-error WLLN used in the many-instrument LIML
+denominator.  It is the matrix form of the ordinary WLLN for the structural
+error row `[e,u₂]`; unlike the projected quadratic-form package, it is an
+unweighted sample average. -/
+structure ManyInstrumentsUnprojectedFullErrorMomentConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : Prop where
+  full_error_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))) μ
+  full_error_tendsto : TendstoInMeasure μ
+    (fun m ω => sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))
+    atTop (fun _ => Sigma)
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentsFullErrorGram_inr_inr
+    {n : Type*} [Fintype n]
+    (e : n → ℝ) (u2 : Matrix n k ℝ) :
+    (sampleGram (manyInstrumentsReducedFormErrorData e u2)).submatrix
+        Sum.inr Sum.inr = sampleGram u2 := by
+  ext a b
+  simp [sampleGram, manyInstrumentsReducedFormErrorData, Matrix.mul_apply]
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentsFullErrorGram_inr_inl
+    {n : Type*} [Fintype n]
+    (e : n → ℝ) (u2 : Matrix n k ℝ) :
+    (fun a => sampleGram (manyInstrumentsReducedFormErrorData e u2)
+      (Sum.inr a) (Sum.inl ())) = sampleCrossMoment u2 e := by
+  ext a
+  simp [sampleGram, sampleCrossMoment, manyInstrumentsReducedFormErrorData,
+    Matrix.mul_apply, Matrix.mulVec, dotProduct]
+
+omit [DecidableEq k] [∀ m, DecidableEq (ι m)] in
+/-- The raw conditional-homoskedastic fourth-moment model implies the ordinary
+unprojected WLLN for the full structural-error row.  The proof centers each
+row-product entry, uses conditional independence to eliminate cross-row
+covariances, and obtains the sharp `B / n` mean-square bound. -/
+theorem
+ManyInstrumentsConditionalHomoskedasticFourthMomentModel.toUnprojectedFullErrorMomentConditions
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {B : ℝ}
+    (h : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+      μ Z e u2 Sigma B) :
+    ManyInstrumentsUnprojectedFullErrorMomentConditions μ e u2 Sigma := by
+  have hfullMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))) μ := by
+    intro m
+    have hrows : MemLp
+        (fun ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)) 4 μ :=
+      MemLp.of_eval fun i => h.error_row_memLp_four m i
+    have hsampleGramContinuous : Continuous
+        (fun X : Matrix (Fin m) (Sum Unit k) ℝ => sampleGram X) := by
+      unfold sampleGram
+      fun_prop
+    exact hsampleGramContinuous.comp_aestronglyMeasurable hrows.1
+  refine ⟨hfullMeas, ?_⟩
+  apply TendstoInMeasure.of_sub_tendsto_zero_matrix
+  · refine tendstoInMeasure_pi (fun a => ?_)
+    refine tendstoInMeasure_pi (fun b => ?_)
+    apply manyInstruments_tendstoInMeasure_zero_of_integral_sq_le_inv
+    · intro m
+      by_cases hm : 0 < m
+      · exact (manyInstruments_unprojectedFullError_entry_meanSquare
+          h m hm a b).1
+      · have hm0 : m = 0 := Nat.eq_zero_of_not_pos hm
+        subst m
+        simp [sampleGram]
+    · filter_upwards [eventually_gt_atTop (0 : ℕ)] with m hm
+      exact (manyInstruments_unprojectedFullError_entry_meanSquare
+        h m hm a b).2
+  · exact tendstoInMeasure_of_tendsto_ae
+      (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ fun _ => tendsto_const_nhds)
+
+set_option maxHeartbeats 3000000 in
+-- Finite-coordinate assembly and its matrix CMT rewrites are elaboration-heavy.
+/-- The raw many-instrument model derives the complete OLS moment assembly.
+
+The two signal-weighted limits are Hansen's (12.78).  They are proved by the
+localized conditional WLLN above from conditional row independence, zero
+conditional means, and convergence of `n⁻¹Γ'Z'ZΓ`; neither limit is retained
+as an assumption.  The ordinary reduced-form error Gram and score are blocks
+of the full-error WLLN. -/
+theorem ManyInstrumentsTransformedErrorRawModelConditions.toOLSMomentAssemblyConditions
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B : ℝ}
+    (h : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B) :
+    ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) := by
+  let S : (m : ℕ) → Ω → Matrix (Fin m) k ℝ := fun m ω =>
+    manyInstrumentSignal (Z m ω) (Gamma m)
+  let A : ℕ → Ω → Matrix k k ℝ := fun m ω =>
+    (m : ℝ)⁻¹ • ((S m ω)ᵀ * u2 m ω)
+  have hsignalMeas : ∀ m, AEStronglyMeasurable (S m) μ := by
+    intro m
+    have hcont : Continuous
+        (fun z : Matrix (Fin m) (ι m) ℝ => manyInstrumentSignal z (Gamma m)) := by
+      unfold manyInstrumentSignal
+      fun_prop
+    exact hcont.comp_aestronglyMeasurable
+      (h.errors.instrument_measurable m).aestronglyMeasurable
+  have heMeas : ∀ m, AEStronglyMeasurable (e m) μ := by
+    intro m
+    have he4 : MemLp (e m) 4 μ := by
+      simpa [manyInstrumentsReducedFormErrorData] using
+        (MemLp.of_eval fun i => (h.errors.error_row_memLp_four m i).eval (Sum.inl ()))
+    exact he4.1
+  have hu2Meas : ∀ m, AEStronglyMeasurable (u2 m) μ := by
+    intro m
+    have hu4 : MemLp (u2 m) 4 μ := by
+      simpa [manyInstrumentsReducedFormErrorData] using
+        (MemLp.of_eval fun i => MemLp.of_eval fun a =>
+          (h.errors.error_row_memLp_four m i).eval (Sum.inr a))
+    exact hu4.1
+  have hAmeas : ∀ m, AEStronglyMeasurable (A m) μ := by
+    intro m
+    have hprod := ((hsignalMeas m).prodMk (hu2Meas m))
+    have hcont : Continuous
+        (fun p : Matrix (Fin m) k ℝ × Matrix (Fin m) k ℝ =>
+          (m : ℝ)⁻¹ • (p.1ᵀ * p.2)) := by
+      fun_prop
+    exact hcont.comp_aestronglyMeasurable hprod
+  have hAtendsto : TendstoInMeasure μ A atTop
+      (fun _ => (0 : Matrix k k ℝ)) := by
+    refine tendstoInMeasure_pi (fun a => ?_)
+    refine tendstoInMeasure_pi (fun b => ?_)
+    have hab := manyInstruments_signalErrorCrossMoment_coord_tendsto_zero
+      h.errors h.signal_gram_tendsto a (Sum.inr b)
+    refine TendstoInMeasure.congr (fun m => ae_of_all μ fun ω => ?_)
+      (ae_of_all μ fun _ => rfl) hab
+    simp [A, S, sampleCrossMoment, manyInstrumentsReducedFormErrorData,
+      Matrix.mul_apply, Matrix.mulVec, dotProduct, Matrix.smul_apply]
+  have hcrossMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) μ := by
+    intro m
+    have hcont : Continuous (fun M : Matrix k k ℝ => M + Mᵀ) := by fun_prop
+    refine (hcont.comp_aestronglyMeasurable (hAmeas m)).congr
+      (ae_of_all μ fun ω => ?_)
+    simp [A, S, manyInstrumentReducedFormCrossGram, smul_add]
+  have hcrossTendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentReducedFormCrossGram
+        (Z m ω) (Gamma m) (u2 m ω)) atTop
+      (fun _ => (0 : Matrix k k ℝ)) := by
+    have hcont : Continuous (fun M : Matrix k k ℝ => M + Mᵀ) := by fun_prop
+    have hraw := tendstoInMeasure_continuous_comp hAmeas hAtendsto hcont
+    refine TendstoInMeasure.congr (fun m => ae_of_all μ fun ω => ?_)
+      (ae_of_all μ fun _ => by simp) hraw
+    simp [A, S, manyInstrumentReducedFormCrossGram, smul_add]
+  have hsignalScoreMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (S m ω) (e m ω)) μ := by
+    intro m
+    have htranspose : AEStronglyMeasurable (fun ω => (S m ω)ᵀ) μ :=
+      continuous_id.matrix_transpose.comp_aestronglyMeasurable (hsignalMeas m)
+    have hraw : AEStronglyMeasurable (fun ω => (S m ω)ᵀ *ᵥ e m ω) μ :=
+      (Continuous.matrix_mulVec continuous_fst continuous_snd)
+        |>.comp_aestronglyMeasurable (htranspose.prodMk (heMeas m))
+    simpa only [sampleCrossMoment] using
+      hraw.const_smul ((Fintype.card (Fin m) : ℝ)⁻¹)
+  have hsignalScoreTendsto : TendstoInMeasure μ
+      (fun m ω => sampleCrossMoment (S m ω) (e m ω)) atTop
+      (fun _ => (0 : k → ℝ)) := by
+    refine tendstoInMeasure_pi (fun a => ?_)
+    simpa [S, manyInstrumentsReducedFormErrorData] using
+      (manyInstruments_signalErrorCrossMoment_coord_tendsto_zero
+        h.errors h.signal_gram_tendsto a (Sum.inl ()))
+  let hfull := h.errors.toUnprojectedFullErrorMomentConditions
+  have hreducedGramMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram (u2 m ω)) μ := by
+    intro m
+    refine ((continuous_id.matrix_submatrix Sum.inr Sum.inr)
+      |>.comp_aestronglyMeasurable (hfull.full_error_meas m)).congr
+        (ae_of_all μ fun ω => ?_)
+    exact manyInstrumentsFullErrorGram_inr_inr (e m ω) (u2 m ω)
+  have hreducedGramTendsto : TendstoInMeasure μ
+      (fun m ω => sampleGram (u2 m ω)) atTop
+      (fun _ => manyInstrumentsSigma22 Sigma) := by
+    have hblock := tendstoInMeasure_continuous_comp hfull.full_error_meas
+      hfull.full_error_tendsto
+      (continuous_id.matrix_submatrix Sum.inr Sum.inr)
+    refine TendstoInMeasure.congr (fun m => ae_of_all μ fun ω => ?_)
+      (ae_of_all μ fun _ => rfl) hblock
+    exact manyInstrumentsFullErrorGram_inr_inr (e m ω) (u2 m ω)
+  have hreducedScoreMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (u2 m ω) (e m ω)) μ := by
+    intro m
+    have hentry : Continuous
+        (fun M : Matrix (Sum Unit k) (Sum Unit k) ℝ =>
+          fun a => M (Sum.inr a) (Sum.inl ())) := by fun_prop
+    refine (hentry.comp_aestronglyMeasurable (hfull.full_error_meas m)).congr
+      (ae_of_all μ fun ω => ?_)
+    exact manyInstrumentsFullErrorGram_inr_inl (e m ω) (u2 m ω)
+  have hreducedScoreTendsto : TendstoInMeasure μ
+      (fun m ω => sampleCrossMoment (u2 m ω) (e m ω)) atTop
+      (fun _ => manyInstrumentsSigma2e Sigma) := by
+    have hentry : Continuous
+        (fun M : Matrix (Sum Unit k) (Sum Unit k) ℝ =>
+          fun a => M (Sum.inr a) (Sum.inl ())) := by fun_prop
+    have hblock := tendstoInMeasure_continuous_comp hfull.full_error_meas
+      hfull.full_error_tendsto hentry
+    refine TendstoInMeasure.congr (fun m => ae_of_all μ fun ω => ?_)
+      (ae_of_all μ fun _ => rfl) hblock
+    exact manyInstrumentsFullErrorGram_inr_inl (e m ω) (u2 m ω)
+  have hgramMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleGram (X m ω)) μ := by
+    intro m
+    refine (((h.signal_gram_measurable m).add (hreducedGramMeas m)).add
+      (hcrossMeas m)).congr (ae_of_all μ fun ω => ?_)
+    change manyInstrumentSignalGram (Z m ω) (Gamma m) + sampleGram (u2 m ω) +
+        manyInstrumentReducedFormCrossGram (Z m ω) (Gamma m) (u2 m ω) =
+      sampleGram (X m ω)
+    rw [h.reduced_form m ω]
+    exact (manyInstrumentReducedForm_sampleGram
+      (Z m ω) (Gamma m) (u2 m ω)).symm
+  have hscoreMeas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (X m ω) (e m ω)) μ := by
+    intro m
+    refine ((hsignalScoreMeas m).add (hreducedScoreMeas m)).congr
+      (ae_of_all μ fun ω => ?_)
+    change sampleCrossMoment (manyInstrumentSignal (Z m ω) (Gamma m)) (e m ω) +
+        sampleCrossMoment (u2 m ω) (e m ω) =
+      sampleCrossMoment (X m ω) (e m ω)
+    rw [h.reduced_form m ω]
+    exact (manyInstrumentReducedForm_sampleCrossMoment
+      (Z m ω) (Gamma m) (u2 m ω) (e m ω)).symm
+  exact ManyInstrumentsOLSMomentAssemblyConditions.of_components_posSemidef
+    h.reduced_form hgramMeas hscoreMeas h.signal_gram_measurable
+    hreducedGramMeas hcrossMeas hsignalScoreMeas hreducedScoreMeas
+    h.signal_gram_tendsto hreducedGramTendsto hcrossTendsto
+    hsignalScoreTendsto hreducedScoreTendsto h.signal_posDef
+    (by simpa [manyInstrumentsSigma22] using
+      h.error_covariance_posDef.posSemidef.submatrix Sum.inr)
+
+/-- Joint convergence of the two normalized sample-pencil matrices.  This is
+the honest spectral input to the LIML CMT; it does not assume an eigenvalue
+gap or the LIML adjustment limit. -/
+structure ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ) : Prop where
+  pencil_meas : ∀ m, AEStronglyMeasurable
+    (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m) μ
+  pencil_tendsto : TendstoInMeasure μ
+    (manyInstrumentsLIMLNormalizedSamplePencil Z X Y) atTop
+    (fun _ => (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+      manyInstrumentsLIMLLimitDenominator β Sigma alpha))
+
+section NormalizedPencilAssembly
+
+attribute [-instance] manyInstrumentsMatrixBorelMeasurableSpaceInst
+  manyInstrumentsMatrixBorelSpaceInst
+
+private noncomputable def manyInstrumentsOutcomeMomentCoord
+    (M : Matrix (Sum Unit k) (Sum Unit k) ℝ) : ℝ :=
+  M (Sum.inl ()) (Sum.inl ())
+
+omit [Fintype k] [DecidableEq k] in
+private theorem manyInstrumentsOutcomeMomentCoord_continuous : Continuous
+    (manyInstrumentsOutcomeMomentCoord (k := k)) := by
+  exact (continuous_apply (Sum.inl ())).comp (continuous_apply (Sum.inl ()))
+
+omit [DecidableEq k] in
+private theorem manyInstrumentsStructuralJointMoment_continuous (β : k → ℝ) :
+    Continuous
+      (fun p : Matrix k k ℝ × ((k → ℝ) × ℝ) =>
+        manyInstrumentsStructuralJointMoment β p.1 p.2.1 p.2.2) := by
+  apply continuous_pi
+  intro a
+  apply continuous_pi
+  intro b
+  cases a <;> cases b <;>
+    simp [manyInstrumentsStructuralJointMoment] <;> fun_prop
+
+set_option maxHeartbeats 3000000 in
+-- The structural joint-moment CMT unfolds all four matrix blocks.
+omit [DecidableEq k] in
+private theorem manyInstrumentsStructuralJointMoment_tendsto
+    (β : k → ℝ)
+    (A : ℕ → Ω → Matrix k k ℝ) (s : ℕ → Ω → (k → ℝ))
+    (q : ℕ → Ω → ℝ) (A0 : Matrix k k ℝ) (s0 : k → ℝ) (q0 : ℝ)
+    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
+    (hs_meas : ∀ m, AEStronglyMeasurable (s m) μ)
+    (hq_meas : ∀ m, AEStronglyMeasurable (q m) μ)
+    (hA : TendstoInMeasure μ A atTop (fun _ => A0))
+    (hs : TendstoInMeasure μ s atTop (fun _ => s0))
+    (hq : TendstoInMeasure μ q atTop (fun _ => q0)) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (A m ω) (s m ω) (q m ω)) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β A0 s0 q0) := by
+  have hinputs_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (A m ω, (s m ω, q m ω))) μ := fun m =>
+    (hA_meas m).prodMk ((hs_meas m).prodMk (hq_meas m))
+  have hinputs : TendstoInMeasure μ
+      (fun m ω => (A m ω, (s m ω, q m ω))) atTop
+      (fun _ => (A0, (s0, q0))) :=
+    tendstoInMeasure_prodMk hA (tendstoInMeasure_prodMk hs hq)
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  have hcoord_cont : Continuous
+      (fun p : Matrix k k ℝ × ((k → ℝ) × ℝ) =>
+        manyInstrumentsStructuralJointMoment β p.1 p.2.1 p.2.2 a b) := by
+    cases a <;> cases b <;>
+      simp [manyInstrumentsStructuralJointMoment] <;> fun_prop
+  exact tendstoInMeasure_continuous_comp hinputs_meas hinputs hcoord_cont
+
+omit [DecidableEq k] [IsProbabilityMeasure μ] in
+private theorem manyInstrumentsStructuralJointMoment_aestronglyMeasurable
+    (β : k → ℝ)
+    (A : ℕ → Ω → Matrix k k ℝ) (s : ℕ → Ω → (k → ℝ))
+    (q : ℕ → Ω → ℝ)
+    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
+    (hs_meas : ∀ m, AEStronglyMeasurable (s m) μ)
+    (hq_meas : ∀ m, AEStronglyMeasurable (q m) μ) :
+    ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsStructuralJointMoment β
+        (A m ω) (s m ω) (q m ω)) μ := by
+  intro m
+  change AEStronglyMeasurable
+    (fun ω a b => manyInstrumentsStructuralJointMoment β
+      (A m ω) (s m ω) (q m ω) a b) μ
+  rw [aestronglyMeasurable_iff_aemeasurable, aemeasurable_pi_iff]
+  intro a
+  rw [aemeasurable_pi_iff]
+  intro b
+  have hAcoord (i j : k) : AEStronglyMeasurable
+      (fun ω => A m ω i j) μ :=
+    (continuous_apply j).comp_aestronglyMeasurable
+      ((continuous_apply i).comp_aestronglyMeasurable (hA_meas m))
+  have hscoord (i : k) : AEStronglyMeasurable (fun ω => s m ω i) μ :=
+    (continuous_apply i).comp_aestronglyMeasurable (hs_meas m)
+  have hAvec (i : k) : AEStronglyMeasurable
+      (fun ω => (A m ω *ᵥ β) i) μ := by
+    have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+        (fun j _ => (hAcoord i j).mul
+          (aestronglyMeasurable_const : AEStronglyMeasurable
+            (fun _ : Ω => β j) μ))
+    change AEStronglyMeasurable (fun ω => ∑ j, A m ω i j * β j) μ
+    convert hsum using 1
+    ext ω
+    simp only [Finset.sum_apply, Pi.mul_apply]
+  have hbetaAvec : AEStronglyMeasurable
+      (fun ω => β ⬝ᵥ (A m ω *ᵥ β)) μ := by
+    have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+        (fun i _ => (aestronglyMeasurable_const : AEStronglyMeasurable
+          (fun _ : Ω => β i) μ).mul (hAvec i))
+    change AEStronglyMeasurable (fun ω => ∑ i, β i * (A m ω *ᵥ β) i) μ
+    convert hsum using 1
+    ext ω
+    simp only [Finset.sum_apply, Pi.mul_apply]
+  have hbetas : AEStronglyMeasurable (fun ω => β ⬝ᵥ s m ω) μ := by
+    have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+        (fun i _ => (aestronglyMeasurable_const : AEStronglyMeasurable
+          (fun _ : Ω => β i) μ).mul (hscoord i))
+    change AEStronglyMeasurable (fun ω => ∑ i, β i * s m ω i) μ
+    convert hsum using 1
+    ext ω
+    simp only [Finset.sum_apply, Pi.mul_apply]
+  cases a with
+  | inl _ =>
+      cases b with
+      | inl _ =>
+          exact (hbetaAvec.add hbetas |>.add hbetas |>.add (hq_meas m)).aemeasurable
+      | inr j =>
+          have hbetaCol : AEStronglyMeasurable
+              (fun ω => β ⬝ᵥ (fun i => A m ω i j)) μ := by
+            have hsum := Finset.aestronglyMeasurable_sum Finset.univ
+                (fun i _ => (aestronglyMeasurable_const : AEStronglyMeasurable
+                  (fun _ : Ω => β i) μ).mul (hAcoord i j))
+            change AEStronglyMeasurable (fun ω => ∑ i, β i * A m ω i j) μ
+            convert hsum using 1
+            ext ω
+            simp only [Finset.sum_apply, Pi.mul_apply]
+          exact (hbetaCol.add (hscoord j)).aemeasurable
+  | inr i =>
+      cases b with
+      | inl _ => exact ((hAvec i).add (hscoord i)).aemeasurable
+      | inr j => exact (hAcoord i j).aemeasurable
+
+set_option maxHeartbeats 3000000 in
+-- The total joint-moment limit assembles Gram, score, and outcome coordinates.
+private theorem manyInstruments_totalStructuralJointMoment_tendsto
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hOLS : ManyInstrumentsOLSMomentLimitConditions μ X e
+      (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma))
+    (hunprojected : ManyInstrumentsUnprojectedFullErrorMomentConditions
+      μ e u2 Sigma) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)
+        (Sigma (Sum.inl ()) (Sum.inl ()))) := by
+  have hcoord_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hunprojected.full_error_meas m)
+  have hcoord_tendsto_new : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))) atTop
+      (fun _ => Sigma (Sum.inl ()) (Sum.inl ())) := by
+    simpa [manyInstrumentsOutcomeMomentCoord] using
+      tendstoInMeasure_continuous_comp hunprojected.full_error_meas
+        hunprojected.full_error_tendsto
+        manyInstrumentsOutcomeMomentCoord_continuous
+  exact manyInstrumentsStructuralJointMoment_tendsto (μ := μ) β
+    (fun m ω => sampleGram (X m ω))
+    (fun m ω => sampleCrossMoment (X m ω) (e m ω))
+    (fun m ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))
+    (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)
+    (Sigma (Sum.inl ()) (Sum.inl ())) hOLS.gram_meas hOLS.score_meas
+    hcoord_meas_new hOLS.gram_tendsto hOLS.score_tendsto hcoord_tendsto_new
+
+set_option maxHeartbeats 3000000 in
+-- The projected joint-moment limit assembles the corresponding LIML coordinates.
+private theorem manyInstruments_projectedStructuralJointMoment_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hProjected : ManyInstrumentsLIMLMomentLimitConditions μ Z X e
+      (fun _ _ => 0) (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma))
+    (hfull_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) μ)
+    (hfull_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) atTop
+      (fun _ => alpha • Sigma)) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma)
+        (alpha * Sigma (Sum.inl ()) (Sum.inl ()))) := by
+  have hcoord_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hfull_meas m)
+  have hcoord_tendsto_new : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω))) atTop
+      (fun _ => alpha * Sigma (Sum.inl ()) (Sum.inl ())) := by
+    have hraw := tendstoInMeasure_continuous_comp hfull_meas hfull_tendsto
+      manyInstrumentsOutcomeMomentCoord_continuous
+    simpa [manyInstrumentsOutcomeMomentCoord, Matrix.smul_apply] using hraw
+  exact manyInstrumentsStructuralJointMoment_tendsto (μ := μ) β
+    (fun m ω => limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+    (fun m ω => limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+    (fun m ω => manyInstrumentsOutcomeMomentCoord
+      (manyInstrumentsProjectedFullErrorMoment (Z m ω) (e m ω) (u2 m ω)))
+    (H + alpha • manyInstrumentsSigma22 Sigma)
+    (alpha • manyInstrumentsSigma2e Sigma)
+    (alpha * Sigma (Sum.inl ()) (Sum.inl ())) hProjected.moment_meas
+    hProjected.score_meas hcoord_meas_new hProjected.moment_tendsto
+    hProjected.score_tendsto hcoord_tendsto_new
+
+set_option maxHeartbeats 900000 in
+-- Identifying the total limit requires a full block-matrix normalization.
+omit [IsProbabilityMeasure μ] in
+private theorem manyInstruments_totalStructuralJointMoment_identify_limit
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    (hSigma : Sigma.PosDef)
+    (h : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)
+        (Sigma (Sum.inl ()) (Sum.inl ())))) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+        manyInstrumentsJointReducedFormCovariance β Sigma) := by
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl)
+    (ae_of_all μ fun _ => ?_) h
+  simpa using manyInstruments_structuralJointMoment_limit β H Sigma 1 hSigma
+
+set_option maxHeartbeats 900000 in
+-- Identifying the projected limit uses the same block-matrix normalization.
+omit [IsProbabilityMeasure μ] in
+private theorem manyInstruments_projectedStructuralJointMoment_identify_limit
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hSigma : Sigma.PosDef)
+    (h : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsStructuralJointMoment β
+        (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma)
+        (alpha * Sigma (Sum.inl ()) (Sum.inl ())))) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha) := by
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl)
+    (ae_of_all μ fun _ => ?_) h
+  exact manyInstruments_structuralJointMoment_limit β H Sigma alpha hSigma
+
+set_option maxHeartbeats 900000 in
+-- The normalized pencil proof combines two joint matrix limits entrywise.
+private theorem manyInstruments_normalizedPencil_of_joint_limits
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hstruct : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω)
+    (htotal_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) μ)
+    (htotal_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+        (manyInstrumentsOutcomeMomentCoord (sampleGram
+          (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))) atTop
+      (fun _ => (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+        manyInstrumentsJointReducedFormCovariance β Sigma))
+    (hprojected_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) μ)
+    (hprojected_tendsto : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsStructuralJointMoment β
+        (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+        (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+        (manyInstrumentsOutcomeMomentCoord
+          (manyInstrumentsProjectedFullErrorMoment
+            (Z m ω) (e m ω) (u2 m ω)))) atTop
+      (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha)) :
+    ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha := by
+  let totalJoint : ℕ → Ω → Matrix (Sum Unit k) (Sum Unit k) ℝ := fun m ω =>
+    manyInstrumentsStructuralJointMoment β
+    (sampleGram (X m ω)) (sampleCrossMoment (X m ω) (e m ω))
+    (manyInstrumentsOutcomeMomentCoord (sampleGram
+      (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))
+  let projectedJoint : ℕ → Ω → Matrix (Sum Unit k) (Sum Unit k) ℝ := fun m ω =>
+    manyInstrumentsStructuralJointMoment β
+    (limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+    (limlNormalizedMomentVectorStar (Z m ω) (X m ω) (e m ω) 0)
+    (manyInstrumentsOutcomeMomentCoord (manyInstrumentsProjectedFullErrorMoment
+      (Z m ω) (e m ω) (u2 m ω)))
+  have hdenom_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => totalJoint m ω - projectedJoint m ω) μ := by
+    intro m
+    have htotal : AEStronglyMeasurable (totalJoint m) μ := by
+      simpa [totalJoint] using htotal_meas m
+    have hprojected : AEStronglyMeasurable (projectedJoint m) μ := by
+      simpa [projectedJoint] using hprojected_meas m
+    exact htotal.sub hprojected
+  have hdenom_tendsto : TendstoInMeasure μ
+      (fun m ω => totalJoint m ω - projectedJoint m ω) atTop
+      (fun _ => manyInstrumentsLIMLLimitDenominator β Sigma alpha) := by
+    have hpair_meas : ∀ m, AEStronglyMeasurable
+        (fun ω => (totalJoint m ω, projectedJoint m ω)) μ := by
+      intro m
+      have htotal : AEStronglyMeasurable (totalJoint m) μ := by
+        simpa [totalJoint] using htotal_meas m
+      have hprojected : AEStronglyMeasurable (projectedJoint m) μ := by
+        simpa [projectedJoint] using hprojected_meas m
+      exact htotal.prodMk hprojected
+    have htotal_tendsto' : TendstoInMeasure μ totalJoint atTop
+        (fun _ => (manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β +
+            manyInstrumentsJointReducedFormCovariance β Sigma) := by
+      simpa [totalJoint] using htotal_tendsto
+    have hprojected_tendsto' : TendstoInMeasure μ projectedJoint atTop
+        (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha) := by
+      simpa [projectedJoint] using hprojected_tendsto
+    have hpair_tendsto := tendstoInMeasure_prodMk
+      htotal_tendsto' hprojected_tendsto'
+    have hsub_cont : Continuous
+        (fun p : Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ => p.1 - p.2) := by fun_prop
+    have hsub := tendstoInMeasure_continuous_comp hpair_meas hpair_tendsto hsub_cont
+    refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl)
+      (ae_of_all μ fun _ => ?_) hsub
+    ext a b
+    simp [manyInstrumentsLIMLLimitNumerator,
+      manyInstrumentsLIMLLimitDenominator, Matrix.smul_apply]
+    ring
+  refine
+    { pencil_meas := ?_
+      pencil_tendsto := ?_ }
+  · intro m
+    have hprojected : AEStronglyMeasurable (projectedJoint m) μ := by
+      simpa [projectedJoint] using hprojected_meas m
+    have hpair := hprojected.prodMk (hdenom_meas m)
+    refine hpair.congr (ae_of_all μ fun ω => ?_)
+    simp only [manyInstrumentsLIMLNormalizedSamplePencil]
+    rw [hstruct m ω]
+    have hnum : (m : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighNumerator
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) = projectedJoint m ω := by
+      simpa [projectedJoint, manyInstrumentsOutcomeMomentCoord] using
+        manyInstruments_normalizedRayleighNumerator_eq_structuralJointMoment
+          (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+            (e m ω) (u2 m ω) β rfl
+    have htotal : sampleGram (manyInstrumentsLIMLSampleRayleighData
+          (X m ω) (X m ω *ᵥ β + e m ω)) = totalJoint m ω := by
+      simpa [totalJoint, manyInstrumentsOutcomeMomentCoord] using
+        manyInstruments_sampleGram_rayleighData_eq_structuralJointMoment
+          (X m ω) (X m ω *ᵥ β + e m ω) (e m ω) (u2 m ω) β rfl
+    have hden : (m : ℝ)⁻¹ •
+          manyInstrumentsLIMLSampleRayleighDenominator
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) =
+        sampleGram (manyInstrumentsLIMLSampleRayleighData
+          (X m ω) (X m ω *ᵥ β + e m ω)) -
+          (m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighNumerator
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) := by
+      simpa using manyInstruments_normalizedRayleighDenominator_eq_total_sub_numerator
+        (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+    apply Prod.ext
+    · exact hnum.symm
+    · rw [← htotal, ← hnum]
+      exact hden.symm
+  · have hprojected_tendsto' : TendstoInMeasure μ projectedJoint atTop
+        (fun _ => manyInstrumentsLIMLLimitNumerator β H Sigma alpha) := by
+      simpa [projectedJoint] using hprojected_tendsto
+    have hpair_tendsto := tendstoInMeasure_prodMk
+      hprojected_tendsto' hdenom_tendsto
+    refine TendstoInMeasure.congr (fun m => ?_) EventuallyEq.rfl hpair_tendsto
+    exact ae_of_all μ fun ω => by
+      simp only [manyInstrumentsLIMLNormalizedSamplePencil]
+      rw [hstruct m ω]
+      have hnum : (m : ℝ)⁻¹ •
+            manyInstrumentsLIMLSampleRayleighNumerator
+              (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) = projectedJoint m ω := by
+        simpa [projectedJoint, manyInstrumentsOutcomeMomentCoord] using
+          manyInstruments_normalizedRayleighNumerator_eq_structuralJointMoment
+            (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+              (e m ω) (u2 m ω) β rfl
+      have htotal : sampleGram (manyInstrumentsLIMLSampleRayleighData
+            (X m ω) (X m ω *ᵥ β + e m ω)) = totalJoint m ω := by
+        simpa [totalJoint, manyInstrumentsOutcomeMomentCoord] using
+          manyInstruments_sampleGram_rayleighData_eq_structuralJointMoment
+            (X m ω) (X m ω *ᵥ β + e m ω) (e m ω) (u2 m ω) β rfl
+      have hden : (m : ℝ)⁻¹ •
+            manyInstrumentsLIMLSampleRayleighDenominator
+              (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) =
+          sampleGram (manyInstrumentsLIMLSampleRayleighData
+            (X m ω) (X m ω *ᵥ β + e m ω)) -
+            (m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighNumerator
+              (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω) := by
+        simpa using manyInstruments_normalizedRayleighDenominator_eq_total_sub_numerator
+          (Z m ω) (X m ω) (X m ω *ᵥ β + e m ω)
+      apply Prod.ext
+      · exact hnum.symm
+      · rw [← htotal, ← hnum]
+        exact hden.symm
+
+set_option maxHeartbeats 900000 in
+-- This constructor derives every normalized-pencil field from raw moment limits.
+/-- Derive the normalized many-instrument LIML pencil from the raw model and
+the same OLS and projected-error moments used by the OLS and 2SLS faces of
+Theorem 12.19.  The ordinary unprojected full-error WLLN is derived internally
+from conditional independence and the bounded conditional fourth moment. -/
+theorem ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha := by
+  let hunprojected : ManyInstrumentsUnprojectedFullErrorMomentConditions
+      μ e u2 Sigma := hraw.errors.toUnprojectedFullErrorMomentConditions
+  let h2SLSNew : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) alpha :=
+    hraw.toTwoSLSMomentAssemblyConditions hOLS hquad
+  let hOLSNew : ManyInstrumentsOLSMomentLimitConditions μ X e
+      (H + manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) :=
+    ManyInstrumentsOLSMomentLimitConditions.of_reduced_form_components hOLS
+  let hProjectedNew : ManyInstrumentsLIMLMomentLimitConditions μ Z X e
+      (fun _ _ => 0) (H + alpha • manyInstrumentsSigma22 Sigma)
+        (alpha • manyInstrumentsSigma2e Sigma) :=
+    ManyInstrumentsLIMLMomentLimitConditions.of_projected_reduced_form_components
+      h2SLSNew
+  have htrace_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ := fun m =>
+    manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (hraw.instrument_gram_nonsingular m)
+  have hprojected_meas_new : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) μ :=
+    hquad.projected_meas htrace_meas_new
+  have hprojected_tendsto_new : TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω)) atTop
+      (fun _ => alpha • Sigma) :=
+    hraw.projected_full_error_tendsto hquad
+  have htotal_coord_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω)))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hunprojected.full_error_meas m)
+  have htotal_meas_new :=
+    manyInstrumentsStructuralJointMoment_aestronglyMeasurable (μ := μ) β
+      (fun m ω => sampleGram (X m ω))
+      (fun m ω => sampleCrossMoment (X m ω) (e m ω))
+      (fun m ω => manyInstrumentsOutcomeMomentCoord (sampleGram
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω))))
+      hOLSNew.gram_meas hOLSNew.score_meas htotal_coord_meas
+  have htotal_tendsto_raw :=
+    manyInstruments_totalStructuralJointMoment_tendsto (β := β)
+      hOLSNew hunprojected
+  have htotal_tendsto_new :=
+    manyInstruments_totalStructuralJointMoment_identify_limit
+      hraw.error_covariance_posDef htotal_tendsto_raw
+  have hprojected_coord_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω))) μ := fun m =>
+    manyInstrumentsOutcomeMomentCoord_continuous.comp_aestronglyMeasurable
+      (hprojected_meas_new m)
+  have hjoint_meas_new :=
+    manyInstrumentsStructuralJointMoment_aestronglyMeasurable (μ := μ) β
+      (fun m ω => limlNormalizedMomentMatrixStar (Z m ω) (X m ω) 0)
+      (fun m ω => limlNormalizedMomentVectorStar
+        (Z m ω) (X m ω) (e m ω) 0)
+      (fun m ω => manyInstrumentsOutcomeMomentCoord
+        (manyInstrumentsProjectedFullErrorMoment
+          (Z m ω) (e m ω) (u2 m ω)))
+      hProjectedNew.moment_meas hProjectedNew.score_meas hprojected_coord_meas
+  have hjoint_tendsto_raw :=
+    manyInstruments_projectedStructuralJointMoment_tendsto (β := β) hProjectedNew
+      hprojected_meas_new hprojected_tendsto_new
+  have hjoint_tendsto_new :=
+    manyInstruments_projectedStructuralJointMoment_identify_limit
+      hraw.error_covariance_posDef hjoint_tendsto_raw
+  exact manyInstruments_normalizedPencil_of_joint_limits hraw.structural
+    htotal_meas_new htotal_tendsto_new hjoint_meas_new hjoint_tendsto_new
+
+/-- Locally continuous generalized-eigenvalue selector certificate, matching the
+weak-IV selector/CMT architecture but applied to the many-instrument
+normalized pencil.
+
+Only continuity at the limiting pencil is required.  The sample minimizer is
+retained as an audit field.  The deterministic limit minimizer identifies the
+selector's limiting value; no stochastic eigenvalue gap is assumed. -/
+structure ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ) : Prop where
+  selector_cont : ContinuousAt muSelector
+    (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+      manyInstrumentsLIMLLimitDenominator β Sigma alpha)
+  mu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ
+  sample_selector_eq : ∀ m, limlMuHat m =ᵐ[μ] fun ω =>
+    muSelector (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω)
+  sample_rayleigh_minimizer : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+    LIMLRayleighMinimizer
+      (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω).1
+      (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω).2
+      (limlMuHat m ω)
+  limit_rayleigh_minimizer : LIMLRayleighMinimizer
+    (manyInstrumentsLIMLLimitNumerator β H Sigma alpha)
+    (manyInstrumentsLIMLLimitDenominator β Sigma alpha)
+    (muSelector (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+      manyInstrumentsLIMLLimitDenominator β Sigma alpha))
+
+/-- Concrete totalized LIML adjustment for the normalized sample pencil in
+Hansen Theorem 12.19.
+
+The selector is totalized to zero when the denominator is not positive
+definite. On the positive-denominator branch it equals the genuine smallest
+generalized-Rayleigh root. -/
+noncomputable def manyInstrumentsLIMLSmallestRoot
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ) (m : ℕ) (ω : Ω) : ℝ :=
+  weakIVLIMLSmallestGeneralizedRoot
+    (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω)
+
+/-- The concrete smallest-root selector supplies the many-instrument selector
+certificate from normalized-pencil measurability and regularity alone.
+
+This removes the former opaque selector and selector-convergence inputs.  The
+sample regularity premise is the finite-sample qualification that Hansen's
+generalized Rayleigh minimum has a strictly positive denominator; the limit
+regularity is discharged by the positive-definite limit covariance in the
+raw theorem wrapper below. -/
+theorem ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate.of_smallestRoot
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hsample : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω ∈
+        weakIVLIMLPositiveDenominatorSet)
+    (hlimit :
+      (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+        manyInstrumentsLIMLLimitDenominator β Sigma alpha) ∈
+          weakIVLIMLPositiveDenominatorSet) :
+    ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y (manyInstrumentsLIMLSmallestRoot Z X Y) β H Sigma alpha
+        weakIVLIMLSmallestGeneralizedRoot where
+  selector_cont :=
+    weakIVLIMLSmallestGeneralizedRoot_continuousAt (by
+      simpa [weakIVLIMLSelectorBadSet] using hlimit)
+  mu_meas := by
+    intro m
+    exact (weakIVLIMLSmallestGeneralizedRoot_measurable.comp_aemeasurable
+      (hpencil.pencil_meas m).aemeasurable).aestronglyMeasurable
+  sample_selector_eq := by
+    intro m
+    exact ae_of_all μ fun _ => rfl
+  sample_rayleigh_minimizer := by
+    filter_upwards [hsample] with m hm
+    filter_upwards [hm] with ω hω
+    exact weakIVLIMLSmallestGeneralizedRoot_rayleighMinimizer hω
+  limit_rayleigh_minimizer :=
+    weakIVLIMLSmallestGeneralizedRoot_rayleighMinimizer hlimit
+
+/-- Normalized-pencil convergence plus the continuous generalized-eigenvalue
+selector derives `μ̂ ->p α/(1-α)` by CMT. -/
+theorem manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H Sigma alpha muSelector)
+    (hH : H.PosSemidef) (hSigma : Sigma.PosDef) (halpha : alpha < 1) :
+    ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha where
+  meas := hselector.mu_meas
+  tendsto := by
+    have hbenchmark := manyInstrumentsLIMLLimit_rayleighMinimizer
+      β H Sigma alpha hH hSigma halpha
+    have hvalue :
+        muSelector (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+          manyInstrumentsLIMLLimitDenominator β Sigma alpha) =
+            alpha / (1 - alpha) :=
+      LIMLRayleighMinimizer.value_unique
+        hselector.limit_rayleigh_minimizer hbenchmark
+    have hselector_meas : ∀ m, AEStronglyMeasurable
+        (fun ω => muSelector
+          (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω)) μ := by
+      intro m
+      exact (hselector.mu_meas m).congr (hselector.sample_selector_eq m)
+    have hraw := tendstoInMeasure_continuousAt_const_comp
+      hpencil.pencil_meas hselector_meas hpencil.pencil_tendsto
+        hselector.selector_cont
+    refine TendstoInMeasure.congr (fun m => (hselector.sample_selector_eq m).symm)
+      (ae_of_all μ fun _ => hvalue) hraw
+
+/-- Normalized-pencil convergence identifies the concrete smallest generalized
+root without any finite-sample positive-denominator premise.
+
+The selector is total and measurable on all matrix pairs, while continuity is
+needed only at the positive-definite limiting denominator.  Thus exceptional
+finite samples are handled by the established zero totalization and do not
+need to be excluded asymptotically. -/
+theorem manyInstruments_limlMuHat_tendsto_of_normalizedPencil_smallestRoot
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hH : H.PosSemidef) (hSigma : Sigma.PosDef) (halpha : alpha < 1) :
+    ManyInstrumentsLIMLEigenvalueLimitConditions μ
+      (manyInstrumentsLIMLSmallestRoot Z X Y) alpha where
+  meas := by
+    intro m
+    exact (weakIVLIMLSmallestGeneralizedRoot_measurable.comp_aemeasurable
+      (hpencil.pencil_meas m).aemeasurable).aestronglyMeasurable
+  tendsto := by
+    have hlimitDenominator :
+        (manyInstrumentsLIMLLimitDenominator β Sigma alpha).PosDef := by
+      rw [manyInstrumentsLIMLLimitDenominator]
+      exact (manyInstrumentsJointReducedFormCovariance_posDef β hSigma).smul
+        (by linarith)
+    have hlimit :
+        (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+          manyInstrumentsLIMLLimitDenominator β Sigma alpha) ∈
+            weakIVLIMLPositiveDenominatorSet :=
+      weakIVLIMLPositiveDenominatorSet_of_posDef hlimitDenominator
+    have hbenchmark := manyInstrumentsLIMLLimit_rayleighMinimizer
+      β H Sigma alpha hH hSigma halpha
+    have hrootMin := weakIVLIMLSmallestGeneralizedRoot_rayleighMinimizer hlimit
+    have hvalue : weakIVLIMLSmallestGeneralizedRoot
+        (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+          manyInstrumentsLIMLLimitDenominator β Sigma alpha) =
+          alpha / (1 - alpha) :=
+      LIMLRayleighMinimizer.value_unique hrootMin hbenchmark
+    have hrootMeas : ∀ m, AEStronglyMeasurable
+        (fun ω => weakIVLIMLSmallestGeneralizedRoot
+          (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω)) μ := by
+      intro m
+      exact (weakIVLIMLSmallestGeneralizedRoot_measurable.comp_aemeasurable
+        (hpencil.pencil_meas m).aemeasurable).aestronglyMeasurable
+    have hraw := tendstoInMeasure_continuousAt_const_comp
+      hpencil.pencil_meas hrootMeas hpencil.pencil_tendsto
+        (weakIVLIMLSmallestGeneralizedRoot_continuousAt (by
+          simpa [weakIVLIMLSelectorBadSet] using hlimit))
+    simpa only [manyInstrumentsLIMLSmallestRoot, hvalue] using hraw
+
+/-- Assemble the canonical Theorem 12.19 condition package through normalized
+pencil convergence and generalized-eigenvalue CMT.
+
+This replaces the legacy adjustment-gap WLLN input.  The OLS and projected
+2SLS assemblies remain separate because they also supply the two non-LIML
+faces of Hansen's theorem. -/
+theorem
+ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_normalizedPencil_selector
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+      atTop (𝓝 alpha))
+    (hstruct : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef) (hSigma : Sigma.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) alpha)
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H Sigma alpha muSelector) :
+    ManyInstrumentsEstimatorMomentAssemblyConditions
+      μ Z X Y Gamma e u2 limlMuHat β H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha := by
+  have hmu := manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector
+    hpencil hselector hH.posSemidef hSigma halpha_lt_one
+  exact
+    ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
+      (manyInstruments_alpha_nonneg_of_card_ratio_tendsto hratio)
+      halpha_lt_one hratio hstruct hH hOLS h2SLS hmu
+
+/-- Hansen Theorem 12.19 through the genuine generalized-pencil route.
+
+The LIML conclusion is obtained from normalized pencil convergence and the
+continuous selector.  No additive eigenvalue-gap decomposition is exposed. -/
+theorem manyInstruments_estimators_theorem12_19_of_normalizedPencil_selector
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+      atTop (𝓝 alpha))
+    (hstruct : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef) (hSigma : Sigma.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) alpha)
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H Sigma alpha muSelector) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_normalizedPencil_selector
+      halpha_lt_one hratio hstruct hH hSigma hOLS h2SLS hpencil hselector)
+
+/-- Hansen Theorem 12.19 from the raw model, the remaining OLS/projected
+concentration certificates, and a locally continuous generalized-root selector.
+
+The raw package contains model (12.73), conditional assumptions (12.74)--(12.75),
+the dimension ratio (12.76), and the signal-Gram limit (12.77), together with
+the additional nondegeneracy assumption `Sigma.PosDef`.  The OLS
+assembly is the fixed-dimensional WLLN output for the unprojected error and
+signal-error moments.  The mean-square package is Hansen's conditional
+quadratic-form calculation leading to (12.81), and is used here to derive the
+projected 2SLS error moments rather than assume their probability limits.  The
+normalized pencil is derived from these inputs and the raw model's ordinary
+full-error WLLN; the local selector is the remaining spectral CMT boundary. -/
+theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_selector
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H Sigma alpha muSelector) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) := by
+  let hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha :=
+    ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments
+      hraw hOLS hquad
+  apply manyInstruments_estimators_theorem12_19_of_normalizedPencil_selector
+    hraw.alpha_lt_one hraw.instrument_ratio hraw.structural hraw.signal_posDef
+      hraw.error_covariance_posDef hOLS
+      (hraw.toTwoSLSMomentAssemblyConditions hOLS hquad) hpencil hselector
+
+/-- Hansen Theorem 12.19 with the LIML adjustment fixed to the concrete
+smallest generalized-Rayleigh root.
+
+Normalized-pencil convergence and selector convergence are conclusions.  The
+smallest-root selector is total on every finite sample, and continuity is used
+only at the positive-definite limiting denominator. -/
+theorem manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smallestRoot
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω)
+        (manyInstrumentsLIMLSmallestRoot Z X Y m ω))
+      atTop (fun _ => β) := by
+  let hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha :=
+    ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments
+      hraw hOLS hquad
+  let h2SLS := hraw.toTwoSLSMomentAssemblyConditions hOLS hquad
+  let hmu := manyInstruments_limlMuHat_tendsto_of_normalizedPencil_smallestRoot
+    hpencil hraw.signal_posDef.posSemidef hraw.error_covariance_posDef
+      hraw.alpha_lt_one
+  exact manyInstruments_estimators_theorem12_19
+    (ManyInstrumentsEstimatorMomentAssemblyConditions.of_reduced_form_assemblies_mu_limit_conditions
+      (manyInstruments_alpha_nonneg_of_card_ratio_tendsto hraw.instrument_ratio)
+      hraw.alpha_lt_one hraw.instrument_ratio hraw.structural hraw.signal_posDef
+      hOLS h2SLS hmu)
+
+/-- Corrected transformed-error raw-model endpoint for Theorem 12.19. The OLS
+assembly, Hansen's projected quadratic concentration (12.81), and the concrete
+LIML selector are all derived from the primitive conditions, including the
+additional positive-definite transformed-error covariance premise. -/
+theorem manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B : ℝ}
+    (hraw : ManyInstrumentsTransformedErrorRawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω)
+        (manyInstrumentsLIMLSmallestRoot Z X Y m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smallestRoot
+    hraw
+      (ManyInstrumentsTransformedErrorRawModelConditions.toOLSMomentAssemblyConditions hraw)
+      hraw.errors.toProjectionQuadraticMeanSquareConditions
+
+/-- Hansen Theorem 12.19 from the literal reduced-form errors `[u₁,u₂]` and
+covariance `Σ` of (12.74).
+
+The structural error is defined as `e = u₁ - β'u₂`.  Consequently the OLS and
+2SLS biases use Hansen's exact `Σ₂e = Σ₂₁ - Σ₂₂β`, while the three conclusions
+are otherwise identical to the existing raw-model endpoint.  The projected
+quadratic and selector certificates are stated in the derived `[e,u₂]`
+coordinates used by the internal proof engine. -/
+theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_selector
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (hraw : ManyInstrumentsPrimitiveErrorRawModelConditions
+      μ Z X Y Gamma u1 u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 H (manyInstrumentsSigma22 Sigma)
+          (manyInstrumentsHansenSigma2e β Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 (manyInstrumentsStructuralErrorCovariance β Sigma) C)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H
+        (manyInstrumentsStructuralErrorCovariance β Sigma) alpha muSelector) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) := by
+  have hOLS' : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 H
+          (manyInstrumentsSigma22
+            (manyInstrumentsStructuralErrorCovariance β Sigma))
+          (manyInstrumentsSigma2e
+            (manyInstrumentsStructuralErrorCovariance β Sigma)) := by
+    rw [manyInstrumentsSigma22_structuralErrorCovariance,
+      manyInstrumentsSigma2e_structuralErrorCovariance]
+    exact hOLS
+  simpa only [manyInstrumentsSigma22_structuralErrorCovariance,
+    manyInstrumentsSigma2e_structuralErrorCovariance] using
+    (manyInstruments_estimators_theorem12_19_of_rawModel_concentration_selector
+      (hraw := hraw.toRawModelConditions) (hOLS := hOLS')
+      (hquad := hquad) (hselector := hselector))
+
+/-- Hansen-facing concrete-root form of Theorem 12.19.
+
+The primitive covariance is the covariance of `[u₁,u₂]`, the structural error
+is derived as `e = u₁ - β'u₂`, and the LIML adjustment is the totalized
+concrete selector. It agrees with the genuine smallest generalized-Rayleigh
+root on the positive-denominator branch and returns zero otherwise. No
+separate selector object or selector-convergence premise is an input. -/
+theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_concentration_smallestRoot
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsPrimitiveErrorRawModelConditions
+      μ Z X Y Gamma u1 u2 β H Sigma alpha B)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 H (manyInstrumentsSigma22 Sigma)
+          (manyInstrumentsHansenSigma2e β Sigma))
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 (manyInstrumentsStructuralErrorCovariance β Sigma) C) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω)
+        (manyInstrumentsLIMLSmallestRoot Z X Y m ω))
+      atTop (fun _ => β) := by
+  have hOLS' : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma
+        (fun m ω => manyInstrumentsStructuralError (u1 m ω) (u2 m ω) β)
+        u2 H
+          (manyInstrumentsSigma22
+            (manyInstrumentsStructuralErrorCovariance β Sigma))
+          (manyInstrumentsSigma2e
+            (manyInstrumentsStructuralErrorCovariance β Sigma)) := by
+    rw [manyInstrumentsSigma22_structuralErrorCovariance,
+      manyInstrumentsSigma2e_structuralErrorCovariance]
+    exact hOLS
+  simpa only [manyInstrumentsSigma22_structuralErrorCovariance,
+    manyInstrumentsSigma2e_structuralErrorCovariance] using
+    (manyInstruments_estimators_theorem12_19_of_rawModel_concentration_smallestRoot
+      (hraw := hraw.toRawModelConditions) (hOLS := hOLS')
+      (hquad := hquad))
+
+/-- Corrected Hansen-facing Theorem 12.19 endpoint.  The full OLS assembly,
+projected quadratic concentration (12.81), and concrete LIML selector are
+derived from the primitive `[u₁,u₂]` conditional model. -/
+theorem manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {u1 : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B : ℝ}
+    (hraw : ManyInstrumentsPrimitiveErrorRawModelConditions
+      μ Z X Y Gamma u1 u2 β H Sigma alpha B) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsHansenSigma2e β Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω)
+        (manyInstrumentsLIMLSmallestRoot Z X Y m ω))
+      atTop (fun _ => β) := by
+  simpa only [manyInstrumentsSigma22_structuralErrorCovariance,
+    manyInstrumentsSigma2e_structuralErrorCovariance] using
+    (manyInstruments_estimators_theorem12_19_of_rawModel_smallestRoot
+      (hraw := hraw.toRawModelConditions))
+
+end NormalizedPencilAssembly
+
+/- The following compatibility packages encode projected quadratic forms or
+an eigenvalue adjustment as iid additive rows.  Projection and generalized
+eigenvalue selection do not have that form.  They remain available only so
+existing same-file compatibility wrappers elaborate; new theorem-facing work
+must use the conditional mean-square and normalized-pencil route above. -/
+attribute [deprecated ManyInstrumentsProjectionQuadraticMeanSquareConditions
+    (since := "2026-07-11")]
+  ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+  ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+
+attribute [deprecated ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+    (since := "2026-07-11")]
+  ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+  ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+  ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
+
+end Asymptotics
+
+end HansenEconometrics

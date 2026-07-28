@@ -1,0 +1,30 @@
+[
+  {
+    "id": "1173760dcaade9271d3b3eb84e6b5ffbb74ee38f",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Bootstrap.lean",
+    "line": 13683,
+    "decl": "twoSLSBootstrap_full_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate: keep theorem names citeable; use namespaces and local names to avoid very long identifiers",
+    "claim": "The 174-character public theorem name is not reasonably citeable and encodes the entire construction path instead of exposing a short canonical Chapter 12 API.",
+    "evidence": "The declaration had no callers outside Bootstrap.lean, while the inventory had to repeat its full implementation-path name.",
+    "suggested_fix": "Keep the invalid bounded-score route private and reserve a short Theorem12_8 namespace name for a future endpoint genuinely derived from Hansen's assumptions.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "c97cc664aa16bfceaf543f98a85e45edebef4ee3",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Bootstrap.lean",
+    "line": 13683,
+    "decl": "twoSLSBootstrap_full_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero",
+    "dimension": "faithfulness",
+    "severity": "blocker",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions only as strongly as needed; review rubric faithfulness: vacuous statements do not count as formalizations",
+    "claim": "The public declaration was vacuous under its stated Assumption 12.2 package: the eventual pathwise true-score bound is incompatible with the nondegenerate Gaussian score CLT, so it cannot serve as Hansen Theorem 12.8.",
+    "evidence": "The declaration added a uniform eventual pathwise score bound. Assumption 12.2 includes a positive-definite score covariance, and the file derives a nondegenerate Gaussian true-score bootstrap limit. The inventory already acknowledged the incompatibility and left the canonical crosswalk blank.",
+    "suggested_fix": "Remove or privatize the invalid compatibility wrapper and use the asymptotic-tightness transfer; keep the canonical crosswalk blank until the raw bootstrap inputs are derived.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

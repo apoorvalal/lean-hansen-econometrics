@@ -1,0 +1,58 @@
+[
+  {
+    "id": "7c2a1d9a8d3e854f71817deda8b4aa037ef75aeb",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean",
+    "line": 8154,
+    "decl": "twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate and Public API: keep same-file proof scaffolding private and choose one canonical public API",
+    "claim": "The noncanonical wrapper remained public although the derived-variance-positive endpoint subsumed it.",
+    "evidence": "It had no out-of-file callers and required a separate sigma positivity premise.",
+    "suggested_fix": "Make it private.",
+    "mechanical": true,
+    "confidence": "high"
+  },
+  {
+    "id": "dc95c389ecb3d7449c9a052687640a680c12be9a",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean",
+    "line": 8182,
+    "decl": "twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_lowerTail",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate and Public API: keep same-file proof scaffolding private and choose one canonical public API",
+    "claim": "The old lower-tail wrapper was a public noncanonical endpoint with no external caller.",
+    "evidence": "The derived-variance-positive lower-tail endpoint delegates through the canonical upper-tail endpoint instead.",
+    "suggested_fix": "Make it private.",
+    "mechanical": true,
+    "confidence": "high"
+  },
+  {
+    "id": "96b2313c1e26d8c4cb82d6169bb505df76bb5515",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean",
+    "line": 8218,
+    "decl": "twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_derivedSigmaPos",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate: keep theorem names citeable; use namespaces and local names to avoid very long identifiers",
+    "claim": "The canonical theorem name encoded the full construction path.",
+    "evidence": "The inventory had to repeat the 98-character identifier as the crosswalk target.",
+    "suggested_fix": "Rename it Theorem12_16.observed.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "b08e8f0fa89353a7fa4f4d7674e1a8b96091cf17",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean",
+    "line": 8253,
+    "decl": "twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_derivedSigmaPos_lowerTail",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate: keep theorem names citeable; use namespaces and local names to avoid very long identifiers",
+    "claim": "The canonical lower-tail companion name encoded the full construction path.",
+    "evidence": "The inventory repeated the 108-character identifier.",
+    "suggested_fix": "Rename it Theorem12_16.observed_lowerTail.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

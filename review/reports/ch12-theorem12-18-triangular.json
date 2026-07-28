@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ff97d741e4426559c39df800ceb7539a02afed92",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/WeakInstruments.lean",
+    "line": 15333,
+    "decl": "WeakIVTheorem1218TriangularSelectorCertificate",
+    "dimension": "faithfulness",
+    "severity": "major",
+    "rule": "AGENTS.md theorem-writing policy: state an enforceable condition package whose conclusion matches Hansen; assumptions must make the claimed mathematical role explicit",
+    "claim": "The triangular certificate did not require the limit selector value to minimize the limiting generalized Rayleigh quotient, so the endpoint identified only an arbitrary continuous selector image rather than Hansen's mu*.",
+    "evidence": "Hansen defines mu* as the minimum of the full reduced-form generalized Rayleigh quotient. The certificate originally required only finite-sample minimization.",
+    "suggested_fix": "Add a limiting Rayleigh-minimizer obligation and expose that characterization with the CMT conclusion.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "1d3dd03138da091ad0626126bb352a3561c16ebc",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/WeakInstruments.lean",
+    "line": 14814,
+    "decl": "weakIVLocalLIMLBetaStar",
+    "dimension": "faithfulness",
+    "severity": "minor",
+    "rule": "AGENTS.md public-API and theorem-writing policy: keep one canonical mathematical meaning for each public object and document Hansen-facing notation accurately",
+    "claim": "The LIML definition documented limlMuHat as Hansen's unscaled root although its implementation treats the input as m times that root.",
+    "evidence": "The body passes weakIVLIMLFiniteSampleMu limlMuHat, which divides the input by m before calling LIML.",
+    "suggested_fix": "Document limlMuHat as the scaled generalized root m * muHat.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "2c4131a659e7c28a05ffcf7ff64c73d0a62e57a2",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/WeakInstruments.lean",
+    "line": 15364,
+    "decl": "WeakIVTheorem1218TriangularAssemblyConditions",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The raw assembly required four estimator nondegeneracy fields unused by its Gram/score and selector-CMT conclusions.",
+    "evidence": "The proof referenced none of qzz_nonsing, sigma22_nonsing, twoSLS_limit_nonsing_ae, or liml_limit_nonsing_ae.",
+    "suggested_fix": "Remove those fields from the raw assembly and reserve them for the future actual-estimator endpoint.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

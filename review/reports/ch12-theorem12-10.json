@@ -1,0 +1,30 @@
+[
+  {
+    "id": "0dd4c009f68dadbf8f661329559eebbccb79dfa1",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 20682,
+    "decl": "generatedRegressorHomoskedasticWaldDiv_theorem12_10_conditionalNormal_lowerTail",
+    "dimension": "faithfulness",
+    "severity": "major",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The arbitrary-joint endpoint required full rank at every design-index value although its conclusions and conditional-error premise are only almost everywhere.",
+    "evidence": "Rank outside the support of mu.map D is irrelevant, and the file already has a totalized a.e.-rank conditional-distribution theorem.",
+    "suggested_fix": "Use the totalized a.e.-rank theorem as the public surface and keep the everywhere-rank wrapper private.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "a55e8cfef8528f90b48c0f11b80c623e89e47152",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 22346,
+    "decl": "generatedRegressorWaldDiv_randomDesign_exactSize_lowerTail_of_measurableDesign",
+    "dimension": "faithfulness",
+    "severity": "major",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The product-design exact-size endpoint required rank for every design index instead of almost surely under the design law.",
+    "evidence": "The conclusion integrates under pi.prod mu_e, and the file already provides an a.e.-fixed-law product bridge and a totalized a.e.-rank F law.",
+    "suggested_fix": "Use the totalized a.e.-rank product theorem as the public surface and keep the everywhere-rank wrapper private.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

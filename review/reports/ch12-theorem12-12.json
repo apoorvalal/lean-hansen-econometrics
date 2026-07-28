@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ae25b6c02ecab2250b1e56fdf8cb9801060bd03e",
+    "file": "inventory/ch12-inventory.md",
+    "line": 1420,
+    "decl": "expectationErrorStructuralError_eq_control_error_of_hansen_primitive",
+    "dimension": "faithfulness",
+    "severity": "minor",
+    "rule": "AGENTS.md Crosswalk and Documentation policy: the canonical chapter inventory must accurately map textbook statements to Lean theorems",
+    "claim": "The inventory assigned the literal identity e = u'alpha + nu to the corrected primitive bridge.",
+    "evidence": "The corrected theorem proves e = u'(alpha-beta)+nu; a separate printed-X-model bridge proves the literal identity.",
+    "suggested_fix": "Correct the inventory identity and cite the literal printed-X-model bridge separately.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "b9b33bb1a9c72eeced690a1f72eb83b25fc7e94d",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 4024,
+    "decl": "ExpectationErrorHansenTheorem12_12Conditions",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The theorem-facing package carried the full primitive model as a dead field while its asymptotic field already assumed every conclusion used by the endpoint.",
+    "evidence": "The endpoint proof referenced only h.asymptotic and never h.primitive.",
+    "suggested_fix": "Separate the honest primitive model from an explicitly named conditional assembly containing only the asymptotic engine.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "78534a51172266029cad54a3354ac0cf1b453b62",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Bootstrap.lean",
+    "line": 11903,
+    "decl": "twoSLSBootstrap_theorem12_8_of_textbook_fourth_trueScoreTail_closeness_bootstrapCovarianceConsistency",
+    "dimension": "faithfulness",
+    "severity": "blocker",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed; review rubric faithfulness: vacuous statements do not count as formalizations",
+    "claim": "The older public theorem-facing wrapper was vacuous because its fixed-compact true-score tail premise conflicts with the nondegenerate Gaussian bootstrap limit implied by Assumption 12.2.",
+    "evidence": "Every compact set is bounded, while a positive-definite Gaussian has positive mass outside every bounded set; the premise required that outside probability tend to zero.",
+    "suggested_fix": "Make this compatibility wrapper private and use TwoSLSBootstrapTheorem12_8.distribution, whose tightness is derived from weak convergence.",
+    "mechanical": true,
+    "confidence": "high"
+  }
+]

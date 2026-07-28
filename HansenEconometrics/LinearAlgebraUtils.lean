@@ -3,6 +3,7 @@ import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Order.Fin.Tuple
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+import Mathlib.Topology.Instances.Matrix
 
 /-!
 # Shared finite-dimensional linear algebra
@@ -40,6 +41,87 @@ lemma matrixBorelSpace (m n : Type*) [Fintype m] [Fintype n] :
     @BorelSpace (Matrix m n ℝ) inferInstance (matrixBorelMeasurableSpace m n) := by
   letI : MeasurableSpace (Matrix m n ℝ) := matrixBorelMeasurableSpace m n
   exact ⟨rfl⟩
+
+private theorem measurable_continuous_matrix_comp_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Finite κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j)
+    {f : Matrix κ κ ℝ → ℝ} (hf : Continuous f) :
+    Measurable fun x => f (A x) := by
+  letI : MeasurableSpace (Matrix κ κ ℝ) :=
+    (inferInstance : MeasurableSpace (κ → κ → ℝ))
+  letI : BorelSpace (Matrix κ κ ℝ) := by
+    change BorelSpace (κ → κ → ℝ)
+    infer_instance
+  have hA' : Measurable A :=
+    measurable_pi_iff.mpr fun i => measurable_pi_iff.mpr fun j => hA i j
+  exact hf.measurable.comp hA'
+
+/-- A finite determinant is measurable when all matrix entries are measurable. -/
+theorem det_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) :
+    Measurable fun x => (A x).det := by
+  exact measurable_continuous_matrix_comp_of_entries
+    hA continuous_id.matrix_det
+
+/-- Every adjugate entry is measurable when all source entries are measurable. -/
+theorem adjugate_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) (i j : κ) :
+    Measurable fun x => (A x).adjugate i j := by
+  exact measurable_continuous_matrix_comp_of_entries
+    hA (continuous_id.matrix_adjugate.matrix_elem i j)
+
+/-- Every entry of the totalized matrix inverse is measurable when all source
+entries are measurable. -/
+theorem matrix_inv_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) (i j : κ) :
+    Measurable fun x => (A x)⁻¹ i j := by
+  classical
+  have hdet : Measurable fun x => (A x).det := det_measurable_of_entries hA
+  have hadj : Measurable fun x => (A x).adjugate i j :=
+    adjugate_apply_measurable_of_entries hA i j
+  have hrinv : Measurable fun x => Ring.inverse ((A x).det) := by
+    rw [show (fun x => Ring.inverse ((A x).det)) = fun x => ((A x).det)⁻¹ by
+      funext x
+      exact Ring.inverse_eq_inv _]
+    exact measurable_inv.comp hdet
+  rw [show (fun x => (A x)⁻¹ i j) =
+      (fun x => Ring.inverse ((A x).det) * (A x).adjugate i j) by
+        funext x
+        rw [Matrix.inv_def]
+        rfl]
+  exact hrinv.mul hadj
+
+/-- A totalized finite matrix inverse is Borel measurable when all source
+entries are measurable. -/
+theorem matrix_inv_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) :
+    @Measurable α (Matrix κ κ ℝ) inferInstance (borel (Matrix κ κ ℝ))
+      (fun x => (A x)⁻¹) := by
+  letI mMatrix : MeasurableSpace (Matrix κ κ ℝ) :=
+    (inferInstance : MeasurableSpace (κ → κ → ℝ))
+  letI : BorelSpace (Matrix κ κ ℝ) := by
+    change BorelSpace (κ → κ → ℝ)
+    infer_instance
+  have hInv : Measurable fun x => (A x)⁻¹ :=
+    measurable_pi_iff.mpr fun i => measurable_pi_iff.mpr fun j =>
+      matrix_inv_apply_measurable_of_entries hA i j
+  have hm : mMatrix = borel (Matrix κ κ ℝ) := BorelSpace.measurable_eq
+  rw [hm] at hInv
+  exact hInv
+
+/-- Every entry of a finite Gram matrix is measurable when all source entries
+are measurable. -/
+theorem gram_apply_measurable_of_entries
+    {α n κ : Type*} [MeasurableSpace α] [Fintype n]
+    {X : α → Matrix n κ ℝ} (hX : ∀ i j, Measurable fun x => X x i j) (a b : κ) :
+    Measurable fun x => ((X x)ᵀ * X x) a b := by
+  classical
+  simp only [Matrix.mul_apply, Matrix.transpose_apply]
+  exact Finset.measurable_sum Finset.univ (fun r _ => (hX r a).mul (hX r b))
 
 /-- **Scalar-scaled matrix inverse (unconditional).** For `c : ℝ` and any square
 matrix `M` over `ℝ`, the total inverse `Matrix.nonsingInv` satisfies
@@ -500,7 +582,41 @@ theorem one_sub_ordered_eigenvalues₀_apply
   have hget := congrArg (fun l : List ℝ => l[i.val]?) hlist
   simpa [List.getElem?_ofFn, List.getElem?_map, List.getElem?_reverse,
     Fin.rev, i.isLt, Nat.sub_sub, Nat.add_comm] using hget
+/-- A one-row restriction has full row rank exactly when one displayed
+coefficient is nonzero.
 
+This is the finite-dimensional bridge from Hansen's usual one-row
+nonzero-restriction condition to the linear-map injectivity premise used by
+the studentization helpers. -/
+theorem oneRow_transpose_mulVec_injective_iff_exists_ne_zero {k : Type*}
+    (R : Matrix Unit k ℝ) :
+    Function.Injective Rᵀ.mulVec ↔ ∃ j : k, R () j ≠ 0 := by
+  constructor
+  · intro hR
+    by_contra hnone
+    have hnone' : ∀ j : k, R () j = 0 := by
+      intro j
+      by_contra hj
+      exact hnone ⟨j, hj⟩
+    have hmap :
+        Rᵀ.mulVec (fun _ : Unit => (1 : ℝ)) =
+          Rᵀ.mulVec (fun _ : Unit => (0 : ℝ)) := by
+      funext j
+      simp [Matrix.mulVec, hnone' j]
+    have hscalar := congrFun (hR hmap) ()
+    norm_num at hscalar
+  · rintro ⟨j, hj⟩ x y hxy
+    funext u
+    cases u
+    have hcoord : R () j * x () = R () j * y () := by
+      simpa [Matrix.mulVec] using congrFun hxy j
+    exact mul_left_cancel₀ hj hcoord
+
+/-- One nonzero coefficient in a one-row restriction gives full row rank. -/
+theorem oneRow_transpose_mulVec_injective_of_exists_ne_zero {k : Type*}
+    {R : Matrix Unit k ℝ} (hR : ∃ j : k, R () j ≠ 0) :
+    Function.Injective Rᵀ.mulVec :=
+  (oneRow_transpose_mulVec_injective_iff_exists_ne_zero R).2 hR
 /-- Eigenvalues of a real Hermitian idempotent matrix are `0` or `1`. -/
 theorem eigenvalues_zero_or_one_of_isHermitian_idempotent {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℝ}
@@ -1507,5 +1623,20 @@ lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent
     (Finset.univ.filter (fun i : ι => hH.eigenvalues i = 1)).card = M.rank := by
   rw [← Fintype.card_subtype]
   exact (rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent hH hI).symm
+
+/-- If the square Gram-type matrix `A' Q A` is positive definite, then the
+rectangular population moment map `Q A` has full column rank. -/
+theorem matrix_mul_mulVec_injective_of_transpose_mul_mul_posDef
+    {l k : Type*} [Fintype l] [Fintype k]
+    (Q : Matrix l l ℝ) (A : Matrix l k ℝ)
+    (h : (Aᵀ * Q * A).PosDef) :
+    Function.Injective (Q * A).mulVec := by
+  classical
+  have hGram : Function.Injective (Aᵀ * Q * A).mulVec :=
+    Matrix.mulVec_injective_iff_isUnit.mpr h.isUnit
+  intro x y hxy
+  apply hGram
+  have hleft := congrArg (fun z : l → ℝ => Aᵀ *ᵥ z) hxy
+  simpa [Matrix.mul_assoc, Matrix.mulVec_mulVec] using hleft
 
 end HansenEconometrics
