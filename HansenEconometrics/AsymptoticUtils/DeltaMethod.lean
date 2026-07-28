@@ -41,6 +41,48 @@ theorem deltaMethod_remainder_isLittleO
 
 end DeterministicRemainder
 
+section SmoothFunctionCondition
+
+variable {k q : Type*} [Fintype k] [Fintype q]
+
+/-- Generic deterministic content of Hansen Assumption 7.3 for a smooth finite-dimensional
+function of a parameter vector.
+
+The matrix `R` follows Hansen's convention `R = ∂r(β)' / ∂β`, so the Fréchet derivative
+acts as `v ↦ Rᵀ v`. Stochastic consistency, asymptotic normality, and covariance
+estimation remain theorem-specific inputs. -/
+structure SmoothFunctionCondition
+    (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (R : Matrix k q ℝ) where
+  /-- Fréchet derivative of `r` at `β`. -/
+  derivative : (k → ℝ) →L[ℝ] (q → ℝ)
+  /-- Differentiability at the true parameter. -/
+  differentiable_at : HasFDerivAt r derivative β
+  /-- The derivative is represented by Hansen's transpose-oriented matrix. -/
+  derivative_apply : ∀ v : k → ℝ, derivative v = Rᵀ *ᵥ v
+  /-- Hansen's full-column-rank derivative condition. -/
+  fullRank : Function.Injective R.mulVec
+
+namespace SmoothFunctionCondition
+
+/-- Hansen Assumption 7.3 supplies the continuity needed for smooth-function consistency. -/
+theorem continuousAt
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h73 : SmoothFunctionCondition r β R) :
+    ContinuousAt r β :=
+  h73.differentiable_at.continuousAt
+
+/-- Assumption 7.3 supplies the deterministic Delta-method little-o Taylor remainder. -/
+theorem taylorRemainder_isLittleO
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h73 : SmoothFunctionCondition r β R) :
+    (fun b => r b - r β - Rᵀ *ᵥ (b - β)) =o[𝓝 β] (fun b => b - β) := by
+  simpa [h73.derivative_apply] using
+    deltaMethod_remainder_isLittleO h73.differentiable_at
+
+end SmoothFunctionCondition
+
+end SmoothFunctionCondition
+
 section ConcreteTransforms
 
 /-- Scalar square derivative, packaged as a Fréchet derivative.
@@ -103,9 +145,7 @@ theorem coordinateSquareVector_hasFDerivAt (j : k) (β : k → ℝ) :
       (ContinuousLinearMap.pi fun _ : Fin 1 =>
         (((2 : ℝ) * β j) •
           (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) j))) β := by
-  rw [hasFDerivAt_pi]
-  intro _
-  simpa using coordinateSquare_hasFDerivAt j β
+  exact hasFDerivAt_pi.mpr fun _ => coordinateSquare_hasFDerivAt j β
 
 /-- One-dimensional vector-valued coordinate-square Delta-method remainder. -/
 theorem coordinateSquareVector_deltaMethod_remainder_isLittleO (j : k) (β : k → ℝ) :
@@ -127,18 +167,19 @@ def coordinateSquareDerivativeMatrix {k : Type*} [DecidableEq k]
 
 /-- Applying the coordinate-square derivative row is scalar multiplication of
 the selected coordinate. -/
-theorem coordinateSquareDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
+private theorem coordinateSquareDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
     (j : k) (β v : k → ℝ) :
     (coordinateSquareDerivativeMatrix j β *ᵥ v) 0 = ((2 : ℝ) * β j) * v j := by
   simp [coordinateSquareDerivativeMatrix, Matrix.mulVec]
 
 /-- Euclidean-space application form of `coordinateSquareDerivativeMatrix_mulVec`. -/
-theorem matrixContinuousLinearMap_coordinateSquareDerivativeMatrix_apply
+private theorem matrixContinuousLinearMap_coordinateSquareDerivativeMatrix_apply
     {k : Type*} [Fintype k] [DecidableEq k]
     (j : k) (β : k → ℝ) (v : EuclideanSpace ℝ k) :
     (matrixContinuousLinearMap (coordinateSquareDerivativeMatrix j β) v).ofLp 0 =
       ((2 : ℝ) * β j) * v.ofLp j := by
-  simp [coordinateSquareDerivativeMatrix, matrixContinuousLinearMap_apply, Matrix.mulVec]
+  rw [matrixContinuousLinearMap_apply]
+  exact coordinateSquareDerivativeMatrix_mulVec j β v.ofLp
 
 /-- Gaussian image law for the coordinate-square derivative row.
 
@@ -200,9 +241,7 @@ theorem coordinateInvVector_hasFDerivAt (j : k) {β : k → ℝ} (hβj : β j �
       (ContinuousLinearMap.pi fun _ : Fin 1 =>
         (ContinuousLinearMap.toSpanSingleton ℝ (-(β j ^ 2)⁻¹)).comp
           (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) j)) β := by
-  rw [hasFDerivAt_pi]
-  intro _
-  simpa using coordinateInv_hasFDerivAt j hβj
+  exact hasFDerivAt_pi.mpr fun _ => coordinateInv_hasFDerivAt j hβj
 
 /-- One-dimensional vector-valued coordinate-reciprocal Delta-method remainder. -/
 theorem coordinateInvVector_deltaMethod_remainder_isLittleO (j : k) {β : k → ℝ}
@@ -223,18 +262,19 @@ noncomputable def coordinateInvDerivativeMatrix {k : Type*} [DecidableEq k]
 
 /-- Applying the coordinate-reciprocal derivative row is scalar multiplication
 of the selected coordinate. -/
-theorem coordinateInvDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
+private theorem coordinateInvDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
     (j : k) (β v : k → ℝ) :
     (coordinateInvDerivativeMatrix j β *ᵥ v) 0 = (-(β j ^ 2)⁻¹) * v j := by
   simp [coordinateInvDerivativeMatrix, Matrix.mulVec]
 
 /-- Euclidean-space application form of `coordinateInvDerivativeMatrix_mulVec`. -/
-theorem matrixContinuousLinearMap_coordinateInvDerivativeMatrix_apply
+private theorem matrixContinuousLinearMap_coordinateInvDerivativeMatrix_apply
     {k : Type*} [Fintype k] [DecidableEq k]
     (j : k) (β : k → ℝ) (v : EuclideanSpace ℝ k) :
     (matrixContinuousLinearMap (coordinateInvDerivativeMatrix j β) v).ofLp 0 =
       (-(β j ^ 2)⁻¹) * v.ofLp j := by
-  simp [coordinateInvDerivativeMatrix, matrixContinuousLinearMap_apply, Matrix.mulVec]
+  rw [matrixContinuousLinearMap_apply]
+  exact coordinateInvDerivativeMatrix_mulVec j β v.ofLp
 
 /-- Gaussian image law for the coordinate-reciprocal derivative row. -/
 theorem coordinateInvDerivativeMatrix_hasLaw_multivariateGaussian_zero
@@ -281,9 +321,7 @@ theorem coordinateProductVector_hasFDerivAt (j l : k) (β : k → ℝ) :
       (ContinuousLinearMap.pi fun _ : Fin 1 =>
         (((β j) • (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) l)) +
           ((β l) • (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) j)))) β := by
-  rw [hasFDerivAt_pi]
-  intro _
-  simpa using coordinateProduct_hasFDerivAt j l β
+  exact hasFDerivAt_pi.mpr fun _ => coordinateProduct_hasFDerivAt j l β
 
 /-- One-dimensional vector-valued coordinate-product Delta-method remainder. -/
 theorem coordinateProductVector_deltaMethod_remainder_isLittleO (j l : k) (β : k → ℝ) :
@@ -303,7 +341,7 @@ def coordinateProductDerivativeMatrix {k : Type*} [DecidableEq k]
 
 /-- Applying the coordinate-product derivative row gives the product-rule
 linearization. -/
-theorem coordinateProductDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
+private theorem coordinateProductDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
     (j l : k) (β v : k → ℝ) :
     (coordinateProductDerivativeMatrix j l β *ᵥ v) 0 = β j * v l + β l * v j := by
   rw [Matrix.mulVec]
@@ -312,7 +350,7 @@ theorem coordinateProductDerivativeMatrix_mulVec {k : Type*} [Fintype k] [Decida
   simp
 
 /-- Euclidean-space application form of `coordinateProductDerivativeMatrix_mulVec`. -/
-theorem matrixContinuousLinearMap_coordinateProductDerivativeMatrix_apply
+private theorem matrixContinuousLinearMap_coordinateProductDerivativeMatrix_apply
     {k : Type*} [Fintype k] [DecidableEq k]
     (j l : k) (β : k → ℝ) (v : EuclideanSpace ℝ k) :
     (matrixContinuousLinearMap (coordinateProductDerivativeMatrix j l β) v).ofLp 0 =
@@ -377,9 +415,7 @@ theorem coordinateRatioVector_hasFDerivAt (j l : k) {β : k → ℝ} (hβl : β 
               (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) l))) +
           (((β l)⁻¹) •
             (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : k => ℝ) j)))) β := by
-  rw [hasFDerivAt_pi]
-  intro _
-  simpa using coordinateRatio_hasFDerivAt j l hβl
+  exact hasFDerivAt_pi.mpr fun _ => coordinateRatio_hasFDerivAt j l hβl
 
 /-- One-dimensional vector-valued coordinate-ratio Delta-method remainder. -/
 theorem coordinateRatioVector_deltaMethod_remainder_isLittleO (j l : k) {β : k → ℝ}
@@ -403,7 +439,7 @@ noncomputable def coordinateRatioDerivativeMatrix {k : Type*} [DecidableEq k]
 
 /-- Applying the coordinate-ratio derivative row gives the quotient-rule
 linearization. -/
-theorem coordinateRatioDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
+private theorem coordinateRatioDerivativeMatrix_mulVec {k : Type*} [Fintype k] [DecidableEq k]
     (j l : k) (β v : k → ℝ) :
     (coordinateRatioDerivativeMatrix j l β *ᵥ v) 0 =
       β j * (-(β l ^ 2)⁻¹) * v l + (β l)⁻¹ * v j := by
@@ -414,7 +450,7 @@ theorem coordinateRatioDerivativeMatrix_mulVec {k : Type*} [Fintype k] [Decidabl
   simp [mul_assoc]
 
 /-- Euclidean-space application form of `coordinateRatioDerivativeMatrix_mulVec`. -/
-theorem matrixContinuousLinearMap_coordinateRatioDerivativeMatrix_apply
+private theorem matrixContinuousLinearMap_coordinateRatioDerivativeMatrix_apply
     {k : Type*} [Fintype k] [DecidableEq k]
     (j l : k) (β : k → ℝ) (v : EuclideanSpace ℝ k) :
     (matrixContinuousLinearMap (coordinateRatioDerivativeMatrix j l β) v).ofLp 0 =
@@ -442,7 +478,7 @@ end ConcreteTransforms
 section DeltaDistribution
 
 variable [SeminormedAddCommGroup E] [NormedSpace ℝ E]
-  [TopologicalSpace E] [MeasurableSpace E] [BorelSpace E]
+  [MeasurableSpace E] [BorelSpace E]
   [SeminormedAddCommGroup F] [NormedSpace ℝ F] [SecondCountableTopology F]
   [MeasurableSpace F] [BorelSpace F]
 

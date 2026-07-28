@@ -302,8 +302,6 @@ theorem scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div
 
 -- Hansen Theorem 5.7, independence component: in the homoskedastic normal regression model, the
 -- OLS coefficient vector is independent of the scaled residual-variance statistic `((n-k)s²)/σ²`.
-set_option maxHeartbeats 800000 in
--- The Gaussian independence proof expands several large `toLp` / linear-map coercions.
 theorem olsBeta_indep_scaledOlsResidualVarianceStatistic
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
@@ -314,124 +312,28 @@ theorem olsBeta_indep_scaledOlsResidualVarianceStatistic
     (fun ω => olsBeta X (X *ᵥ β + WithLp.ofLp (ε ω))) ⟂ᵢ[μ]
       scaledOlsResidualVarianceStatistic X β σ2 ε := by
   classical
-  -- Proof outline:
-  -- 1. Express `β̂ - β` and the residual vector as linear images `A ε` and `M ε`.
-  -- 2. Show `(A ε, M ε)` is jointly Gaussian and has zero cross-covariance because `Xᵀ M = 0`.
-  -- 3. Push that independence through `q(r) = ‖r‖² / σ²` to reach `((n-k)s²)/σ²`.
-  let A : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ k :=
-    (Matrix.toEuclideanLin (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap
-  let M : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ n :=
-    (Matrix.toEuclideanLin (annihilatorMatrix X)).toContinuousLinearMap
-  let centeredBeta : Ω → EuclideanSpace ℝ k := fun ω => A (ε ω)
-  let residualE : Ω → EuclideanSpace ℝ n := fun ω => M (ε ω)
-  have hε_gauss : HasGaussianLaw ε μ := hε.hasGaussianLaw
-  have hJoint : HasGaussianLaw (fun ω => (centeredBeta ω, residualE ω)) μ := by
-    simpa [centeredBeta, residualE, A, M] using hε_gauss.map_fun (A.prod M)
-  have hS :
-      (((σ2 : ℝ) • (1 : Matrix n n ℝ)) : Matrix n n ℝ).PosSemidef := by
-    simpa [smul_one_eq_diagonal] using
-      (Matrix.PosSemidef.diagonal (n := n) (d := fun _ => σ2) fun _ => hσ2.le)
-  have hCov :
-      ∀ x y,
-        cov[fun ω => inner ℝ x (centeredBeta ω),
-          fun ω => inner ℝ y (residualE ω); μ] = 0 := by
-    intro x y
-    have hMadjointLin :
-        (Matrix.toEuclideanLin (annihilatorMatrix X)).adjoint =
-          Matrix.toEuclideanLin (annihilatorMatrix X) := by
-      simpa [Matrix.conjTranspose_eq_transpose_of_trivial, annihilatorMatrix_transpose] using
-        (Matrix.toEuclideanLin_conjTranspose_eq_adjoint (A := annihilatorMatrix X)).symm
-    have hMadjoint : M.adjoint = M := by
-      simpa [M, LinearMap.adjoint_toContinuousLinearMap] using
-        congrArg LinearMap.toContinuousLinearMap hMadjointLin
-    have hcomp : A ∘L M = 0 := by
-      ext z i
-      simp [A, M, regressors_transpose_mul_annihilator]
-    have hcomp_apply : A (M y) = 0 := by
-      simpa using congrArg (fun T : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ k => T y) hcomp
-    have hcov :=
-      hε.covariance_fun_comp
-        (f := fun z : EuclideanSpace ℝ n => inner ℝ x (A z))
-        (g := fun z : EuclideanSpace ℝ n => inner ℝ y (M z))
-        (by fun_prop) (by fun_prop)
-    have hA :
-        (fun z : EuclideanSpace ℝ n => inner ℝ x (A z)) =
-          fun z => inner ℝ (A.adjoint x) z := by
-      ext z
-      simpa [A] using (A.adjoint_inner_left z x).symm
-    have hM :
-        (fun z : EuclideanSpace ℝ n => inner ℝ y (M z)) =
-          fun z => inner ℝ (M y) z := by
-      ext z
-      simpa [hMadjoint] using (M.adjoint_inner_left z y).symm
-    have hmem :
-        MemLp id 2 (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) :=
-      IsGaussian.memLp_two_id
-    calc
-      cov[fun ω => inner ℝ x (centeredBeta ω),
-        fun ω => inner ℝ y (residualE ω); μ]
-          = cov[fun z : EuclideanSpace ℝ n => inner ℝ (A.adjoint x) z,
-              fun z : EuclideanSpace ℝ n => inner ℝ (M y) z;
-                multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))] := by
-              simpa [centeredBeta, residualE, hA, hM] using hcov
-      _ = covarianceBilin (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
-            (A.adjoint x) (M y) := by
-              symm
-              exact covarianceBilin_apply_eq_cov hmem (A.adjoint x) (M y)
-      _ = (A.adjoint x) ⬝ᵥ (((σ2 : ℝ) • (1 : Matrix n n ℝ)) *ᵥ (M y)) := by
-              rw [covarianceBilin_multivariateGaussian hS]
-      _ = (σ2 : ℝ) * ((A.adjoint x : EuclideanSpace ℝ n) ⬝ᵥ (M y)) := by
-              simp [smul_mulVec, one_mulVec, dotProduct_smul, smul_eq_mul]
-      _ = 0 := by
-              have hinner :
-                  inner ℝ (A.adjoint x) (M y) = 0 := by
-                calc
-                  inner ℝ (A.adjoint x) (M y) = inner ℝ x (A (M y)) := by
-                    simpa [A] using A.adjoint_inner_left (M y) x
-                  _ = 0 := by simp [hcomp_apply]
-              have hdot :
-                  ((A.adjoint x : EuclideanSpace ℝ n) ⬝ᵥ (M y)) = 0 := by
-                have hdot' :
-                    (M y).ofLp ⬝ᵥ star (((A.adjoint x : EuclideanSpace ℝ n)).ofLp) = 0 := by
-                  simpa [EuclideanSpace.inner_eq_star_dotProduct] using hinner
-                simpa [dotProduct, Pi.star_apply, conj_trivial, mul_comm] using hdot'
-              rw [hdot, mul_zero]
-  have hIndCentered : centeredBeta ⟂ᵢ[μ] residualE :=
-    hJoint.indepFun_of_covariance_inner hCov
-  have hIndEuclid :
-      (fun ω => WithLp.toLp 2 (olsBeta X (X *ᵥ β + WithLp.ofLp (ε ω)))) ⟂ᵢ[μ]
-        (fun ω => WithLp.toLp 2 (residual X (X *ᵥ β + WithLp.ofLp (ε ω)))) := by
-    let φ : EuclideanSpace ℝ k → EuclideanSpace ℝ k := fun z => WithLp.toLp 2 (β + WithLp.ofLp z)
-    refine (IndepFun.comp (φ := φ) (ψ := id) hIndCentered ?_ measurable_id).congr ?_ ?_
-    · change Measurable (fun z : EuclideanSpace ℝ k => WithLp.toLp 2 (β + WithLp.ofLp z))
-      fun_prop
-    · filter_upwards with ω
-      simpa [centeredBeta, A, φ, Matrix.mulVec_mulVec] using
-        (Matrix.toLpLin_apply (p := 2) (q := 2) (⅟ (Xᵀ * X) * Xᵀ) (ε ω))
-    · filter_upwards with ω
-      simpa [residualE, M] using
-        (Matrix.toLpLin_apply (p := 2) (q := 2) (annihilatorMatrix X) (ε ω))
-  have hIndActual :
-      (fun ω => olsBeta X (X *ᵥ β + WithLp.ofLp (ε ω))) ⟂ᵢ[μ]
-        (fun ω => residual X (X *ᵥ β + WithLp.ofLp (ε ω))) := by
-    have hmeasK : Measurable (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ) :=
-      WithLp.measurable_ofLp (p := 2) (X := k → ℝ)
-    have hmeasN : Measurable (WithLp.ofLp : EuclideanSpace ℝ n → n → ℝ) :=
-      WithLp.measurable_ofLp (p := 2) (X := n → ℝ)
-    simpa using
-      (IndepFun.comp (φ := (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ))
-        (ψ := (WithLp.ofLp : EuclideanSpace ℝ n → n → ℝ))
-        hIndEuclid hmeasK hmeasN)
+  let A : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ
+  let M : Matrix n n ℝ := annihilatorMatrix X
+  have hAM : A * Mᵀ = 0 := by
+    rw [show Mᵀ = M by simp [M, annihilatorMatrix_transpose]]
+    simp [A, M, Matrix.mul_assoc, regressors_transpose_mul_annihilator]
+  have hIndLinear :
+      (fun ω => A *ᵥ WithLp.ofLp (ε ω)) ⟂ᵢ[μ]
+        (fun ω => M *ᵥ WithLp.ofLp (ε ω)) :=
+    matrixMulVec_indepFun_of_mul_transpose_eq_zero A M hAM hσ2 ε hε
   let q : (n → ℝ) → ℝ := fun r => dotProduct r r / σ2
   have hq : Measurable q := by
     simpa [q] using (Continuous.dotProduct continuous_id continuous_id).div_const σ2 |>.measurable
   have hIndStat :
-      (fun ω => olsBeta X (X *ᵥ β + WithLp.ofLp (ε ω))) ⟂ᵢ[μ]
-        (q ∘ fun ω => residual X (X *ᵥ β + WithLp.ofLp (ε ω))) := by
-    exact IndepFun.comp (μ := μ) (φ := id) (ψ := q) hIndActual measurable_id hq
-  refine IndepFun.congr hIndStat Filter.EventuallyEq.rfl ?_
-  filter_upwards with ω
-  simp [q, scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div, hdf]
+      ((fun b : k → ℝ => β + b) ∘ fun ω => A *ᵥ WithLp.ofLp (ε ω)) ⟂ᵢ[μ]
+        (q ∘ fun ω => M *ᵥ WithLp.ofLp (ε ω)) := by
+    exact IndepFun.comp (μ := μ) hIndLinear (by fun_prop) hq
+  refine IndepFun.congr hIndStat ?_ ?_
+  · filter_upwards with ω
+    simp [A, olsBeta_linear_decomposition, Matrix.mulVec_mulVec]
+  · filter_upwards with ω
+    rw [scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div X β hdf ε]
+    simp [q, M, residual_linear_model]
 
 /-- The diagonal entry of the inverse Gram matrix appearing in the classical OLS standard error is
 strictly positive. -/

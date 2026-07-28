@@ -4,6 +4,21 @@ import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
 import HansenEconometrics.MultivariateNormal
 
+/-! # Probability utilities
+
+This module collects reusable probability bridges used across the econometrics chapters:
+
+* `sumSquaresRV`, `standardizedCoords`, and `restrictedStandardizedCoords` support chi-square
+  constructions from Gaussian coordinates;
+* the `HasLaw.preimage` and CDF lemmas turn distributional identities into probability statements;
+* `condExp_apply`, `condExp_apply_apply`, `integral_apply`, and `integral_apply_apply` expose
+  coordinatewise conditional-expectation and integration rules;
+* `meanVec`, `covVec`, and `covMat` provide finite-dimensional moment notation and algebra;
+* `conditioningSpace`, `condExpOn`, `cefErrorOn`, `condVarOn`, and `residualVarOn` form the
+  variable-conditioned public API; and
+* the multivariate-Gaussian lemmas provide linear-image and independent-coordinate laws.
+-/
+
 open MeasureTheory ProbabilityTheory
 open Matrix
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
@@ -17,7 +32,7 @@ variable behind chi-square style constructions. -/
 def sumSquaresRV [Fintype ι] (X : ι → Ω → ℝ) : Ω → ℝ :=
   fun ω => ∑ i, (X i ω) ^ 2
 
-lemma sumSquaresRV_nonneg [Fintype ι] (X : ι → Ω → ℝ) (ω : Ω) :
+private lemma sumSquaresRV_nonneg [Fintype ι] (X : ι → Ω → ℝ) (ω : Ω) :
     0 ≤ sumSquaresRV X ω := by
   unfold sumSquaresRV
   exact Finset.sum_nonneg fun _ _ => sq_nonneg _
@@ -46,7 +61,7 @@ end StandardizedCoords
 
 /-- Convenient wrapper around Mathlib's jointly-Gaussian + zero-covariance independence lemma for
 real-valued pairs. -/
-lemma indep_of_jointGaussian_cov_zero
+private lemma indep_of_jointGaussian_cov_zero
     {X Y : Ω → ℝ}
     (hXY : HasGaussianLaw (fun ω => (X ω, Y ω)) P)
     (hcov : cov[X, Y; P] = 0) :
@@ -54,7 +69,7 @@ lemma indep_of_jointGaussian_cov_zero
   hXY.indepFun_of_covariance_eq_zero hcov
 
 /-- Finite-family version of Gaussian independence from pairwise zero covariance. -/
-lemma iIndep_of_jointGaussian_cov_zero [Finite ι]
+private lemma iIndep_of_jointGaussian_cov_zero [Finite ι]
     {X : ι → Ω → ℝ}
     (hX : HasGaussianLaw (fun ω i => X i ω) P)
     (hcov : ∀ i j, i ≠ j → cov[X i, X j; P] = 0) :
@@ -254,6 +269,14 @@ noncomputable def covVec (μ : Measure Ω) (X : Ω → k → ℝ) (Y : Ω → �
 /-- Population covariance matrix of a finite-dimensional regressor vector `X`. -/
 noncomputable def covMat (μ : Measure Ω) (X : Ω → k → ℝ) : Matrix k k ℝ :=
   fun i j => cov[fun ω => X ω i, fun ω => X ω j; μ]
+
+omit [Fintype k] in
+/-- A coordinate covariance matrix is Hermitian, equivalently symmetric over `ℝ`. -/
+theorem covMat_isHermitian (μ : Measure Ω) (X : Ω → k → ℝ) :
+    (covMat μ X).IsHermitian := by
+  rw [Matrix.IsHermitian]
+  ext i j
+  simp [covMat, ProbabilityTheory.covariance_comm]
 
 /-- Identically distributed finite-dimensional vectors have matching coordinate covariances. -/
 theorem identDistrib_covariance_apply_eq
@@ -525,15 +548,12 @@ section MultivariateGaussian
 variable {n : Type*}
 variable [Fintype n] [DecidableEq n]
 
-/-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
-private theorem mulVec_dotProduct_right
-    {n : Type*} [Fintype n] {m : Type*} [Fintype m]
-    (M : Matrix m n ℝ) (v : n → ℝ) (a : m → ℝ) :
-    (M *ᵥ v) ⬝ᵥ a = v ⬝ᵥ (Mᵀ *ᵥ a) := by
-  have hvec : a ᵥ* M = Mᵀ *ᵥ a := by
-    ext i
-    simp [Matrix.vecMul, Matrix.mulVec, dotProduct, mul_comm]
-  rw [dotProduct_comm, Matrix.dotProduct_mulVec, hvec, dotProduct_comm]
+private theorem continuousLinearMap_mean_multivariateGaussian_zero
+    {S : Matrix n n ℝ} (L : EuclideanSpace ℝ n →L[ℝ] ℝ) :
+    (multivariateGaussian 0 S)[L] = 0 := by
+  rw [ContinuousLinearMap.integral_comp_id_comm]
+  · simp [integral_id_multivariateGaussian]
+  · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
 
 /-- A fixed dot-product projection of a centered multivariate Gaussian is a
 one-dimensional Gaussian with variance given by the matching quadratic form. -/
@@ -544,10 +564,8 @@ theorem hasLaw_multivariateGaussian_zero_dotProduct
   let u : EuclideanSpace ℝ n := WithLp.toLp 2 a
   let L : EuclideanSpace ℝ n →L[ℝ] ℝ := (innerSL ℝ) u
   have hEq := IsGaussian.map_eq_gaussianReal (μ := multivariateGaussian 0 S) L
-  have hMean : (multivariateGaussian 0 S)[L] = 0 := by
-    rw [ContinuousLinearMap.integral_comp_id_comm]
-    · simp [L, integral_id_multivariateGaussian]
-    · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+  have hMean : (multivariateGaussian 0 S)[L] = 0 :=
+    continuousLinearMap_mean_multivariateGaussian_zero L
   have hVar : Var[L; multivariateGaussian 0 S] = a ⬝ᵥ (S *ᵥ a) := by
     have hLfun : (⇑L : EuclideanSpace ℝ n → ℝ) = fun x => inner ℝ u x := by
       rfl
@@ -585,6 +603,122 @@ theorem hasLaw_multivariateGaussian_zero_linearMap
       (Ω := EuclideanSpace ℝ n) (P := multivariateGaussian 0 S) (X := id)
       (μ := 0) (S := S) hS ProbabilityTheory.HasLaw.id (0 : EuclideanSpace ℝ q) R
 
+set_option maxHeartbeats 800000 in
+-- Expanding the generic Gaussian covariance calculation is elaboration-intensive.
+/-- Orthogonal fixed matrix images of an isotropic Gaussian vector are independent.
+
+The matrix condition `A * Bᵀ = 0` is exactly the zero cross-covariance condition. This is the
+shared Gaussian engine behind the OLS coefficient/residual and F-numerator/residual independence
+arguments in Chapter 5. -/
+theorem matrixMulVec_indepFun_of_mul_transpose_eq_zero
+    {p q : Type*} [Finite p] [Finite q]
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (A : Matrix p n ℝ) (B : Matrix q n ℝ) (hAB : A * Bᵀ = 0)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (ε : Ω → EuclideanSpace ℝ n)
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    (fun ω => A *ᵥ WithLp.ofLp (ε ω)) ⟂ᵢ[μ]
+      (fun ω => B *ᵥ WithLp.ofLp (ε ω)) := by
+  letI := Fintype.ofFinite p
+  letI := Fintype.ofFinite q
+  classical
+  let Amap : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ p :=
+    (Matrix.toEuclideanLin A).toContinuousLinearMap
+  let Bmap : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ q :=
+    (Matrix.toEuclideanLin B).toContinuousLinearMap
+  let AX : Ω → EuclideanSpace ℝ p := fun ω => Amap (ε ω)
+  let BX : Ω → EuclideanSpace ℝ q := fun ω => Bmap (ε ω)
+  have hJoint : HasGaussianLaw (fun ω => (AX ω, BX ω)) μ := by
+    simpa [AX, BX, Amap, Bmap] using hε.hasGaussianLaw.map_fun (Amap.prod Bmap)
+  have hS :
+      (((σ2 : ℝ) • (1 : Matrix n n ℝ)) : Matrix n n ℝ).PosSemidef := by
+    simpa [smul_one_eq_diagonal] using
+      (Matrix.PosSemidef.diagonal (n := n) (d := fun _ => σ2) fun _ => hσ2.le)
+  have hBadjointLin :
+      (Matrix.toEuclideanLin B).adjoint = Matrix.toEuclideanLin Bᵀ := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      (Matrix.toEuclideanLin_conjTranspose_eq_adjoint (A := B)).symm
+  have hBadjoint :
+      Bmap.adjoint = (Matrix.toEuclideanLin Bᵀ).toContinuousLinearMap := by
+    simpa [Bmap, LinearMap.adjoint_toContinuousLinearMap] using
+      congrArg LinearMap.toContinuousLinearMap hBadjointLin
+  have hcomp : Amap ∘L Bmap.adjoint = 0 := by
+    rw [hBadjoint]
+    ext z i
+    simpa [Amap, Matrix.mulVec_mulVec] using
+      congrArg (fun C : Matrix p q ℝ => (C *ᵥ WithLp.ofLp z) i) hAB
+  have hCov :
+      ∀ x y,
+        cov[fun ω => inner ℝ x (AX ω), fun ω => inner ℝ y (BX ω); μ] = 0 := by
+    intro x y
+    have hcomp_apply : Amap (Bmap.adjoint y) = 0 := by
+      simpa using congrArg
+        (fun T : EuclideanSpace ℝ q →L[ℝ] EuclideanSpace ℝ p => T y) hcomp
+    have hcov :=
+      hε.covariance_fun_comp
+        (f := fun z : EuclideanSpace ℝ n => inner ℝ x (Amap z))
+        (g := fun z : EuclideanSpace ℝ n => inner ℝ y (Bmap z))
+        (by fun_prop) (by fun_prop)
+    have hAfun :
+        (fun z : EuclideanSpace ℝ n => inner ℝ x (Amap z)) =
+          fun z => inner ℝ (Amap.adjoint x) z := by
+      ext z
+      simpa [Amap] using (Amap.adjoint_inner_left z x).symm
+    have hBfun :
+        (fun z : EuclideanSpace ℝ n => inner ℝ y (Bmap z)) =
+          fun z => inner ℝ (Bmap.adjoint y) z := by
+      ext z
+      simpa [Bmap] using (Bmap.adjoint_inner_left z y).symm
+    have hmem :
+        MemLp id 2 (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) :=
+      IsGaussian.memLp_two_id
+    calc
+      cov[fun ω => inner ℝ x (AX ω), fun ω => inner ℝ y (BX ω); μ]
+          = cov[fun z : EuclideanSpace ℝ n => inner ℝ (Amap.adjoint x) z,
+              fun z : EuclideanSpace ℝ n => inner ℝ (Bmap.adjoint y) z;
+                multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))] := by
+              simpa [AX, BX, hAfun, hBfun] using hcov
+      _ = covarianceBilin (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+            (Amap.adjoint x) (Bmap.adjoint y) := by
+              symm
+              exact covarianceBilin_apply_eq_cov hmem (Amap.adjoint x) (Bmap.adjoint y)
+      _ = (Amap.adjoint x) ⬝ᵥ
+            (((σ2 : ℝ) • (1 : Matrix n n ℝ)) *ᵥ (Bmap.adjoint y)) := by
+              rw [covarianceBilin_multivariateGaussian hS]
+      _ = (σ2 : ℝ) *
+            ((Amap.adjoint x : EuclideanSpace ℝ n) ⬝ᵥ (Bmap.adjoint y)) := by
+              simp [smul_mulVec, one_mulVec, dotProduct_smul, smul_eq_mul]
+      _ = 0 := by
+              have hinner : inner ℝ (Amap.adjoint x) (Bmap.adjoint y) = 0 := by
+                calc
+                  inner ℝ (Amap.adjoint x) (Bmap.adjoint y) =
+                      inner ℝ x (Amap (Bmap.adjoint y)) := by
+                        simpa [Amap] using Amap.adjoint_inner_left (Bmap.adjoint y) x
+                  _ = 0 := by simp [hcomp_apply]
+              have hdot :
+                  ((Amap.adjoint x : EuclideanSpace ℝ n) ⬝ᵥ (Bmap.adjoint y)) = 0 := by
+                have hdot' :
+                    (Bmap.adjoint y).ofLp ⬝ᵥ
+                        star (((Amap.adjoint x : EuclideanSpace ℝ n)).ofLp) = 0 := by
+                  simpa [EuclideanSpace.inner_eq_star_dotProduct] using hinner
+                simpa [dotProduct, Pi.star_apply, conj_trivial, mul_comm] using hdot'
+              rw [hdot, mul_zero]
+  have hIndEuclid : AX ⟂ᵢ[μ] BX := hJoint.indepFun_of_covariance_inner hCov
+  have hIndToLp :
+      (fun ω => WithLp.toLp 2 (A *ᵥ WithLp.ofLp (ε ω))) ⟂ᵢ[μ]
+        (fun ω => WithLp.toLp 2 (B *ᵥ WithLp.ofLp (ε ω))) := by
+    refine IndepFun.congr hIndEuclid ?_ ?_
+    · filter_upwards with ω
+      simpa [AX, Amap] using (Matrix.toLpLin_apply (p := 2) (q := 2) A (ε ω))
+    · filter_upwards with ω
+      simpa [BX, Bmap] using (Matrix.toLpLin_apply (p := 2) (q := 2) B (ε ω))
+  have hp : Measurable (WithLp.ofLp : EuclideanSpace ℝ p → p → ℝ) :=
+    WithLp.measurable_ofLp (p := 2) (X := p → ℝ)
+  have hq : Measurable (WithLp.ofLp : EuclideanSpace ℝ q → q → ℝ) :=
+    WithLp.measurable_ofLp (p := 2) (X := q → ℝ)
+  simpa using
+    (IndepFun.comp (φ := (WithLp.ofLp : EuclideanSpace ℝ p → p → ℝ))
+      (ψ := (WithLp.ofLp : EuclideanSpace ℝ q → q → ℝ)) hIndToLp hp hq)
+
 /-- In an isotropic multivariate Gaussian, the coordinates in any orthonormal basis, scaled by the
 standard deviation, are independent standard normals. This is the bridge from Gaussian vectors to
 chi-square arguments in Chapter 5. -/
@@ -604,6 +738,11 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
     let L : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ n :=
       b.repr.toContinuousLinearEquiv.toContinuousLinearMap
     simpa [L] using (he.hasGaussianLaw.map_fun L)
+  have hdiag (i : n) : (b i).ofLp ⬝ᵥ (b i).ofLp = 1 := by
+    calc
+      (b i).ofLp ⬝ᵥ (b i).ofLp = ‖b i‖ ^ 2 := by
+        simpa [dotProduct, pow_two] using (EuclideanSpace.real_norm_sq_eq (b i)).symm
+      _ = 1 := by nlinarith [b.norm_eq_one i]
   have hmeanZ : ∀ i, μ[Z i] = 0 := by
     intro i
     let Li : EuclideanSpace ℝ n →L[ℝ] ℝ :=
@@ -612,9 +751,7 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
       funext ω
       simp [Z, Li]]
     rw [he.integral_comp (Measurable.aestronglyMeasurable <| by fun_prop)]
-    rw [ContinuousLinearMap.integral_comp_id_comm]
-    · simp [integral_id_multivariateGaussian]
-    · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+    exact continuousLinearMap_mean_multivariateGaussian_zero Li
   have hcovZ : ∀ i j, cov[Z i, Z j; μ] = if i = j then σ2 else 0 := by
     intro i j
     have hZi : (fun x : EuclideanSpace ℝ n => (b.repr x).ofLp i) =
@@ -632,12 +769,7 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
       by_cases hij : i = j
       · subst hij
         rw [smul_mulVec, one_mulVec, dotProduct_smul]
-        have hdot : (b i).ofLp ⬝ᵥ (b i).ofLp = 1 := by
-          calc
-            (b i).ofLp ⬝ᵥ (b i).ofLp = ‖b i‖ ^ 2 := by
-              simpa [dotProduct, pow_two] using (EuclideanSpace.real_norm_sq_eq (b i)).symm
-            _ = 1 := by nlinarith [b.norm_eq_one i]
-        simp [hdot]
+        simp [hdiag i]
       · rw [smul_mulVec, one_mulVec, dotProduct_smul]
         have hdot : (b i).ofLp ⬝ᵥ (b j).ofLp = 0 := by
           have hInner : inner ℝ (b i) (b j) = 0 := by
@@ -671,10 +803,8 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
         (EuclideanSpace.proj i).comp b.repr.toContinuousLinearEquiv.toContinuousLinearMap
       have hLiMap : (multivariateGaussian 0 S).map Li = gaussianReal 0 ⟨σ2, hσ2.le⟩ := by
         have hEq := IsGaussian.map_eq_gaussianReal (μ := multivariateGaussian 0 S) Li
-        have hMean : (multivariateGaussian 0 S)[Li] = 0 := by
-          rw [ContinuousLinearMap.integral_comp_id_comm]
-          · simp [integral_id_multivariateGaussian]
-          · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+        have hMean : (multivariateGaussian 0 S)[Li] = 0 :=
+          continuousLinearMap_mean_multivariateGaussian_zero Li
         have hVar : Var[Li; multivariateGaussian 0 S] = σ2 := by
           rw [← covariance_self (Measurable.aemeasurable <| by fun_prop),
             show Li = fun x => inner ℝ (b i) x by
@@ -682,12 +812,7 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
               simpa [Li] using (OrthonormalBasis.repr_apply_apply (b := b) (v := x) (i := i)),
             ← covarianceBilin_apply_eq_cov]
           · rw [covarianceBilin_multivariateGaussian hS, smul_mulVec, one_mulVec, dotProduct_smul]
-            have hdot : (b i).ofLp ⬝ᵥ (b i).ofLp = 1 := by
-              calc
-                (b i).ofLp ⬝ᵥ (b i).ofLp = ‖b i‖ ^ 2 := by
-                  simpa [dotProduct, pow_two] using (EuclideanSpace.real_norm_sq_eq (b i)).symm
-                _ = 1 := by nlinarith [b.norm_eq_one i]
-            simp [hdot]
+            simp [hdiag i]
           · exact IsGaussian.memLp_two_id (μ := multivariateGaussian 0 S)
         rw [hMean, hVar, Real.toNNReal_of_nonneg hσ2.le] at hEq
         simpa using hEq

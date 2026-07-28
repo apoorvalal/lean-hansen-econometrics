@@ -851,12 +851,12 @@ theorem hasLaw_quadForm_symmIdem_chiSquared_fintype
   set b := hH.eigenvectorBasis with hb_def
   have hQF : ∀ ω, (Z ω : ι → ℝ) ⬝ᵥ (M *ᵥ (Z ω : ι → ℝ))
       = ∑ i, hH.eigenvalues i * (b.repr (Z ω) i) ^ 2 :=
-    fun ω => quadForm_eq_sum_eigenvalues_fintype hH (Z ω)
+    fun ω => quadForm_eq_sum_eigenvalues hH (Z ω)
   have heig : ∀ i : ι, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := fun i => by
     simpa using hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
   set S : Finset ι := Finset.univ.filter (fun i => hH.eigenvalues i = 1) with hS_def
   have hS_card : S.card = M.rank :=
-    card_eigenvalue_one_eq_rank_of_isHermitian_idempotent_fintype hH hI
+    card_eigenvalue_one_eq_rank_of_isHermitian_idempotent hH hI
   have hQF' : ∀ ω, (Z ω : ι → ℝ) ⬝ᵥ (M *ᵥ (Z ω : ι → ℝ))
       = ∑ i ∈ S, (b.repr (Z ω) i) ^ 2 := by
     intro ω

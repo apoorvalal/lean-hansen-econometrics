@@ -68,7 +68,63 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- not started
+- Chapter 11 now has a support Lean surface under
+  `HansenEconometrics/Chapter11MultivariateRegression/`, with an umbrella import at
+  `HansenEconometrics/Chapter11MultivariateRegression.lean`.
+- The formalization is intentionally layered:
+  - deterministic system-regression definitions and common-regressor covariance algebra live in
+    `Systems.lean`
+  - asymptotic LS, exact system moment WLLNs, sandwich CMT assembly, and covariance-consistency
+    wrappers live in `Asymptotics.lean`
+  - reusable feasible residual-covariance and system-middle substitutions are exposed through
+    `SystemFeasible.*` in `Asymptotics.lean`
+  - SUR Gaussian-limit conditions, efficiency bridges, variance notation, and theorem-facing
+    wrappers live in `SUR.lean`
+  - reduced-rank, PCA, factor-model, and matrix-normal material live in separate submodules
+- The current declarations reuse the repo's Chapter 6/7/8 vector CLT, OLS asymptotics,
+  Banach-valued WLLN, matrix
+  continuous-mapping, Gaussian linear-map/Slutsky, `GaussianLimit`, and
+  `CovarianceEstimatorConsistent` layers. Theorem 11.1 now has exact observation-level system
+  stacking identities, the normalized `Q̂ₙ⁻¹ ĝₙ` finite-sample representation, a system score
+  package, a non-tautological `SystemRegressionMomentConditions` wrapper deriving the system score CLT through
+  Chapter 6's iid vector CLT, a derived zero-mean score-covariance bridge to Hansen's
+  `E[Xᵢ'eᵢeᵢ'Xᵢ]` middle matrix, and Star/OrZero estimator CLTs. The literal observed-row package
+  `SystemObservedResponseFourthMomentConditions` now derives that proof layer, and
+  `SystemLeastSquaresTheorem11_1.orZeroObs_of_equation_blocks` also exposes
+  Hansen's equation-specific sparse design and block-diagonal `Q`. The Star totalization remains
+  the proof engine, with OrZero wrappers as the textbook-facing surface for singular finite samples.
+- Theorem 11.3 has exact system middle-matrix and sandwich assembly theorems for the true-error
+  robust middle and fixed-covariance homoskedastic middle, plus concrete feasible Star residual and
+  covariance surfaces. It now has explicit perturbation routes for feasible vector residuals,
+  feasible residual covariance, and estimated homoskedastic covariance middles. The theorem-facing
+  package `SystemCovarianceConsistencyConditions` combines `SystemRegressionMomentConditions` with
+  exact feasible-residual middle consistency premises, while
+  `SystemCovariancePrimitiveRowConditions` packages the compact primitive-row route.
+  `SystemCovarianceTheorem11_3.of_middle_consistency` returns both displayed robust and
+  homoskedastic covariance estimator convergences. New true-error covariance wrappers derive
+  `systemSigmaHatStarObs ->p E[e₀e₀']` from the true-error outer-product WLLN plus scalar
+  residual-covariance substitution WLLNs; row-iid and primitive-row constructors derive the iid
+  fields by measurable composition, and compact norm-moment helpers derive the robust cross and
+  quadratic integrability fields. The canonical endpoint
+  `SystemCovarianceTheorem11_3.of_observed_assumption72` derives all of these inputs from the
+  literal observed-row Assumption 7.2 facade and returns both displayed covariance conclusions.
+  The existing stacked-scalar feasible theorem remains available as a Chapter 7 HC covariance route.
+- PCA now uses Mathlib's Hermitian spectral theorem, the reusable `covMat_isHermitian` helper, and
+  a shared Rayleigh-quotient bound for the variance and sequential optimizer faces of Theorem 11.8.
+  It includes a probability-facing sequential optimizer theorem stated directly with
+  `Var[h'X]`, plus the Hansen vector-score covariance statement `U = H'X`,
+  `Var(U) = diag(λ)`.
+  Reduced-rank and factor-model modules now
+  use concrete generalized-eigenvector, Hansen residualized-pencil, `A⊥` residual-pencil,
+  sample-covariance, sample-normalization, and diagonal-eigenspace predicates instead of only
+  arbitrary proposition slots. `ReducedRankJointSpectrum.lean` constructs the selected and
+  complementary Theorem 11.7 blocks from one ordered spectral basis, including cross-boundary
+  ties. `ReducedRankLikelihood.lean` separately defines the raw Gaussian
+  likelihood, exact-rank admissibility, fixed-`G` coefficient/covariance profiling, normalization
+  of arbitrary exact-rank competitors, and genuine global likelihood comparison so that the
+  legacy formula bundle in `ReducedRank.lean` is not mistaken for a proved MLE. Wishart,
+  inverse-Wishart, and Hotelling support now includes
+  theorem-facing iid-normal, Wishart, inverse-Wishart, and scaled-F endpoints for Theorems 11.10-11.12.
 
 ## LaTeX / Lean Crosswalk
 
@@ -84,24 +140,300 @@ Conventions:
 
 - [Hansen excerpt](../textbook/ch11/ch11_excerpt.txt)
 
+## Review Notes
+
+- Theorem 11.1 review: the canonical endpoint
+  `SystemLeastSquaresTheorem11_1.orZeroObs_of_observed_assumption72`
+  proves the stated stacked-system Gaussian limit from literal iid observed
+  `(X_i,Y_i)` rows, Hansen's fourth moments, score orthogonality, and positive
+  definite population Gram matrix. It derives the residual-row package, score
+  CLT, Gram WLLN, covariance identity, singular-sample handling, and estimator
+  measurability internally. The Hansen-shaped wrapper
+  `SystemLeastSquaresTheorem11_1.orZeroObs_of_equation_blocks`
+  uses `systemEquationBlockDesign` with equation-dependent coefficient
+  dimensions and exposes the printed block-diagonal `Q` through
+  `systemPopulationGram_equationBlockDesign_eq` and the coordinate simp lemmas
+  for `systemEquationBlockPopulationGram`.
+- Theorem 11.2 review: the canonical endpoint
+  `SystemDelta.orZeroObs_of_observed_rows_contDiffAt`
+  combines the literal observed-row Assumption 7.2 surface with the literal
+  `ContDiffAt` Assumption 7.3 surface. The measurable-transform field is the
+  formal side condition used to establish plug-in estimator measurability. Its
+  Gaussian linear-map/Slutsky step reuses
+  `smoothFunction_asymptoticNormality_gaussian` from the shared delta-method
+  layer.
+- Theorem 11.3 review: the canonical endpoint
+  `SystemCovarianceTheorem11_3.of_observed_assumption72` proves both displayed
+  covariance consistency conclusions from the same literal observed-row
+  Assumption 7.2 package. Error fourth moments, the mixed feasible-substitution
+  moment, residual-row iid, and both finite-sample measurability surfaces are
+  derived internally; `SystemCovariancePrimitiveRowConditions` remains reusable proof
+  infrastructure.
+- Theorem 11.4 review: the literal observed-row endpoint
+  `SURTheorem11_4.orZeroObs_of_observed_rows`
+  gives Hansen's feasible-SUR Gaussian limit with variance
+  `(E[X'Σ⁻¹X])⁻¹` for the textbook-facing OrZero estimator. It derives the
+  compact `SURPrimitiveRowGaussianLimitConditions` facade from
+  `SystemObservedResponseFourthMomentConditions`, conditional mean zero, literal matrix `(11.8)`,
+  and positive-definite `Sigma`. The reusable proof interface is
+  `SURGaussianLimitConditions`, with `SURGaussianLimitConditions.starObs` for the Star estimator
+  and `SURPrimitiveRowGaussianLimitConditions.orZeroObs` for the compact OrZero surface.
+  Feasible-weight substitution is derived internally on the observed-row route.
+- Theorem 11.5 review: the canonical observed-row facade
+  `SURTheorem11_5.efficiency_of_observed_rows` states Hansen's displayed comparison with the least-squares side
+  written as `E[X'ΣX]` and the SUR side written as `(E[X'Σ⁻¹X])⁻¹`, reusing
+  `MatrixSystemConditionalHomoskedasticity.scoreCovariance_eq_middle` and the
+  population Gauss-Markov proof stack exposed by `SUREfficiency.systemLS_of_population_moments`.
+  It starts from
+  `SystemObservedResponseFourthMomentConditions`, the literal matrix `(11.8)` package,
+  and `Sigma.PosDef`, then forwards through the primitive-row and population layers.
+- Theorem 11.6 is not formalized as printed. Its OLS target `Vβ` is false in
+  general for the feasible-SUR covariance estimator and is incompatible with
+  Theorem 11.5's potentially strict comparison. The corrected endpoint
+  `SURCovarianceEstimator.consistent_of_observed_rows` proves convergence to
+  `Vβ* = (E[X'Σ⁻¹X])⁻¹`. The diagnostic
+  `SURTheorem11_6.printed_target_forces_sur_ols_equality` proves that the
+  printed conclusion would force the OLS and SUR variance targets to be equal.
+  The tight route derives residual-covariance, information-WLLN, and
+  design-weight WLLN inputs internally from the literal observed-row
+  Assumption 7.2 package, matrix `(11.8)`, and `Σ.PosDef`.
+- Theorem 11.7 review: the current canonical endpoint is
+  `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists`. It constructs the selected and
+  complementary ordered blocks jointly, proves the residualized generalized-pencil formulas and
+  normalizations, recovers the coefficients and covariance, establishes exact-rank admissibility
+  and covariance positive definiteness, and proves the unrestricted raw Gaussian-likelihood
+  comparison. No boundary spectral gap is assumed. The public API is consolidated around this
+  endpoint, so the inventory intentionally omits lower-level ReducedRank proof-engine names.
+- Theorem 11.8 review: `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`
+  and `ordered_covMat_principalComponents_theorem11_8` match Hansen's sequential
+  principal-component claim, including `U_j = h_j'X`, eigenvector/eigenvalue
+  facts, variance maximization, ordered eigenvalues, the spectral
+  reconstruction, and `Var(U)=D`. The only convention is repeated eigenvalues:
+  Lean uses Mathlib's canonical ordered orthonormal eigenbasis within tied
+  eigenspaces, while Hansen leaves the basis inside ties unspecified.
+- Theorem 11.9 review: the canonical finite-sample endpoint is
+  `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge` (or
+  its positive-selected-eigenvalue wrapper). It returns both the PCA formula
+  certificate and the literal global joint least-squares minimizer. Positivity
+  of the selected eigenvalues, equivalently sample-covariance rank at least
+  `r`, is a necessary correction to Hansen's omitted side condition because
+  the displayed score formula uses `Dhat⁻¹ᐟ²`. `factorScoreLeastSquares` is a
+  thin chapter-facing wrapper over Chapter 3's `olsBetaStar`.
+- Theorem 11.10 review: `sampleCovarianceMatrix_hasLaw_theorem11_10_wishart`
+  proves the bias-corrected sample covariance law from iid normal rows using the
+  canonical centering-contrast eigenspace. `sampleCenteringMatrix_card_eigenvalues_eq_one`
+  identifies its row index with Hansen's `n-1` degrees of freedom. The law is
+  written in Hansen's literal `wishartLaw (((card n - 1 : ℝ)⁻¹) • Sigma)`
+  notation. The proof reuses the scaled push-forward endpoint through
+  `scaledWishartLaw_eq_wishartLaw_smul`. Hansen's statistic
+  is the `1 < card n` case; at `card n = 1`, Lean's total inverse extends both
+  sides to the degenerate zero law.
+- Theorem 11.11 review: `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le`
+  matches Hansen's raw statistic `(α'W⁻¹α)⁻¹` and scaled chi-square law. The
+  explicit `Σ.PosDef`, `α ≠ 0`, and `card m ≤ card n` assumptions are the
+  necessary nonsingular/nondegenerate side conditions behind Hansen's display;
+  the theorem derives the standard-coordinate whitening, nuisance Gram
+  nonsingularity, projection certificate, and `n-m+1` degrees-of-freedom bridge
+  internally.
+- Theorem 11.12 review:
+  `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef` is the sole
+  canonical endpoint and matches Hansen's normalized `F(m,n-m)` law. It assumes iid normal rows,
+  positive-definite covariance, `0 < card m`, and `0 < card n - card m`; the
+  mean/covariance independence, centered Wishart law, inverse-Wishart scalar reduction, and
+  whitening inputs are discharged internally.
+
 ## Crosswalk
 
-| Textbook result | Textbook statement | Lean theorem |
+| Textbook result | Textbook statement | Canonical public Lean endpoint |
 | --- | --- | --- |
-| Theorem 11.1 | Under Assumption 7.2, pn |  |
-| Theorem 11.2 | Under Assumptions 7.2 and 7.3, pn |  |
-| Theorem 11.3 | Under Assumption 7.2, n ˆV ˆβ − →p V β and n ˆV |  |
-| Theorem 11.4 | Under Assumption 7.2 and (11.8) |  |
-| Theorem 11.5 | Under Assumption 7.2 and (11.8) |  |
-| Theorem 11.6 | Under Assumption 7.2 and (11.8) n ˆV ˆβ − →p V β. |  |
-| Theorem 11.7 | The MLE for the reduced rank model (11.19) under e ∼ N(0, Σ) |  |
-| Theorem 11.8 | The principal components of X are U j = h′ |  |
-| Theorem 11.9 | The least squares estimator of the factor model (11.23) under |  |
-| Theorem 11.10 | If Yi ∼ N |  |
-| Theorem 11.11 | If W ∼ Wm (n, Σ) then for m × 1 α, |  |
-| Theorem 11.12 | If Y ∼ N |  |
+| Theorem 11.1 | Under Assumption 7.2, system least squares has Hansen's stacked Gaussian limit. | `SystemLeastSquaresTheorem11_1.orZeroObs_of_equation_blocks`. This equation-block wrapper exposes Hansen's block-diagonal population Gram and reuses `SystemLeastSquaresTheorem11_1.orZeroObs_of_observed_assumption72`. |
+| Theorem 11.2 | Under Assumptions 7.2 and 7.3, a smooth function of system least squares has the delta-method Gaussian limit. | `SystemDelta.orZeroObs_of_observed_rows_contDiffAt`. The reusable primitive-row/smoothness bridge is `SystemDelta.betaOrZeroObs_of_primitive_rows`, based on the shared `SmoothFunctionCondition` package. |
+| Theorem 11.3 | Under Assumption 7.2, the robust and homoskedastic system covariance estimators are consistent. | `SystemCovarianceTheorem11_3.of_observed_assumption72`. It returns both displayed covariance convergence statements from the observed-row fourth-moment package. |
+| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), feasible SUR has Hansen's Gaussian limit. | `SURTheorem11_4.orZeroObs_of_observed_rows`. This is the textbook-facing OrZero surface. |
+| Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as system least squares. | `SURTheorem11_5.efficiency_of_observed_rows`. Its conclusion is the displayed positive-semidefinite variance gap. |
+| Theorem 11.6 | Under Assumption 7.2 and (11.8), the normalized feasible-SUR covariance estimator converges to the OLS variance `V_beta`. |  |
+| Theorem 11.7 | The reduced-rank normal MLE is characterized by the residualized generalized pencils, least-squares recovery, covariance recovery, and maximized likelihood. | `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists`. This is the sole canonical theorem-facing surface: it constructs the selected and complementary ordered blocks jointly, handles cross-boundary ties, proves exact-rank admissibility and covariance positive definiteness, and compares the raw Gaussian likelihood against every admissible competitor. |
+| Theorem 11.8 | Principal components are sequential variance maximizers, eigenvector projections, and have diagonal score covariance. | `ordered_covMat_principalComponents_theorem11_8` packages Hansen's ordered scores, variances, covariance reconstruction, and diagonal score covariance. The optimizer-first characterization is `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`, which correctly returns the whole eigenspace when eigenvalues are tied. |
+| Theorem 11.9 | Under score normalization, the least-squares factor estimator is the leading sample-covariance PCA solution. | `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`. It returns both the PCA formula certificate and the literal normalized joint least-squares minimizer. The selected-rank condition is the finite-sample content needed for Hansen's inverse-square-root score formula. |
+| Theorem 11.10 | The bias-corrected covariance of iid multivariate-normal rows has Hansen's Wishart law. | `sampleCovarianceMatrix_hasLaw_theorem11_10_wishart`. The canonical centering contrast has `n - 1` rows; the one-row case is the documented degenerate-zero totalization. |
+| Theorem 11.11 | If `W` is Wishart, then Hansen's inverse-Wishart linear form has the scaled chi-squared law. | `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le`. This sole canonical surface assumes positive-definite covariance, a nonzero direction, and dimension no larger than the Wishart degrees of freedom, and concludes the exact raw `(alpha' W^-1 alpha)^-1` law with `n - m + 1` degrees of freedom. |
+| Theorem 11.12 | Hotelling's normalized `T^2` statistic has the `F(m,n-m)` law. | `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef`. This sole canonical surface starts from iid normal rows and positive-definite covariance, with the exact positive-dimension assumptions `0 < m` and `0 < n - m`. |
+
+### Theorem 11.4 notes
+
+- The observed-row endpoint derives the compact primitive-row facade, residual-covariance
+  consistency, weighted-score CLT, and finite-sample measurability from the same Assumption 7.2
+  package.
+- `SURGaussianLimitConditions.PrimitiveRow.of_score_exog_covariance` constructs the Gaussian-limit
+  package from primitive-row moments, transformed conditional homoskedasticity, score exogeneity,
+  covariance consistency, and score-weight tightness.
+  `SURGaussianLimitConditions.PrimitiveRow.of_raw_exog_scalarCLT` derives that tightness from raw
+  conditional exogeneity and scalar second moments. Residual covariance uses the canonical
+  system-level surface `systemSigmaHatStarObs`.
+
+### Theorem 11.5 notes
+
+- `MatrixSystemConditionalHomoskedasticity` is the literal matrix-valued form of (11.8).
+  Its score-covariance bridge feeds the existing population Gauss-Markov comparison, so the
+  theorem-facing endpoint does not duplicate that proof.
+- `SUREfficiency.fromGLSVarianceGap` is the deterministic Chapter 4 Gauss-Markov specialization;
+  `SUREfficiency.systemLS_of_population_moments` identifies Hansen's system-LS and SUR population
+  variance matrices before the observed-row wrapper is applied.
+
+### Theorem 11.6 notes
+
+- Hansen's printed OLS target is false in general and appears to omit the star
+  on `V_beta`. The estimator converges instead to
+  `V_beta* = (E[X_i' Sigma^-1 X_i])^-1`. Equality with OLS `V_beta` requires
+  additional restrictions, such as common regressors or diagonal error
+  covariance for Hansen's equation-block design.
+- `SURCovarianceEstimator.consistent_of_observed_rows` is the corrected
+  covariance-consistency result. It is listed as Lean-only support rather than
+  as the endpoint for the false printed claim.
+- `SURTheorem11_6.printed_target_forces_sur_ols_equality` formalizes the
+  obstruction: uniqueness of convergence in measure forces the two targets to
+  agree if the printed conclusion is assumed for the same estimator.
+- `SystemFeasible.sigmaHat_sub_zero_of_beta_weight_wlln` derives feasible residual-covariance
+  substitution from coefficient consistency and scalar WLLNs.
+  `SystemFeasible.middle_sub_zero_of_covariance_bounded_weights` and
+  `SystemFeasible.middle_of_covariance_bounded_weights` provide the reusable covariance-to-middle
+  perturbation step used by feasible covariance estimation.
+
+### Theorem 11.7 notes
+
+- Only `reducedRankHansenTheorem11_7GaussianMLE_residualized_exists` is inventoried as the
+  theorem-facing endpoint. Reduced-rank proof-engine and compatibility names are intentionally
+  omitted because the public surface is consolidated around that endpoint.
+- Lean follows equation (11.21): the complementary block maximizes the determinant objective and
+  selects the largest residual-pencil roots. Hansen's isolated "smallest" summary is inconsistent
+  with that display. Lean also uses the dimensionally valid loading recovery
+  `Ahat = Ytilde' Xtilde G`; the transposed printed expression is a formula for `Ahat'`.
+
+### Theorem 11.8 notes
+
+- `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector` states the exact
+  optimizer/eigenspace equivalence. It does not force equality with one chosen eigenvector when
+  the ordered eigenvalue is repeated.
+- `ordered_covMat_principalComponents_theorem11_8` packages the canonical ordered construction,
+  including `U = H'X`, the ordered score variances, `Sigma = H D H'`, and diagonal score
+  covariance.
+
+### Theorem 11.9 notes
+
+- The finite-sample theorem-facing endpoint is
+  `factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge`.
+  It returns both `FactorPCTheorem11_9` and `FactorLeastSquaresNormalizedMinimizer`.
+  The equivalent Hansen-facing positive-selected-eigenvalue wrapper is
+  `FactorPCTheorem11_9.withJointLS_of_positiveEigenvalues`.
+- The rank condition is not an accidental strengthening: Hansen's displayed score estimator uses
+  the inverse square root of the selected eigenvalue block. The selected-rank premise supplies
+  exactly that nonsingularity and also implies the required number of observations.
+
+#### Assumption 11.1 and factor-score variance
+
+- `factorScoreErrorCovariance` is Hansen's score-error covariance. The theorem
+  `factorScoreErrorCovariance_eq_loadingGram` proves the exact identity
+  `D^-1 Lambda' Psi Lambda D^-1`, where `D = Lambda' Lambda`.
+- `factorScoreErrorCovariance_quadratic_le` proves the finite Rayleigh bound
+  `x' Var(error) x <= (B / c) x'x` from the idiosyncratic-covariance bound `B` and loading-Gram
+  lower bound `c`. The packaged conclusion is `approximateFactor_scoreVariance_bound`, with
+  proposition surface `factorScoreVarianceBound`.
+- `ApproximateFactorAsymptoticConditions` formalizes Hansen's `k -> infinity` statement with a
+  varying observed-variable dimension `kappa i -> infinity`, positive-semidefinite idiosyncratic
+  covariance matrices sharing one Rayleigh bound, and a loading-Gram lower bound tending to
+  infinity. `ApproximateFactorAsymptoticConditions.scoreErrorCovariance_norm_tendsto_zero` proves
+  that the Euclidean operator norm of the exact covariance matrix tends to zero.
+
+#### Namespaced finite-bound endpoints
+
+The combined endpoints below are namespaced under `FactorPCTheorem11_9`. Each eventually packages
+the finite-sample PCA result, the normalized joint least-squares result, and a per-index
+`factorScoreVarianceBound`. These endpoints do not assert covariance convergence; the separate
+varying-dimension theorem above is the asymptotic vanishing result.
+
+| Input route | Public endpoint |
+| --- | --- |
+| Normalized Rayleigh, explicit observation count | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh` |
+| Normalized Rayleigh, observation count derived | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_normalizedRayleigh_only` |
+| Matrix WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_matrixWLLN` |
+| Raw-moment matrix WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_rawMomentWLLN` |
+| Unrecovered-moment WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_unrecoveredMomentWLLN` |
+| Unrecovered entrywise WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_unrecoveredEntrywiseWLLN` |
+| Entrywise envelope | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_entrywiseEnvelope` |
+| Inverse-loading envelope | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_inverseLoadingEnvelope` |
+| Cross/noise WLLN | `FactorPCTheorem11_9.jointLS_scoreVarianceBound_of_crossNoiseWLLN` |
+
+### Theorem 11.11 notes
+
+- `inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le` is the sole
+  theorem-facing endpoint. It states Hansen's raw inverse-Wishart scalar law, derives positivity
+  of the variable dimension from the nonzero direction, and derives all whitening,
+  Schur-complement, nuisance-Gram, and projection-law inputs internally.
+
+### Theorem 11.12 notes
+
+- `hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef` is the sole
+  theorem-facing endpoint. It states Hansen's normalized `F(m,n-m)` law directly from iid
+  multivariate-normal rows and positive-definite covariance; the mean/covariance independence,
+  centered Wishart law, inverse-Wishart reduction, and scale algebra are proof infrastructure.
+
+## Lean-Only Support Results
+
+Only public, reusable bridges are listed here. Same-file private proof scaffolding is intentionally
+absent.
+
+- [Systems](../HansenEconometrics/Chapter11MultivariateRegression/Systems.lean) supplies the
+  canonical stacked-system notation `systemStackRegressors`, `systemStackOutcomes`,
+  `systemLeastSquaresBetaStar`, and `systemSigmaHatStarObs`. The bridge
+  `systemSandwichCovariance_eq_asymptoticVariance` keeps one covariance formula surface.
+- [Asymptotics](../HansenEconometrics/Chapter11MultivariateRegression/Asymptotics.lean) supplies
+  `SystemPrimitiveRowRegressionMomentConditions`,
+  `SystemObservedResponseFourthMomentConditions`,
+  `SystemCovarianceConsistencyConditions`, `SystemCovariancePrimitiveRowConditions`,
+  `SystemDeltaMeasurableRemainderConditions`, and `SystemDeltaContDiffAtConditions`.
+  The delta layer reuses `SmoothFunctionCondition`; the old chapter-local remainder package
+  and duplicate delta-covariance wrapper are not part of the API.
+  Its reusable feasible-estimation API is
+  `SystemFeasible.sigmaHat_sub_zero_of_beta_weight_wlln`,
+  `SystemFeasible.middle_sub_zero_of_covariance_bounded_weights`, and
+  `SystemFeasible.middle_of_covariance_bounded_weights`.
+- [SUR](../HansenEconometrics/Chapter11MultivariateRegression/SUR.lean) uses
+  `systemSigmaHatStarObs` as its residual-covariance surface. The reusable Gaussian-limit API is
+  `SURGaussianLimitConditions`, `SURGaussianLimitConditions.starObs`,
+  `SURGaussianLimitConditions.PrimitiveRow.of_score_exog_covariance`, and
+  `SURGaussianLimitConditions.PrimitiveRow.of_raw_exog_scalarCLT`; the compact observed-row proof
+  surface is `SURPrimitiveRowGaussianLimitConditions.orZeroObs`. Efficiency support is exposed by
+  `SUREfficiency.fromGLSVarianceGap` and `SUREfficiency.systemLS_of_population_moments`.
+  `SURCovarianceEstimator.consistent_of_observed_rows` proves the corrected
+  feasible-SUR covariance limit associated with the misprinted Theorem 11.6;
+  `SURTheorem11_6.printed_target_forces_sur_ols_equality` records why the
+  printed OLS target cannot hold without an additional variance-equality
+  restriction.
+- [ReducedRank](../HansenEconometrics/Chapter11MultivariateRegression/ReducedRank.lean),
+  [ReducedRankJointSpectrum](../HansenEconometrics/Chapter11MultivariateRegression/ReducedRankJointSpectrum.lean),
+  and [ReducedRankLikelihood](../HansenEconometrics/Chapter11MultivariateRegression/ReducedRankLikelihood.lean)
+  implement Theorem 11.7 through a consolidated public surface. Their proof-engine and compatibility
+  declarations are deliberately not duplicated in this inventory.
+- [PCA](../HansenEconometrics/Chapter11MultivariateRegression/PCA.lean) exposes
+  `SequentialPrincipalComponentOptimizer`, `SequentialPrincipalComponentSolution`,
+  `ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector`, and
+  `ordered_covMat_principalComponents_theorem11_8`.
+- [FactorModels](../HansenEconometrics/Chapter11MultivariateRegression/FactorModels.lean) exposes
+  the finite-sample Theorem 11.9 endpoint and the exact factor-score covariance, finite Rayleigh,
+  and asymptotic vanishing surfaces documented above.
+- [MatrixNormal](../HansenEconometrics/Chapter11MultivariateRegression/MatrixNormal.lean) exposes
+  the three canonical law endpoints for Theorems 11.10--11.12 listed in the crosswalk. Internal
+  whitening, projection, and transport lemmas are not chapter crosswalk endpoints.
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- The Chapter 11 public API is in namespace `HansenEconometrics`.
+- Star estimators remain the asymptotic proof engine; OrZero estimators are used for
+  textbook-facing coefficient and inference statements where the finite-sample design may be
+  singular.
+- The crosswalk names one canonical endpoint per sound numbered Hansen theorem.
+  The false printed target in Theorem 11.6 is intentionally blank and its
+  corrected result is listed under Lean-only support. Compatibility and
+  same-file proof-engine declarations are not alternate theorem endpoints.
+- The Theorem 11.7 endpoint named above remains public in `ReducedRankLikelihood`. The ReducedRank
+  API is consolidated around that endpoint; no lower-level proof-engine names are frozen here.

@@ -149,30 +149,95 @@ noncomputable def mdAsymptoticVariance
   mdLinearMap W R * V * (mdLinearMap W R)ᵀ
 
 set_option maxHeartbeats 800000 in
--- Matrix measurability through nested total inverses and products is expensive here.
+-- Nested matrix inverses make elaboration of this shared measurability engine expensive.
+private theorem restrictionCorrection_aestronglyMeasurable
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Wseq : Ω → Matrix k k ℝ) (Rright Rleft : Ω → Matrix k q ℝ)
+    (hW : AEStronglyMeasurable Wseq μ)
+    (hRright : AEStronglyMeasurable Rright μ)
+    (hRleft : AEStronglyMeasurable Rleft μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        (Wseq ω)⁻¹ * Rright ω * ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ := by
+  have hWinv : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hW
+  have hRlt : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ) μ :=
+    continuous_id.matrix_transpose.comp_aestronglyMeasurable hRleft
+  have hRtWinv : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hRlt.prodMk hWinv)
+  have hGram : AEStronglyMeasurable
+      (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hRtWinv.prodMk hRright)
+  have hGramInv : AEStronglyMeasurable
+      (fun ω => ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hWinvR : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹ * Rright ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hWinv.prodMk hRright)
+  exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+    (hWinvR.prodMk hGramInv)
+
+set_option maxHeartbeats 800000 in
+-- Nested matrix inverses make elaboration of this shared continuity engine expensive.
+private theorem restrictionCorrection_continuousAt_of_nonsingular
+    (W : Matrix k k ℝ) (Rright Rleft : Matrix k q ℝ)
+    (hW : IsUnit W.det) (hG : IsUnit (Rleftᵀ * W⁻¹ * Rright).det) :
+    ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        p.1.1⁻¹ * p.1.2 * (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
+      ((W, Rright), Rleft) := by
+  let G : Matrix q q ℝ := Rleftᵀ * W⁻¹ * Rright
+  have hWc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1)
+      ((W, Rright), Rleft) := continuousAt_fst.comp continuousAt_fst
+  have hRrc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.2)
+      ((W, Rright), Rleft) := continuousAt_snd.comp continuousAt_fst
+  have hRlc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2)
+      ((W, Rright), Rleft) := continuousAt_snd
+  have hWinv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹)
+      ((W, Rright), Rleft) :=
+    (continuousAt_matrix_inv_of_isUnit W hW).comp hWc
+  have hRlt : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ)
+      ((W, Rright), Rleft) :=
+    continuous_id.matrix_transpose.continuousAt.comp hRlc
+  have hRtWinv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ * p.1.1⁻¹)
+      ((W, Rright), Rleft) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hRlt.prodMk hWinv)
+  have hGram : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        p.2ᵀ * p.1.1⁻¹ * p.1.2)
+      ((W, Rright), Rleft) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hRtWinv.prodMk hRrc)
+  have hGramInv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
+      ((W, Rright), Rleft) := by
+    simpa [G] using (continuousAt_matrix_inv_of_isUnit G hG).comp hGram
+  have hWinvR : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹ * p.1.2)
+      ((W, Rright), Rleft) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hWinv.prodMk hRrc)
+  exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+    (hWinvR.prodMk hGramInv)
+
 /-- The MD linear map is a.e. strongly measurable whenever the weight matrix is. -/
 theorem mdLinearMap_aestronglyMeasurable
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (Wseq : Ω → Matrix k k ℝ) (R : Matrix k q ℝ)
     (hW : AEStronglyMeasurable Wseq μ) :
     AEStronglyMeasurable (fun ω => mdLinearMap (Wseq ω) R) μ := by
-  have hWinv : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hW
-  have hRtWinv : AEStronglyMeasurable (fun ω => Rᵀ * (Wseq ω)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (aestronglyMeasurable_const.prodMk hWinv)
-  have hGram : AEStronglyMeasurable (fun ω => Rᵀ * (Wseq ω)⁻¹ * R) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hRtWinv.prodMk aestronglyMeasurable_const)
-  have hGramInv : AEStronglyMeasurable (fun ω => (Rᵀ * (Wseq ω)⁻¹ * R)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hGram
-  have hWinvR : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹ * R) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hWinv.prodMk aestronglyMeasurable_const)
-  have hB : AEStronglyMeasurable
-      (fun ω => (Wseq ω)⁻¹ * R * (Rᵀ * (Wseq ω)⁻¹ * R)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hWinvR.prodMk hGramInv)
+  have hB := restrictionCorrection_aestronglyMeasurable
+    Wseq (fun _ => R) (fun _ => R) hW aestronglyMeasurable_const aestronglyMeasurable_const
   have hA : AEStronglyMeasurable
       (fun ω => (Wseq ω)⁻¹ * R * (Rᵀ * (Wseq ω)⁻¹ * R)⁻¹ * Rᵀ) μ := by
     exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
@@ -180,38 +245,20 @@ theorem mdLinearMap_aestronglyMeasurable
   unfold mdLinearMap
   exact aestronglyMeasurable_const.sub hA
 
-set_option maxHeartbeats 800000 in
--- Matrix continuity through nested total inverses and products is expensive here.
 /-- The MD linear map is continuous at nonsingular limiting weights whose restriction Gram is
 also nonsingular. -/
 theorem mdLinearMap_continuousAt_of_nonsingular
     (W : Matrix k k ℝ) (R : Matrix k q ℝ)
     (hW : IsUnit W.det) (hG : IsUnit (Rᵀ * W⁻¹ * R).det) :
     ContinuousAt (fun W' : Matrix k k ℝ => mdLinearMap W' R) W := by
-  let G : Matrix q q ℝ := Rᵀ * W⁻¹ * R
-  have hWInv : ContinuousAt (fun W' : Matrix k k ℝ => W'⁻¹) W := by
-    refine continuousAt_matrix_inv _ ?_
-    rw [Ring.inverse_eq_inv']
-    exact continuousAt_inv₀ hW.ne_zero
-  have hRtWinv : ContinuousAt (fun W' : Matrix k k ℝ => Rᵀ * W'⁻¹) W := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (continuousAt_const.prodMk hWInv)
-  have hGram : ContinuousAt (fun W' : Matrix k k ℝ => Rᵀ * W'⁻¹ * R) W := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hRtWinv.prodMk continuousAt_const)
-  have hGramInv : ContinuousAt (fun W' : Matrix k k ℝ => (Rᵀ * W'⁻¹ * R)⁻¹) W := by
-    have hcontInv : ContinuousAt Inv.inv G := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hG.ne_zero
-    simpa [G] using hcontInv.comp hGram
-  have hWinvR : ContinuousAt (fun W' : Matrix k k ℝ => W'⁻¹ * R) W := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hWInv.prodMk continuousAt_const)
+  have hembed : ContinuousAt
+      (fun W' : Matrix k k ℝ => ((W', R), R)) W :=
+    (continuousAt_id.prodMk continuousAt_const).prodMk continuousAt_const
   have hB : ContinuousAt
       (fun W' : Matrix k k ℝ => W'⁻¹ * R * (Rᵀ * W'⁻¹ * R)⁻¹) W := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hWinvR.prodMk hGramInv)
+    exact ContinuousAt.comp'
+      (f := fun W' : Matrix k k ℝ => ((W', R), R))
+      (restrictionCorrection_continuousAt_of_nonsingular W R R hW hG) hembed
   have hA : ContinuousAt
       (fun W' : Matrix k k ℝ => W'⁻¹ * R * (Rᵀ * W'⁻¹ * R)⁻¹ * Rᵀ) W := by
     exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
@@ -678,46 +725,9 @@ theorem emdStdError_eq_hansen
   rfl
 
 set_option maxHeartbeats 1200000 in
--- Matrix measurability through the EMD covariance plug-in inverse is expensive here.
-omit [DecidableEq k] in
-/-- The EMD asymptotic-variance plug-in map is a.e. strongly measurable whenever the
-unrestricted covariance estimator is. -/
-theorem emdAsymptoticVariance_aestronglyMeasurable
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    (R : Matrix k q ℝ) (Vseq : Ω → Matrix k k ℝ)
-    (hV : AEStronglyMeasurable Vseq μ) :
-    AEStronglyMeasurable (fun ω => emdAsymptoticVariance R (Vseq ω)) μ := by
-  have hVR : AEStronglyMeasurable (fun ω => Vseq ω * R) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hV.prodMk aestronglyMeasurable_const)
-  have hGramLeft : AEStronglyMeasurable (fun ω => Rᵀ * Vseq ω) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (aestronglyMeasurable_const.prodMk hV)
-  have hGram : AEStronglyMeasurable (fun ω => Rᵀ * Vseq ω * R) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hGramLeft.prodMk aestronglyMeasurable_const)
-  have hGramInv : AEStronglyMeasurable (fun ω => (Rᵀ * Vseq ω * R)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hGram
-  have hLeft : AEStronglyMeasurable (fun ω => Vseq ω * R * (Rᵀ * Vseq ω * R)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hVR.prodMk hGramInv)
-  have hMid : AEStronglyMeasurable
-      (fun ω => Vseq ω * R * (Rᵀ * Vseq ω * R)⁻¹ * Rᵀ) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hLeft.prodMk aestronglyMeasurable_const)
-  have hFull : AEStronglyMeasurable
-      (fun ω => Vseq ω * R * (Rᵀ * Vseq ω * R)⁻¹ * Rᵀ * Vseq ω) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hMid.prodMk hV)
-  unfold emdAsymptoticVariance
-  exact hV.sub hFull
-
-set_option maxHeartbeats 1200000 in
 -- Matrix measurability through the nonlinear EMD covariance plug-in inverse is expensive here.
 omit [DecidableEq k] in
-/-- The EMD asymptotic-variance plug-in map is a.e. strongly measurable when both the
-restriction derivative and unrestricted covariance inputs are estimated. -/
-theorem emdAsymptoticVariance_aestronglyMeasurable_of_estimatedRestriction
+private theorem emdAsymptoticVariance_aestronglyMeasurable_core
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (Rseq : Ω → Matrix k q ℝ) (Vseq : Ω → Matrix k k ℝ)
     (hR : AEStronglyMeasurable Rseq μ)
@@ -755,52 +765,33 @@ theorem emdAsymptoticVariance_aestronglyMeasurable_of_estimatedRestriction
   unfold emdAsymptoticVariance
   exact hV.sub hFull
 
-set_option maxHeartbeats 1200000 in
--- Continuity through the EMD covariance plug-in inverse is expensive here.
 omit [DecidableEq k] in
-/-- The EMD asymptotic-variance plug-in map is continuous at covariance matrices with
-nonsingular restricted covariance. -/
-theorem emdAsymptoticVariance_continuousAt_of_nonsingular
-    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
-    (hG : IsUnit (Rᵀ * V * R).det) :
-    ContinuousAt (fun V' : Matrix k k ℝ => emdAsymptoticVariance R V') V := by
-  let G : Matrix q q ℝ := Rᵀ * V * R
-  have hVR : ContinuousAt (fun V' : Matrix k k ℝ => V' * R) V := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (continuousAt_id.prodMk continuousAt_const)
-  have hGramLeft : ContinuousAt (fun V' : Matrix k k ℝ => Rᵀ * V') V := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (continuousAt_const.prodMk continuousAt_id)
-  have hGram : ContinuousAt (fun V' : Matrix k k ℝ => Rᵀ * V' * R) V := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hGramLeft.prodMk continuousAt_const)
-  have hGramInv : ContinuousAt (fun V' : Matrix k k ℝ => (Rᵀ * V' * R)⁻¹) V := by
-    have hcontInv : ContinuousAt Inv.inv G := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hG.ne_zero
-    simpa [G] using hcontInv.comp hGram
-  have hLeft : ContinuousAt
-      (fun V' : Matrix k k ℝ => V' * R * (Rᵀ * V' * R)⁻¹) V := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hVR.prodMk hGramInv)
-  have hMid : ContinuousAt
-      (fun V' : Matrix k k ℝ => V' * R * (Rᵀ * V' * R)⁻¹ * Rᵀ) V := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hLeft.prodMk continuousAt_const)
-  have hFull : ContinuousAt
-      (fun V' : Matrix k k ℝ => V' * R * (Rᵀ * V' * R)⁻¹ * Rᵀ * V') V := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hMid.prodMk continuousAt_id)
-  unfold emdAsymptoticVariance
-  exact continuousAt_id.sub hFull
+/-- The EMD asymptotic-variance plug-in map is a.e. strongly measurable whenever the
+unrestricted covariance estimator is. -/
+theorem emdAsymptoticVariance_aestronglyMeasurable
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (R : Matrix k q ℝ) (Vseq : Ω → Matrix k k ℝ)
+    (hV : AEStronglyMeasurable Vseq μ) :
+    AEStronglyMeasurable (fun ω => emdAsymptoticVariance R (Vseq ω)) μ := by
+  simpa using emdAsymptoticVariance_aestronglyMeasurable_core
+    (fun _ => R) Vseq aestronglyMeasurable_const hV
+
+omit [DecidableEq k] in
+/-- The EMD asymptotic-variance plug-in map is a.e. strongly measurable when both the
+restriction derivative and unrestricted covariance inputs are estimated. -/
+theorem emdAsymptoticVariance_aestronglyMeasurable_of_estimatedRestriction
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Rseq : Ω → Matrix k q ℝ) (Vseq : Ω → Matrix k k ℝ)
+    (hR : AEStronglyMeasurable Rseq μ)
+    (hV : AEStronglyMeasurable Vseq μ) :
+    AEStronglyMeasurable
+      (fun ω => emdAsymptoticVariance (Rseq ω) (Vseq ω)) μ :=
+  emdAsymptoticVariance_aestronglyMeasurable_core Rseq Vseq hR hV
 
 set_option maxHeartbeats 1200000 in
 -- Continuity through the nonlinear EMD covariance plug-in inverse is expensive here.
 omit [DecidableEq k] in
-/-- The EMD asymptotic-variance plug-in map is continuous at nonsingular limiting
-restriction-derivative and covariance inputs. -/
-theorem emdAsymptoticVariance_continuousAt_of_estimatedRestriction
+private theorem emdAsymptoticVariance_continuousAt_core
     (R : Matrix k q ℝ) (V : Matrix k k ℝ)
     (hG : IsUnit (Rᵀ * V * R).det) :
     ContinuousAt
@@ -822,11 +813,7 @@ theorem emdAsymptoticVariance_continuousAt_of_estimatedRestriction
       (hGramLeft.prodMk continuousAt_fst)
   have hGramInv : ContinuousAt
       (fun p : Matrix k q ℝ × Matrix k k ℝ => (p.1ᵀ * p.2 * p.1)⁻¹) (R, V) := by
-    have hcontInv : ContinuousAt Inv.inv G := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hG.ne_zero
-    simpa [G] using hcontInv.comp hGram
+    simpa [G] using (continuousAt_matrix_inv_of_isUnit G hG).comp hGram
   have hLeft : ContinuousAt
       (fun p : Matrix k q ℝ × Matrix k k ℝ => p.2 * p.1 * (p.1ᵀ * p.2 * p.1)⁻¹)
       (R, V) :=
@@ -846,6 +833,28 @@ theorem emdAsymptoticVariance_continuousAt_of_estimatedRestriction
       (hMid.prodMk continuousAt_snd)
   unfold emdAsymptoticVariance
   exact continuousAt_snd.sub hFull
+
+omit [DecidableEq k] in
+/-- The EMD asymptotic-variance plug-in map is continuous at covariance matrices with
+nonsingular restricted covariance. -/
+theorem emdAsymptoticVariance_continuousAt_of_nonsingular
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    ContinuousAt (fun V' : Matrix k k ℝ => emdAsymptoticVariance R V') V := by
+  have hembed : ContinuousAt (fun V' : Matrix k k ℝ => (R, V')) V :=
+    continuousAt_const.prodMk continuousAt_id
+  exact (emdAsymptoticVariance_continuousAt_core R V hG).comp hembed
+
+omit [DecidableEq k] in
+/-- The EMD asymptotic-variance plug-in map is continuous at nonsingular limiting
+restriction-derivative and covariance inputs. -/
+theorem emdAsymptoticVariance_continuousAt_of_estimatedRestriction
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ => emdAsymptoticVariance p.1 p.2)
+      (R, V) :=
+  emdAsymptoticVariance_continuousAt_core R V hG
 
 omit [DecidableEq k] in
 /-- Consistency of the EMD covariance plug-in estimator (Hansen equation (8.35)) from
@@ -1036,7 +1045,7 @@ The matrix `Rderiv` is Hansen's `R = ∂r(β)' / ∂β`, so the derivative of `r
 represented by `Rderivᵀ`. This structure deliberately records only the deterministic
 restriction, differentiability, and rank content of Assumption 8.3; consistency and optimizer
 first-order-condition arguments belong in constructors for `ConstrainedEstimatorLinearization`. -/
-structure NonlinearConstraintAssumption83
+structure NonlinearConstraintCondition
     (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (Rderiv : Matrix k q ℝ) where
   /-- The true parameter satisfies the nonlinear restriction. -/
   constraint : r β = 0
@@ -1109,8 +1118,6 @@ theorem nonlinearFirstOrderLinearMap_self_eq_mdLinearMap
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) :
     nonlinearFirstOrderLinearMap W R R = mdLinearMap W R := rfl
 
-set_option maxHeartbeats 1200000 in
--- Matrix measurability through two derivative matrices and nested total inverses is expensive here.
 /-- The nonlinear first-order linear map is a.e. strongly measurable whenever the random weight
 and derivative matrices are. -/
 theorem nonlinearFirstOrderLinearMap_aestronglyMeasurable
@@ -1121,28 +1128,10 @@ theorem nonlinearFirstOrderLinearMap_aestronglyMeasurable
     (hRleft : AEStronglyMeasurable Rleft μ) :
     AEStronglyMeasurable
       (fun ω => nonlinearFirstOrderLinearMap (Wseq ω) (Rright ω) (Rleft ω)) μ := by
-  have hWinv : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hW
+  have hB := restrictionCorrection_aestronglyMeasurable
+    Wseq Rright Rleft hW hRright hRleft
   have hRlt : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ) μ :=
     continuous_id.matrix_transpose.comp_aestronglyMeasurable hRleft
-  have hRtWinv : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hRlt.prodMk hWinv)
-  have hGram : AEStronglyMeasurable
-      (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hRtWinv.prodMk hRright)
-  have hGramInv : AEStronglyMeasurable
-      (fun ω => ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hGram
-  have hWinvR : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹ * Rright ω) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hWinv.prodMk hRright)
-  have hB : AEStronglyMeasurable
-      (fun ω =>
-        (Wseq ω)⁻¹ * Rright ω * ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hWinvR.prodMk hGramInv)
   have hA : AEStronglyMeasurable
       (fun ω =>
         (Wseq ω)⁻¹ * Rright ω * ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹ *
@@ -1152,8 +1141,6 @@ theorem nonlinearFirstOrderLinearMap_aestronglyMeasurable
   unfold nonlinearFirstOrderLinearMap
   exact aestronglyMeasurable_const.sub hA
 
-set_option maxHeartbeats 1200000 in
--- Matrix measurability through two derivative matrices and nested total inverses is expensive here.
 /-- The nonlinear first-order constraint-correction map is a.e. strongly measurable whenever the
 random weight and derivative matrices are. -/
 theorem nonlinearFirstOrderConstraintCorrection_aestronglyMeasurable
@@ -1165,29 +1152,9 @@ theorem nonlinearFirstOrderConstraintCorrection_aestronglyMeasurable
     AEStronglyMeasurable
       (fun ω => nonlinearFirstOrderConstraintCorrection (Wseq ω) (Rright ω) (Rleft ω))
         μ := by
-  have hWinv : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hW
-  have hRlt : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ) μ :=
-    continuous_id.matrix_transpose.comp_aestronglyMeasurable hRleft
-  have hRtWinv : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hRlt.prodMk hWinv)
-  have hGram : AEStronglyMeasurable
-      (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hRtWinv.prodMk hRright)
-  have hGramInv : AEStronglyMeasurable
-      (fun ω => ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hGram
-  have hWinvR : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹ * Rright ω) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hWinv.prodMk hRright)
-  unfold nonlinearFirstOrderConstraintCorrection
-  exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-    (hWinvR.prodMk hGramInv)
+  simpa [nonlinearFirstOrderConstraintCorrection] using
+    restrictionCorrection_aestronglyMeasurable Wseq Rright Rleft hW hRright hRleft
 
-set_option maxHeartbeats 1200000 in
--- Continuity through nested total inverses for the random nonlinear FONC map is expensive here.
 /-- The nonlinear first-order linear map is continuous at nonsingular limiting weights and
 nonsingular limiting mixed restriction Gram matrices. -/
 theorem nonlinearFirstOrderLinearMap_continuousAt_of_nonsingular
@@ -1197,62 +1164,15 @@ theorem nonlinearFirstOrderLinearMap_continuousAt_of_nonsingular
       (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
         nonlinearFirstOrderLinearMap p.1.1 p.1.2 p.2)
       ((W, Rright), Rleft) := by
-  let G : Matrix q q ℝ := Rleftᵀ * W⁻¹ * Rright
-  have hWc : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1)
-      ((W, Rright), Rleft) := by
-    exact continuousAt_fst.comp continuousAt_fst
-  have hRrc : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.2)
-      ((W, Rright), Rleft) := by
-    exact continuousAt_snd.comp continuousAt_fst
+  have hB := restrictionCorrection_continuousAt_of_nonsingular
+    W Rright Rleft hW hG
   have hRlc : ContinuousAt
       (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2)
-      ((W, Rright), Rleft) := by
-    exact continuousAt_snd
-  have hWinv : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹)
-      ((W, Rright), Rleft) := by
-    have hcontInv : ContinuousAt Inv.inv W := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hW.ne_zero
-    exact hcontInv.comp hWc
+      ((W, Rright), Rleft) := continuousAt_snd
   have hRlt : ContinuousAt
       (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ)
-      ((W, Rright), Rleft) := by
-    exact continuous_id.matrix_transpose.continuousAt.comp hRlc
-  have hRtWinv : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ * p.1.1⁻¹)
-      ((W, Rright), Rleft) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hRlt.prodMk hWinv)
-  have hGram : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
-        p.2ᵀ * p.1.1⁻¹ * p.1.2)
-      ((W, Rright), Rleft) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hRtWinv.prodMk hRrc)
-  have hGramInv : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
-        (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
-      ((W, Rright), Rleft) := by
-    have hcontInv : ContinuousAt Inv.inv G := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hG.ne_zero
-    simpa [G] using hcontInv.comp hGram
-  have hWinvR : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹ * p.1.2)
-      ((W, Rright), Rleft) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hWinv.prodMk hRrc)
-  have hB : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
-        p.1.1⁻¹ * p.1.2 * (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
-      ((W, Rright), Rleft) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hWinvR.prodMk hGramInv)
+      ((W, Rright), Rleft) :=
+    continuous_id.matrix_transpose.continuousAt.comp hRlc
   have hA : ContinuousAt
       (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
         p.1.1⁻¹ * p.1.2 * (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹ * p.2ᵀ)
@@ -1262,8 +1182,6 @@ theorem nonlinearFirstOrderLinearMap_continuousAt_of_nonsingular
   unfold nonlinearFirstOrderLinearMap
   exact continuousAt_const.sub hA
 
-set_option maxHeartbeats 1200000 in
--- Continuity through nested total inverses for the random nonlinear FONC map is expensive here.
 /-- The nonlinear first-order constraint-correction map is continuous at nonsingular limiting
 weights and nonsingular limiting mixed restriction Gram matrices. -/
 theorem nonlinearFirstOrderConstraintCorrection_continuousAt_of_nonsingular
@@ -1273,59 +1191,8 @@ theorem nonlinearFirstOrderConstraintCorrection_continuousAt_of_nonsingular
       (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
         nonlinearFirstOrderConstraintCorrection p.1.1 p.1.2 p.2)
       ((W, Rright), Rleft) := by
-  let G : Matrix q q ℝ := Rleftᵀ * W⁻¹ * Rright
-  have hWc : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1)
-      ((W, Rright), Rleft) := by
-    exact continuousAt_fst.comp continuousAt_fst
-  have hRrc : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.2)
-      ((W, Rright), Rleft) := by
-    exact continuousAt_snd.comp continuousAt_fst
-  have hRlc : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2)
-      ((W, Rright), Rleft) := by
-    exact continuousAt_snd
-  have hWinv : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹)
-      ((W, Rright), Rleft) := by
-    have hcontInv : ContinuousAt Inv.inv W := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hW.ne_zero
-    exact hcontInv.comp hWc
-  have hRlt : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ)
-      ((W, Rright), Rleft) := by
-    exact continuous_id.matrix_transpose.continuousAt.comp hRlc
-  have hRtWinv : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ * p.1.1⁻¹)
-      ((W, Rright), Rleft) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hRlt.prodMk hWinv)
-  have hGram : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
-        p.2ᵀ * p.1.1⁻¹ * p.1.2)
-      ((W, Rright), Rleft) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hRtWinv.prodMk hRrc)
-  have hGramInv : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
-        (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
-      ((W, Rright), Rleft) := by
-    have hcontInv : ContinuousAt Inv.inv G := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hG.ne_zero
-    simpa [G] using hcontInv.comp hGram
-  have hWinvR : ContinuousAt
-      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹ * p.1.2)
-      ((W, Rright), Rleft) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hWinv.prodMk hRrc)
-  unfold nonlinearFirstOrderConstraintCorrection
-  exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-    (hWinvR.prodMk hGramInv)
+  simpa [nonlinearFirstOrderConstraintCorrection] using
+    restrictionCorrection_continuousAt_of_nonsingular W Rright Rleft hW hG
 
 set_option maxHeartbeats 1200000 in
 -- Product-space CMT for the random nonlinear FONC map carries several finite-dimensional
@@ -1425,7 +1292,7 @@ set_option maxHeartbeats 1200000 in
 omit [DecidableEq k] [DecidableEq q] in
 /-- A random matrix converging in measure to a fixed matrix has a negligible product remainder
 against a coordinatewise bounded-in-probability vector sequence. -/
-theorem randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero
+private theorem randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (Ahat : ℕ → Ω → Matrix k k ℝ) (A : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ)
     (hA : TendstoInMeasure μ Ahat atTop (fun _ => A))
@@ -1452,6 +1319,85 @@ theorem randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero
     (X := fun j n ω => (Ahat n ω i j - A i j) * T n ω j) hterms
   refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
   simp [Matrix.mulVec, dotProduct]
+
+set_option maxHeartbeats 1200000 in
+-- Finite-coordinate stochastic-order glue over two matrix limits is expensive here.
+omit [DecidableEq k] [DecidableEq q] in
+/-- If two random matrices converge in measure to the same fixed matrix, their
+difference has negligible product against any coordinatewise bounded-in-probability
+vector sequence. -/
+private theorem randomMatrixDifference_mulVec_tendstoInMeasure_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Ahat Bhat : ℕ → Ω → Matrix k k ℝ) (A : Matrix k k ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hAhat : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (hBhat : TendstoInMeasure μ Bhat atTop (fun _ => A))
+    (hT : ∀ j, BoundedInProbability μ (fun n ω => T n ω j)) :
+    TendstoInMeasure μ (fun n ω => (Ahat n ω - Bhat n ω) *ᵥ T n ω)
+      atTop (fun _ => 0) := by
+  classical
+  have hdiff : TendstoInMeasure μ (fun n ω => Ahat n ω - Bhat n ω)
+      atTop (fun _ => (0 : Matrix k k ℝ)) := by
+    refine tendstoInMeasure_pi (fun i => ?_)
+    refine tendstoInMeasure_pi (fun j => ?_)
+    have hAi : TendstoInMeasure μ (fun n ω => Ahat n ω i) atTop (fun _ => A i) :=
+      TendstoInMeasure.pi_apply hAhat i
+    have hBi : TendstoInMeasure μ (fun n ω => Bhat n ω i) atTop (fun _ => A i) :=
+      TendstoInMeasure.pi_apply hBhat i
+    have hAij : TendstoInMeasure μ (fun n ω => Ahat n ω i j)
+        atTop (fun _ => A i j) :=
+      TendstoInMeasure.pi_apply hAi j
+    have hBij : TendstoInMeasure μ (fun n ω => Bhat n ω i j)
+        atTop (fun _ => A i j) :=
+      TendstoInMeasure.pi_apply hBi j
+    have hcenter :=
+      TendstoInMeasure.sub_zero_real
+        (TendstoInMeasure.sub_limit_zero_real hAij)
+        (TendstoInMeasure.sub_limit_zero_real hBij)
+    simpa [Pi.sub_apply, sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hcenter
+  simpa using
+    randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero
+      (μ := μ) (Ahat := fun n ω => Ahat n ω - Bhat n ω)
+      (A := (0 : Matrix k k ℝ)) (T := T) hdiff hT
+
+set_option maxHeartbeats 2000000 in
+-- This combines the score-substitution CMT with the two-matrix inverse-gap rule.
+omit [DecidableEq k] [DecidableEq q] in
+/-- Two random matrix-vector products have a negligible difference when the
+matrices share a probability limit, the vectors are asymptotically equivalent,
+and the comparison vector is coordinatewise bounded in probability. -/
+theorem randomMatrix_mulVec_substitution_tendstoInMeasure_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (Ahat Bhat : ℕ → Ω → Matrix k k ℝ) (A : Matrix k k ℝ)
+    (T S : ℕ → Ω → k → ℝ)
+    (hAhat_meas : ∀ n, AEStronglyMeasurable (Ahat n) μ)
+    (hT_meas : ∀ n, AEStronglyMeasurable (T n) μ)
+    (hS_meas : ∀ n, AEStronglyMeasurable (S n) μ)
+    (hAhat : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (hBhat : TendstoInMeasure μ Bhat atTop (fun _ => A))
+    (hTS : TendstoInMeasure μ (fun n ω => T n ω - S n ω) atTop (fun _ => 0))
+    (hS : ∀ j, BoundedInProbability μ (fun n ω => S n ω j)) :
+    TendstoInMeasure μ (fun n ω => Ahat n ω *ᵥ T n ω - Bhat n ω *ᵥ S n ω)
+      atTop (fun _ => 0) := by
+  classical
+  have hdiff_meas : ∀ n, AEStronglyMeasurable (fun ω => T n ω - S n ω) μ :=
+    fun n => (hT_meas n).sub (hS_meas n)
+  have hscore :=
+    tendstoInMeasure_mulVec
+      (μ := μ) (A := Ahat) (Ainf := fun _ => A)
+      (v := fun n ω => T n ω - S n ω)
+      (vinf := fun _ => (0 : k → ℝ))
+      hAhat_meas hdiff_meas hAhat hTS
+  have hscore0 : TendstoInMeasure μ
+      (fun n ω => Ahat n ω *ᵥ (T n ω - S n ω)) atTop (fun _ => 0) := by
+    simpa using hscore
+  have hmatrix :=
+    randomMatrixDifference_mulVec_tendstoInMeasure_zero
+      (μ := μ) Ahat Bhat A S hAhat hBhat hS
+  have hsum := TendstoInMeasure.add_zero_vector hscore0 hmatrix
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  rw [Matrix.mulVec_sub, Matrix.sub_mulVec]
+  abel_nf
 
 set_option maxHeartbeats 2000000 in
 -- This combines the nonlinear FONC map CMT with finite-coordinate stochastic-order glue.
@@ -1869,14 +1815,31 @@ theorem constrainedEstimatorLinearization_of_fixed_firstOrder_gap
     rw [hexact]
     simp [nonlinearFirstOrderLinearMap_self_eq_mdLinearMap]
 
-namespace NonlinearConstraintAssumption83
+omit [DecidableEq q] in
+private theorem restrictionGram_posDef_core
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ)
+    (hW : W.PosDef) (hR : Function.Injective R.mulVec) :
+    (Rᵀ * W⁻¹ * R).PosDef := by
+  have hWinv : W⁻¹.PosDef := hW.inv
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hWinv.conjTranspose_mul_mul_same hR
+
+omit [DecidableEq k] [DecidableEq q] in
+private theorem restrictionCov_posDef_core
+    (V : Matrix k k ℝ) (R : Matrix k q ℝ)
+    (hV : V.PosDef) (hR : Function.Injective R.mulVec) :
+    (Rᵀ * V * R).PosDef := by
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hV.conjTranspose_mul_mul_same hR
+
+namespace NonlinearConstraintCondition
 
 omit [DecidableEq k] [DecidableEq q] in
 /-- Assumption 8.3 supplies the deterministic Taylor little-o expansion of the nonlinear
 restriction map at the true parameter. -/
 theorem taylorRemainder_isLittleO
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv) :
+    (h83 : NonlinearConstraintCondition r β Rderiv) :
     nonlinearConstraintTaylorRemainder r β Rderiv =o[𝓝 β] (fun b => b - β) := by
   simpa [nonlinearConstraintTaylorRemainder, h83.derivative_apply] using
     h83.differentiable_at.isLittleO
@@ -1887,7 +1850,7 @@ the negative Taylor remainder. This is the deterministic form of the mean-value/
 Hansen's proof of Theorem 8.10. -/
 theorem linearizedConstraint_eq_neg_taylorRemainder
     {r : (k → ℝ) → (q → ℝ)} {β b : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv) (hb : r b = 0) :
+    (h83 : NonlinearConstraintCondition r β Rderiv) (hb : r b = 0) :
     Rderivᵀ *ᵥ (b - β) = -nonlinearConstraintTaylorRemainder r β Rderiv b := by
   ext j
   simp [nonlinearConstraintTaylorRemainder, hb, h83.constraint]
@@ -1897,7 +1860,7 @@ omit [DecidableEq k] [DecidableEq q] in
 constrained optimizer enforces `r(β̃ₙ) = 0` pointwise. -/
 theorem linearizedConstraint_seq_eq_neg_taylorRemainder
     {Ω : Type*} {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (btilde : ℕ → Ω → k → ℝ) (hconstraint : ∀ n ω, r (btilde n ω) = 0) :
     (fun n ω => Rderivᵀ *ᵥ (btilde n ω - β)) =
       fun n ω => -nonlinearConstraintTaylorRemainder r β Rderiv (btilde n ω) := by
@@ -1909,7 +1872,7 @@ linearization interface when the scaled Taylor constraint correction is negligib
 theorem constrainedEstimatorLinearization_of_fixed_firstOrder
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (root : ℕ → ℝ) (W : Matrix k k ℝ)
     (bhat btilde : ℕ → Ω → k → ℝ) (lam : ℕ → Ω → q → ℝ)
     (hbtilde_meas : ∀ n, AEStronglyMeasurable (btilde n) μ)
@@ -1934,18 +1897,16 @@ omit [DecidableEq q] in
 nonlinear restriction Gram matrix. -/
 theorem restrictionGram_posDef_of_weight_posDef
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (W : Matrix k k ℝ) (hW : W.PosDef) :
-    (Rderivᵀ * W⁻¹ * Rderiv).PosDef := by
-  have hWinv : W⁻¹.PosDef := hW.inv
-  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
-    hWinv.conjTranspose_mul_mul_same h83.fullRank
+    (Rderivᵀ * W⁻¹ * Rderiv).PosDef :=
+  restrictionGram_posDef_core W Rderiv hW h83.fullRank
 
 /-- Assumption 8.3's rank condition and a positive-definite weight discharge the determinant
 side condition for the nonlinear restriction Gram matrix. -/
 theorem restrictionGram_det_isUnit_of_weight_posDef
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (W : Matrix k k ℝ) (hW : W.PosDef) :
     IsUnit (Rderivᵀ * W⁻¹ * Rderiv).det :=
   isUnit_iff_ne_zero.mpr (h83.restrictionGram_posDef_of_weight_posDef W hW).det_pos.ne'
@@ -1955,18 +1916,17 @@ omit [DecidableEq k] [DecidableEq q] in
 positive definiteness of the efficient nonlinear restriction covariance `R' V R`. -/
 theorem efficientRestrictionCov_posDef
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (V : Matrix k k ℝ) (hV : V.PosDef) :
-    (Rderivᵀ * V * Rderiv).PosDef := by
-  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
-    hV.conjTranspose_mul_mul_same h83.fullRank
+    (Rderivᵀ * V * Rderiv).PosDef :=
+  restrictionCov_posDef_core V Rderiv hV h83.fullRank
 
 omit [DecidableEq k] in
 /-- The inverse efficient nonlinear restriction covariance is positive semidefinite under
 Assumption 8.3 and positive-definite unrestricted covariance. -/
 theorem efficientRestrictionCov_inv_posSemidef
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (V : Matrix k k ℝ) (hV : V.PosDef) :
     ((Rderivᵀ * V * Rderiv)⁻¹).PosSemidef :=
   (h83.efficientRestrictionCov_posDef V hV).inv.posSemidef
@@ -1976,12 +1936,12 @@ omit [DecidableEq k] in
 and positive-definite unrestricted covariance. -/
 theorem efficientRestrictionCov_det_isUnit
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (V : Matrix k k ℝ) (hV : V.PosDef) :
     IsUnit (Rderivᵀ * V * Rderiv).det :=
   isUnit_iff_ne_zero.mpr (h83.efficientRestrictionCov_posDef V hV).det_pos.ne'
 
-end NonlinearConstraintAssumption83
+end NonlinearConstraintCondition
 
 /-- Hansen Theorem 8.10 nonlinear efficient-MD plug-in covariance estimator, using the
 estimated derivative matrix `Rhat` from equation (8.48). -/
@@ -2054,10 +2014,8 @@ then the restriction Gram matrix `Rᵀ W⁻¹ R` is positive definite. -/
 theorem restrictionGram_posDef_of_weight_posDef
     (W : Matrix k k ℝ) (R : Matrix k q ℝ)
     (hW : W.PosDef) (hR : Function.Injective R.mulVec) :
-    (Rᵀ * W⁻¹ * R).PosDef := by
-  have hWinv : W⁻¹.PosDef := hW.inv
-  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
-    hWinv.conjTranspose_mul_mul_same hR
+    (Rᵀ * W⁻¹ * R).PosDef :=
+  restrictionGram_posDef_core W R hW hR
 
 /-- Positive-definite limiting weights and full-column-rank restrictions discharge the
 nonsingular restriction-Gram side condition used by the totalized MD formula. -/
@@ -2073,9 +2031,8 @@ then the restriction covariance `Rᵀ V R` is positive definite. -/
 theorem restrictionCov_posDef_of_cov_posDef
     (V : Matrix k k ℝ) (R : Matrix k q ℝ)
     (hV : V.PosDef) (hR : Function.Injective R.mulVec) :
-    (Rᵀ * V * R).PosDef := by
-  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
-    hV.conjTranspose_mul_mul_same hR
+    (Rᵀ * V * R).PosDef :=
+  restrictionCov_posDef_core V R hV hR
 
 omit [DecidableEq k] in
 /-- Positive-definite covariance matrices and full-column-rank restrictions discharge the
@@ -2143,23 +2100,8 @@ theorem mdBetaStar_aestronglyMeasurable
     (Wseq : Ω → Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (bhat : Ω → k → ℝ)
     (hW : AEStronglyMeasurable Wseq μ) (hb : AEStronglyMeasurable bhat μ) :
     AEStronglyMeasurable (fun ω => mdBetaStar (Wseq ω) R c (bhat ω)) μ := by
-  have hWinv : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hW
-  have hRtWinv : AEStronglyMeasurable (fun ω => Rᵀ * (Wseq ω)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (aestronglyMeasurable_const.prodMk hWinv)
-  have hGram : AEStronglyMeasurable (fun ω => Rᵀ * (Wseq ω)⁻¹ * R) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hRtWinv.prodMk aestronglyMeasurable_const)
-  have hGramInv : AEStronglyMeasurable (fun ω => (Rᵀ * (Wseq ω)⁻¹ * R)⁻¹) μ :=
-    aestronglyMeasurable_matrix_inv hGram
-  have hWinvR : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹ * R) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hWinv.prodMk aestronglyMeasurable_const)
-  have hB : AEStronglyMeasurable
-      (fun ω => (Wseq ω)⁻¹ * R * (Rᵀ * (Wseq ω)⁻¹ * R)⁻¹) μ := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
-      (hWinvR.prodMk hGramInv)
+  have hB := restrictionCorrection_aestronglyMeasurable
+    Wseq (fun _ => R) (fun _ => R) hW aestronglyMeasurable_const aestronglyMeasurable_const
   have hv : AEStronglyMeasurable (fun ω => Rᵀ *ᵥ bhat ω - c) μ := by
     exact ((Continuous.matrix_mulVec continuous_const continuous_id).comp_aestronglyMeasurable
       hb).sub aestronglyMeasurable_const
@@ -2176,38 +2118,15 @@ theorem mdBetaStar_continuousAt_of_nonsingular
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
     (hW : IsUnit W.det) (hG : IsUnit (Rᵀ * W⁻¹ * R).det) :
     ContinuousAt (fun p : (k → ℝ) × Matrix k k ℝ => mdBetaStar p.2 R c p.1) (β, W) := by
-  let G : Matrix q q ℝ := Rᵀ * W⁻¹ * R
-  have hWInv : ContinuousAt (fun p : (k → ℝ) × Matrix k k ℝ => p.2⁻¹) (β, W) := by
-    have hcontInv : ContinuousAt Inv.inv W := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hW.ne_zero
-    exact hcontInv.comp continuousAt_snd
-  have hRtWinv : ContinuousAt (fun p : (k → ℝ) × Matrix k k ℝ => Rᵀ * p.2⁻¹)
-      (β, W) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (continuousAt_const.prodMk hWInv)
-  have hGram : ContinuousAt (fun p : (k → ℝ) × Matrix k k ℝ => Rᵀ * p.2⁻¹ * R)
-      (β, W) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hRtWinv.prodMk continuousAt_const)
-  have hGramInv :
-      ContinuousAt (fun p : (k → ℝ) × Matrix k k ℝ => (Rᵀ * p.2⁻¹ * R)⁻¹)
-        (β, W) := by
-    have hcontInv : ContinuousAt Inv.inv G := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hG.ne_zero
-    simpa [G] using hcontInv.comp hGram
-  have hWinvR : ContinuousAt (fun p : (k → ℝ) × Matrix k k ℝ => p.2⁻¹ * R)
-      (β, W) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hWInv.prodMk continuousAt_const)
+  have hembed : ContinuousAt
+      (fun p : (k → ℝ) × Matrix k k ℝ => ((p.2, R), R)) (β, W) :=
+    (continuousAt_snd.prodMk continuousAt_const).prodMk continuousAt_const
   have hB : ContinuousAt
       (fun p : (k → ℝ) × Matrix k k ℝ => p.2⁻¹ * R * (Rᵀ * p.2⁻¹ * R)⁻¹)
         (β, W) := by
-    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
-      (hWinvR.prodMk hGramInv)
+    exact ContinuousAt.comp'
+      (f := fun p : (k → ℝ) × Matrix k k ℝ => ((p.2, R), R))
+      (restrictionCorrection_continuousAt_of_nonsingular W R R hW hG) hembed
   have hv : ContinuousAt (fun p : (k → ℝ) × Matrix k k ℝ => Rᵀ *ᵥ p.1 - c)
       (β, W) := by
     exact (Continuous.matrix_mulVec continuous_const continuous_fst).continuousAt.sub
@@ -2388,8 +2307,8 @@ theorem mdBetaStar_sub_pseudoTrueValue_eq_linearMap
   abel_nf
 
 /-- Bias term induced by a local alternative written as
-`root n • (Rᵀ β_n - c) = δ`. With this sign convention the MD correction contributes
-`-Bδ` to the centered scaled limit. -/
+`root n • (Rᵀ β_n - c) = δ`. Hansen's display (8.43) prints this term with a plus sign,
+but (8.41) and the MD correction formula imply the negative sign formalized here. -/
 noncomputable def mdLocalAlternativeBias
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) (δ : q → ℝ) : k → ℝ :=
   -mdRestrictionCorrectionMap W R *ᵥ δ
@@ -2451,7 +2370,7 @@ the true parameter sequence violates the imposed restriction at the local scale.
 structure LocalAlternativeRestriction
     (root : ℕ → ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
     (βseq : ℕ → k → ℝ) (δ : q → ℝ) : Prop where
-  local_restriction : ∀ n, root n • (Rᵀ *ᵥ βseq n - c) = δ
+  local_restriction : ∀ᶠ n in atTop, root n • (Rᵀ *ᵥ βseq n - c) = δ
 
 /-- MD scaled error centered at the local true parameter sequence. -/
 noncomputable def mdLocalAlternativeScaledError
@@ -2461,20 +2380,21 @@ noncomputable def mdLocalAlternativeScaledError
   fun n ω => root n • (mdBetaStar W R c (bhat n ω) - βseq n)
 
 /-- Under local misspecification, the fixed-weight MD statistic centered at the local true
-parameter sequence is exactly the usual fixed MD linear image plus the local bias. -/
+parameter sequence is eventually exactly the usual fixed MD linear image plus the local bias. -/
 theorem mdLocalAlternativeScaledError_eq_linearMap_add_bias
     {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
     (βseq : ℕ → k → ℝ) (δ : q → ℝ)
     (hlocal : LocalAlternativeRestriction root R c βseq δ) :
-    mdLocalAlternativeScaledError root bhat W R c βseq =
+    mdLocalAlternativeScaledError root bhat W R c βseq =ᶠ[atTop]
       fun n ω =>
         mdLinearMap W R *ᵥ (root n • (bhat n ω - βseq n)) +
           mdLocalAlternativeBias W R δ := by
-  funext n ω
+  filter_upwards [hlocal.local_restriction] with n hn
+  funext ω
   unfold mdLocalAlternativeScaledError
-  rw [mdBetaStar_localAlternative_scaledError_eq_linearMap_add_bias
-    (root n) W R c (βseq n) (bhat n ω) δ (hlocal.local_restriction n)]
+  exact mdBetaStar_localAlternative_scaledError_eq_linearMap_add_bias
+    (root n) W R c (βseq n) (bhat n ω) δ hn
 
 /-- The exact fixed-weight local-alternative algebra constructs the stable biased-linearization
 interface. -/
@@ -2493,12 +2413,14 @@ theorem mdLocalAlternative_fixedWeight_biasedAsymptoticallyLinearEstimator
     have hzero :
         TendstoInMeasure μ (fun _ : ℕ => fun _ : Ω => (0 : k → ℝ)) atTop
           (fun _ => 0) := by
-      exact tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
-        (ae_of_all _ (fun _ => tendsto_const_nhds))
-    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hzero
+      exact tendstoInMeasure_const_of_tendsto tendsto_const_nhds
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hzero
+    filter_upwards
+      [mdLocalAlternativeScaledError_eq_linearMap_add_bias root bhat W R c βseq δ hlocal]
+      with n hn
     filter_upwards with ω
     rw [Pi.sub_apply]
-    rw [mdLocalAlternativeScaledError_eq_linearMap_add_bias root bhat W R c βseq δ hlocal]
+    rw [hn]
     simp
 
 /-- Hansen Section 8.13, equation (8.39): the sample pseudo-true value obtained by replacing
@@ -2542,8 +2464,7 @@ theorem mdFixedWeight_remainder_tendstoInMeasure_zero
       atTop (fun _ => 0) := by
   have hzero :
       TendstoInMeasure μ (fun _ : ℕ => fun _ : Ω => (0 : k → ℝ)) atTop (fun _ => 0) := by
-    exact tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
-      (ae_of_all _ (fun _ => tendsto_const_nhds))
+    exact tendstoInMeasure_const_of_tendsto tendsto_const_nhds
   refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hzero
   filter_upwards with ω
   rw [Pi.sub_apply]
@@ -2887,6 +2808,22 @@ theorem unrestrictedSubConstrainedEstimator_tendstoInDistribution_multivariateGa
     hA_lim hrem hY_meas
   simpa [A, T, Y] using htarget
 
+private theorem tendstoInDistribution_congr_eventually_ch8
+    {Ω Ωlim E : Type*} [MeasurableSpace Ω] [MeasurableSpace Ωlim]
+    {μ : Measure Ω} {ν : Measure Ωlim}
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {X Y : ℕ → Ω → E} {Z : Ωlim → E}
+    (hY : ∀ n, AEMeasurable (Y n) μ)
+    (hXY : ∀ᶠ n in atTop, X n =ᵐ[μ] Y n)
+    (h : TendstoInDistribution X atTop Z (fun _ => μ) ν) :
+    TendstoInDistribution Y atTop Z (fun _ => μ) ν where
+  forall_aemeasurable := hY
+  aemeasurable_limit := h.aemeasurable_limit
+  tendsto := by
+    refine Tendsto.congr' ?_ h.tendsto
+    exact hXY.mono fun _ hn => Subtype.ext (Measure.map_congr hn)
+
 /-- Hansen Section 8.13, equations (8.41)--(8.43), fixed-weight local-alternative MD
 limit. Under the local restriction `root n • (Rᵀ β_n - c) = δ`, the centered estimator has
 the usual MD covariance and a fixed local-alternative mean shift. -/
@@ -2903,11 +2840,34 @@ theorem mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussia
       (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
       (multivariateGaussian (WithLp.toLp 2 (mdLocalAlternativeBias W R δ))
         (mdAsymptoticVariance W R S)) := by
-  rw [mdLocalAlternativeScaledError_eq_linearMap_add_bias root bhat W R c βseq δ hlocal]
-  simpa [mdAsymptoticVariance] using
+  have hbase :=
     fixedMatrix_mulVec_add_const_tendstoInDistribution_multivariateGaussian
       (M := mdLinearMap W R) (S := S) (bias := mdLocalAlternativeBias W R δ)
       hS (fun n ω => root n • (bhat n ω - βseq n)) hT
+  have hmeas : ∀ n,
+      AEMeasurable (mdLocalAlternativeScaledError root bhat W R c βseq n) μ := by
+    intro n
+    have hscaled := hT.forall_aemeasurable n
+    have hlinear : AEMeasurable
+        (fun ω => mdLinearMap W R *ᵥ (root n • (bhat n ω - βseq n))) μ :=
+      (Continuous.matrix_mulVec continuous_const continuous_id).measurable.comp_aemeasurable
+        hscaled
+    have haffine : AEMeasurable
+        (fun ω => mdLinearMap W R *ᵥ (root n • (bhat n ω - βseq n)) +
+          mdLocalAlternativeBias W R (root n • (Rᵀ *ᵥ βseq n - c))) μ :=
+      hlinear.add aemeasurable_const
+    refine haffine.congr ?_
+    filter_upwards with ω
+    simpa [mdLocalAlternativeScaledError] using
+      (mdBetaStar_localAlternative_scaledError_eq_linearMap_add_bias
+        (root n) W R c (βseq n) (bhat n ω)
+        (root n • (Rᵀ *ᵥ βseq n - c)) rfl).symm
+  apply tendstoInDistribution_congr_eventually_ch8 hmeas _
+    (by simpa [mdAsymptoticVariance] using hbase)
+  filter_upwards
+    [mdLocalAlternativeScaledError_eq_linearMap_add_bias root bhat W R c βseq δ hlocal]
+    with n hn
+  exact ae_of_all μ fun ω => (congrFun hn ω).symm
 
 /-- Gaussian-limit-interface version of the fixed-weight local-alternative MD limit. -/
 theorem mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
@@ -2963,8 +2923,7 @@ theorem scalarAsymptoticallyInactiveConstraint_of_eventuallyEq
     have hzero :
         TendstoInMeasure μ (fun _ : ℕ => fun _ : Ω => (0 : ℝ)) atTop
           (fun _ => 0) := by
-      exact tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
-        (ae_of_all _ (fun _ => tendsto_const_nhds))
+      exact tendstoInMeasure_const_real tendsto_const_nhds
     refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hzero
     filter_upwards [heq] with n hn
     filter_upwards [hn] with ω hω
@@ -2987,23 +2946,38 @@ noncomputable def nonnegativeConstrainedScalarScaledError
     {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (β : ℝ) : ℕ → Ω → ℝ :=
   fun n ω => root n * (nonnegativeConstrainedScalarEstimator bhat n ω - β)
 
-/-- Interior scalar nonnegativity constraints construct the inactive-constraint interface once the
-unconstrained estimator is eventually nonnegative almost surely. -/
+/-- Hansen Section 8.15 interior case: consistency for a strictly positive parameter makes the
+scalar nonnegativity constraint asymptotically inactive. -/
 theorem nonnegativeInterior_asymptoticallyInactiveConstraint
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
     (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (β : ℝ)
     (hmeas : ∀ n, AEMeasurable (nonnegativeConstrainedScalarScaledError root bhat β n) μ)
-    (hinterior : ∀ᶠ n in atTop, ∀ᵐ ω ∂μ, 0 ≤ bhat n ω) :
+    (hβ : 0 < β)
+    (hconsistent : TendstoInMeasure μ bhat atTop (fun _ => β)) :
     ScalarAsymptoticallyInactiveConstraint μ
       (scalarScaledError root bhat β)
-      (nonnegativeConstrainedScalarScaledError root bhat β) := by
-  refine scalarAsymptoticallyInactiveConstraint_of_eventuallyEq
-    (scalarScaledError root bhat β)
-    (nonnegativeConstrainedScalarScaledError root bhat β) hmeas ?_
-  filter_upwards [hinterior] with n hn
-  filter_upwards [hn] with ω hω
-  simp [scalarScaledError, nonnegativeConstrainedScalarScaledError,
-    nonnegativeConstrainedScalarEstimator, max_eq_left hω]
+      (nonnegativeConstrainedScalarScaledError root bhat β) where
+  constrained_measurable := hmeas
+  inactive_remainder := by
+    rw [tendstoInMeasure_iff_dist]
+    intro ε hε
+    have hbad := tendsto_measure_nonpos_of_tendstoInMeasure_const_pos hβ hconsistent
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hbad
+      (fun _ => zero_le _) ?_
+    intro n
+    refine measure_mono ?_
+    intro ω hω
+    by_contra hnot
+    have hb : 0 < bhat n ω := lt_of_not_ge hnot
+    change ε ≤ dist
+      (nonnegativeConstrainedScalarScaledError root bhat β n ω -
+        scalarScaledError root bhat β n ω) 0 at hω
+    have hzero : nonnegativeConstrainedScalarScaledError root bhat β n ω -
+        scalarScaledError root bhat β n ω = 0 := by
+      simp [nonnegativeConstrainedScalarScaledError, scalarScaledError,
+        nonnegativeConstrainedScalarEstimator, max_eq_left hb.le]
+    rw [hzero, dist_self] at hω
+    exact (not_le_of_gt hε) hω
 
 /-- Hansen Section 8.15 interior case for a scalar nonnegativity restriction: if the
 constraint is asymptotically inactive, the constrained estimator has the same limit as the
@@ -3013,7 +2987,8 @@ theorem nonnegativeInterior_tendstoInDistribution
     {μ : Measure Ω} {ν : Measure Ω'} [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (β : ℝ) (Z : Ω' → ℝ)
     (hmeas : ∀ n, AEMeasurable (nonnegativeConstrainedScalarScaledError root bhat β n) μ)
-    (hinterior : ∀ᶠ n in atTop, ∀ᵐ ω ∂μ, 0 ≤ bhat n ω)
+    (hβ : 0 < β)
+    (hconsistent : TendstoInMeasure μ bhat atTop (fun _ => β))
     (hT : TendstoInDistribution (scalarScaledError root bhat β) atTop Z
       (fun _ => μ) ν) :
     TendstoInDistribution (nonnegativeConstrainedScalarScaledError root bhat β) atTop Z
@@ -3021,7 +2996,8 @@ theorem nonnegativeInterior_tendstoInDistribution
   scalarAsymptoticallyInactiveConstraint_tendstoInDistribution
     (scalarScaledError root bhat β)
     (nonnegativeConstrainedScalarScaledError root bhat β) Z
-    (nonnegativeInterior_asymptoticallyInactiveConstraint root bhat β hmeas hinterior) hT
+    (nonnegativeInterior_asymptoticallyInactiveConstraint
+      root bhat β hmeas hβ hconsistent) hT
 
 /-- Boundary scaled statistic for the scalar nonnegativity-constrained estimator. -/
 noncomputable def nonnegativeBoundaryScaledError
@@ -3037,13 +3013,8 @@ theorem nonnegativeBoundaryScaledError_eq_max_scaled
       fun n ω => max (root n * bhat n ω) 0 := by
   funext n ω
   unfold nonnegativeBoundaryScaledError nonnegativeConstrainedScalarEstimator
-  by_cases hb : 0 ≤ bhat n ω
-  · have hprod : 0 ≤ root n * bhat n ω := mul_nonneg (hroot n) hb
-    simp [max_eq_left hb, max_eq_left hprod]
-  · have hb_nonpos : bhat n ω ≤ 0 := le_of_lt (lt_of_not_ge hb)
-    have hprod : root n * bhat n ω ≤ 0 :=
-      mul_nonpos_of_nonneg_of_nonpos (hroot n) hb_nonpos
-    simp [max_eq_right hb_nonpos, max_eq_right hprod]
+  rw [mul_max_of_nonneg _ _ (hroot n)]
+  simp
 
 /-- Hansen Section 8.15 boundary case for a scalar nonnegativity restriction: if the
 unconstrained boundary statistic converges, the constrained statistic converges to the continuous
@@ -4039,6 +4010,25 @@ noncomputable def emdDifferenceAsymptoticVariance
     (R : Matrix k q ℝ) (V : Matrix k k ℝ) : Matrix k k ℝ :=
   emdDifferenceLinearMap R V * V * (emdDifferenceLinearMap R V)ᵀ
 
+omit [Fintype q] [DecidableEq k] [DecidableEq q] in
+private theorem restrictionCov_transpose_eq_self
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ) (hVsym : Vᵀ = V) :
+    (Rᵀ * V * R)ᵀ = Rᵀ * V * R := by
+  rw [Matrix.transpose_mul, Matrix.transpose_mul, hVsym, Matrix.transpose_transpose]
+  simp [Matrix.mul_assoc]
+
+omit [DecidableEq k] in
+private theorem restrictionCov_nonsingInv_transpose_eq_self
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ) (hVsym : Vᵀ = V) :
+    ((Rᵀ * V * R)⁻¹)ᵀ = (Rᵀ * V * R)⁻¹ := by
+  rw [Matrix.transpose_nonsing_inv, restrictionCov_transpose_eq_self R V hVsym]
+
+private theorem nonsingInv_mul_self_of_isUnit
+    (G : Matrix q q ℝ) (hG : IsUnit G.det) : G⁻¹ * G * G⁻¹ = G⁻¹ := by
+  calc
+    G⁻¹ * G * G⁻¹ = G⁻¹ * (G * G⁻¹) := by simp [Matrix.mul_assoc]
+    _ = G⁻¹ := by rw [Matrix.mul_nonsing_inv G hG]; simp
+
 omit [DecidableEq k] in
 /-- Hansen Section 8.11, equation (8.37): the asymptotic variance of the Hausman difference
 equals the unrestricted asymptotic variance minus the efficient restricted asymptotic variance. -/
@@ -4048,21 +4038,10 @@ theorem emdDifferenceAsymptoticVariance_eq_gap
     emdDifferenceAsymptoticVariance R V = V - emdAsymptoticVariance R V := by
   let G : Matrix q q ℝ := Rᵀ * V * R
   let A : Matrix q q ℝ := G⁻¹
-  have hGsym : Gᵀ = G := by
-    dsimp [G]
-    rw [Matrix.transpose_mul, Matrix.transpose_mul, hVsym, Matrix.transpose_transpose]
-    simp [Matrix.mul_assoc]
   have hAsym : Aᵀ = A := by
-    dsimp [A]
-    rw [Matrix.transpose_nonsing_inv, hGsym]
+    simpa [A, G] using restrictionCov_nonsingInv_transpose_eq_self R V hVsym
   have hAGA : A * G * A = A := by
-    calc
-      A * G * A = A * (G * A) := by simp [Matrix.mul_assoc]
-      _ = A := by
-        rw [show G * A = 1 by
-          dsimp [A, G]
-          exact Matrix.mul_nonsing_inv _ hGunit]
-        simp
+    simpa [A, G] using nonsingInv_mul_self_of_isUnit G hGunit
   unfold emdDifferenceAsymptoticVariance emdDifferenceLinearMap emdAsymptoticVariance
   change (V * R * A * Rᵀ) * V * (V * R * A * Rᵀ)ᵀ =
     V - (V - V * R * A * Rᵀ * V)
@@ -4218,9 +4197,7 @@ theorem hausmanQuadraticMatrix_continuousAt_of_estimatedRestriction
   have hGramInv : ContinuousAt
       (fun p : Matrix k q ℝ × Matrix k k ℝ => (p.1ᵀ * p.2 * p.1)⁻¹) (R, V) := by
     have hcontInv : ContinuousAt Inv.inv G := by
-      refine continuousAt_matrix_inv _ ?_
-      rw [Ring.inverse_eq_inv']
-      exact continuousAt_inv₀ hG.ne_zero
+      exact continuousAt_matrix_inv_of_isUnit _ hG
     simpa [G] using hcontInv.comp hGram
   have hLeft : ContinuousAt
       (fun p : Matrix k q ℝ × Matrix k k ℝ => p.1 * (p.1ᵀ * p.2 * p.1)⁻¹)
@@ -4297,7 +4274,7 @@ theorem unrestrictedSubConstrainedEstimator_efficientDifference_tendstoInDistrib
   simpa [hcov] using hraw
 
 /-- Pullback matrix for the efficient-MD criterion quadratic. -/
-theorem emdDifferenceLinearMap_transpose_mul_inv_mul_self
+private theorem emdDifferenceLinearMap_transpose_mul_inv_mul_self
     (R : Matrix k q ℝ) (V : Matrix k k ℝ)
     (hVunit : IsUnit V.det) (hVsym : Vᵀ = V)
     (hGunit : IsUnit (Rᵀ * V * R).det) :
@@ -4305,21 +4282,10 @@ theorem emdDifferenceLinearMap_transpose_mul_inv_mul_self
       hausmanQuadraticMatrix R V := by
   let G : Matrix q q ℝ := Rᵀ * V * R
   let A : Matrix q q ℝ := G⁻¹
-  have hGsym : Gᵀ = G := by
-    dsimp [G]
-    rw [Matrix.transpose_mul, Matrix.transpose_mul, hVsym, Matrix.transpose_transpose]
-    simp [Matrix.mul_assoc]
   have hAsym : Aᵀ = A := by
-    dsimp [A]
-    rw [Matrix.transpose_nonsing_inv, hGsym]
+    simpa [A, G] using restrictionCov_nonsingInv_transpose_eq_self R V hVsym
   have hAGA : A * G * A = A := by
-    calc
-      A * G * A = A * (G * A) := by simp [Matrix.mul_assoc]
-      _ = A := by
-        rw [show G * A = 1 by
-          dsimp [A, G]
-          exact Matrix.mul_nonsing_inv _ hGunit]
-        simp
+    simpa [A, G] using nonsingInv_mul_self_of_isUnit G hGunit
   unfold emdDifferenceLinearMap hausmanQuadraticMatrix
   change (V * R * A * Rᵀ)ᵀ * V⁻¹ * (V * R * A * Rᵀ) = R * A * Rᵀ
   rw [Matrix.transpose_mul, Matrix.transpose_mul, Matrix.transpose_mul,
@@ -4338,7 +4304,7 @@ theorem emdDifferenceLinearMap_transpose_mul_inv_mul_self
 
 omit [DecidableEq k] in
 /-- Pullback matrix for the efficient-MD Hausman quadratic. -/
-theorem emdDifferenceLinearMap_transpose_mul_hausman_mul_self
+private theorem emdDifferenceLinearMap_transpose_mul_hausman_mul_self
     (R : Matrix k q ℝ) (V : Matrix k k ℝ)
     (hVsym : Vᵀ = V) (hGunit : IsUnit (Rᵀ * V * R).det) :
     (emdDifferenceLinearMap R V)ᵀ * hausmanQuadraticMatrix R V *
@@ -4346,21 +4312,10 @@ theorem emdDifferenceLinearMap_transpose_mul_hausman_mul_self
       hausmanQuadraticMatrix R V := by
   let G : Matrix q q ℝ := Rᵀ * V * R
   let A : Matrix q q ℝ := G⁻¹
-  have hGsym : Gᵀ = G := by
-    dsimp [G]
-    rw [Matrix.transpose_mul, Matrix.transpose_mul, hVsym, Matrix.transpose_transpose]
-    simp [Matrix.mul_assoc]
   have hAsym : Aᵀ = A := by
-    dsimp [A]
-    rw [Matrix.transpose_nonsing_inv, hGsym]
+    simpa [A, G] using restrictionCov_nonsingInv_transpose_eq_self R V hVsym
   have hAGA : A * G * A = A := by
-    calc
-      A * G * A = A * (G * A) := by simp [Matrix.mul_assoc]
-      _ = A := by
-        rw [show G * A = 1 by
-          dsimp [A, G]
-          exact Matrix.mul_nonsing_inv _ hGunit]
-        simp
+    simpa [A, G] using nonsingInv_mul_self_of_isUnit G hGunit
   unfold emdDifferenceLinearMap hausmanQuadraticMatrix
   change (V * R * A * Rᵀ)ᵀ * (R * A * Rᵀ) * (V * R * A * Rᵀ) =
     R * A * Rᵀ
@@ -4381,29 +4336,24 @@ theorem emdDifferenceLinearMap_transpose_mul_hausman_mul_self
             simpa [Matrix.mul_assoc] using hAGA
       rw [hcollapse]
 
-/-- Law identification for the efficient-MD/CLS criterion quadratic: the limiting
-unrestricted-minus-restricted Gaussian difference, evaluated with `V⁻¹`, has `χ²(q)` law. -/
-theorem emdDifferenceCriterionQuadratic_hasLaw_chiSquared
-    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+private theorem emdDifferenceQuadratic_hasLaw_chiSquared_of_pullback
+    (R : Matrix k q ℝ) (V Q : Matrix k k ℝ)
     (hV : V.PosDef) (hR : Function.Injective R.mulVec)
+    (hPull : (emdDifferenceLinearMap R V)ᵀ * Q * emdDifferenceLinearMap R V =
+      hausmanQuadraticMatrix R V)
     [Fact (0 < Fintype.card q)] :
     HasLaw
-      (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ (V⁻¹ *ᵥ z.ofLp))
+      (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ (Q *ᵥ z.ofLp))
       (chiSquared (Fintype.card q))
       (multivariateGaussian 0 (emdDifferenceAsymptoticVariance R V)) := by
   let G : Matrix q q ℝ := Rᵀ * V * R
   let H : Matrix k k ℝ := hausmanQuadraticMatrix R V
   let D : Matrix k k ℝ := emdDifferenceLinearMap R V
-  let qCrit : EuclideanSpace ℝ k → ℝ := fun z => z.ofLp ⬝ᵥ (V⁻¹ *ᵥ z.ofLp)
+  let quad : EuclideanSpace ℝ k → ℝ := fun z => z.ofLp ⬝ᵥ (Q *ᵥ z.ofLp)
   let Dmap : EuclideanSpace ℝ k → EuclideanSpace ℝ k := fun x =>
     WithLp.toLp 2 (D *ᵥ x.ofLp)
-  have hVsym : Vᵀ = V :=
-    (Matrix.conjTranspose_eq_transpose_of_trivial V).symm.trans hV.isHermitian
-  have hVunit : IsUnit V.det := posDef_det_isUnit V hV
   have hGpos : G.PosDef := by
     simpa [G] using restrictionCov_posDef_of_cov_posDef V R hV hR
-  have hGunit : IsUnit G.det := by
-    simpa [G] using restrictionCov_det_isUnit_of_cov_posDef V R hV hR
   have hY : HasLaw
       (fun x : EuclideanSpace ℝ k => WithLp.toLp 2 (Rᵀ *ᵥ x.ofLp))
       (multivariateGaussian 0 G) (multivariateGaussian 0 V) := by
@@ -4426,19 +4376,34 @@ theorem emdDifferenceCriterionQuadratic_hasLaw_chiSquared
     have hraw := hasLaw_multivariateGaussian_zero_linearMap
       (n := k) (q := k) hV.posSemidef D
     simpa [D, emdDifferenceAsymptoticVariance] using hraw
-  have hPullback : HasLaw (fun x : EuclideanSpace ℝ k => qCrit (Dmap x))
+  have hPullback : HasLaw (fun x : EuclideanSpace ℝ k => quad (Dmap x))
       (chiSquared (Fintype.card q)) (multivariateGaussian 0 V) := by
     refine hHlaw.congr ?_
     filter_upwards with x
-    dsimp [qCrit, Dmap, H, D]
-    rw [quadraticForm_mulVec_eq_pullback]
-    rw [emdDifferenceLinearMap_transpose_mul_inv_mul_self R V hVunit hVsym hGunit]
+    dsimp [quad, Dmap, H, D]
+    rw [quadraticForm_mulVec_eq_pullback_rect, hPull]
   refine ⟨by fun_prop, ?_⟩
-  rw [← hDmap.map_eq]
-  rw [Measure.map_map]
-  · simpa [qCrit, Dmap, Function.comp_def] using hPullback.map_eq
+  rw [← hDmap.map_eq, Measure.map_map]
+  · simpa [quad, Dmap, Function.comp_def] using hPullback.map_eq
   · fun_prop
   · fun_prop
+
+/-- Law identification for the efficient-MD/CLS criterion quadratic: the limiting
+unrestricted-minus-restricted Gaussian difference, evaluated with `V⁻¹`, has `χ²(q)` law. -/
+theorem emdDifferenceCriterionQuadratic_hasLaw_chiSquared
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hV : V.PosDef) (hR : Function.Injective R.mulVec)
+    [Fact (0 < Fintype.card q)] :
+    HasLaw
+      (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ (V⁻¹ *ᵥ z.ofLp))
+      (chiSquared (Fintype.card q))
+      (multivariateGaussian 0 (emdDifferenceAsymptoticVariance R V)) := by
+  have hVsym : Vᵀ = V :=
+    (Matrix.conjTranspose_eq_transpose_of_trivial V).symm.trans hV.isHermitian
+  have hVunit : IsUnit V.det := posDef_det_isUnit V hV
+  have hGunit := restrictionCov_det_isUnit_of_cov_posDef V R hV hR
+  exact emdDifferenceQuadratic_hasLaw_chiSquared_of_pullback R V V⁻¹ hV hR
+    (emdDifferenceLinearMap_transpose_mul_inv_mul_self R V hVunit hVsym hGunit)
 
 /-- Law identification for the efficient-MD Hausman quadratic. The same limiting Gaussian
 difference, evaluated with `R (R' V R)⁻¹ R'`, has `χ²(q)` law. -/
@@ -4451,60 +4416,19 @@ theorem emdDifferenceHausmanQuadratic_hasLaw_chiSquared
         z.ofLp ⬝ᵥ (hausmanQuadraticMatrix R V *ᵥ z.ofLp))
       (chiSquared (Fintype.card q))
       (multivariateGaussian 0 (emdDifferenceAsymptoticVariance R V)) := by
-  let G : Matrix q q ℝ := Rᵀ * V * R
-  let H : Matrix k k ℝ := hausmanQuadraticMatrix R V
-  let D : Matrix k k ℝ := emdDifferenceLinearMap R V
-  let qHaus : EuclideanSpace ℝ k → ℝ := fun z => z.ofLp ⬝ᵥ (H *ᵥ z.ofLp)
-  let Dmap : EuclideanSpace ℝ k → EuclideanSpace ℝ k := fun x =>
-    WithLp.toLp 2 (D *ᵥ x.ofLp)
   have hVsym : Vᵀ = V :=
     (Matrix.conjTranspose_eq_transpose_of_trivial V).symm.trans hV.isHermitian
-  have hGpos : G.PosDef := by
-    simpa [G] using restrictionCov_posDef_of_cov_posDef V R hV hR
-  have hGunit : IsUnit G.det := by
-    simpa [G] using restrictionCov_det_isUnit_of_cov_posDef V R hV hR
-  have hY : HasLaw
-      (fun x : EuclideanSpace ℝ k => WithLp.toLp 2 (Rᵀ *ᵥ x.ofLp))
-      (multivariateGaussian 0 G) (multivariateGaussian 0 V) := by
-    have hraw := hasLaw_multivariateGaussian_zero_linearMap
-      (n := k) (q := q) hV.posSemidef Rᵀ
-    simpa [G, Matrix.transpose_transpose, Matrix.mul_assoc] using hraw
-  have hMah := hasLaw_gaussian_mahalanobis_chiSquared_fintype
-    (ι := q) (Ω := EuclideanSpace ℝ k) (μ := multivariateGaussian 0 V)
-    (Fact.out : 0 < Fintype.card q) hGpos hY
-  have hHlaw : HasLaw
-      (fun x : EuclideanSpace ℝ k => x.ofLp ⬝ᵥ (H *ᵥ x.ofLp))
-      (chiSquared (Fintype.card q)) (multivariateGaussian 0 V) := by
-    refine hMah.congr ?_
-    filter_upwards with x
-    have hquad := quadraticForm_mulVec_eq_pullback_rect (B := Rᵀ) (A := G⁻¹) (x := x.ofLp)
-    simpa [H, G, hausmanQuadraticMatrix] using hquad.symm
-  have hDmap : HasLaw Dmap
-      (multivariateGaussian 0 (emdDifferenceAsymptoticVariance R V))
-      (multivariateGaussian 0 V) := by
-    have hraw := hasLaw_multivariateGaussian_zero_linearMap
-      (n := k) (q := k) hV.posSemidef D
-    simpa [D, emdDifferenceAsymptoticVariance] using hraw
-  have hPullback : HasLaw (fun x : EuclideanSpace ℝ k => qHaus (Dmap x))
-      (chiSquared (Fintype.card q)) (multivariateGaussian 0 V) := by
-    refine hHlaw.congr ?_
-    filter_upwards with x
-    dsimp [qHaus, Dmap, H, D]
-    rw [quadraticForm_mulVec_eq_pullback]
-    rw [emdDifferenceLinearMap_transpose_mul_hausman_mul_self R V hVsym hGunit]
-  refine ⟨by fun_prop, ?_⟩
-  rw [← hDmap.map_eq]
-  rw [Measure.map_map]
-  · simpa [qHaus, Dmap, Function.comp_def, H] using hPullback.map_eq
-  · fun_prop
-  · fun_prop
+  have hGunit := restrictionCov_det_isUnit_of_cov_posDef V R hV hR
+  exact emdDifferenceQuadratic_hasLaw_chiSquared_of_pullback
+    R V (hausmanQuadraticMatrix R V) hV hR
+    (emdDifferenceLinearMap_transpose_mul_hausman_mul_self R V hVsym hGunit)
 
 omit [DecidableEq k] in
 /-- Under Assumption 8.3 and a positive-definite unrestricted covariance, the efficient
 nonlinear restricted asymptotic variance is weakly below the unrestricted variance. -/
 theorem nonlinearEfficientAsymptoticVariance_gap_posSemidef_of_assumption83
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (V : Matrix k k ℝ) (hV : V.PosDef) (hVsym : Vᵀ = V) :
     (V - emdAsymptoticVariance Rderiv V).PosSemidef :=
   emdAsymptoticVariance_gap_posSemidef Rderiv V hVsym
@@ -4514,7 +4438,7 @@ theorem nonlinearEfficientAsymptoticVariance_gap_posSemidef_of_assumption83
 relative to a symmetric arbitrary-weight nonlinear minimum-distance estimator. -/
 theorem nonlinearEfficientAsymptoticVariance_le_md_concrete_of_assumption83
     {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
-    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (h83 : NonlinearConstraintCondition r β Rderiv)
     (W V : Matrix k k ℝ)
     (hWsym : Wᵀ = W) (hV : V.PosDef) (hVsym : Vᵀ = V) :
     (mdAsymptoticVariance W Rderiv V - emdAsymptoticVariance Rderiv V).PosSemidef :=
