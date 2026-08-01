@@ -1,4 +1,5 @@
 import HansenEconometrics.Chapter2LinearProjection
+import HansenEconometrics.Chapter4LeastSquaresRegression
 
 /-!
 # Linear GMM optimization and analysis primitives
@@ -198,6 +199,31 @@ noncomputable def influenceMatrix (D : Matrix l k ℝ) (W : Matrix l l ℝ)
     [Invertible (gram D W)] : Matrix k l ℝ :=
   ⅟ (gram D W) * Dᵀ * W
 
+/-- Star influence matrix, totalized with `Matrix.nonsingInv`. -/
+noncomputable def influenceMatrixStar (D : Matrix l k ℝ)
+    (W : Matrix l l ℝ) : Matrix k l ℝ :=
+  (gram D W)⁻¹ * Dᵀ * W
+
+/-- The Star and base influence matrices agree on a nonsingular Gram matrix. -/
+theorem influenceMatrixStar_eq_influenceMatrix (D : Matrix l k ℝ)
+    (W : Matrix l l ℝ) [Invertible (gram D W)] :
+    influenceMatrixStar D W = influenceMatrix D W := by
+  unfold influenceMatrixStar influenceMatrix
+  rw [← invOf_eq_nonsing_inv]
+
+/-- The GMM influence matrix is a left inverse of the moment derivative. -/
+@[simp]
+theorem influenceMatrix_mul (D : Matrix l k ℝ) (W : Matrix l l ℝ)
+    [Invertible (gram D W)] :
+    influenceMatrix D W * D = (1 : Matrix k k ℝ) := by
+  unfold influenceMatrix
+  calc
+    (⅟ (gram D W) * Dᵀ * W) * D =
+        ⅟ (gram D W) * (Dᵀ * W * D) := by
+          simp only [Matrix.mul_assoc]
+    _ = ⅟ (gram D W) * gram D W := by rfl
+    _ = 1 := invOf_mul_self _
+
 /-- The base coefficient is the influence matrix applied to the moment
 vector. -/
 theorem beta_eq_influenceMatrix_mulVec (D : Matrix l k ℝ) (g : l → ℝ)
@@ -209,16 +235,8 @@ theorem beta_eq_influenceMatrix_mulVec (D : Matrix l k ℝ) (g : l → ℝ)
 theorem beta_linear_decomposition (D : Matrix l k ℝ) (b : k → ℝ)
     (u : l → ℝ) (W : Matrix l l ℝ) [Invertible (gram D W)] :
     beta D (D *ᵥ b + u) W = b + influenceMatrix D W *ᵥ u := by
-  have hID : influenceMatrix D W * D = (1 : Matrix k k ℝ) := by
-    unfold influenceMatrix
-    calc
-      (⅟ (gram D W) * Dᵀ * W) * D =
-          ⅟ (gram D W) * (Dᵀ * W * D) := by
-            simp only [Matrix.mul_assoc]
-      _ = ⅟ (gram D W) * gram D W := by rfl
-      _ = 1 := invOf_mul_self _
   rw [beta_eq_influenceMatrix_mulVec, Matrix.mulVec_add,
-    Matrix.mulVec_mulVec, hID, Matrix.one_mulVec]
+    Matrix.mulVec_mulVec, influenceMatrix_mul, Matrix.one_mulVec]
 
 /-- Sandwich covariance induced by a moment covariance `Omega`. -/
 noncomputable def asymptoticVariance (D : Matrix l k ℝ) (W Omega : Matrix l l ℝ)
@@ -259,6 +277,49 @@ theorem asymptoticVariance_eq_hansen (D : Matrix l k ℝ) (W Omega : Matrix l l 
         simpa only using (Matrix.transpose_invOf (A := gram D W))
       _ = ⅟ (gram D W) := Invertible.congr _ _ hGramT
   rw [hWt, hInvT]
+
+/-- With the efficient weight `Omega⁻¹`, the sandwich covariance reduces to
+the inverse efficient Gram matrix. -/
+theorem asymptoticVariance_efficient (D : Matrix l k ℝ)
+    (Omega : Matrix l l ℝ) [DecidableEq l] [Invertible Omega]
+    [Invertible (gram D (⅟Omega))] (hOmega : Omega.PosSemidef) :
+    asymptoticVariance D (⅟Omega) Omega = ⅟ (gram D (⅟Omega)) := by
+  have hOmegaInv : (⅟Omega).PosSemidef := by
+    simpa using Matrix.PosSemidef.inv hOmega
+  rw [asymptoticVariance_eq_hansen D (⅟Omega) Omega hOmegaInv]
+  have hweight : ⅟Omega * Omega * ⅟Omega = ⅟Omega := by
+    rw [invOf_mul_self, Matrix.one_mul]
+  calc
+    ⅟ (gram D (⅟Omega)) * Dᵀ * ⅟Omega * Omega * ⅟Omega * D *
+          ⅟ (gram D (⅟Omega)) =
+        ⅟ (gram D (⅟Omega)) *
+          (Dᵀ * (⅟Omega * Omega * ⅟Omega) * D) *
+            ⅟ (gram D (⅟Omega)) := by
+              simp only [Matrix.mul_assoc]
+    _ = ⅟ (gram D (⅟Omega)) * gram D (⅟Omega) *
+          ⅟ (gram D (⅟Omega)) := by rw [hweight]; rfl
+    _ = ⅟ (gram D (⅟Omega)) := by
+      rw [invOf_mul_self, Matrix.one_mul]
+
+/-- **Efficient GMM covariance comparison.** Every linear GMM influence
+matrix has covariance at least as large as the efficient covariance in
+positive-semidefinite order. -/
+theorem asymptoticVariance_sub_efficient_posSemidef
+    (D : Matrix l k ℝ) (W Omega : Matrix l l ℝ) [DecidableEq l]
+    [Invertible Omega] [Invertible (gram D (⅟Omega))]
+    [Invertible (gram D W)] (hOmega : Omega.PosSemidef) :
+    (asymptoticVariance D W Omega -
+      asymptoticVariance D (⅟Omega) Omega).PosSemidef := by
+  rw [asymptoticVariance_efficient D Omega hOmega]
+  let A : Matrix l k ℝ := (influenceMatrix D W)ᵀ
+  have hAD : Aᵀ * D = (1 : Matrix k k ℝ) := by
+    simp [A]
+  letI : Invertible (Dᵀ * ⅟Omega * D) := by
+    change Invertible (gram D (⅟Omega))
+    infer_instance
+  have hgap := generalizedGaussMarkov_variance_gap_posSemidef
+    D A Omega hOmega hAD
+  simpa [asymptoticVariance, A] using hgap
 
 /-- If both the square moment map and weight are invertible, then the weighted
 moment Gram matrix is invertible. -/

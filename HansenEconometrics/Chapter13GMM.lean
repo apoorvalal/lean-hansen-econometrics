@@ -13,7 +13,8 @@ The current public surface includes:
 * `gmmMoment`, `gmmCriterion`, and the GMM Gram and cross moments;
 * base, Star, and OrZero forms of the one-step linear GMM estimator;
 * Hansen Theorem 13.1, which identifies the unique criterion minimizer;
-* Hansen Theorem 13.2, which identifies GMM with 2SLS and just-identified IV.
+* Hansen Theorem 13.2, which identifies GMM with 2SLS and just-identified IV;
+* the sandwich covariance and efficient-GMM comparison in Theorems 13.4–13.5.
 
 The criterion omits Hansen's positive scalar factor `n`. This does not change
 its minimizer.
@@ -209,5 +210,55 @@ theorem gmmBetaOrZero_eq_ivBeta_of_justIdentified (X Z : Matrix n k ℝ)
     [Invertible W] :
     gmmBetaOrZero X Z y W = ivBeta Z X y := by
   exact LinearGMM.betaOrZero_eq_direct (Zᵀ * X) (Zᵀ *ᵥ y) W
+
+/-! ## Population covariance formulas for Theorems 13.3–13.5 -/
+
+/-- Population GMM Gram matrix `Q'WQ`. -/
+noncomputable abbrev gmmPopulationGram (Q : Matrix l k ℝ)
+    (W : Matrix l l ℝ) : Matrix k k ℝ :=
+  LinearGMM.gram Q W
+
+/-- Hansen equation (13.7), the linear GMM sandwich covariance. -/
+noncomputable abbrev gmmAsymptoticVariance (Q : Matrix l k ℝ)
+    (W Omega : Matrix l l ℝ) [Invertible (gmmPopulationGram Q W)] :
+    Matrix k k ℝ :=
+  LinearGMM.asymptoticVariance Q W Omega
+
+/-- Hansen equation (13.7) in its displayed symmetric-weight form. -/
+theorem gmmAsymptoticVariance_eq_formula (Q : Matrix l k ℝ)
+    (W Omega : Matrix l l ℝ) [Invertible (gmmPopulationGram Q W)]
+    (hW : W.PosSemidef) :
+    gmmAsymptoticVariance Q W Omega =
+      ⅟ (gmmPopulationGram Q W) * Qᵀ * W * Omega * W * Q *
+        ⅟ (gmmPopulationGram Q W) := by
+  exact LinearGMM.asymptoticVariance_eq_hansen Q W Omega hW
+
+/-- The GMM sandwich covariance is positive semidefinite when the moment
+covariance is positive semidefinite. -/
+theorem gmmAsymptoticVariance_posSemidef (Q : Matrix l k ℝ)
+    (W Omega : Matrix l l ℝ) [Invertible (gmmPopulationGram Q W)]
+    (hOmega : Omega.PosSemidef) :
+    (gmmAsymptoticVariance Q W Omega).PosSemidef :=
+  LinearGMM.asymptoticVariance_posSemidef Q W Omega hOmega
+
+/-- **Hansen Theorem 13.4 (covariance formula).** With efficient weight
+`Omega⁻¹`, the sandwich covariance is `(Q'Omega⁻¹Q)⁻¹`. -/
+theorem gmmAsymptoticVariance_efficient (Q : Matrix l k ℝ)
+    (Omega : Matrix l l ℝ) [DecidableEq l] [Invertible Omega]
+    [Invertible (gmmPopulationGram Q (⅟Omega))]
+    (hOmega : Omega.PosSemidef) :
+    gmmAsymptoticVariance Q (⅟Omega) Omega =
+      ⅟ (gmmPopulationGram Q (⅟Omega)) :=
+  LinearGMM.asymptoticVariance_efficient Q Omega hOmega
+
+/-- **Hansen Theorem 13.5.** The covariance of any identified linear GMM
+estimator dominates the efficient GMM covariance in Loewner order. -/
+theorem gmmAsymptoticVariance_sub_efficient_posSemidef
+    (Q : Matrix l k ℝ) (W Omega : Matrix l l ℝ) [DecidableEq l]
+    [Invertible Omega] [Invertible (gmmPopulationGram Q (⅟Omega))]
+    [Invertible (gmmPopulationGram Q W)] (hOmega : Omega.PosSemidef) :
+    (gmmAsymptoticVariance Q W Omega -
+      gmmAsymptoticVariance Q (⅟Omega) Omega).PosSemidef :=
+  LinearGMM.asymptoticVariance_sub_efficient_posSemidef Q W Omega hOmega
 
 end HansenEconometrics

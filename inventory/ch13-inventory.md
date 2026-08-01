@@ -100,9 +100,13 @@
 - Both clauses of Theorem 13.2 are formalized. GMM with weight `(Z'Z)⁻¹` equals the Chapter 12
   2SLS estimator, and just-identified GMM equals the Chapter 12 IV estimator for every invertible
   weight. Star and OrZero variants keep the singular-design behavior explicit.
-- Theorems 13.3 onward remain. The separate primitives module already supplies the exact linear
-  estimator decomposition, influence matrix, and sandwich covariance algebra needed by the
-  asymptotic layer. The next step is to connect those deterministic results to the Chapter 7 and
+- Equation (13.7), the efficient-weight covariance reduction in Theorem 13.4, and the main Loewner
+  inequality in Theorem 13.5 are formalized. The efficiency proof reuses Chapter 4's generalized
+  Gauss–Markov variance-gap theorem after proving that the GMM influence matrix is a left inverse of
+  the population moment derivative.
+- The distributional parts of Theorems 13.3–13.4 remain. The separate primitives module supplies the
+  exact linear estimator decomposition, influence matrix, and sandwich covariance algebra needed by
+  this asymptotic layer. The next step is to connect those deterministic results to the Chapter 7 and
   Chapter 12 convergence APIs under `Assumption 12.2`.
 
 ## LaTeX / Lean Crosswalk
@@ -125,9 +129,9 @@ Conventions:
 | --- | --- | --- |
 | Theorem 13.1 | For the overidentified IV model with weight `W`, `β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)` (eq. 13.6) minimizes the GMM criterion `J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))` | closed form (13.6): [gmmBeta](../HansenEconometrics/Chapter13GMM.lean#L86); minimizer: [gmmCriterion_gmmBeta_le](../HansenEconometrics/Chapter13GMM.lean#L124) / [gmmBeta_isMinOn](../HansenEconometrics/Chapter13GMM.lean#L132); uniqueness: [gmmBeta_eq_of_minimizer](../HansenEconometrics/Chapter13GMM.lean#L140); criterion: [gmmCriterion](../HansenEconometrics/Chapter13GMM.lean#L71) |
 | Theorem 13.2 | If `W = (Z'Z)⁻¹`, then `β̂_gmm = β̂_2sls`. If `k = ℓ`, then `β̂_gmm = β̂_iv`. | 2SLS, Star form: [gmmBetaStar_eq_twoSLSBetaStar](../HansenEconometrics/Chapter13GMM.lean#L176); textbook-facing form: [gmmBetaOrZero_eq_twoSLSBetaOrZero](../HansenEconometrics/Chapter13GMM.lean#L188); ordinary nonsingular form: [gmmBetaOrZero_eq_twoSLSBeta](../HansenEconometrics/Chapter13GMM.lean#L196); just-identified IV: [gmmBetaOrZero_eq_ivBeta_of_justIdentified](../HansenEconometrics/Chapter13GMM.lean#L207) |
-| Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- |  |
-| Theorem 13.4 | Asymptotic Distribution of GMM with Efﬁcient Weight Ma- |  |
-| Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, |  |
+| Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- | covariance (13.7): [gmmAsymptoticVariance](../HansenEconometrics/Chapter13GMM.lean#L222) / [gmmAsymptoticVariance_eq_formula](../HansenEconometrics/Chapter13GMM.lean#L228); distributional statement pending |
+| Theorem 13.4 | Asymptotic Distribution of GMM with Efﬁcient Weight Ma- | efficient covariance: [gmmAsymptoticVariance_efficient](../HansenEconometrics/Chapter13GMM.lean#L246); distributional statement pending |
+| Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, | [gmmAsymptoticVariance_sub_efficient_posSemidef](../HansenEconometrics/Chapter13GMM.lean#L256) |
 | Theorem 13.6 | Under Assumption 12.2 and E |  |
 | Theorem 13.7 | Under Assumption 12.2 and Ω > 0, if ˆW = ˆΩ−1 or ˆW = |  |
 | Theorem 13.8 | Under Assumption 12.2, Assumption 7.3, and H0, as n → ∞ , |  |
@@ -161,3 +165,9 @@ Conventions:
   the generic linear moment criterion, optimization theorem, exact estimator decomposition, and
   sandwich covariance formula. [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean) contains
   only sample-notation bridges and textbook-facing statements.
+- **Theorem 13.5**: the semidefinite covariance comparison is proved by applying Chapter 4's
+  `generalizedGaussMarkov_variance_gap_posSemidef` theorem to the transpose of the GMM influence
+  matrix. The excerpt's strict claim for every `W ≠ Omega⁻¹` is not formalized because GMM is
+  invariant to nonzero scalar rescaling of `W`; a distinct scalar multiple of `Omega⁻¹` gives the
+  same estimator and covariance. A strict result needs a normalization or a condition stated on the
+  induced influence matrix.
