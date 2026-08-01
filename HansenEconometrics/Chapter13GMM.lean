@@ -112,6 +112,22 @@ theorem gmmBetaOrZero_eq_gmmBetaStar (X : Matrix n k ℝ) (Z : Matrix n l ℝ)
     gmmBetaOrZero X Z y W = gmmBetaStar X Z y W := by
   exact LinearGMM.betaOrZero_eq_betaStar (Zᵀ * X) (Zᵀ *ᵥ y) W
 
+/-- A nonzero scalar rescaling of the weight does not change Star GMM. -/
+theorem gmmBetaStar_smul_weight (c : ℝ) (X : Matrix n k ℝ)
+    (Z : Matrix n l ℝ) (y : n → ℝ) (W : Matrix l l ℝ)
+    (hc : c ≠ 0) :
+    gmmBetaStar X Z y (c • W) = gmmBetaStar X Z y W :=
+  LinearGMM.betaStar_smul_weight c (Zᵀ * X) (Zᵀ *ᵥ y) W hc
+
+/-- A nonzero scalar rescaling of the weight does not change textbook-facing
+OrZero GMM. -/
+theorem gmmBetaOrZero_smul_weight (c : ℝ) (X : Matrix n k ℝ)
+    (Z : Matrix n l ℝ) (y : n → ℝ) (W : Matrix l l ℝ)
+    (hc : c ≠ 0) :
+    gmmBetaOrZero X Z y (c • W) = gmmBetaOrZero X Z y W := by
+  simp only [gmmBetaOrZero_eq_gmmBetaStar]
+  exact gmmBetaStar_smul_weight c X Z y W hc
+
 /-- On a nonsingular Gram matrix, OrZero GMM agrees with base GMM. -/
 theorem gmmBetaOrZero_eq_gmmBeta (X : Matrix n k ℝ) (Z : Matrix n l ℝ)
     (y : n → ℝ) (W : Matrix l l ℝ) [Invertible (gmmGram X Z W)] :
@@ -274,6 +290,29 @@ theorem gmmAsymptoticVarianceStar_efficient (Q : Matrix l k ℝ)
     gmmAsymptoticVarianceStar Q Omega⁻¹ Omega =
       (gmmPopulationGram Q Omega⁻¹)⁻¹ :=
   LinearGMM.asymptoticVarianceStar_efficient Q Omega hOmega hQ
+
+/-- **Hansen Theorem 13.6 (population core).** If the score covariance is a
+positive scalar multiple of the instrument Gram, the 2SLS weight attains the
+efficient GMM covariance. -/
+theorem gmmAsymptoticVarianceStar_twoSLSWeight_efficient
+    (Q : Matrix l k ℝ) (QZZ Omega : Matrix l l ℝ) (sigma2 : ℝ)
+    [DecidableEq l] (hOmega : Omega.PosDef)
+    (hQ : Function.Injective Q.mulVec)
+    (hHomo : Omega = sigma2 • QZZ) (hsigma2 : sigma2 ≠ 0) :
+    gmmAsymptoticVarianceStar Q QZZ⁻¹ Omega =
+      (gmmPopulationGram Q Omega⁻¹)⁻¹ := by
+  have hweight : QZZ⁻¹ = sigma2 • Omega⁻¹ := by
+    rw [hHomo, nonsingInv_smul]
+    simp [smul_smul, hsigma2]
+  calc
+    gmmAsymptoticVarianceStar Q QZZ⁻¹ Omega =
+        gmmAsymptoticVarianceStar Q (sigma2 • Omega⁻¹) Omega := by
+          rw [hweight]
+    _ = gmmAsymptoticVarianceStar Q Omega⁻¹ Omega :=
+      LinearGMM.asymptoticVarianceStar_smul_weight
+        sigma2 Q Omega⁻¹ Omega hsigma2
+    _ = (gmmPopulationGram Q Omega⁻¹)⁻¹ :=
+      gmmAsymptoticVarianceStar_efficient Q Omega hOmega hQ
 
 /-- **Hansen Theorem 13.5.** The covariance of any identified linear GMM
 estimator dominates the efficient GMM covariance in Loewner order. -/

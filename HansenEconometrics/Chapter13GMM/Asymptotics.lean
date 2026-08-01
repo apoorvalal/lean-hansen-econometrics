@@ -166,6 +166,91 @@ theorem gmmLinearizationMatrixStar_aestronglyMeasurable
     (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
       (hInvQt.prodMk hW)
 
+set_option maxHeartbeats 800000 in
+-- The proof expands finite-sample matrix products over finite function spaces.
+omit [IsProbabilityMeasure mu] in
+/-- Finite-sample textbook-facing GMM measurability from measurable rows and
+a measurable weight matrix. -/
+theorem gmmBetaOrZero_aestronglyMeasurable_of_rows
+    {n : ℕ}
+    {Z : ℕ → OmegaSpace → l → ℝ}
+    {X : ℕ → OmegaSpace → k → ℝ}
+    {Y : ℕ → OmegaSpace → ℝ}
+    {What : OmegaSpace → Matrix l l ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) mu)
+    (hX : ∀ i, AEStronglyMeasurable (X i) mu)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) mu)
+    (hW : AEStronglyMeasurable What mu) :
+    AEStronglyMeasurable
+      (fun omega =>
+        gmmBetaOrZero
+          (stackRegressors X n omega) (stackRegressors Z n omega)
+          (stackOutcomes Y n omega) (What omega)) mu := by
+  let Zmat : OmegaSpace → Matrix (Fin n) l ℝ :=
+    fun omega => stackRegressors Z n omega
+  let Xmat : OmegaSpace → Matrix (Fin n) k ℝ :=
+    fun omega => stackRegressors X n omega
+  let yvec : OmegaSpace → Fin n → ℝ :=
+    fun omega => stackOutcomes Y n omega
+  let Dhat : OmegaSpace → Matrix l k ℝ :=
+    fun omega => (Zmat omega)ᵀ * Xmat omega
+  let ghat : OmegaSpace → l → ℝ :=
+    fun omega => (Zmat omega)ᵀ *ᵥ yvec omega
+  have hZmat : AEStronglyMeasurable Zmat mu := by
+    simpa [Zmat, stackRegressors] using
+      stackMatrix_aestronglyMeasurable (μ := mu) hZ
+  have hXmat : AEStronglyMeasurable Xmat mu := by
+    simpa [Xmat, stackRegressors] using
+      stackMatrix_aestronglyMeasurable (μ := mu) hX
+  have hyvec : AEStronglyMeasurable yvec mu := by
+    simpa [yvec, stackOutcomes] using
+      stackScalar_aestronglyMeasurable (μ := mu) hY
+  have hZt : AEStronglyMeasurable (fun omega => (Zmat omega)ᵀ) mu :=
+    continuous_id.matrix_transpose.comp_aestronglyMeasurable hZmat
+  have hD : AEStronglyMeasurable Dhat mu := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd)
+      |>.comp_aestronglyMeasurable (hZt.prodMk hXmat)
+  have hg : AEStronglyMeasurable ghat mu := by
+    exact (Continuous.matrix_mulVec continuous_fst continuous_snd)
+      |>.comp_aestronglyMeasurable (hZt.prodMk hyvec)
+  have hA := gmmLinearizationMatrixStar_aestronglyMeasurable
+    Dhat What hD hW
+  have hbeta : AEStronglyMeasurable
+      (fun omega =>
+        gmmLinearizationMatrixStar (Dhat omega) (What omega) *ᵥ
+          ghat omega) mu :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd)
+      |>.comp_aestronglyMeasurable (hA.prodMk hg)
+  simpa [gmmBetaOrZero_eq_gmmBetaStar, gmmBetaStar,
+    LinearGMM.betaStar_eq_influenceMatrixStar_mulVec,
+    gmmLinearizationMatrixStar, Dhat, ghat, Zmat, Xmat, yvec] using hbeta
+
+set_option maxHeartbeats 800000 in
+-- The wrapper elaborates the finite-sample matrix measurability theorem.
+omit [IsProbabilityMeasure mu] in
+/-- Scaled and centered textbook-facing finite-sample GMM measurability from
+measurable rows and a measurable weight matrix. -/
+theorem gmmBetaOrZero_scaled_centered_aemeasurable_of_rows
+    {n : ℕ}
+    {Z : ℕ → OmegaSpace → l → ℝ}
+    {X : ℕ → OmegaSpace → k → ℝ}
+    {Y : ℕ → OmegaSpace → ℝ}
+    {What : OmegaSpace → Matrix l l ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) mu)
+    (hX : ∀ i, AEStronglyMeasurable (X i) mu)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) mu)
+    (hW : AEStronglyMeasurable What mu) (b : k → ℝ) :
+    AEMeasurable
+      (fun omega =>
+        Real.sqrt (n : ℝ) •
+          (gmmBetaOrZero
+            (stackRegressors X n omega) (stackRegressors Z n omega)
+            (stackOutcomes Y n omega) (What omega) - b)) mu :=
+  (((gmmBetaOrZero_aestronglyMeasurable_of_rows
+      (mu := mu) (Z := Z) (X := X) (Y := Y)
+      hZ hX hY hW).sub aestronglyMeasurable_const)
+    |>.const_smul (Real.sqrt (n : ℝ))).aemeasurable
+
 /-- Convergence package for a sample moment derivative and a possibly random
 GMM weight matrix. -/
 structure GMMWeightConvergenceConditions

@@ -160,12 +160,34 @@ theorem cross_smul (c : ℝ) (D : Matrix l k ℝ) (W : Matrix l l ℝ)
   simp [cross, Matrix.transpose_smul, Matrix.smul_mul, Matrix.mulVec_smul,
     Matrix.smul_mulVec, pow_two, smul_smul]
 
+omit [Fintype k] [DecidableEq k] in
+/-- Scaling the weight scales the weighted Gram linearly. -/
+theorem gram_smul_weight (c : ℝ) (D : Matrix l k ℝ)
+    (W : Matrix l l ℝ) :
+    gram D (c • W) = c • gram D W := by
+  simp [gram, Matrix.mul_smul, Matrix.smul_mul]
+
+omit [Fintype k] [DecidableEq k] in
+/-- Scaling the weight scales the weighted cross moment linearly. -/
+theorem cross_smul_weight (c : ℝ) (D : Matrix l k ℝ)
+    (W : Matrix l l ℝ) (g : l → ℝ) :
+    cross D (c • W) g = c • cross D W g := by
+  simp [cross, Matrix.mul_smul, Matrix.smul_mulVec]
+
 /-- A common scalar rescaling of all linear moments does not change Star GMM. -/
 theorem betaStar_smul (c : ℝ) (D : Matrix l k ℝ) (g : l → ℝ)
     (W : Matrix l l ℝ) (hc : c ≠ 0) :
     betaStar (c • D) (c • g) W = betaStar D g W := by
   unfold betaStar
   rw [gram_smul, cross_smul, nonsingInv_smul]
+  simp [Matrix.smul_mulVec, Matrix.mulVec_smul, smul_smul, hc]
+
+/-- A nonzero scalar rescaling of the weight does not change Star GMM. -/
+theorem betaStar_smul_weight (c : ℝ) (D : Matrix l k ℝ)
+    (g : l → ℝ) (W : Matrix l l ℝ) (hc : c ≠ 0) :
+    betaStar D g (c • W) = betaStar D g W := by
+  unfold betaStar
+  rw [gram_smul_weight, cross_smul_weight, nonsingInv_smul]
   simp [Matrix.smul_mulVec, Matrix.mulVec_smul, smul_smul, hc]
 
 /-- The OrZero and Star linear GMM coefficients are identical. -/
@@ -252,6 +274,15 @@ theorem influenceMatrixStar_eq_influenceMatrix (D : Matrix l k ℝ)
   unfold influenceMatrixStar influenceMatrix
   rw [← invOf_eq_nonsing_inv]
 
+/-- A nonzero scalar rescaling of the weight does not change the Star GMM
+influence matrix. -/
+theorem influenceMatrixStar_smul_weight (c : ℝ) (D : Matrix l k ℝ)
+    (W : Matrix l l ℝ) (hc : c ≠ 0) :
+    influenceMatrixStar D (c • W) = influenceMatrixStar D W := by
+  unfold influenceMatrixStar
+  rw [gram_smul_weight, nonsingInv_smul]
+  simp [Matrix.mul_smul, Matrix.smul_mul, smul_smul, hc]
+
 /-- The GMM influence matrix is a left inverse of the moment derivative. -/
 @[simp]
 theorem influenceMatrix_mul (D : Matrix l k ℝ) (W : Matrix l l ℝ)
@@ -271,6 +302,14 @@ theorem beta_eq_influenceMatrix_mulVec (D : Matrix l k ℝ) (g : l → ℝ)
     (W : Matrix l l ℝ) [Invertible (gram D W)] :
     beta D g W = influenceMatrix D W *ᵥ g := by
   simp [beta, cross, influenceMatrix, Matrix.mulVec_mulVec, Matrix.mul_assoc]
+
+/-- The Star coefficient is the Star influence matrix applied to the moment
+vector. -/
+theorem betaStar_eq_influenceMatrixStar_mulVec
+    (D : Matrix l k ℝ) (g : l → ℝ) (W : Matrix l l ℝ) :
+    betaStar D g W = influenceMatrixStar D W *ᵥ g := by
+  simp [betaStar, cross, influenceMatrixStar, Matrix.mulVec_mulVec,
+    Matrix.mul_assoc]
 
 /-- Exact linear-estimator decomposition around a coefficient `b`. -/
 theorem beta_linear_decomposition (D : Matrix l k ℝ) (b : k → ℝ)
@@ -308,6 +347,14 @@ theorem asymptoticVarianceStar_eq_asymptoticVariance
     asymptoticVarianceStar D W Omega = asymptoticVariance D W Omega := by
   rw [asymptoticVarianceStar, asymptoticVariance,
     influenceMatrixStar_eq_influenceMatrix]
+
+/-- A nonzero scalar rescaling of the weight does not change the Star GMM
+asymptotic covariance. -/
+theorem asymptoticVarianceStar_smul_weight (c : ℝ) (D : Matrix l k ℝ)
+    (W Omega : Matrix l l ℝ) (hc : c ≠ 0) :
+    asymptoticVarianceStar D (c • W) Omega =
+      asymptoticVarianceStar D W Omega := by
+  simp [asymptoticVarianceStar, influenceMatrixStar_smul_weight c D W hc]
 
 /-- A positive-semidefinite moment covariance induces a positive-semidefinite
 GMM asymptotic covariance. -/

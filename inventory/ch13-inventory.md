@@ -109,8 +109,14 @@
   final Slutsky step. A converter reuses the Chapter 12 Assumption 12.2 sample-moment and rank package.
 - Theorem 13.4 is formalized as a short specialization of Theorem 13.3. Its covariance reduction uses
   a separate totalized deterministic lemma, so the distribution proof does not repeat matrix algebra.
-- Theorems 13.6 onward remain. The next slice is the homoskedastic 2SLS efficiency result and the two
-  feasible efficient-weight estimators in Theorem 13.7.
+- Theorem 13.6 is formalized by combining Chapter 12's conditional-homoskedastic score-covariance
+  identity with the scale invariance of the GMM covariance. This proves that the population 2SLS
+  weight attains the efficient GMM covariance.
+- Both forms of Theorem 13.7 are formalized. Chapter 12 supplies consistency of the uncentered
+  residual-score second moment. For the centered form, the residual-score sample mean is shown to
+  converge to zero, so its outer-product correction vanishes. Inverting either matrix gives the
+  efficient weight, and Theorem 13.4 gives the efficient Gaussian limit.
+- Theorems 13.8 onward remain.
 
 ## LaTeX / Lean Crosswalk
 
@@ -135,8 +141,8 @@ Conventions:
 | Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- | covariance (13.7): [gmmAsymptoticVariance](../HansenEconometrics/Chapter13GMM.lean#L222) / [gmmAsymptoticVariance_eq_formula](../HansenEconometrics/Chapter13GMM.lean#L242); random-map CLT: [gmmLinearizedScore_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Asymptotics.lean); Star estimator: [gmmBetaStar_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Asymptotics.lean); Assumption 12.2 OrZero endpoint: [gmmBetaOrZero_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Asymptotics.lean) |
 | Theorem 13.4 | Asymptotic Distribution of GMM with Efficient Weight Matrix | efficient covariance: [gmmAsymptoticVarianceStar_efficient](../HansenEconometrics/Chapter13GMM.lean); Assumption 12.2 distribution: [gmmBetaOrZero_tendstoInDistribution_efficient_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Asymptotics.lean) |
 | Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, | [gmmAsymptoticVariance_sub_efficient_posSemidef](../HansenEconometrics/Chapter13GMM.lean#L256) |
-| Theorem 13.6 | Under Assumption 12.2 and E |  |
-| Theorem 13.7 | Under Assumption 12.2 and Ω > 0, if ˆW = ˆΩ−1 or ˆW = |  |
+| Theorem 13.6 | Under Assumption 12.2 and `E[e² ∣ Z] = σ²`, 2SLS is efficient GMM. | [twoSLSWeight_is_efficientGMM_of_assumption12_2_homoskedastic](../HansenEconometrics/Chapter13GMM/Efficiency.lean) |
+| Theorem 13.7 | Under Assumption 12.2 and `Ω > 0`, the uncentered (13.8) and centered (13.9) two-step weights give the efficient Gaussian limit. | uncentered: [gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Efficiency.lean); centered: [gmmBetaOrZero_centeredTwoStep_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Efficiency.lean); weight consistency: [gmmUncenteredTwoStepWeightStar_tendstoInMeasure](../HansenEconometrics/Chapter13GMM/Efficiency.lean) / [gmmCenteredTwoStepWeightStar_tendstoInMeasure](../HansenEconometrics/Chapter13GMM/Efficiency.lean) |
 | Theorem 13.8 | Under Assumption 12.2, Assumption 7.3, and H0, as n → ∞ , |  |
 | Theorem 13.9 | Under Assumptions 12.2 and 8.3, for the constrained GMM es- |  |
 | Theorem 13.10 | Under Assumptions 12.2 and 8.3, for the efﬁcient constrained |  |
@@ -167,7 +173,9 @@ Conventions:
 - **Module boundary**: [Primitives.lean](../HansenEconometrics/Chapter13GMM/Primitives.lean) contains
   the generic linear moment criterion, optimization theorem, exact estimator decomposition, and
   sandwich covariance formula. [Asymptotics.lean](../HansenEconometrics/Chapter13GMM/Asymptotics.lean)
-  contains convergence packages and measure-theoretic proofs. The root
+  contains the general GMM convergence packages and measure-theoretic proofs.
+  [Efficiency.lean](../HansenEconometrics/Chapter13GMM/Efficiency.lean) contains the Chapter 12 reuse
+  and feasible-weight arguments for Theorems 13.6 and 13.7. The root
   [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean) contains sample-notation bridges and
   concise textbook-facing deterministic statements.
 - **Theorem 13.5**: the semidefinite covariance comparison is proved by applying Chapter 4's
