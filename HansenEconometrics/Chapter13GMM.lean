@@ -271,6 +271,13 @@ theorem gmmAsymptoticVariance_posSemidef (Q : Matrix l k ℝ)
     (gmmAsymptoticVariance Q W Omega).PosSemidef :=
   LinearGMM.asymptoticVariance_posSemidef Q W Omega hOmega
 
+/-- The Star GMM sandwich covariance is positive semidefinite when the moment
+covariance is positive semidefinite. -/
+theorem gmmAsymptoticVarianceStar_posSemidef (Q : Matrix l k ℝ)
+    (W Omega : Matrix l l ℝ) (hOmega : Omega.PosSemidef) :
+    (gmmAsymptoticVarianceStar Q W Omega).PosSemidef :=
+  LinearGMM.asymptoticVarianceStar_posSemidef Q W Omega hOmega
+
 /-- **Hansen Theorem 13.4 (covariance formula).** With efficient weight
 `Omega⁻¹`, the sandwich covariance is `(Q'Omega⁻¹Q)⁻¹`. -/
 theorem gmmAsymptoticVariance_efficient (Q : Matrix l k ℝ)

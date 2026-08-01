@@ -364,6 +364,16 @@ theorem asymptoticVariance_posSemidef (D : Matrix l k ℝ) (W Omega : Matrix l l
   simpa [asymptoticVariance, Matrix.conjTranspose_eq_transpose_of_trivial] using
     hOmega.mul_mul_conjTranspose_same (influenceMatrix D W)
 
+/-- A positive-semidefinite moment covariance induces a positive-semidefinite
+Star GMM asymptotic covariance, including totalized singular cases. -/
+theorem asymptoticVarianceStar_posSemidef
+    (D : Matrix l k ℝ) (W Omega : Matrix l l ℝ)
+    (hOmega : Omega.PosSemidef) :
+    (asymptoticVarianceStar D W Omega).PosSemidef := by
+  simpa [asymptoticVarianceStar,
+    Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hOmega.mul_mul_conjTranspose_same (influenceMatrixStar D W)
+
 /-- Expanded sandwich formula before symmetry simplification. -/
 theorem asymptoticVariance_eq_expanded (D : Matrix l k ℝ) (W Omega : Matrix l l ℝ)
     [Invertible (gram D W)] :
