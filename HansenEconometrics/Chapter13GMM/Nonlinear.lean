@@ -75,8 +75,9 @@ theorem nonlinearGMMBeta_tendstoInDistribution
       (by simpa [Y] using hbeta_meas)
   have hcov : A * Omega * Aᵀ =
       gmmAsymptoticVarianceStar Q W Omega := by
-    simp [A, gmmAsymptoticVarianceStar,
-      LinearGMM.asymptoticVarianceStar]
+    simp only [A, gmmAsymptoticVarianceStar,
+      LinearGMM.asymptoticVarianceStar, Matrix.transpose_neg,
+      Matrix.neg_mul, Matrix.mul_neg]
     exact neg_neg _
   rw [hcov] at hY
   have hout := hY.continuous_comp

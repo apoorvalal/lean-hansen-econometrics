@@ -116,7 +116,17 @@
   residual-score second moment. For the centered form, the residual-score sample mean is shown to
   converge to zero, so its outer-product correction vanishes. Inverting either matrix gives the
   efficient weight, and Theorem 13.4 gives the efficient Gaussian limit.
-- Theorems 13.8 onward remain.
+- Theorem 13.8 is formalized by composing the Chapter 13 coefficient limit, the Chapter 6 Gaussian
+  delta method, and the Chapter 9 Wald theorem. Its size statement is a separate thin wrapper.
+- Theorems 13.9--13.11 are formalized through the Chapter 8 minimum-distance and constrained-
+  estimator interfaces. The linear results include the covariance formulas (13.18) and (13.20).
+- Theorems 13.12--13.17 are formalized in the specification-test module. Theorem 13.13 is exact
+  finite-sample algebra. The other results reuse Chapter 9's feasible quadratic-form and
+  chi-square size results, with the required asymptotic equivalence and rank laws stated as
+  explicit premises.
+- Proposition 13.1 is formalized from a Gaussian sample-moment limit and the standard nonlinear
+  GMM first-order remainder. Its efficient specialization reduces the sandwich covariance to
+  $(Q'\Omega^{-1}Q)^{-1}$.
 
 ## LaTeX / Lean Crosswalk
 
@@ -143,17 +153,17 @@ Conventions:
 | Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, | [gmmAsymptoticVariance_sub_efficient_posSemidef](../HansenEconometrics/Chapter13GMM.lean#L256) |
 | Theorem 13.6 | Under Assumption 12.2 and `E[e² ∣ Z] = σ²`, 2SLS is efficient GMM. | [twoSLSWeight_is_efficientGMM_of_assumption12_2_homoskedastic](../HansenEconometrics/Chapter13GMM/Efficiency.lean) |
 | Theorem 13.7 | Under Assumption 12.2 and `Ω > 0`, the uncentered (13.8) and centered (13.9) two-step weights give the efficient Gaussian limit. | uncentered: [gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Efficiency.lean); centered: [gmmBetaOrZero_centeredTwoStep_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Efficiency.lean); weight consistency: [gmmUncenteredTwoStepWeightStar_tendstoInMeasure](../HansenEconometrics/Chapter13GMM/Efficiency.lean) / [gmmCenteredTwoStepWeightStar_tendstoInMeasure](../HansenEconometrics/Chapter13GMM/Efficiency.lean) |
-| Theorem 13.8 | Under Assumption 12.2, Assumption 7.3, and H0, as n → ∞ , |  |
-| Theorem 13.9 | Under Assumptions 12.2 and 8.3, for the constrained GMM es- |  |
-| Theorem 13.10 | Under Assumptions 12.2 and 8.3, for the efﬁcient constrained |  |
-| Theorem 13.11 | Under Assumptions 12.2 and 8.3, for the constrained GMM |  |
-| Theorem 13.12 | Under Assumption 12.2, Assumption 7.3, and H0, then as n → |  |
-| Theorem 13.13 | If ˜Ω = ˆΩ then D ≥ 0. Furthermore, if r is linear in β then D |  |
-| Theorem 13.14 | Under Assumption 12.2 then asn → ∞, J = J |  |
-| Theorem 13.15 | Under Assumption 12.2 and E |  |
-| Theorem 13.16 | Under Assumption 12.2 and E |  |
-| Theorem 13.17 | Under Assumption 12.2 andE |  |
-| Proposition 13.1 | Distribution of Nonlinear GMM Estimator |  |
+| Theorem 13.8 | Under Assumption 12.2, Assumption 7.3, and the null, the GMM Wald statistic has a chi-square limit and asymptotic size `alpha`. | limit: [gmmWaldStatOrZero_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Inference.lean); size: [gmmWaldTest_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.9 | The constrained GMM estimator has covariance (13.18) and a Gaussian limit. | covariance: [gmmConstrainedAsymptoticVariance_eq_hansen_1318](../HansenEconometrics/Chapter13GMM/Inference.lean); limit: [gmmConstrainedBetaStar_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.10 | Efficient constrained GMM has covariance (13.20) and the corresponding Gaussian limit. | covariance: [gmmEfficientConstrainedAsymptoticVariance_eq_hansen_1320](../HansenEconometrics/Chapter13GMM/Inference.lean); limit: [gmmEfficientConstrainedBetaStar_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.11 | Nonlinear constrained GMM has the Chapter 8 constrained-estimator Gaussian limit, with an efficient specialization. | general: [gmmNonlinearConstrainedBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean); efficient: [gmmNonlinearEfficientConstrainedBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.12 | The GMM distance statistic has the Wald chi-square limit and the same asymptotic size. | limit: [gmmDistanceStat_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmDistanceTest_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.13 | With a common weight, the distance statistic is nonnegative. With a linear restriction and efficient common weight, it equals the Wald statistic. | nonnegative: [gmmDistanceStat_nonneg_of_commonWeight](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); Wald equality: [gmmDistanceStat_eq_wald_of_linear_commonWeight](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.14 | The efficient GMM overidentification statistic has the required chi-square limit and size. | Gaussian rank-law limit: [gmmJStatOrZero_tendstoInDistribution_chiSquared_of_factorSymmIdem](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmJTest_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.15 | The subset overidentification statistic has the required chi-square limit and size. | Gaussian limit: [gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_of_gaussian](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmSubsetOveridentificationTest_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.16 | The GMM endogeneity test is a direct specialization of the subset overidentification theorem. | limit: [gmmEndogeneityStatOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmEndogeneityTest_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.17 | The subset endogeneity test is a direct specialization of the subset overidentification theorem. | limit: [gmmSubsetEndogeneityStatOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmSubsetEndogeneityTest_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Proposition 13.1 | A nonlinear GMM estimator has the sandwich Gaussian limit; efficient weighting gives covariance $(Q'\Omega^{-1}Q)^{-1}$. | general: [nonlinearGMMBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Nonlinear.lean); efficient: [nonlinearGMMBeta_tendstoInDistribution_efficient](../HansenEconometrics/Chapter13GMM/Nonlinear.lean) |
 
 ## Notes
 
@@ -175,7 +185,13 @@ Conventions:
   sandwich covariance formula. [Asymptotics.lean](../HansenEconometrics/Chapter13GMM/Asymptotics.lean)
   contains the general GMM convergence packages and measure-theoretic proofs.
   [Efficiency.lean](../HansenEconometrics/Chapter13GMM/Efficiency.lean) contains the Chapter 12 reuse
-  and feasible-weight arguments for Theorems 13.6 and 13.7. The root
+  and feasible-weight arguments for Theorems 13.6 and 13.7.
+  [Inference.lean](../HansenEconometrics/Chapter13GMM/Inference.lean) reuses Chapters 6, 8, and 9 for
+  Theorems 13.8--13.11.
+  [SpecificationTests.lean](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) contains the
+  distance and specification tests in Theorems 13.12--13.17.
+  [Nonlinear.lean](../HansenEconometrics/Chapter13GMM/Nonlinear.lean) contains Proposition 13.1.
+  The root
   [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean) contains sample-notation bridges and
   concise textbook-facing deterministic statements.
 - **Theorem 13.5**: the semidefinite covariance comparison is proved by applying Chapter 4's

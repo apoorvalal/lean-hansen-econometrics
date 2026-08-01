@@ -5,7 +5,8 @@ import HansenEconometrics.Chapter13GMM.Inference
 
 This module contains Hansen Theorems 13.12--13.17. The deterministic distance
 results use the quadratic-completion lemma in `Chapter13GMM.Primitives`. The
-distributional results reuse Chapter 9's feasible quadratic-form theorem.
+distributional results reuse the Gaussian quadratic-form laws and Chapter 9's
+feasible-statistic theorems.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -298,6 +299,45 @@ theorem gmmJStatOrZero_tendstoInDistribution_chiSquared
       (T := T) (Z := G) (Vhat := OmegaHat) (V := Omega)
       hT hOmega_meas hOmega hOmega_nonsing hLaw
 
+/-- Hansen Theorem 13.14 with its limiting chi-square law discharged by the
+Gaussian quadratic-form theorem. The factor and rank premises state that the
+limiting residual-score quadratic is a rank-`df` orthogonal projection. -/
+theorem gmmJStatOrZero_tendstoInDistribution_chiSquared_of_factorSymmIdem
+    {OmegaSpace : Type*} [MeasurableSpace OmegaSpace]
+    {mu : Measure OmegaSpace} [IsProbabilityMeasure mu]
+    {l : Type*} [Fintype l] [DecidableEq l]
+    {df : ℕ} [Fact (0 < df)]
+    {T : ℕ → OmegaSpace → l → ℝ}
+    {OmegaHat : ℕ → OmegaSpace → Matrix l l ℝ}
+    {Omega B : Matrix l l ℝ}
+    (hT : TendstoInDistribution T atTop
+      (fun z : EuclideanSpace ℝ l => z.ofLp) (fun _ => mu)
+      (multivariateGaussian 0 (B * Bᵀ)))
+    (hOmega_meas : ∀ n, AEStronglyMeasurable (OmegaHat n) mu)
+    (hOmega : TendstoInMeasure mu OmegaHat atTop (fun _ => Omega))
+    (hOmega_posDef : Omega.PosDef)
+    (hH : (Bᵀ * Omega⁻¹ * B).IsHermitian)
+    (hI : IsIdempotentElem (Bᵀ * Omega⁻¹ * B))
+    (hrank : (Bᵀ * Omega⁻¹ * B).rank = df) :
+    TendstoInDistribution
+      (fun n omega => gmmJStatOrZero (T n omega) (OmegaHat n omega))
+      atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) := by
+  have hLawRaw :=
+    hasLaw_multivariateGaussian_zero_quadratic_of_factor_symmIdem
+      (B := B) (A := Omega⁻¹) hH hI (by rw [hrank]; exact Fact.out)
+  have hLaw : HasLaw
+      (fun z : EuclideanSpace ℝ l =>
+        z.ofLp ⬝ᵥ (Omega⁻¹ *ᵥ z.ofLp))
+      (chiSquared df) (multivariateGaussian 0 (B * Bᵀ)) := by
+    simpa [hrank] using hLawRaw
+  exact gmmJStatOrZero_tendstoInDistribution_chiSquared
+    (mu := mu) (nu := multivariateGaussian 0 (B * Bᵀ))
+    (df := df) (T := T)
+    (G := fun z : EuclideanSpace ℝ l => z.ofLp)
+    (OmegaHat := OmegaHat) (Omega := Omega)
+    hT hOmega_meas hOmega
+      ((Matrix.isUnit_iff_isUnit_det _).mp hOmega_posDef.isUnit) hLaw
+
 /-- Size form of Hansen Theorem 13.14. -/
 theorem gmmJTest_rejectionProb_tendsto_alpha
     {OmegaSpace : Type*} [MeasurableSpace OmegaSpace]
@@ -361,6 +401,48 @@ theorem gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_chiSquared
       (fullJ n omega) (maintainedJ n omega))
     (Z := fun x : ℝ => x) hcriterion hbridge hC_meas
 
+/-- Hansen Theorem 13.15 with a centered positive-definite Gaussian limit for
+the residualized tested-instrument score. Chapter 5's Mahalanobis theorem
+supplies the chi-square law, so no distributional conclusion is assumed. -/
+theorem gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_of_gaussian
+    {OmegaSpace : Type*} [MeasurableSpace OmegaSpace]
+    {mu : Measure OmegaSpace} [IsProbabilityMeasure mu]
+    {df : ℕ} [Fact (0 < df)]
+    {fullJ maintainedJ : ℕ → OmegaSpace → ℝ}
+    {T : ℕ → OmegaSpace → Fin df → ℝ}
+    {Vhat : ℕ → OmegaSpace → Matrix (Fin df) (Fin df) ℝ}
+    {V : Matrix (Fin df) (Fin df) ℝ}
+    (hT : TendstoInDistribution T atTop
+      (fun z : EuclideanSpace ℝ (Fin df) => z.ofLp) (fun _ => mu)
+      (multivariateGaussian 0 V))
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) mu)
+    (hV : TendstoInMeasure mu Vhat atTop (fun _ => V))
+    (hV_posDef : V.PosDef)
+    (hbridge : TendstoInMeasure mu
+      (fun n omega =>
+        gmmSubsetOveridentificationStatOrZero
+            (fullJ n omega) (maintainedJ n omega) -
+          criterionJStatOrZero (T n omega) (Vhat n omega))
+      atTop (fun _ => 0))
+    (hC_meas : ∀ n, AEMeasurable
+      (fun omega => gmmSubsetOveridentificationStatOrZero
+        (fullJ n omega) (maintainedJ n omega)) mu) :
+    TendstoInDistribution
+      (fun n omega => gmmSubsetOveridentificationStatOrZero
+        (fullJ n omega) (maintainedJ n omega))
+      atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) := by
+  have hLaw :=
+    hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared
+      (n := df) Fact.out hV_posDef
+  exact
+    gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_chiSquared
+      (mu := mu) (nu := multivariateGaussian 0 V) (df := df)
+      (fullJ := fullJ) (maintainedJ := maintainedJ)
+      (T := T) (G := fun z : EuclideanSpace ℝ (Fin df) => z.ofLp)
+      (Vhat := Vhat) (V := V) hT hV_meas hV
+      ((Matrix.isUnit_iff_isUnit_det _).mp hV_posDef.isUnit)
+      hLaw hbridge hC_meas
+
 /-- Size form of Hansen Theorem 13.15. -/
 theorem gmmSubsetOveridentificationTest_rejectionProb_tendsto_alpha
     {OmegaSpace : Type*} [MeasurableSpace OmegaSpace]
@@ -383,22 +465,19 @@ noncomputable def gmmEndogeneityStatOrZero
 /-- **Hansen Theorem 13.16.** The GMM endogeneity test is Theorem 13.15 with
 the tested regressors added to the instrument set. -/
 theorem gmmEndogeneityStatOrZero_tendstoInDistribution_chiSquared
-    {OmegaSpace OmegaLimit : Type*}
-    [MeasurableSpace OmegaSpace] [MeasurableSpace OmegaLimit]
+    {OmegaSpace : Type*} [MeasurableSpace OmegaSpace]
     {mu : Measure OmegaSpace} [IsProbabilityMeasure mu]
-    {nu : Measure OmegaLimit} [IsProbabilityMeasure nu]
     {df : ℕ} [Fact (0 < df)]
     {augmentedJ maintainedJ : ℕ → OmegaSpace → ℝ}
     {T : ℕ → OmegaSpace → Fin df → ℝ}
-    {G : OmegaLimit → Fin df → ℝ}
     {Vhat : ℕ → OmegaSpace → Matrix (Fin df) (Fin df) ℝ}
     {V : Matrix (Fin df) (Fin df) ℝ}
-    (hT : TendstoInDistribution T atTop G (fun _ => mu) nu)
+    (hT : TendstoInDistribution T atTop
+      (fun z : EuclideanSpace ℝ (Fin df) => z.ofLp) (fun _ => mu)
+      (multivariateGaussian 0 V))
     (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) mu)
     (hV : TendstoInMeasure mu Vhat atTop (fun _ => V))
-    (hV_nonsing : IsUnit V.det)
-    (hLaw : HasLaw (fun omega => G omega ⬝ᵥ (V⁻¹ *ᵥ G omega))
-      (chiSquared df) nu)
+    (hV_posDef : V.PosDef)
     (hbridge : TendstoInMeasure mu
       (fun n omega =>
         gmmEndogeneityStatOrZero
@@ -413,11 +492,11 @@ theorem gmmEndogeneityStatOrZero_tendstoInDistribution_chiSquared
         (augmentedJ n omega) (maintainedJ n omega))
       atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) := by
   simpa [gmmEndogeneityStatOrZero] using
-    gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_chiSquared
-      (mu := mu) (nu := nu) (df := df)
+    gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_of_gaussian
+      (mu := mu) (df := df)
       (fullJ := augmentedJ) (maintainedJ := maintainedJ)
-      (T := T) (G := G) (Vhat := Vhat) (V := V)
-      hT hV_meas hV hV_nonsing hLaw hbridge hC_meas
+      (T := T) (Vhat := Vhat) (V := V)
+      hT hV_meas hV hV_posDef hbridge hC_meas
 
 /-- Size form of Hansen Theorem 13.16. -/
 theorem gmmEndogeneityTest_rejectionProb_tendsto_alpha
@@ -442,22 +521,19 @@ noncomputable def gmmSubsetEndogeneityStatOrZero
 overidentification theorem after the instrument augmentation is restricted to
 the tested regressor block. -/
 theorem gmmSubsetEndogeneityStatOrZero_tendstoInDistribution_chiSquared
-    {OmegaSpace OmegaLimit : Type*}
-    [MeasurableSpace OmegaSpace] [MeasurableSpace OmegaLimit]
+    {OmegaSpace : Type*} [MeasurableSpace OmegaSpace]
     {mu : Measure OmegaSpace} [IsProbabilityMeasure mu]
-    {nu : Measure OmegaLimit} [IsProbabilityMeasure nu]
     {df : ℕ} [Fact (0 < df)]
     {augmentedJ maintainedJ : ℕ → OmegaSpace → ℝ}
     {T : ℕ → OmegaSpace → Fin df → ℝ}
-    {G : OmegaLimit → Fin df → ℝ}
     {Vhat : ℕ → OmegaSpace → Matrix (Fin df) (Fin df) ℝ}
     {V : Matrix (Fin df) (Fin df) ℝ}
-    (hT : TendstoInDistribution T atTop G (fun _ => mu) nu)
+    (hT : TendstoInDistribution T atTop
+      (fun z : EuclideanSpace ℝ (Fin df) => z.ofLp) (fun _ => mu)
+      (multivariateGaussian 0 V))
     (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) mu)
     (hV : TendstoInMeasure mu Vhat atTop (fun _ => V))
-    (hV_nonsing : IsUnit V.det)
-    (hLaw : HasLaw (fun omega => G omega ⬝ᵥ (V⁻¹ *ᵥ G omega))
-      (chiSquared df) nu)
+    (hV_posDef : V.PosDef)
     (hbridge : TendstoInMeasure mu
       (fun n omega =>
         gmmSubsetEndogeneityStatOrZero
@@ -472,11 +548,11 @@ theorem gmmSubsetEndogeneityStatOrZero_tendstoInDistribution_chiSquared
         (augmentedJ n omega) (maintainedJ n omega))
       atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) := by
   simpa [gmmSubsetEndogeneityStatOrZero] using
-    gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_chiSquared
-      (mu := mu) (nu := nu) (df := df)
+    gmmSubsetOveridentificationStatOrZero_tendstoInDistribution_of_gaussian
+      (mu := mu) (df := df)
       (fullJ := augmentedJ) (maintainedJ := maintainedJ)
-      (T := T) (G := G) (Vhat := Vhat) (V := V)
-      hT hV_meas hV hV_nonsing hLaw hbridge hC_meas
+      (T := T) (Vhat := Vhat) (V := V)
+      hT hV_meas hV hV_posDef hbridge hC_meas
 
 /-- Size form of Hansen Theorem 13.17. -/
 theorem gmmSubsetEndogeneityTest_rejectionProb_tendsto_alpha
