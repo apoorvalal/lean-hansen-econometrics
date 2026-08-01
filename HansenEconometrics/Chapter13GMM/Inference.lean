@@ -1,4 +1,4 @@
-import HansenEconometrics.Chapter13GMM.Efficiency
+import HansenEconometrics.Chapter13GMM.Asymptotics
 import HansenEconometrics.AsymptoticUtils.DeltaMethod
 import HansenEconometrics.Chapter8Asymptotics
 import HansenEconometrics.Chapter9HypothesisTesting
