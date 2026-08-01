@@ -92,15 +92,18 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- Theorem 13.1 (linear GMM estimator minimizes the GMM criterion) landed in
-  [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean): the GMM criterion (`gmmCriterion`),
-  the closed-form one-step estimator (`gmmBeta`, eq. 13.6), and the existence/uniqueness minimizer
-  theorems. The public weight assumption is `W.PosSemidef`; invertibility of the GMM Gram matrix
-  supplies strict positive definiteness for uniqueness. Finite-sample algebra only; no
-  `Assumption 12.2`.
-- Not started: Theorems 13.2 onward. Chapter 12 now supplies `ivBeta`, `twoSLSBeta`, and their
-  moment-matrix formulas, so Theorem 13.2 is the next finite-sample bridge and does not require
-  `Assumption 12.2`. Theorems 13.3+ are asymptotic and do depend on that assumption package.
+- Theorem 13.1 (linear GMM estimator minimizes the GMM criterion) is in
+  [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean). The public weight assumption is
+  `W.PosSemidef`; invertibility of the GMM Gram matrix supplies strict positive definiteness for
+  uniqueness. The chapter proof is a thin specialization of the reusable optimization results in
+  [Primitives.lean](../HansenEconometrics/Chapter13GMM/Primitives.lean).
+- Both clauses of Theorem 13.2 are formalized. GMM with weight `(Z'Z)⁻¹` equals the Chapter 12
+  2SLS estimator, and just-identified GMM equals the Chapter 12 IV estimator for every invertible
+  weight. Star and OrZero variants keep the singular-design behavior explicit.
+- Theorems 13.3 onward remain. The separate primitives module already supplies the exact linear
+  estimator decomposition, influence matrix, and sandwich covariance algebra needed by the
+  asymptotic layer. The next step is to connect those deterministic results to the Chapter 7 and
+  Chapter 12 convergence APIs under `Assumption 12.2`.
 
 ## LaTeX / Lean Crosswalk
 
@@ -120,8 +123,8 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 13.1 | For the overidentified IV model with weight `W`, `β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)` (eq. 13.6) minimizes the GMM criterion `J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))` | closed form (13.6): [gmmBeta](../HansenEconometrics/Chapter13GMM.lean#L54); minimizer: [gmmCriterion_gmmBeta_le](../HansenEconometrics/Chapter13GMM.lean#L112) / [gmmBeta_isMinOn](../HansenEconometrics/Chapter13GMM.lean#L126); uniqueness: [gmmBeta_eq_of_minimizer](../HansenEconometrics/Chapter13GMM.lean#L134); criterion: [gmmCriterion](../HansenEconometrics/Chapter13GMM.lean#L48) |
-| Theorem 13.2 | If `W = (Z'Z)⁻¹`, then `β̂_gmm = β̂_2sls`. If `k = ℓ`, then `β̂_gmm = β̂_iv`. |  |
+| Theorem 13.1 | For the overidentified IV model with weight `W`, `β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)` (eq. 13.6) minimizes the GMM criterion `J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))` | closed form (13.6): [gmmBeta](../HansenEconometrics/Chapter13GMM.lean#L86); minimizer: [gmmCriterion_gmmBeta_le](../HansenEconometrics/Chapter13GMM.lean#L124) / [gmmBeta_isMinOn](../HansenEconometrics/Chapter13GMM.lean#L132); uniqueness: [gmmBeta_eq_of_minimizer](../HansenEconometrics/Chapter13GMM.lean#L140); criterion: [gmmCriterion](../HansenEconometrics/Chapter13GMM.lean#L71) |
+| Theorem 13.2 | If `W = (Z'Z)⁻¹`, then `β̂_gmm = β̂_2sls`. If `k = ℓ`, then `β̂_gmm = β̂_iv`. | 2SLS, Star form: [gmmBetaStar_eq_twoSLSBetaStar](../HansenEconometrics/Chapter13GMM.lean#L176); textbook-facing form: [gmmBetaOrZero_eq_twoSLSBetaOrZero](../HansenEconometrics/Chapter13GMM.lean#L188); ordinary nonsingular form: [gmmBetaOrZero_eq_twoSLSBeta](../HansenEconometrics/Chapter13GMM.lean#L196); just-identified IV: [gmmBetaOrZero_eq_ivBeta_of_justIdentified](../HansenEconometrics/Chapter13GMM.lean#L207) |
 | Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- |  |
 | Theorem 13.4 | Asymptotic Distribution of GMM with Efﬁcient Weight Ma- |  |
 | Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, |  |
@@ -149,3 +152,12 @@ Conventions:
   theorem is more general because it uses `W.PosSemidef` together with the already required
   invertibility of `X'Z W Z'X`. Hansen's `n·` prefactor is dropped — a positive scalar that does not
   affect the minimizer — exactly as `sumSquaredErrors` drops `1/n`.
+- **Theorem 13.2**: the 2SLS equality is first proved for the Star estimators and then exposed through
+  the textbook-facing OrZero API. The OrZero equality also holds on singular designs because both
+  sides use the same totalized matrix inverse. The just-identified result assumes `Z'X` and `W` are
+  invertible. This follows Hansen's positive-definite weight setting and removes the weight from the
+  estimator by solving the square moment equation directly.
+- **Module boundary**: [Primitives.lean](../HansenEconometrics/Chapter13GMM/Primitives.lean) contains
+  the generic linear moment criterion, optimization theorem, exact estimator decomposition, and
+  sandwich covariance formula. [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean) contains
+  only sample-notation bridges and textbook-facing statements.

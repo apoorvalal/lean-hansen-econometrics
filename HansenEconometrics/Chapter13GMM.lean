@@ -12,7 +12,8 @@ The current public surface includes:
 
 * `gmmMoment`, `gmmCriterion`, and the GMM Gram and cross moments;
 * base, Star, and OrZero forms of the one-step linear GMM estimator;
-* Hansen Theorem 13.1, which identifies the unique criterion minimizer.
+* Hansen Theorem 13.1, which identifies the unique criterion minimizer;
+* Hansen Theorem 13.2, which identifies GMM with 2SLS and just-identified IV.
 
 The criterion omits Hansen's positive scalar factor `n`. This does not change
 its minimizer.
@@ -143,5 +144,70 @@ theorem gmmBeta_eq_of_minimizer (X : Matrix n k ℝ) (Z : Matrix n l ℝ)
       gmmCriterion X Z y W (gmmBeta X Z y W)) :
     b = gmmBeta X Z y W := by
   exact LinearGMM.beta_eq_of_minimizer (Zᵀ * X) (Zᵀ *ᵥ y) W b hW hb
+
+/-! ## Hansen Theorem 13.2 -/
+
+section TwoSLS
+
+variable [DecidableEq l]
+
+omit [Fintype k] [DecidableEq k] in
+/-- With the inverse instrument Gram as weight, the GMM Gram is the Star
+2SLS moment matrix. -/
+@[simp]
+theorem gmmGram_twoSLSWeight_eq (X : Matrix n k ℝ) (Z : Matrix n l ℝ) :
+    gmmGram X Z ((Zᵀ * Z)⁻¹) = twoSLSMomentMatrixStar Z X := by
+  simp [gmmGram, LinearGMM.gram, twoSLSMomentMatrixStar,
+    instrumentProjectionStar, Matrix.transpose_mul, Matrix.mul_assoc]
+
+omit [Fintype k] [DecidableEq k] in
+/-- With the inverse instrument Gram as weight, the GMM cross moment is the
+Star 2SLS moment vector. -/
+@[simp]
+theorem gmmCross_twoSLSWeight_eq (X : Matrix n k ℝ) (Z : Matrix n l ℝ)
+    (y : n → ℝ) :
+    gmmCross X Z y ((Zᵀ * Z)⁻¹) = twoSLSMomentVectorStar Z X y := by
+  simp [gmmCross, LinearGMM.cross, twoSLSMomentVectorStar,
+    instrumentProjectionStar, Matrix.transpose_mul, Matrix.mulVec_mulVec,
+    Matrix.mul_assoc]
+
+/-- **Hansen Theorem 13.2 (2SLS, Star form).** GMM with weight
+`(Z'Z)⁻¹` equals 2SLS. -/
+theorem gmmBetaStar_eq_twoSLSBetaStar (X : Matrix n k ℝ)
+    (Z : Matrix n l ℝ) (y : n → ℝ) :
+    gmmBetaStar X Z y ((Zᵀ * Z)⁻¹) = twoSLSBetaStar Z X y := by
+  unfold gmmBetaStar LinearGMM.betaStar twoSLSBetaStar
+  change (gmmGram X Z ((Zᵀ * Z)⁻¹))⁻¹ *ᵥ
+      gmmCross X Z y ((Zᵀ * Z)⁻¹) =
+    (twoSLSMomentMatrixStar Z X)⁻¹ *ᵥ twoSLSMomentVectorStar Z X y
+  rw [gmmGram_twoSLSWeight_eq, gmmCross_twoSLSWeight_eq]
+
+/-- **Hansen Theorem 13.2 (2SLS, textbook-facing form).** Totalized GMM with
+weight `(Z'Z)⁻¹` equals totalized 2SLS, including singular designs. -/
+@[simp]
+theorem gmmBetaOrZero_eq_twoSLSBetaOrZero (X : Matrix n k ℝ)
+    (Z : Matrix n l ℝ) (y : n → ℝ) :
+    gmmBetaOrZero X Z y ((Zᵀ * Z)⁻¹) = twoSLSBetaOrZero Z X y := by
+  rw [gmmBetaOrZero_eq_gmmBetaStar, twoSLSBetaOrZero_eq_twoSLSBetaStar,
+    gmmBetaStar_eq_twoSLSBetaStar]
+
+/-- **Hansen Theorem 13.2 (2SLS, nonsingular form).** With the ordinary
+inverse weight, textbook-facing GMM equals the ordinary 2SLS estimator. -/
+theorem gmmBetaOrZero_eq_twoSLSBeta (X : Matrix n k ℝ)
+    (Z : Matrix n l ℝ) (y : n → ℝ) [Invertible (Zᵀ * Z)]
+    [Invertible (twoSLSMomentMatrix Z X)] :
+    gmmBetaOrZero X Z y (⅟ (Zᵀ * Z)) = twoSLSBeta Z X y := by
+  rw [Matrix.invOf_eq_nonsing_inv, gmmBetaOrZero_eq_twoSLSBetaOrZero,
+    twoSLSBetaOrZero_eq_twoSLSBeta]
+
+end TwoSLS
+
+/-- **Hansen Theorem 13.2 (just-identified form).** If the moment map is
+square and nonsingular, GMM equals IV for every invertible weight. -/
+theorem gmmBetaOrZero_eq_ivBeta_of_justIdentified (X Z : Matrix n k ℝ)
+    (y : n → ℝ) (W : Matrix k k ℝ) [Invertible (Zᵀ * X)]
+    [Invertible W] :
+    gmmBetaOrZero X Z y W = ivBeta Z X y := by
+  exact LinearGMM.betaOrZero_eq_direct (Zᵀ * X) (Zᵀ *ᵥ y) W
 
 end HansenEconometrics
