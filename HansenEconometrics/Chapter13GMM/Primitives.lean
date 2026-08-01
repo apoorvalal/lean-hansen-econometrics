@@ -228,6 +228,24 @@ theorem beta_minimizes (D : Matrix l k ℝ) (g : l → ℝ)
       hGram.isHermitian.eq)
     (by simpa using hGram.dotProduct_mulVec_nonneg) b
 
+/-- Quadratic completion of the weighted-moment criterion around its GMM
+minimizer. This is the deterministic engine for GMM distance tests. -/
+theorem criterion_eq_at_beta_add_quadratic_form
+    (D : Matrix l k ℝ) (g : l → ℝ) (W : Matrix l l ℝ)
+    (b : k → ℝ) [Invertible (gram D W)] (hW : W.PosSemidef) :
+    criterion D g W b =
+      criterion D g W (beta D g W) +
+        (b - beta D g W) ⬝ᵥ
+          (gram D W *ᵥ (b - beta D g W)) := by
+  have hGram := gram_posSemidef D W hW
+  rw [criterion_eq_linearProjectionMSE D g W hW b,
+    criterion_eq_linearProjectionMSE D g W hW (beta D g W),
+    beta_eq_linearProjectionBeta]
+  exact linearProjectionMSE_eq_at_beta_add_quadratic_form
+    (gram D W) (cross D W g) (g ⬝ᵥ (W *ᵥ g)) b
+    ((Matrix.conjTranspose_eq_transpose_of_trivial _).symm.trans
+      hGram.isHermitian.eq)
+
 /-- The base coefficient is a global minimizer of the weighted moment
 criterion. -/
 theorem beta_isMinOn (D : Matrix l k ℝ) (g : l → ℝ)
