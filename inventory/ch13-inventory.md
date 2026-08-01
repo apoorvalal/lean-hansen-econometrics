@@ -95,9 +95,12 @@
 - Theorem 13.1 (linear GMM estimator minimizes the GMM criterion) landed in
   [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean): the GMM criterion (`gmmCriterion`),
   the closed-form one-step estimator (`gmmBeta`, eq. 13.6), and the existence/uniqueness minimizer
-  theorems. Finite-sample algebra only; no `Assumption 12.2`.
-- Not started: Theorems 13.2 onward. 13.2 (2SLS = one-step GMM) needs the Chapter 12 IV/2SLS
-  estimators; 13.3+ are asymptotic and depend on Chapter 12's `Assumption 12.2`.
+  theorems. The public weight assumption is `W.PosSemidef`; invertibility of the GMM Gram matrix
+  supplies strict positive definiteness for uniqueness. Finite-sample algebra only; no
+  `Assumption 12.2`.
+- Not started: Theorems 13.2 onward. Chapter 12 now supplies `ivBeta`, `twoSLSBeta`, and their
+  moment-matrix formulas, so Theorem 13.2 is the next finite-sample bridge and does not require
+  `Assumption 12.2`. Theorems 13.3+ are asymptotic and do depend on that assumption package.
 
 ## LaTeX / Lean Crosswalk
 
@@ -117,8 +120,8 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 13.1 | For the overidentified IV model with weight `W`, `β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)` (eq. 13.6) minimizes the GMM criterion `J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))` | closed form (13.6): [gmmBeta](../HansenEconometrics/Chapter13GMM.lean#L54); minimizer: [gmmCriterion_gmmBeta_le](../HansenEconometrics/Chapter13GMM.lean#L144) / [gmmBeta_isMinOn](../HansenEconometrics/Chapter13GMM.lean#L156); uniqueness: [gmmBeta_eq_of_minimizer](../HansenEconometrics/Chapter13GMM.lean#L165); criterion: [gmmCriterion](../HansenEconometrics/Chapter13GMM.lean#L48) |
-| Theorem 13.2 | If W = |  |
+| Theorem 13.1 | For the overidentified IV model with weight `W`, `β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)` (eq. 13.6) minimizes the GMM criterion `J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))` | closed form (13.6): [gmmBeta](../HansenEconometrics/Chapter13GMM.lean#L54); minimizer: [gmmCriterion_gmmBeta_le](../HansenEconometrics/Chapter13GMM.lean#L112) / [gmmBeta_isMinOn](../HansenEconometrics/Chapter13GMM.lean#L126); uniqueness: [gmmBeta_eq_of_minimizer](../HansenEconometrics/Chapter13GMM.lean#L134); criterion: [gmmCriterion](../HansenEconometrics/Chapter13GMM.lean#L48) |
+| Theorem 13.2 | If `W = (Z'Z)⁻¹`, then `β̂_gmm = β̂_2sls`. If `k = ℓ`, then `β̂_gmm = β̂_iv`. |  |
 | Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- |  |
 | Theorem 13.4 | Asymptotic Distribution of GMM with Efﬁcient Weight Ma- |  |
 | Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, |  |
@@ -142,7 +145,7 @@ Conventions:
 - The Lean column is intentionally left blank until there is actual formalization to link.
 - **Theorem 13.1**: both clauses of Hansen's statement are covered — the closed form (13.6) is the
   definition `gmmBeta`, and "the GMM estimator minimizes `J`" is `gmmCriterion_gmmBeta_le` /
-  `gmmBeta_isMinOn` (with uniqueness `gmmBeta_eq_of_minimizer`). Hansen's weight-matrix assumption
-  `W > 0` is encoded as `Wᵀ = W` together with positive (semi)definiteness: the existence half uses
-  only PSD, the uniqueness half uses PD. Hansen's `n·` prefactor is dropped — a positive scalar that
-  does not affect the minimizer — exactly as `sumSquaredErrors` drops `1/n`.
+  `gmmBeta_isMinOn` (with uniqueness `gmmBeta_eq_of_minimizer`). Hansen assumes `W > 0`; the Lean
+  theorem is more general because it uses `W.PosSemidef` together with the already required
+  invertibility of `X'Z W Z'X`. Hansen's `n·` prefactor is dropped — a positive scalar that does not
+  affect the minimizer — exactly as `sumSquaredErrors` drops `1/n`.

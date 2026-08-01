@@ -15,21 +15,21 @@ This file begins the formalization of Hansen's Chapter 13. The current public su
   only up to scale"). This mirrors `sumSquaredErrors`, which omits `1/n`.
 * `gmmBeta` — the closed-form one-step GMM estimator (Hansen eq. 13.6).
 * `gmmCriterion_gmmBeta_le` / `gmmBeta_isMinOn` — Theorem 13.1, existence half: `gmmBeta`
-  minimizes the criterion, under `W` symmetric positive semidefinite.
-* `gmmBeta_eq_of_minimizer` — Theorem 13.1, uniqueness half, under `W` symmetric positive
-  definite.
+  minimizes the criterion when `W` is positive semidefinite.
+* `gmmBeta_eq_of_minimizer` — Theorem 13.1, uniqueness half. Positive semidefiniteness of `W`
+  and the invertibility required by `gmmBeta` make the GMM Gram matrix positive definite.
 
-Hansen's weight-matrix assumption `W > 0` is encoded as `Wᵀ = W` together with positive
-(semi)definiteness; the existence half uses only PSD, the uniqueness half uses PD.
+Hansen assumes `W > 0`. The results below use the weaker Mathlib condition `W.PosSemidef`;
+invertibility of `X'Z W Z'X` supplies the strictness needed for uniqueness.
 
 The proof reduces the GMM criterion to the Chapter 2 abstract quadratic
 `linearProjectionMSE QXX QXY QYY` with `QXX = X'Z W Z'X`, `QXY = X'Z W Z'Y`,
 `QYY = (Z'Y)' W (Z'Y)` — exactly as Chapter 3's Theorem 3.1 reduces OLS — so
 `gmmBeta = linearProjectionBeta QXX QXY` and the Chapter 2 minimization theorems apply directly.
 
-The asymptotic GMM results (Theorems 13.3+) and the 13.2 bridge (`2SLS = one-step GMM`) depend
-on Chapter 12's `Assumption 12.2` and are deferred. Detailed status lives in
-`inventory/ch13-inventory.md`.
+Theorem 13.2 can now reuse the Chapter 12 IV and 2SLS estimators. It is deferred to the next
+Chapter 13 change. The asymptotic GMM results (Theorems 13.3+) depend on Chapter 12's
+`Assumption 12.2`. Detailed status lives in `inventory/ch13-inventory.md`.
 -/
 
 open scoped Matrix
@@ -56,61 +56,30 @@ noncomputable def gmmBeta (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (y : n → �
   ⅟ (Xᵀ * Z * W * Zᵀ * X) *ᵥ ((Xᵀ * Z * W) *ᵥ (Zᵀ *ᵥ y))
 
 omit [Fintype k] [DecidableEq k] in
-/-- The GMM Gram matrix `X'Z W Z'X` is symmetric when `W` is. -/
-private lemma gmm_QXX_transpose (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (W : Matrix l l ℝ)
-    (hWsymm : Wᵀ = W) :
-    (Xᵀ * Z * W * Zᵀ * X)ᵀ = Xᵀ * Z * W * Zᵀ * X := by
-  simp only [Matrix.transpose_mul, Matrix.transpose_transpose, hWsymm, Matrix.mul_assoc]
-
-omit [DecidableEq k] in
-/-- The GMM Gram quadratic form pulls back through `Z'X` to a `W`-quadratic form. -/
-private lemma gmm_QXX_quad (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (W : Matrix l l ℝ) (v : k → ℝ) :
-    v ⬝ᵥ ((Xᵀ * Z * W * Zᵀ * X) *ᵥ v) = ((Zᵀ * X) *ᵥ v) ⬝ᵥ (W *ᵥ ((Zᵀ * X) *ᵥ v)) := by
-  have hM : (Xᵀ * Z * W * Zᵀ * X) = (Zᵀ * X)ᵀ * W * (Zᵀ * X) := by
-    rw [Matrix.transpose_mul, Matrix.transpose_transpose, Matrix.mul_assoc (Xᵀ * Z * W) Zᵀ X]
-  rw [hM, quadraticForm_mulVec_eq_pullback_rect (Zᵀ * X) W v]
-
-omit [DecidableEq k] in
-/-- The GMM Gram quadratic form is nonnegative when `W` is positive semidefinite. -/
-private lemma gmm_QXX_nonneg (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (W : Matrix l l ℝ)
-    (hWpsd : ∀ u : l → ℝ, 0 ≤ u ⬝ᵥ (W *ᵥ u)) (v : k → ℝ) :
-    0 ≤ v ⬝ᵥ ((Xᵀ * Z * W * Zᵀ * X) *ᵥ v) := by
-  rw [gmm_QXX_quad X Z W v]
-  exact hWpsd ((Zᵀ * X) *ᵥ v)
-
-/-- The GMM Gram quadratic form is positive definite when `W` is positive definite and the Gram
-matrix is invertible (so `Z'X v = 0 ⇒ v = 0`). -/
-private lemma gmm_QXX_pos (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (W : Matrix l l ℝ)
-    [Invertible (Xᵀ * Z * W * Zᵀ * X)]
-    (hWpd : ∀ u : l → ℝ, u ≠ 0 → 0 < u ⬝ᵥ (W *ᵥ u)) (v : k → ℝ) (hv : v ≠ 0) :
-    0 < v ⬝ᵥ ((Xᵀ * Z * W * Zᵀ * X) *ᵥ v) := by
-  rw [gmm_QXX_quad X Z W v]
-  by_cases hzero : (Zᵀ * X) *ᵥ v = 0
-  · exfalso
-    have hQv : (Xᵀ * Z * W * Zᵀ * X) *ᵥ v = 0 := by
-      have hfact : (Xᵀ * Z * W * Zᵀ * X) *ᵥ v = (Xᵀ * Z * W) *ᵥ ((Zᵀ * X) *ᵥ v) := by
-        rw [Matrix.mulVec_mulVec, Matrix.mul_assoc (Xᵀ * Z * W) Zᵀ X]
-      rw [hfact, hzero, Matrix.mulVec_zero]
-    have hv0 : v = 0 := by
-      have h1 : ⅟ (Xᵀ * Z * W * Zᵀ * X) *ᵥ ((Xᵀ * Z * W * Zᵀ * X) *ᵥ v) = 0 := by
-        rw [hQv, Matrix.mulVec_zero]
-      rwa [Matrix.mulVec_mulVec, invOf_mul_self, Matrix.one_mulVec] at h1
-    exact hv hv0
-  · exact hWpd ((Zᵀ * X) *ᵥ v) hzero
+/-- A positive-semidefinite weight matrix induces a positive-semidefinite GMM Gram matrix. -/
+private lemma gmmGram_posSemidef (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (W : Matrix l l ℝ)
+    [Finite k] (hW : W.PosSemidef) :
+    (Xᵀ * Z * W * Zᵀ * X).PosSemidef := by
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc] using
+    hW.conjTranspose_mul_mul_same (Zᵀ * X)
 
 omit [DecidableEq k] in
 /-- Bridge: the GMM criterion equals the Chapter 2 abstract quadratic `linearProjectionMSE` with
 `QXX = X'Z W Z'X`, `QXY = X'Z W Z'Y`, `QYY = (Z'Y)' W (Z'Y)`. Private — file-local notation
 bridge, reused only inside this file (cf. `sumSquaredErrors_eq_linearProjectionMSE`). -/
 private lemma gmmCriterion_eq_linearProjectionMSE (X : Matrix n k ℝ) (Z : Matrix n l ℝ)
-    (y : n → ℝ) (W : Matrix l l ℝ) (hWsymm : Wᵀ = W) (b : k → ℝ) :
+    (y : n → ℝ) (W : Matrix l l ℝ) (hW : W.PosSemidef) (b : k → ℝ) :
     gmmCriterion X Z y W b =
       linearProjectionMSE (Xᵀ * Z * W * Zᵀ * X) ((Xᵀ * Z * W) *ᵥ (Zᵀ *ᵥ y))
         ((Zᵀ *ᵥ y) ⬝ᵥ (W *ᵥ (Zᵀ *ᵥ y))) b := by
+  have hWsymm : Wᵀ = W :=
+    (Matrix.conjTranspose_eq_transpose_of_trivial W).symm.trans hW.isHermitian.eq
   have hr : Zᵀ *ᵥ (y - X *ᵥ b) = (Zᵀ *ᵥ y) - ((Zᵀ * X) *ᵥ b) := by
     rw [Matrix.mulVec_sub, Matrix.mulVec_mulVec]
   have hquad : ((Zᵀ * X) *ᵥ b) ⬝ᵥ (W *ᵥ ((Zᵀ * X) *ᵥ b)) =
-      b ⬝ᵥ ((Xᵀ * Z * W * Zᵀ * X) *ᵥ b) := (gmm_QXX_quad X Z W b).symm
+      b ⬝ᵥ ((Xᵀ * Z * W * Zᵀ * X) *ᵥ b) := by
+    simpa [Matrix.mul_assoc] using
+      quadraticForm_mulVec_eq_pullback_rect (Zᵀ * X) W b
   have hcross : (Zᵀ *ᵥ y) ⬝ᵥ (W *ᵥ ((Zᵀ * X) *ᵥ b)) =
       b ⬝ᵥ ((Xᵀ * Z * W) *ᵥ (Zᵀ *ᵥ y)) := by
     have key : (Zᵀ *ᵥ y) ⬝ᵥ (W *ᵥ ((Zᵀ * X) *ᵥ b)) =
@@ -139,40 +108,44 @@ private lemma gmmBeta_eq_linearProjectionBeta (X : Matrix n k ℝ) (Z : Matrix n
   rfl
 
 /-- **Hansen Theorem 13.1 (existence half).** The one-step GMM estimator `gmmBeta` attains the
-minimum of the GMM criterion: for any coefficient vector `b`, `J(gmmBeta) ≤ J(b)`. Requires the
-weight matrix `W` to be symmetric (`Wᵀ = W`) and positive semidefinite. -/
+minimum of the GMM criterion: for any coefficient vector `b`, `J(gmmBeta) ≤ J(b)`. -/
 theorem gmmCriterion_gmmBeta_le (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (y : n → ℝ)
     (W : Matrix l l ℝ) (b : k → ℝ) [Invertible (Xᵀ * Z * W * Zᵀ * X)]
-    (hWsymm : Wᵀ = W) (hWpsd : ∀ u : l → ℝ, 0 ≤ u ⬝ᵥ (W *ᵥ u)) :
+    (hW : W.PosSemidef) :
     gmmCriterion X Z y W (gmmBeta X Z y W) ≤ gmmCriterion X Z y W b := by
-  rw [gmmCriterion_eq_linearProjectionMSE X Z y W hWsymm b,
-      gmmCriterion_eq_linearProjectionMSE X Z y W hWsymm (gmmBeta X Z y W),
+  have hQ := gmmGram_posSemidef X Z W hW
+  rw [gmmCriterion_eq_linearProjectionMSE X Z y W hW b,
+      gmmCriterion_eq_linearProjectionMSE X Z y W hW (gmmBeta X Z y W),
       gmmBeta_eq_linearProjectionBeta X Z y W]
   exact linearProjectionBeta_minimizes_MSE (Xᵀ * Z * W * Zᵀ * X) ((Xᵀ * Z * W) *ᵥ (Zᵀ *ᵥ y))
-    ((Zᵀ *ᵥ y) ⬝ᵥ (W *ᵥ (Zᵀ *ᵥ y))) (gmm_QXX_transpose X Z W hWsymm)
-    (gmm_QXX_nonneg X Z W hWpsd) b
+    ((Zᵀ *ᵥ y) ⬝ᵥ (W *ᵥ (Zᵀ *ᵥ y)))
+    ((Matrix.conjTranspose_eq_transpose_of_trivial _).symm.trans hQ.isHermitian.eq)
+    (by simpa using hQ.dotProduct_mulVec_nonneg) b
 
 /-- **Hansen Theorem 13.1 (existence half), packaged as `IsMinOn`.** -/
 theorem gmmBeta_isMinOn (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (y : n → ℝ) (W : Matrix l l ℝ)
-    [Invertible (Xᵀ * Z * W * Zᵀ * X)] (hWsymm : Wᵀ = W)
-    (hWpsd : ∀ u : l → ℝ, 0 ≤ u ⬝ᵥ (W *ᵥ u)) :
+    [Invertible (Xᵀ * Z * W * Zᵀ * X)] (hW : W.PosSemidef) :
     IsMinOn (gmmCriterion X Z y W) Set.univ (gmmBeta X Z y W) := by
   intro b _
-  exact gmmCriterion_gmmBeta_le X Z y W b hWsymm hWpsd
+  exact gmmCriterion_gmmBeta_le X Z y W b hW
 
 /-- **Hansen Theorem 13.1 (uniqueness half).** If `b` attains the minimum of the GMM criterion,
-then `b = gmmBeta`. Requires `W` symmetric and positive definite. -/
+then `b = gmmBeta`. Requires a positive-semidefinite weight and an invertible GMM Gram matrix. -/
 theorem gmmBeta_eq_of_minimizer (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (y : n → ℝ)
     (W : Matrix l l ℝ) (b : k → ℝ) [Invertible (Xᵀ * Z * W * Zᵀ * X)]
-    (hWsymm : Wᵀ = W) (hWpd : ∀ u : l → ℝ, u ≠ 0 → 0 < u ⬝ᵥ (W *ᵥ u))
+    (hW : W.PosSemidef)
     (hb : gmmCriterion X Z y W b = gmmCriterion X Z y W (gmmBeta X Z y W)) :
     b = gmmBeta X Z y W := by
-  rw [gmmCriterion_eq_linearProjectionMSE X Z y W hWsymm b,
-      gmmCriterion_eq_linearProjectionMSE X Z y W hWsymm (gmmBeta X Z y W),
+  have hQ := gmmGram_posSemidef X Z W hW
+  have hQpd : (Xᵀ * Z * W * Zᵀ * X).PosDef :=
+    hQ.posDef_iff_isUnit.mpr (isUnit_of_invertible _)
+  rw [gmmCriterion_eq_linearProjectionMSE X Z y W hW b,
+      gmmCriterion_eq_linearProjectionMSE X Z y W hW (gmmBeta X Z y W),
       gmmBeta_eq_linearProjectionBeta X Z y W] at hb
   rw [gmmBeta_eq_linearProjectionBeta X Z y W]
   exact linearProjectionBeta_eq_of_MSE_eq (Xᵀ * Z * W * Zᵀ * X) ((Xᵀ * Z * W) *ᵥ (Zᵀ *ᵥ y))
-    ((Zᵀ *ᵥ y) ⬝ᵥ (W *ᵥ (Zᵀ *ᵥ y))) b (gmm_QXX_transpose X Z W hWsymm)
-    (fun v hv => gmm_QXX_pos X Z W hWpd v hv) hb
+    ((Zᵀ *ᵥ y) ⬝ᵥ (W *ᵥ (Zᵀ *ᵥ y))) b
+    ((Matrix.conjTranspose_eq_transpose_of_trivial _).symm.trans hQ.isHermitian.eq)
+    (fun _ hv => by simpa using hQpd.dotProduct_mulVec_pos hv) hb
 
 end HansenEconometrics
