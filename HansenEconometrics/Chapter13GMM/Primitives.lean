@@ -78,6 +78,23 @@ theorem gram_posSemidef (D : Matrix l k ℝ) (W : Matrix l l ℝ)
     hW.conjTranspose_mul_mul_same D
 
 omit [DecidableEq k] in
+/-- A positive-definite weight and a full-column-rank derivative induce a
+positive-definite weighted moment Gram matrix. -/
+theorem gram_posDef (D : Matrix l k ℝ) (W : Matrix l l ℝ)
+    (hW : W.PosDef) (hD : Function.Injective D.mulVec) :
+    (gram D W).PosDef := by
+  simpa [gram, Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hW.conjTranspose_mul_mul_same hD
+
+/-- The weighted moment Gram is nonsingular under the standard GMM rank and
+positive-weight conditions. -/
+theorem gram_det_isUnit_of_posDef_rank (D : Matrix l k ℝ)
+    (W : Matrix l l ℝ) (hW : W.PosDef)
+    (hD : Function.Injective D.mulVec) :
+    IsUnit (gram D W).det :=
+  (Matrix.isUnit_iff_isUnit_det _).mp (gram_posDef D W hW hD).isUnit
+
+omit [DecidableEq k] in
 /-- The weighted-moment criterion is the Chapter 2 projection quadratic. -/
 theorem criterion_eq_linearProjectionMSE (D : Matrix l k ℝ) (g : l → ℝ)
     (W : Matrix l l ℝ) (hW : W.PosSemidef) (b : k → ℝ) :
@@ -126,6 +143,30 @@ theorem betaStar_eq_beta (D : Matrix l k ℝ) (g : l → ℝ)
     betaStar D g W = beta D g W := by
   unfold betaStar beta
   rw [← invOf_eq_nonsing_inv]
+
+omit [Fintype k] [DecidableEq k] in
+/-- Scaling the moment derivative scales its weighted Gram quadratically. -/
+theorem gram_smul (c : ℝ) (D : Matrix l k ℝ) (W : Matrix l l ℝ) :
+    gram (c • D) W = c ^ 2 • gram D W := by
+  simp [gram, Matrix.transpose_smul, Matrix.smul_mul, Matrix.mul_smul,
+    pow_two, smul_smul]
+
+omit [Fintype k] [DecidableEq k] in
+/-- Scaling both linear moments scales the weighted cross moment
+quadratically. -/
+theorem cross_smul (c : ℝ) (D : Matrix l k ℝ) (W : Matrix l l ℝ)
+    (g : l → ℝ) :
+    cross (c • D) W (c • g) = c ^ 2 • cross D W g := by
+  simp [cross, Matrix.transpose_smul, Matrix.smul_mul, Matrix.mulVec_smul,
+    Matrix.smul_mulVec, pow_two, smul_smul]
+
+/-- A common scalar rescaling of all linear moments does not change Star GMM. -/
+theorem betaStar_smul (c : ℝ) (D : Matrix l k ℝ) (g : l → ℝ)
+    (W : Matrix l l ℝ) (hc : c ≠ 0) :
+    betaStar (c • D) (c • g) W = betaStar D g W := by
+  unfold betaStar
+  rw [gram_smul, cross_smul, nonsingInv_smul]
+  simp [Matrix.smul_mulVec, Matrix.mulVec_smul, smul_smul, hc]
 
 /-- The OrZero and Star linear GMM coefficients are identical. -/
 @[simp]
@@ -238,10 +279,35 @@ theorem beta_linear_decomposition (D : Matrix l k ℝ) (b : k → ℝ)
   rw [beta_eq_influenceMatrix_mulVec, Matrix.mulVec_add,
     Matrix.mulVec_mulVec, influenceMatrix_mul, Matrix.one_mulVec]
 
+/-- Exact Star-estimator decomposition on a nonsingular weighted Gram matrix. -/
+theorem betaStar_linear_decomposition_of_isUnit
+    (D : Matrix l k ℝ) (b : k → ℝ) (u : l → ℝ)
+    (W : Matrix l l ℝ) (h : IsUnit (gram D W).det) :
+    betaStar D (D *ᵥ b + u) W =
+      b + influenceMatrixStar D W *ᵥ u := by
+  letI : Invertible (gram D W) :=
+    Matrix.invertibleOfIsUnitDet (A := gram D W) h
+  rw [betaStar_eq_beta, beta_linear_decomposition,
+    influenceMatrixStar_eq_influenceMatrix]
+
 /-- Sandwich covariance induced by a moment covariance `Omega`. -/
 noncomputable def asymptoticVariance (D : Matrix l k ℝ) (W Omega : Matrix l l ℝ)
     [Invertible (gram D W)] : Matrix k k ℝ :=
   influenceMatrix D W * Omega * (influenceMatrix D W)ᵀ
+
+/-- Star sandwich covariance, totalized through the Star influence matrix. -/
+noncomputable def asymptoticVarianceStar (D : Matrix l k ℝ)
+    (W Omega : Matrix l l ℝ) : Matrix k k ℝ :=
+  influenceMatrixStar D W * Omega * (influenceMatrixStar D W)ᵀ
+
+/-- The Star and base sandwich covariances agree on an identified moment
+system. -/
+theorem asymptoticVarianceStar_eq_asymptoticVariance
+    (D : Matrix l k ℝ) (W Omega : Matrix l l ℝ)
+    [Invertible (gram D W)] :
+    asymptoticVarianceStar D W Omega = asymptoticVariance D W Omega := by
+  rw [asymptoticVarianceStar, asymptoticVariance,
+    influenceMatrixStar_eq_influenceMatrix]
 
 /-- A positive-semidefinite moment covariance induces a positive-semidefinite
 GMM asymptotic covariance. -/
@@ -300,6 +366,31 @@ theorem asymptoticVariance_efficient (D : Matrix l k ℝ)
           ⅟ (gram D (⅟Omega)) := by rw [hweight]; rfl
     _ = ⅟ (gram D (⅟Omega)) := by
       rw [invOf_mul_self, Matrix.one_mul]
+
+/-- Totalized efficient covariance formula under positive definiteness and
+full column rank. -/
+theorem asymptoticVarianceStar_efficient (D : Matrix l k ℝ)
+    (Omega : Matrix l l ℝ) [DecidableEq l] (hOmega : Omega.PosDef)
+    (hD : Function.Injective D.mulVec) :
+    asymptoticVarianceStar D Omega⁻¹ Omega =
+      (gram D Omega⁻¹)⁻¹ := by
+  letI : Invertible Omega := hOmega.isUnit.invertible
+  have hOmegaInv : Omega⁻¹.PosDef := hOmega.inv
+  have hOmegaInvOf : (⅟Omega).PosDef := by
+    simpa only [Matrix.invOf_eq_nonsing_inv] using hOmegaInv
+  letI : Invertible (gram D (⅟Omega)) :=
+    (gram_posDef D (⅟Omega) hOmegaInvOf hD).isUnit.invertible
+  calc
+    asymptoticVarianceStar D Omega⁻¹ Omega =
+        asymptoticVarianceStar D (⅟Omega) Omega := by
+          rw [Matrix.invOf_eq_nonsing_inv (A := Omega)]
+    _ = asymptoticVariance D (⅟Omega) Omega :=
+      asymptoticVarianceStar_eq_asymptoticVariance D (⅟Omega) Omega
+    _ = ⅟ (gram D (⅟Omega)) :=
+      asymptoticVariance_efficient D Omega hOmega.posSemidef
+    _ = (gram D Omega⁻¹)⁻¹ := by
+      rw [Matrix.invOf_eq_nonsing_inv (A := gram D (⅟Omega))]
+      rw [Matrix.invOf_eq_nonsing_inv (A := Omega)]
 
 /-- **Efficient GMM covariance comparison.** Every linear GMM influence
 matrix has covariance at least as large as the efficient covariance in

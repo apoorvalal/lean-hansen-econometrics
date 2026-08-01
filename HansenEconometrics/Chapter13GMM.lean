@@ -224,6 +224,20 @@ noncomputable abbrev gmmAsymptoticVariance (Q : Matrix l k ℝ)
     Matrix k k ℝ :=
   LinearGMM.asymptoticVariance Q W Omega
 
+/-- Star form of Hansen equation (13.7), available without a typeclass
+inverse. -/
+noncomputable abbrev gmmAsymptoticVarianceStar (Q : Matrix l k ℝ)
+    (W Omega : Matrix l l ℝ) : Matrix k k ℝ :=
+  LinearGMM.asymptoticVarianceStar Q W Omega
+
+/-- The Star and base population GMM covariances agree under identification. -/
+theorem gmmAsymptoticVarianceStar_eq_asymptoticVariance
+    (Q : Matrix l k ℝ) (W Omega : Matrix l l ℝ)
+    [Invertible (gmmPopulationGram Q W)] :
+    gmmAsymptoticVarianceStar Q W Omega =
+      gmmAsymptoticVariance Q W Omega :=
+  LinearGMM.asymptoticVarianceStar_eq_asymptoticVariance Q W Omega
+
 /-- Hansen equation (13.7) in its displayed symmetric-weight form. -/
 theorem gmmAsymptoticVariance_eq_formula (Q : Matrix l k ℝ)
     (W Omega : Matrix l l ℝ) [Invertible (gmmPopulationGram Q W)]
@@ -250,6 +264,16 @@ theorem gmmAsymptoticVariance_efficient (Q : Matrix l k ℝ)
     gmmAsymptoticVariance Q (⅟Omega) Omega =
       ⅟ (gmmPopulationGram Q (⅟Omega)) :=
   LinearGMM.asymptoticVariance_efficient Q Omega hOmega
+
+/-- **Hansen Theorem 13.4 (Star covariance formula).** With a
+positive-definite moment covariance and a full-rank derivative, efficient GMM
+has covariance `(Q'Omega⁻¹Q)⁻¹`. -/
+theorem gmmAsymptoticVarianceStar_efficient (Q : Matrix l k ℝ)
+    (Omega : Matrix l l ℝ) [DecidableEq l] (hOmega : Omega.PosDef)
+    (hQ : Function.Injective Q.mulVec) :
+    gmmAsymptoticVarianceStar Q Omega⁻¹ Omega =
+      (gmmPopulationGram Q Omega⁻¹)⁻¹ :=
+  LinearGMM.asymptoticVarianceStar_efficient Q Omega hOmega hQ
 
 /-- **Hansen Theorem 13.5.** The covariance of any identified linear GMM
 estimator dominates the efficient GMM covariance in Loewner order. -/

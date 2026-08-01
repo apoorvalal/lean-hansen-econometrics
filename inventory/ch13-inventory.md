@@ -104,10 +104,13 @@
   inequality in Theorem 13.5 are formalized. The efficiency proof reuses Chapter 4's generalized
   Gauss–Markov variance-gap theorem after proving that the GMM influence matrix is a left inverse of
   the population moment derivative.
-- The distributional parts of Theorems 13.3–13.4 remain. The separate primitives module supplies the
-  exact linear estimator decomposition, influence matrix, and sandwich covariance algebra needed by
-  this asymptotic layer. The next step is to connect those deterministic results to the Chapter 7 and
-  Chapter 12 convergence APIs under `Assumption 12.2`.
+- Theorem 13.3 is formalized in Star and textbook-facing OrZero forms. The proof separates the exact
+  finite-sample coefficient identity, weighted-Gram convergence, the Chapter 7 score CLT, and the
+  final Slutsky step. A converter reuses the Chapter 12 Assumption 12.2 sample-moment and rank package.
+- Theorem 13.4 is formalized as a short specialization of Theorem 13.3. Its covariance reduction uses
+  a separate totalized deterministic lemma, so the distribution proof does not repeat matrix algebra.
+- Theorems 13.6 onward remain. The next slice is the homoskedastic 2SLS efficiency result and the two
+  feasible efficient-weight estimators in Theorem 13.7.
 
 ## LaTeX / Lean Crosswalk
 
@@ -129,8 +132,8 @@ Conventions:
 | --- | --- | --- |
 | Theorem 13.1 | For the overidentified IV model with weight `W`, `β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)` (eq. 13.6) minimizes the GMM criterion `J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))` | closed form (13.6): [gmmBeta](../HansenEconometrics/Chapter13GMM.lean#L86); minimizer: [gmmCriterion_gmmBeta_le](../HansenEconometrics/Chapter13GMM.lean#L124) / [gmmBeta_isMinOn](../HansenEconometrics/Chapter13GMM.lean#L132); uniqueness: [gmmBeta_eq_of_minimizer](../HansenEconometrics/Chapter13GMM.lean#L140); criterion: [gmmCriterion](../HansenEconometrics/Chapter13GMM.lean#L71) |
 | Theorem 13.2 | If `W = (Z'Z)⁻¹`, then `β̂_gmm = β̂_2sls`. If `k = ℓ`, then `β̂_gmm = β̂_iv`. | 2SLS, Star form: [gmmBetaStar_eq_twoSLSBetaStar](../HansenEconometrics/Chapter13GMM.lean#L176); textbook-facing form: [gmmBetaOrZero_eq_twoSLSBetaOrZero](../HansenEconometrics/Chapter13GMM.lean#L188); ordinary nonsingular form: [gmmBetaOrZero_eq_twoSLSBeta](../HansenEconometrics/Chapter13GMM.lean#L196); just-identified IV: [gmmBetaOrZero_eq_ivBeta_of_justIdentified](../HansenEconometrics/Chapter13GMM.lean#L207) |
-| Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- | covariance (13.7): [gmmAsymptoticVariance](../HansenEconometrics/Chapter13GMM.lean#L222) / [gmmAsymptoticVariance_eq_formula](../HansenEconometrics/Chapter13GMM.lean#L228); distributional statement pending |
-| Theorem 13.4 | Asymptotic Distribution of GMM with Efﬁcient Weight Ma- | efficient covariance: [gmmAsymptoticVariance_efficient](../HansenEconometrics/Chapter13GMM.lean#L246); distributional statement pending |
+| Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- | covariance (13.7): [gmmAsymptoticVariance](../HansenEconometrics/Chapter13GMM.lean#L222) / [gmmAsymptoticVariance_eq_formula](../HansenEconometrics/Chapter13GMM.lean#L242); random-map CLT: [gmmLinearizedScore_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Asymptotics.lean); Star estimator: [gmmBetaStar_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Asymptotics.lean); Assumption 12.2 OrZero endpoint: [gmmBetaOrZero_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Asymptotics.lean) |
+| Theorem 13.4 | Asymptotic Distribution of GMM with Efficient Weight Matrix | efficient covariance: [gmmAsymptoticVarianceStar_efficient](../HansenEconometrics/Chapter13GMM.lean); Assumption 12.2 distribution: [gmmBetaOrZero_tendstoInDistribution_efficient_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Asymptotics.lean) |
 | Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, | [gmmAsymptoticVariance_sub_efficient_posSemidef](../HansenEconometrics/Chapter13GMM.lean#L256) |
 | Theorem 13.6 | Under Assumption 12.2 and E |  |
 | Theorem 13.7 | Under Assumption 12.2 and Ω > 0, if ˆW = ˆΩ−1 or ˆW = |  |
@@ -163,8 +166,10 @@ Conventions:
   estimator by solving the square moment equation directly.
 - **Module boundary**: [Primitives.lean](../HansenEconometrics/Chapter13GMM/Primitives.lean) contains
   the generic linear moment criterion, optimization theorem, exact estimator decomposition, and
-  sandwich covariance formula. [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean) contains
-  only sample-notation bridges and textbook-facing statements.
+  sandwich covariance formula. [Asymptotics.lean](../HansenEconometrics/Chapter13GMM/Asymptotics.lean)
+  contains convergence packages and measure-theoretic proofs. The root
+  [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean) contains sample-notation bridges and
+  concise textbook-facing deterministic statements.
 - **Theorem 13.5**: the semidefinite covariance comparison is proved by applying Chapter 4's
   `generalizedGaussMarkov_variance_gap_posSemidef` theorem to the transpose of the GMM influence
   matrix. The excerpt's strict claim for every `W ≠ Omega⁻¹` is not formalized because GMM is
