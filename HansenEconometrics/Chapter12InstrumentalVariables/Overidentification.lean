@@ -2867,7 +2867,9 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_partitioned_rank
 
 omit [Fintype n] [DecidableEq n] [DecidableEq k] [DecidableEq la]
     [DecidableEq lb] in
-private theorem twoSLSCombinedQZX_fullInstrument_submatrix_inl
+/-- The maintained instrument-regressor population cross moment is the left
+block of the corresponding full partitioned-instrument cross moment. -/
+theorem twoSLSCombinedQZX_fullInstrument_submatrix_inl
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (Za : ℕ → Ω → la → ℝ) (Zb : ℕ → Ω → lb → ℝ)
     (X : ℕ → Ω → k → ℝ)

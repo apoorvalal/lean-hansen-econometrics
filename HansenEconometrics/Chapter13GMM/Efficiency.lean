@@ -81,6 +81,31 @@ theorem twoSLSWeight_is_efficientGMM_of_assumption12_2_homoskedastic
     (scoreCovMat mu Z e) (errorVariance mu e)
     h.omega_posDef h.qzx_rank hcov (ne_of_gt hsigma2)
 
+/-- **Hansen Theorem 13.6, observed-row form.** Literal observed-row
+Assumption 12.2 and conditional homoskedasticity imply that the population
+2SLS weight attains the efficient GMM covariance. -/
+theorem twoSLSWeight_is_efficientGMM_of_assumption12_2_observedRows_homoskedastic
+    [Nonempty l]
+    {Z : ℕ → OmegaSpace → l → ℝ}
+    {X : ℕ → OmegaSpace → k → ℝ}
+    {e Y : ℕ → OmegaSpace → ℝ}
+    {b : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
+      mu Z X e Y b)
+    (hZ0 : Measurable (Z 0))
+    [SigmaFinite (mu.trim (conditioningSpace_le hZ0))]
+    (hhomo : HomoskedasticErrorVariance mu Z e) :
+    gmmAsymptoticVarianceStar
+        (twoSLSCombinedQZX (popGram mu (twoSLSCombinedRegressors Z X)))
+        (twoSLSCombinedQZZ
+          (popGram mu (twoSLSCombinedRegressors Z X)))⁻¹
+        (scoreCovMat mu Z e) =
+      (gmmPopulationGram
+        (twoSLSCombinedQZX (popGram mu (twoSLSCombinedRegressors Z X)))
+        (scoreCovMat mu Z e)⁻¹)⁻¹ :=
+  twoSLSWeight_is_efficientGMM_of_assumption12_2_homoskedastic
+    h.toJointIidMixedMomentConditions hZ0 hhomo
+
 /-! ## Hansen Theorem 13.7 -/
 
 /-- Hansen equation (13.8) weight: the nonsingular inverse of the uncentered
@@ -114,19 +139,6 @@ noncomputable def gmmCenteredTwoStepWeightStar
     (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (y : n → ℝ) :
     Matrix l l ℝ :=
   (gmmCenteredOmegaHatStar Z X y)⁻¹
-
-omit [Fintype l] [DecidableEq k] [DecidableEq l] in
-private theorem sampleCrossMoment_sub_mulVec
-    {n : Type*} [Fintype n]
-    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (u : n → ℝ) (d : k → ℝ) :
-    sampleCrossMoment Z (u - X *ᵥ d) =
-      sampleCrossMoment Z u - sampleQZX Z X *ᵥ d := by
-  unfold sampleCrossMoment sampleQZX
-  rw [Matrix.mulVec_sub, Matrix.mulVec_mulVec]
-  ext a
-  simp [Matrix.mulVec, dotProduct, Finset.mul_sum]
-  rw [mul_sub, Finset.mul_sum, Finset.mul_sum]
-  simp [mul_assoc]
 
 /-- The centered residual score is the true score minus the sample cross
 moment times the 2SLS coefficient error. -/
@@ -497,6 +509,34 @@ theorem gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution
       h.z_aestronglyMeasurable h.x_aestronglyMeasurable hY
       (hWeightMeas n) b)
 
+/-- **Hansen Theorem 13.7, observed-row uncentered form.** The two-step GMM
+estimator using equation (13.8) has the efficient Gaussian limit under the
+literal observed-row Assumption 12.2 package. -/
+theorem gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution_observedRows
+    {Z : ℕ → OmegaSpace → l → ℝ}
+    {X : ℕ → OmegaSpace → k → ℝ}
+    {e Y : ℕ → OmegaSpace → ℝ}
+    {b : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
+      mu Z X e Y b) :
+    TendstoInDistribution
+      (fun (n : ℕ) omega =>
+        Real.sqrt (n : ℝ) •
+          (gmmBetaOrZero
+            (stackRegressors X n omega) (stackRegressors Z n omega)
+            (stackOutcomes Y n omega)
+            (gmmUncenteredTwoStepWeightStar
+              (stackRegressors Z n omega) (stackRegressors X n omega)
+              (stackOutcomes Y n omega)) - b))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => mu)
+      (multivariateGaussian 0
+        ((gmmPopulationGram
+          (twoSLSCombinedQZX
+            (popGram mu (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat mu Z e)⁻¹)⁻¹)) :=
+  gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution
+    h.toJointIidMixedMomentConditions b h.model
+
 /-- **Hansen Theorem 13.7, centered form.** The two-step GMM estimator based
 on equation (13.9) has the efficient Gaussian limit. -/
 theorem gmmBetaOrZero_centeredTwoStep_tendstoInDistribution
@@ -548,5 +588,33 @@ theorem gmmBetaOrZero_centeredTwoStep_tendstoInDistribution
       (mu := mu) (Z := Z) (X := X) (Y := Y)
       h.z_aestronglyMeasurable h.x_aestronglyMeasurable hY
       (hWeightMeas n) b)
+
+/-- **Hansen Theorem 13.7, observed-row centered form.** The two-step GMM
+estimator using equation (13.9) has the efficient Gaussian limit under the
+literal observed-row Assumption 12.2 package. -/
+theorem gmmBetaOrZero_centeredTwoStep_tendstoInDistribution_observedRows
+    {Z : ℕ → OmegaSpace → l → ℝ}
+    {X : ℕ → OmegaSpace → k → ℝ}
+    {e Y : ℕ → OmegaSpace → ℝ}
+    {b : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentPositiveCovarianceConditions
+      mu Z X e Y b) :
+    TendstoInDistribution
+      (fun (n : ℕ) omega =>
+        Real.sqrt (n : ℝ) •
+          (gmmBetaOrZero
+            (stackRegressors X n omega) (stackRegressors Z n omega)
+            (stackOutcomes Y n omega)
+            (gmmCenteredTwoStepWeightStar
+              (stackRegressors Z n omega) (stackRegressors X n omega)
+              (stackOutcomes Y n omega)) - b))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => mu)
+      (multivariateGaussian 0
+        ((gmmPopulationGram
+          (twoSLSCombinedQZX
+            (popGram mu (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat mu Z e)⁻¹)⁻¹)) :=
+  gmmBetaOrZero_centeredTwoStep_tendstoInDistribution
+    h.toJointIidMixedMomentConditions b h.model
 
 end HansenEconometrics

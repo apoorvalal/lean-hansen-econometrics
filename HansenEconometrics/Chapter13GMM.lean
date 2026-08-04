@@ -42,6 +42,20 @@ theorem gmmMoment_eq_linear (X : Matrix n k ℝ) (Z : Matrix n l ℝ)
   unfold gmmMoment
   rw [Matrix.mulVec_sub, Matrix.mulVec_mulVec]
 
+omit [Fintype l] [DecidableEq k] in
+/-- A normalized instrument cross moment commutes with subtracting a linear
+predictor. This is the shared finite-sample score identity used by the
+two-step and specification-test developments. -/
+theorem sampleCrossMoment_sub_mulVec
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (u : n → ℝ) (d : k → ℝ) :
+    sampleCrossMoment Z (u - X *ᵥ d) =
+      sampleCrossMoment Z u - sampleQZX Z X *ᵥ d := by
+  unfold sampleCrossMoment sampleQZX
+  rw [Matrix.mulVec_sub, Matrix.mulVec_mulVec]
+  ext a
+  simp only [Pi.smul_apply, Pi.sub_apply, Matrix.smul_mulVec, smul_eq_mul]
+  ring
+
 /-- GMM Gram matrix `X'Z W Z'X`. -/
 noncomputable abbrev gmmGram (X : Matrix n k ℝ) (Z : Matrix n l ℝ)
     (W : Matrix l l ℝ) : Matrix k k ℝ :=
