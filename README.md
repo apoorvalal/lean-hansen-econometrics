@@ -10,8 +10,8 @@ Primary source text:
 - `HansenEconometrics.pdf` in the surrounding Hansen doodle project
 
 Current emphasis:
-- Chapter 2 (`Conditional Expectation and Projection`)
-- Chapter 3 (`The Algebra of Least Squares`) OLS / projection algebra and FWL scaffolding
+- Chapter 13 (`Generalized Method of Moments`) theorem-surface coverage and
+  textbook-faithfulness review
 
 Longer-run goal:
 - formalize as much of the book as is realistic, starting from probability / conditional expectation / projection foundations and moving outward toward asymptotics, least squares, testing, IV, GMM, time series, panel data, and beyond.
@@ -98,7 +98,7 @@ Legend:
 | 10 | Resampling Methods | inventoried | bootstrap / jackknife |
 | 11 | Multivariate Regression | inventoried | |
 | 12 | Instrumental Variables | inventoried | |
-| 13 | Generalized Method of Moments | inventoried | |
+| 13 | Generalized Method of Moments | partial | all 17 numbered theorems and Proposition 13.1 have compiled Lean endpoints; the full nonlinear form of Theorem 13.12 remains conditional on an optimizer linearization, and the inventory records the qualifications for Theorems 13.5, 13.16, and 13.17 |
 | 14 | Time Series | inventoried | |
 | 15 | Multivariate Time Series | inventoried | |
 | 16 | Non-Stationary Time Series | inventoried | |
@@ -115,6 +115,37 @@ Legend:
 | 27 | Censoring and Selection | inventoried | |
 | 28 | Model Selection, Stein Shrinkage, and Model Averaging | inventoried | |
 | 29 | Machine Learning | inventoried | |
+
+## Current Chapter 13 coverage
+
+Chapter 13 has complete coverage of its numbered theorem surface: Theorems
+13.1--13.17 and Proposition 13.1 all have compiled Lean endpoints. The main
+clusters are:
+
+- linear GMM definition, minimization, 2SLS and IV equivalences, and asymptotic
+  covariance in Theorems 13.1--13.5;
+- efficient and feasible two-step GMM in Theorems 13.6--13.7;
+- Wald inference and constrained GMM in Theorems 13.8--13.11;
+- distance, overidentification, subset, and endogeneity tests in Theorems
+  13.12--13.17; and
+- nonlinear GMM asymptotic normality in Proposition 13.1.
+
+This is not complete coverage of every section, derivation, or exercise in the
+chapter. Four qualifications preserve the mathematical meaning of the source:
+
+- Theorem 13.5 proves the valid weak covariance ordering. The textbook's strict
+  claim needs a weight normalization because scalar rescaling does not change
+  GMM.
+- Theorem 13.12 is exact for linear restrictions. Its nonlinear endpoint assumes
+  the constrained-optimizer linearization that is not supplied by the stated
+  textbook assumptions alone.
+- Theorems 13.16 and 13.17 use explicit maintained-relevance conditions in
+  addition to Hansen's displayed raw-block rank conditions.
+
+The full project build was verified after the Chapter 13 update with `lake
+build`; all 3225 jobs completed successfully. See
+[`inventory/ch13-inventory.md`](inventory/ch13-inventory.md) for the theorem
+crosswalk and detailed qualifications.
 
 ## Current Chapter 2 progress
 

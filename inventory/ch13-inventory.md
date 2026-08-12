@@ -132,6 +132,19 @@
   GMM first-order remainder. Its efficient specialization reduces the sandwich covariance to
   $(Q'\Omega^{-1}Q)^{-1}$.
 
+## Coverage summary
+
+| Coverage unit | Result |
+| --- | --- |
+| Numbered theorems | Theorems 13.1--13.17: 17 of 17 have compiled Lean endpoints |
+| Numbered propositions | Proposition 13.1: 1 of 1 has compiled general and efficient-weight endpoints |
+| Full chapter | Partial: non-numbered exposition, all derivations, and Exercises 13.1--13.28 are not systematic coverage targets |
+| Explicit qualifications | Theorem 13.5 strictness; Theorem 13.12 nonlinear optimizer linearization; Theorems 13.16 and 13.17 maintained relevance |
+
+The theorem-surface count records the presence of a valid endpoint. It does not
+claim that every endpoint has the exact assumptions or generality printed in the
+textbook. The qualifications below state each known difference.
+
 ## LaTeX / Lean Crosswalk
 
 This file is a chapter-level crosswalk between textbook statements and Lean formalizations.
@@ -161,7 +174,7 @@ Conventions:
 | Theorem 13.9 | The constrained GMM estimator has covariance (13.18) and a Gaussian limit. | covariance: [gmmConstrainedAsymptoticVariance_eq_hansen_1318](../HansenEconometrics/Chapter13GMM/Inference.lean); limit: [gmmConstrainedBetaStar_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Inference.lean) |
 | Theorem 13.10 | Efficient constrained GMM has covariance (13.20) and the corresponding Gaussian limit. | covariance: [gmmEfficientConstrainedAsymptoticVariance_eq_hansen_1320](../HansenEconometrics/Chapter13GMM/Inference.lean); limit: [gmmEfficientConstrainedBetaStar_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean) |
 | Theorem 13.11 | Nonlinear constrained GMM has the Chapter 8 constrained-estimator Gaussian limit, with an efficient specialization. | general: [gmmNonlinearConstrainedBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean); efficient: [gmmNonlinearEfficientConstrainedBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean) |
-| Theorem 13.12 | Under Assumptions 12.2 and 7.3 and the null, the restricted-minus-unrestricted efficient-GMM criterion converges to `chiSquared(q)` and its upper-tail test has asymptotic size `alpha`. |  |
+| Theorem 13.12 | Under Assumptions 12.2 and 7.3 and the null, the restricted-minus-unrestricted efficient-GMM criterion converges to `chiSquared(q)` and its upper-tail test has asymptotic size `alpha`. | exact linear-restriction observed-row limit: [gmmUncenteredTwoStepLinearDistanceStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); linear-restriction size: [gmmUncenteredTwoStepLinearDistanceTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); nonlinear endpoint conditional on optimizer linearization: [gmmUncenteredTwoStepDistanceStatOrZero_tendstoInDistribution_observedRows_of_linearization](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
 | Theorem 13.13 | With a common weight, the distance statistic is nonnegative. With a linear restriction and efficient common weight, it equals the Wald statistic. | nonnegative: [gmmDistanceStat_nonneg_of_commonWeight](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); Wald equality: [gmmDistanceStat_eq_wald_of_linear_commonWeight](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
 | Theorem 13.14 | Under Assumption 12.2, the efficient two-step GMM overidentification criterion converges to `chiSquared(l-k)` and its upper-tail test has asymptotic size `alpha`. | observed-row limit: [gmmUncenteredTwoStepJStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row size: [gmmUncenteredTwoStepJTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); generic Gaussian engine: [gmmJStatOrZero_tendstoInDistribution_chiSquared_of_factorSymmIdem](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
 | Theorem 13.15 | For `Z=(Za,Zb)`, the full-minus-maintained efficient two-step GMM criteria `C=Jhat-Jtilde` converge to `chiSquared(lb)` under Assumption 12.2 and full rank of `E[Za X']`; the upper-tail test has asymptotic size `alpha`. | statistic: [gmmUncenteredTwoStepSubsetJStatOrZero](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row limit: [gmmUncenteredTwoStepSubsetJStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row size: [gmmUncenteredTwoStepSubsetJTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
@@ -171,8 +184,11 @@ Conventions:
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- **Coverage boundary**: this is a theorem-surface map. It covers all 17 numbered theorems and
+  Proposition 13.1, but it does not claim complete coverage of every section, derivation, or
+  exercise.
+- **Verification**: `lake build` completed successfully on 2026-08-11 with all 3225 jobs. The build
+  emitted existing linter warnings, but no errors.
 - **Theorem 13.1**: both clauses of Hansen's statement are covered — the closed form (13.6) is the
   definition `gmmBeta`, and "the GMM estimator minimizes `J`" is `gmmCriterion_gmmBeta_le` /
   `gmmBeta_isMinOn` (with uniqueness `gmmBeta_eq_of_minimizer`). Hansen assumes `W > 0`; the Lean
@@ -204,8 +220,9 @@ Conventions:
   invariant to nonzero scalar rescaling of `W`; a distinct scalar multiple of `Omega⁻¹` gives the
   same estimator and covariance. A strict result needs a normalization or a condition stated on the
   induced influence matrix.
-- **Theorem 13.12, nonlinear optimizer qualification**: the crosswalk target is intentionally blank.
-  Assumption 7.3 supplies smoothness and derivative rank, but it does **not** by itself establish the
+- **Theorem 13.12, nonlinear optimizer qualification**: the crosswalk records the exact linear
+  endpoint and the conditional nonlinear endpoint separately. Assumption 7.3 supplies smoothness
+  and derivative rank, but it does **not** by itself establish the
   first-order expansion of a selected nonlinear constrained-GMM optimizer. The textbook proof uses
   that expansion without stating the local optimizer, consistency, and first-order-condition
   regularity needed to derive it. Lean therefore does not relabel the stronger interface theorem as
