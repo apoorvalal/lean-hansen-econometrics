@@ -1,66 +1,128 @@
 # lean-hansen-econometrics
 
-A gradual Lean formalization project for Bruce E. Hansen's *Econometrics*.
+A Lean 4 formalization of the mathematical results in Bruce E. Hansen's
+*Econometrics*.
 
-This repo is not meant to be a one-shot dump of isolated theorem files. The goal is to work through the book chapter by chapter, formalizing the core mathematical results, building reusable dependencies, and keeping a visible progress map.
+The project develops reusable probability, linear algebra, asymptotic, and
+distribution theory while it formalizes the book chapter by chapter. It does
+not translate the text line by line. The goal is a checked mathematical API
+with an explicit crosswalk to the source.
 
-## Scope
+## Current scope
 
-Primary source text:
-- `HansenEconometrics.pdf` in the surrounding Hansen doodle project
+- All 29 chapters have extracted text and a canonical inventory.
+- Chapters 2--13 have Lean modules imported by the root library.
+- Chapter 1 and Chapters 14--29 are inventory-only.
+- No chapter is marked complete in the broad sense of covering every section,
+  derivation, example, and exercise.
 
-Current emphasis:
-- Chapter 2 (`Conditional Expectation and Projection`)
-- Chapter 3 (`The Algebra of Least Squares`) OLS / projection algebra and FWL scaffolding
+The source PDF, `HansenEconometrics.pdf`, is in the surrounding Hansen project.
+Each `inventory/chN-inventory.md` file is the source of truth for theorem-level
+coverage, assumptions, corrections, and open gaps.
 
-Longer-run goal:
-- formalize as much of the book as is realistic, starting from probability / conditional expectation / projection foundations and moving outward toward asymptotics, least squares, testing, IV, GMM, time series, panel data, and beyond.
+## Coverage labels
 
-## Strategy
+- `inventory only`: the chapter text and crosswalk exist, but there is no
+  chapter Lean module.
+- `partial`: the chapter has compiled Lean results, but some source material or
+  exact textbook endpoints remain open, conditional, corrected, or out of
+  scope.
 
-The intended workflow is:
+## Chapter coverage
 
-1. extract and split the source PDF by chapter,
-2. inventory theorem/lemma/corollary candidates,
-3. identify the dependency graph,
-4. formalize the lowest-level reusable results first,
-5. commit frequently as each theorem cluster turns green.
+| ch | title | status | current Lean surface |
+|---:|---|---|---|
+| [01](inventory/ch1-inventory.md) | Introduction | inventory only | Primarily expository material. |
+| [02](inventory/ch2-inventory.md) | Conditional Expectation and Projection | partial | Conditional expectation, CEF errors, conditional variance, best prediction, linear projection, and potential-outcome/CIA bridges. |
+| [03](inventory/ch3-inventory.md) | The Algebra of Least Squares | partial | OLS minimization and normal equations, projection and annihilator algebra, leverage, leave-one-out and influence formulas, and FWL results. |
+| [04](inventory/ch4-inventory.md) | Least Squares Regression | partial | OLS and GLS algebra, unbiasedness and covariance, Gauss--Markov comparisons, residual variance, HC0--HC3, and clustered covariance. |
+| [05](inventory/ch5-inventory.md) | Normal Regression | partial | Multivariate-normal support, exact Gaussian, chi-square, Student-t, and F laws, confidence intervals, and classical tests. |
+| [06](inventory/ch6-inventory.md) | A Review of Large Sample Asymptotics | partial | WLLN and CLT interfaces, continuous mapping, Slutsky, stochastic order, Delta methods, moment transfer, and uniform-integrability bounds. |
+| [07](inventory/ch7-inventory.md) | Asymptotic Theory for Least Squares | partial | OLS consistency and normality, feasible covariance estimators, functions of parameters, standard errors, confidence intervals, Wald inference, residual uniformity, and leverage rates. |
+| [08](inventory/ch8-inventory.md) | Restricted Estimation | partial | Exact restricted-estimation results through Theorem 8.5 and minimum-distance, constrained-estimator, efficiency, misspecification, and nonlinear-restriction interfaces. |
+| [09](inventory/ch9-inventory.md) | Hypothesis Testing | partial | Theorems 9.1--9.11 have theorem-facing endpoints for t, Wald, criterion, F, Hausman, consistency, and local-power results. |
+| [10](inventory/ch10-inventory.md) | Resampling Methods | partial | Bootstrap WLLN and CLT, mapping and Delta methods, variance and quantiles, percentile and percentile-t intervals, tests, finite replication, higher-order interfaces, and regression bootstrap results through Theorem 10.20. |
+| [11](inventory/ch11-inventory.md) | Multivariate Regression | partial | System regression, SUR, reduced-rank regression, PCA, factor models, matrix-normal, Wishart, inverse-Wishart, and Hotelling results for Theorems 11.1--11.12. |
+| [12](inventory/ch12-inventory.md) | Instrumental Variables | partial | IV and 2SLS algebra and asymptotics, nonlinear functions and tests, bootstrap, generated regressors, control functions, overidentification, LIML, weak instruments, and many-instrument limits for Theorems 12.1--12.19. |
+| [13](inventory/ch13-inventory.md) | Generalized Method of Moments | partial | All 17 numbered theorems and Proposition 13.1 have compiled endpoints covering linear and nonlinear GMM, efficiency, inference, constraints, and specification tests. |
+| [14](inventory/ch14-inventory.md) | Time Series | inventory only | Extracted and crosswalked. |
+| [15](inventory/ch15-inventory.md) | Multivariate Time Series | inventory only | Extracted and crosswalked. |
+| [16](inventory/ch16-inventory.md) | Non-Stationary Time Series | inventory only | Extracted and crosswalked. |
+| [17](inventory/ch17-inventory.md) | Panel Data | inventory only | Extracted and crosswalked. |
+| [18](inventory/ch18-inventory.md) | Difference in Differences | inventory only | Extracted and crosswalked. |
+| [19](inventory/ch19-inventory.md) | Nonparametric Regression | inventory only | Extracted and crosswalked. |
+| [20](inventory/ch20-inventory.md) | Series Regression | inventory only | Extracted and crosswalked. |
+| [21](inventory/ch21-inventory.md) | Regression Discontinuity | inventory only | Extracted and crosswalked. |
+| [22](inventory/ch22-inventory.md) | M-Estimators | inventory only | Extracted and crosswalked. |
+| [23](inventory/ch23-inventory.md) | Nonlinear Least Squares | inventory only | Extracted and crosswalked. |
+| [24](inventory/ch24-inventory.md) | Quantile Regression | inventory only | Extracted and crosswalked. |
+| [25](inventory/ch25-inventory.md) | Binary Choice | inventory only | Extracted and crosswalked. |
+| [26](inventory/ch26-inventory.md) | Multiple Choice | inventory only | Extracted and crosswalked. |
+| [27](inventory/ch27-inventory.md) | Censoring and Selection | inventory only | Extracted and crosswalked. |
+| [28](inventory/ch28-inventory.md) | Model Selection, Stein Shrinkage, and Model Averaging | inventory only | Extracted and crosswalked. |
+| [29](inventory/ch29-inventory.md) | Machine Learning | inventory only | Extracted and crosswalked. |
 
-In practice this means we will often restate Hansen’s results in more Lean-native language:
-- reusable random-variable conditioning helpers in `HansenEconometrics/ProbabilityUtils.lean`,
-- variable-based wrappers for chapter-facing probability statements in the chapter files,
-- sigma-algebras in the backend support layer when that matches Mathlib,
-- almost-everywhere equality where that is mathematically correct,
-- projection and orthogonality statements in forms that line up with Mathlib.
+## Important coverage qualifications
+
+The inventories record all known differences between the printed statements
+and the formal results. Important examples are:
+
+- The exact random-design moment threshold in Theorem 5.5 remains deferred.
+- Chapter 6 still has textbook-shaped convergence gaps, and the concrete
+  high-moment Edgeworth expansion in Theorem 7.15 remains open.
+- Some Chapter 8--10 asymptotic results are reusable interfaces whose
+  model-specific premises must be supplied by a later theorem.
+- The printed target in Theorem 11.6 is false in general. The repository proves
+  consistency for the correct feasible-SUR covariance target and formalizes why
+  the printed target would force an invalid OLS/SUR equality.
+- Theorem 12.7 is false as printed. Theorems 12.17 and 12.19 also need corrected
+  assumptions or domains. The Chapter 12 inventory separates literal,
+  corrected, and diagnostic endpoints.
+- Theorem 13.5 proves the valid weak covariance ordering; its printed strict
+  claim needs a weight normalization. The nonlinear form of Theorem 13.12 needs
+  a constrained-optimizer linearization. Theorems 13.16 and 13.17 need explicit
+  maintained-relevance assumptions.
+
+## Formalization architecture
+
+The library uses a layered design:
+
+1. `LinearAlgebraUtils`, `ProbabilityUtils`, and `AsymptoticUtils` provide
+   reusable infrastructure.
+2. Early chapter modules provide OLS, projection, distribution, and asymptotic
+   results used by later chapters.
+3. Larger chapters use umbrella modules with focused submodules. Chapters
+   10--13 follow this pattern.
+4. Canonical chapter-facing theorems wrap reusable proof engines and expose
+   Hansen's notation when it is mathematically sound.
+
+Finite-sample estimators use a consistent totalization policy. Base definitions
+use invertibility assumptions. `Star` definitions use `Matrix.nonsingInv` as a
+proof engine. Textbook-facing `OrZero` definitions make singular-design behavior
+explicit. See [`AGENTS.md`](AGENTS.md) for the full API and proof policy.
 
 ## Repository structure
 
-- `HansenEconometrics/` — Lean source files
-- `textbook/` — chapter excerpts and chapter-local redirect notes
-- `inventory/` — canonical chapter inventories and crosswalks
-- `AGENTS.md` — repo style guide for contributors and coding agents
-- `HansenEconometrics.lean` — root imports
-- `lakefile.toml`, `lake-manifest.json`, `lean-toolchain` — Lean project config
+- `HansenEconometrics/`: Lean source modules.
+- `HansenEconometrics.lean`: root library import; `lake build` checks this
+  complete surface.
+- `inventory/`: canonical chapter status notes and LaTeX/Lean crosswalks.
+- `textbook/`: extracted chapter text and redirects to the canonical
+  inventories.
+- `review/`: adversarial review harness, prompt templates, schema, and reports.
+- `site/`: Quarto sources for the walkthrough site.
+- `docs/`: rendered site committed for GitHub Pages.
+- `scripts/`: extraction, declaration export, site generation, and review tools.
+- `tests/`: tests for the review and documentation tooling.
+- `AGENTS.md`: contributor rules for theorem design, imports, documentation, and
+  review gates.
 
-## CI and local linting
+## Build and validation
 
-Every pull request is gated by `.github/workflows/ci.yml`, which runs:
+The project uses Lean `v4.29.0` and Mathlib `v4.29.0`, as specified by
+`lean-toolchain` and `lakefile.toml`.
 
-```sh
-lake build
-lake build @mathlib/lint-style
-lake env .lake/packages/mathlib/.lake/build/bin/lint-style --github HansenEconometrics
-```
-
-The first command builds the project. The final two commands build and run
-Mathlib's text-style linter against the root `HansenEconometrics` module, so
-style lints gate the PR alongside the build. The repository already enables
-`weak.linter.mathlibStandardSet = true` in `lakefile.toml`, so Lean's
-elaboration linters run during builds; existing warnings currently keep the CI
-from using `lake build --wfail` as a hard gate.
-
-For a local pre-push check, run the same commands without `--github` for more
-readable output:
+Run the local CI-equivalent check from the repository root:
 
 ```sh
 lake build
@@ -68,182 +130,62 @@ lake build @mathlib/lint-style
 lake env .lake/packages/mathlib/.lake/build/bin/lint-style HansenEconometrics
 ```
 
-A separate `.github/workflows/full-build-tags.yml` workflow runs a full
-`lake build` only for selected tag patterns (`full-build-*` and `release-*`) or
-manual dispatch. This is feasible for expensive validation runs because it
-avoids charging every PR/push twice while still allowing release-style tags to
-request a full clean CI build with Lean/Mathlib cache support. Once the current
-Lean warnings are cleaned up, that workflow can be tightened to
-`lake build --wfail`.
+If [`just`](https://github.com/casey/just) is installed, `just ci` runs the same
+three commands.
 
-## Chapter progress
+The main GitHub Actions workflow runs the same build and text-style checks for
+pull requests and pushes to `main` or `master`. Lean's standard elaboration
+linters are enabled in `lakefile.toml`. Existing warnings mean that the project
+does not yet use `lake build --wfail` as a required gate.
 
-Legend:
-- `not started`
-- `in progress`
-- `partial`
-- `done`
+Run the tooling tests with:
 
-| ch | title | status | notes |
-|---:|---|---|---|
-| 01 | Introduction | not started | text extracted and inventoried; mostly exposition |
-| 02 | Conditional Expectation and Projection | partial | conditional expectation, variance, linear projection algebra, and variable-facing potential-outcomes/CIA CATE plus observed-regression wrappers completed |
-| 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator (incl. rank), leverage identities/bounds, reduced-Gram and literal row-deleted leave-one-out formulas, influence diagnostics, and FWL coefficient/residual core landed |
-| 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, Gauss-Markov lower bounds, `s²` unbiasedness, HC2/HC3, and clustered covariance definitions/finite-sample adjustment landed |
-| 05 | Normal Regression | partial | multivariate-normal wrappers, normal-model scaffolding, finite-sample Gaussian/chi-square/Student-t/F laws, confidence intervals, and classical test results landed; Kinal moment threshold deferred |
-| 06 | A Review of Large Sample Asymptotics | partial | WLLN, iid scalar/vector CLT via Cramér-Wold, projection-level multivariate Lindeberg/heterogeneous-array CLT endpoints for 6.4/6.5, CMT in probability, O_p/o_p, Slutsky, Delta-method wrappers, smooth-function asymptotic wrappers, UI maximum bounds for 6.16, iid finite-power-moment and uniform higher-moment UI discharge for 6.14, convergence-in-measure faces of 6.13/6.15, weak-convergence bounded first-moment transfer for 6.13, and bounded/clipped/tail-assembly weak-moment bridges for 6.15 backed by Mathlib + AsymptoticUtils/Chapter6Asymptotics; remaining textbook-shaped gaps documented in the Ch 6 inventory |
-| 07 | Asymptotic Theory for Least Squares | partial | Theorems 7.1-7.5 have totalized/ordinary OLS consistency, score CLT, vector CLT, and variance/covariance consistency wrappers; 7.6-7.14 have robust covariance, nonlinear Delta, t/CI/Wald wrappers at the current assumption layer, with packaged feasible HC0/HC1/HC2/HC3 remainder/leverage conditions; 7.16 and 7.17 have max-residual/max-leverage rate packaging with iid finite-squared-row-moment UI discharge and direct iid package endpoints; feasible HC bounded-weight hypotheses now have scalar WLLN primitive constructors, scalar/joint/compact moment condition bundles, a combined robust feasible-HC moment package, an iid joint-observation package deriving residual-variance, homoskedastic covariance/Wald, and direct HC0/HC1/HC2/HC3 covariance, standard-error, scalar t/CI/Wald, and totalized/ordinary multivariate Wald endpoints; Edgeworth has generic first-order and uniform second-order CDF-expansion interfaces, with the concrete expansion proof still pending |
-| 08 | Restricted Estimation | inventoried | constrained estimation / minimum distance |
-| 09 | Hypothesis Testing | inventoried | Wald / LM / LR style results |
-| 10 | Resampling Methods | inventoried | bootstrap / jackknife |
-| 11 | Multivariate Regression | inventoried | |
-| 12 | Instrumental Variables | inventoried | |
-| 13 | Generalized Method of Moments | inventoried | |
-| 14 | Time Series | inventoried | |
-| 15 | Multivariate Time Series | inventoried | |
-| 16 | Non-Stationary Time Series | inventoried | |
-| 17 | Panel Data | inventoried | |
-| 18 | Difference in Differences | inventoried | |
-| 19 | Nonparametric Regression | inventoried | |
-| 20 | Series Regression | inventoried | |
-| 21 | Regression Discontinuity | inventoried | |
-| 22 | M-Estimators | inventoried | |
-| 23 | Nonlinear Least Squares | inventoried | |
-| 24 | Quantile Regression | inventoried | |
-| 25 | Binary Choice | inventoried | |
-| 26 | Multiple Choice | inventoried | |
-| 27 | Censoring and Selection | inventoried | |
-| 28 | Model Selection, Stein Shrinkage, and Model Averaging | inventoried | |
-| 29 | Machine Learning | inventoried | |
+```sh
+uv run --no-project python -m unittest discover -s tests -p 'test_*.py'
+```
 
-## Current Chapter 2 progress
+## Review harness
 
-Completed in `HansenEconometrics/Chapter2CondExp.lean`,
-`HansenEconometrics/Chapter2Variance.lean`,
-`HansenEconometrics/ProbabilityUtils.lean`,
-`HansenEconometrics/Chapter2LinearProjection.lean`,
-and `HansenEconometrics/Chapter2PotentialOutcomes.lean`:
-- reusable helper definitions `conditioningSpace`, `XMeasurable`, `condExpOn`, `cefErrorOn`,
-  `condVarOn`, and `residualVarOn`
-- coordinatewise conditional-expectation / integral bridge lemmas for finite-dimensional random
-  vectors and arrays
-- reusable finite-dimensional mean and covariance helpers `meanVec`, `covVec`, and `covMat`
-- simple law of iterated expectations
-- tower property for nested sigma-algebras
-- tower property in variable-facing form in `Chapter2CondExp.lean`
-- conditioning / pull-out theorem in variable-facing form in `Chapter2CondExp.lean`
-- CEF error has conditional mean zero in `Chapter2CondExp.lean`
-- CEF error has unconditional mean zero in `Chapter2CondExp.lean`
-- orthogonality of CEF error to measurable functions of `X` in `Chapter2CondExp.lean`
-- integral conditional variance = integral squared CEF error
-- Theorem 2.5: CEF error has finite second moment when `Y ∈ L²`
-- law of total variance in sigma-algebra and variable-facing form
-- rearranged variance decomposition
-- variance of the conditional expectation bounded by total variance
-- Theorem 2.6: residual-variance monotonicity for richer conditioning information
-- Definition 2.5 / Theorem 2.9 linear projection coefficient algebra
-- population normal equations and orthogonality for the best linear projection
-- uniqueness from the population normal equations
-- quadratic projection criterion simplification at the projection coefficient
-- potential-outcomes definitions for observed outcome, treatment effect, ATE, and CATE
-- CIA package via Mathlib conditional independence and conditional distributions
-- branchwise observed-regression bridge for `E[Y | D, X]` under mean independence / CIA
+The repository includes a four-part review harness for redundancy, hygiene,
+textbook faithfulness, and proof quality. It resolves each Lean file to its
+chapter excerpt and inventory, validates findings against a JSON schema, and
+stores reports in `review/reports/`.
 
-Planned next within Chapter 2:
-- additional best-linear-predictor corollaries beyond the current conditional-mean result
-- later chapter 2 identification / existence statements where worthwhile
+See [`review/README.md`](review/README.md) for the Codex, Claude Code, and manual
+workflows.
 
-## Current Chapter 3 progress
+## Walkthrough site
 
-Completed in `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`,
-`HansenEconometrics/Chapter3Projections.lean`, and `HansenEconometrics/Chapter3FWL.lean`:
-- SSE objective notation and its residual-sum-of-squares specialization at `β̂`
-- Theorem 3.2 matrix expressions: closed-form OLS, residuals, and normal equations
-- normal-equation uniqueness for closed-form OLS
-- residuals sum to zero when a constant is in the regressor column span
-- projection / hat matrix definition and `P X = X`
-- Theorem 3.3.1-3: `P` symmetric/idempotent and `tr(P) = k`
-- annihilator matrix definition, `M X = 0`, `M Y = ê`, `M` symmetric/idempotent, and `tr(M) = n-k`
-- general lemma: rank of a real symmetric idempotent matrix equals its trace
-- Theorem 3.3 rank parts: `rank(P) = k` and `rank(M) = n - k`
-- range projection facts and `M P = P M = 0`
-- fitted/residual orthogonality and the dot-product Pythagorean decomposition
-- centered analysis-of-variance and `R²` identities
-- leverage identities/bounds, reduced-Gram and literal row-deleted leave-one-out formulas, and
-  Section 3.21 influence diagnostics
-- FWL: partitioned normal equations, residualized regressors `M₁ X₂`, the sequential residual-maker
-  identity, the coefficient identity, and residual equivalence
+The Quarto site contains selected theorem walkthroughs for Chapters 3, 5, and
+7. With Quarto and `just` installed, the fast site build renders those
+walkthroughs to `docs/`:
 
-Planned next within Chapter 3:
-- no immediate Chapter 3 blocker; remaining issue #42 work is concentrated in Chapters 4, 6, and 7
+```sh
+just site-render
+```
 
-See also:
-- `inventory/ch2-inventory.md`
-- `textbook/ch02/latex_links.md`
-- `textbook/ch02/ch2_excerpt.txt`
-- `inventory/ch3-inventory.md`
-- `textbook/ch03/ch3_excerpt.txt`
-- `inventory/ch4-inventory.md`
-- `textbook/ch04/ch4_excerpt.txt`
+Use `just site-preview` for local preview. The generated all-declaration
+reference layer is currently paused; `site/README.md` documents the full export
+and stub workflow.
 
-## Current Chapter 5 progress
+## Working method
 
-Completed in `HansenEconometrics/Chapter5NormalRegression.lean`:
-- Gaussian law for the OLS coefficient vector as an affine image of the error vector
-- Gaussian law for the OLS residual vector as a linear image of the error vector
-- chi-square law for the scaled residual variance statistic and independence from `β̂`
-- exact Student-t, confidence-interval, variance-interval, and classical test layers
+For each chapter:
 
-Reused from `HansenEconometrics/Chapter4LeastSquaresRegression.lean`:
-- finite-sample residual variance estimator definition
-- deterministic linear-model and quadratic-form rewrites of `s²` in terms of the model error
+1. extract the source text;
+2. record theorem candidates in the canonical inventory;
+3. identify reusable dependencies;
+4. prove the lowest-level results first;
+5. add chapter-facing wrappers;
+6. update the inventory and run the build and review gates.
 
-Completed in `HansenEconometrics/MultivariateNormal.lean`:
-- standard-normal finite-moment, mean, and variance wrappers
-- affine-image law for multivariate normals, including the random-variable `HasLaw` form
-- multivariate-normal mean/covariance identities, marginal laws, and scalar jointly-Gaussian
-  independence iff zero covariance
-
-Completed in `HansenEconometrics/ChiSquared.lean`:
-- chi-square distribution defined as a Gamma distribution with shape `k/2` and rate `1/2`
-- basic probability-measure instance for positive degrees of freedom
-- negative-support vanishing lemma inherited from the Gamma density
-
-Planned next within Chapter 5:
-- keep Theorem 5.5 (Kinal 1980) deferred until a later chapter needs the moment-existence threshold
-- extend likelihood / MLE derivations if later chapters need them
-- add closed-form standard-normal moment formulas only if they become useful downstream
-
-## Current Chapter 4 progress
-
-Completed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`:
-- Hansen equation (4.6): `β̂ = β + (Xᵀ X)⁻¹ Xᵀ e`
-- the orthogonal-error specialization `Xᵀ e = 0 -> β̂ = β`
-- fitted values as signal plus projected error
-- residuals as the annihilator applied to the model error
-- conditional and unconditional unbiasedness bridges
-- conditional covariance identity and its homoskedastic specialization
-- classical Gauss-Markov lower bound
-- GLS algebra and the generalized Gauss-Markov weighted lower bound
-- HC0 / White, HC1, HC2, and HC3 covariance estimators
-- clustered covariance estimator, finite-sample adjustment, singleton HC0/HC1 identities, and
-  linear-model rewrite
-- method-of-moments `σ̂²`, including the diagonal heteroskedastic `E[σ̂² | X] = n⁻¹ tr(MD)` trace formula
-- residual variance estimator `s²`, deterministic rewrites, and homoskedastic conditional/unconditional unbiasedness
-
-Explicitly deferred for now within Chapter 4:
-- clustered covariance asymptotics and richer partition infrastructure
-- HC4 and other leverage-adjustment families
-
-Next target after Chapter 4:
-- Chapter 5 normal-model finite-sample distribution theory and classical inference results
+The project prefers Mathlib reuse, narrow imports, private same-file proof
+scaffolding, stable public theorem names, and explicit documentation of any
+assumption that differs from the textbook.
 
 ## Philosophy
 
-The point is not to force Hansen’s prose into Lean line by line. The point is to build a usable formal skeleton of the mathematics behind the book.
-
-That means:
-- proving reusable infrastructure first,
-- keeping public APIs close to the variable-based notation that applied econometricians expect,
-- preferring mathematically canonical formulations,
-- and being honest about what is already in Mathlib versus what we are adding on top.
+The objective is a usable formal skeleton of the mathematics in Hansen's book.
+The library favors reusable results and mathematically correct statements over
+a line-by-line encoding of the prose. It also records when a printed theorem is
+false, incomplete, or needs a more precise assumption.

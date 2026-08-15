@@ -1,0 +1,30 @@
+[
+  {
+    "id": "2e36435f2c2fae5a35feb942ca5ed1c567fc369e",
+    "file": "HansenEconometrics/Chapter13GMM.lean",
+    "line": 75,
+    "decl": "gmm_QXX_nonneg",
+    "dimension": "redundancy",
+    "severity": "major",
+    "rule": "AGENTS.md Core principles section 1: reuse Mathlib first",
+    "claim": "The GMM Gram helper family rebuilds the positive-semidefinite pullback and quadratic nonnegativity that Mathlib already provides.",
+    "evidence": "gmm_QXX_nonneg delegates to the local gmm_QXX_quad after the file separately proves symmetry. Matrix.PosSemidef.of_dotProduct_mulVec_nonneg packages the existing weight assumptions, Matrix.PosSemidef.conjTranspose_mul_mul_same proves the Gram pullback is positive semidefinite, and Matrix.PosSemidef.dotProduct_mulVec_nonneg gives the required inequality. rg found no callers for gmm_QXX_transpose, gmm_QXX_quad, or gmm_QXX_nonneg outside Chapter13GMM.lean.",
+    "suggested_fix": "Accept W.PosSemidef, derive (X'Z W Z'X).PosSemidef once with Matrix.PosSemidef.conjTranspose_mul_mul_same, and use its symmetry and nonnegativity fields in the Chapter 2 minimization theorem.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "f8a19edb6f5e40a921be2a1f62baa02077c99a56",
+    "file": "HansenEconometrics/Chapter13GMM.lean",
+    "line": 83,
+    "decl": "gmm_QXX_pos",
+    "dimension": "proof-quality",
+    "severity": "major",
+    "rule": "AGENTS.md Proof strategy policy: avoid redoing matrix-algebra arguments when the relevant theorem is available",
+    "claim": "The strict-positivity proof manually reconstructs an invertible positive-semidefinite matrix argument that two Mathlib lemmas close directly.",
+    "evidence": "gmm_QXX_pos proves that Z'X v cannot vanish by multiplying through the inverse in a 20-line kernel argument. Once the Gram pullback hQ is packaged as positive semidefinite, hQ.posDef_iff_isUnit.mpr (isUnit_of_invertible _) proves positive definiteness and hQpd.dotProduct_mulVec_pos hv proves the goal. This replacement compiled in a scoped Lean check; rg found no caller outside Chapter13GMM.lean.",
+    "suggested_fix": "Derive the Gram PosSemidef value once, convert it to PosDef with Matrix.PosSemidef.posDef_iff_isUnit and isUnit_of_invertible, then pass PosDef.dotProduct_mulVec_pos to linearProjectionBeta_eq_of_MSE_eq.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

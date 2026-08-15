@@ -92,7 +92,58 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- not started
+- Theorem 13.1 (linear GMM estimator minimizes the GMM criterion) is in
+  [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean). The public weight assumption is
+  `W.PosSemidef`; invertibility of the GMM Gram matrix supplies strict positive definiteness for
+  uniqueness. The chapter proof is a thin specialization of the reusable optimization results in
+  [Primitives.lean](../HansenEconometrics/Chapter13GMM/Primitives.lean).
+- Both clauses of Theorem 13.2 are formalized. GMM with weight `(Z'Z)⁻¹` equals the Chapter 12
+  2SLS estimator, and just-identified GMM equals the Chapter 12 IV estimator for every invertible
+  weight. Star and OrZero variants keep the singular-design behavior explicit.
+- Equation (13.7), the efficient-weight covariance reduction in Theorem 13.4, and the main Loewner
+  inequality in Theorem 13.5 are formalized. The efficiency proof reuses Chapter 4's generalized
+  Gauss–Markov variance-gap theorem after proving that the GMM influence matrix is a left inverse of
+  the population moment derivative.
+- Theorem 13.3 is formalized in Star and textbook-facing OrZero forms. The proof separates the exact
+  finite-sample coefficient identity, weighted-Gram convergence, the Chapter 7 score CLT, and the
+  final Slutsky step. A converter reuses the Chapter 12 Assumption 12.2 sample-moment and rank package.
+- Theorem 13.4 is formalized as a short specialization of Theorem 13.3. Its covariance reduction uses
+  a separate totalized deterministic lemma, so the distribution proof does not repeat matrix algebra.
+- Theorem 13.6 is formalized by combining Chapter 12's conditional-homoskedastic score-covariance
+  identity with the scale invariance of the GMM covariance. This proves that the population 2SLS
+  weight attains the efficient GMM covariance.
+- Both forms of Theorem 13.7 are formalized. Chapter 12 supplies consistency of the uncentered
+  residual-score second moment. For the centered form, the residual-score sample mean is shown to
+  converge to zero, so its outer-product correction vanishes. Inverting either matrix gives the
+  efficient weight, and Theorem 13.4 gives the efficient Gaussian limit.
+- Theorem 13.8 is formalized by composing the Chapter 13 coefficient limit, the Chapter 6 Gaussian
+  delta method, and the Chapter 9 Wald theorem. Its size statement is a separate thin wrapper.
+- Theorems 13.9--13.11 are formalized through the Chapter 8 minimum-distance and constrained-
+  estimator interfaces. The linear results include the covariance formulas (13.18) and (13.20).
+- Theorems 13.12--13.17 are developed in the specification-test module. Theorem 13.12 has an exact
+  observed-row endpoint for linear restrictions and a separate nonlinear endpoint conditional on
+  constrained-optimizer linearization; the full nonlinear textbook statement remains open for the
+  reason described below. Theorem 13.13 is exact finite-sample algebra. Theorems 13.14 and 13.15
+  have observed-row endpoints for the actual two-step GMM statistics, deriving the feasible
+  quadratic bridges and rank laws internally. Theorems 13.16 and 13.17 specialize Theorem 13.15 to
+  Hansen's displayed regressor and instrument blocks and fix the degrees of freedom to `k2`; their
+  condition packages make the rank qualification described below explicit.
+- Proposition 13.1 is formalized from a Gaussian sample-moment limit and the standard nonlinear
+  GMM first-order remainder. Its efficient specialization reduces the sandwich covariance to
+  $(Q'\Omega^{-1}Q)^{-1}$.
+
+## Coverage summary
+
+| Coverage unit | Result |
+| --- | --- |
+| Numbered theorems | Theorems 13.1--13.17: 17 of 17 have compiled Lean endpoints |
+| Numbered propositions | Proposition 13.1: 1 of 1 has compiled general and efficient-weight endpoints |
+| Full chapter | Partial: non-numbered exposition, all derivations, and Exercises 13.1--13.28 are not systematic coverage targets |
+| Explicit qualifications | Theorem 13.5 strictness; Theorem 13.12 nonlinear optimizer linearization; Theorems 13.16 and 13.17 maintained relevance |
+
+The theorem-surface count records the presence of a valid endpoint. It does not
+claim that every endpoint has the exact assumptions or generality printed in the
+textbook. The qualifications below state each known difference.
 
 ## LaTeX / Lean Crosswalk
 
@@ -112,26 +163,82 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 13.1 | For the overidentiﬁed IV model |  |
-| Theorem 13.2 | If W = |  |
-| Theorem 13.3 | Asymptotic Distribution of GMM Estimator. Under Assump- |  |
-| Theorem 13.4 | Asymptotic Distribution of GMM with Efﬁcient Weight Ma- |  |
-| Theorem 13.5 | Efﬁcient GMM. Under Assumption 12.2, for any W > 0, |  |
-| Theorem 13.6 | Under Assumption 12.2 and E |  |
-| Theorem 13.7 | Under Assumption 12.2 and Ω > 0, if ˆW = ˆΩ−1 or ˆW = |  |
-| Theorem 13.8 | Under Assumption 12.2, Assumption 7.3, and H0, as n → ∞ , |  |
-| Theorem 13.9 | Under Assumptions 12.2 and 8.3, for the constrained GMM es- |  |
-| Theorem 13.10 | Under Assumptions 12.2 and 8.3, for the efﬁcient constrained |  |
-| Theorem 13.11 | Under Assumptions 12.2 and 8.3, for the constrained GMM |  |
-| Theorem 13.12 | Under Assumption 12.2, Assumption 7.3, and H0, then as n → |  |
-| Theorem 13.13 | If ˜Ω = ˆΩ then D ≥ 0. Furthermore, if r is linear in β then D |  |
-| Theorem 13.14 | Under Assumption 12.2 then asn → ∞, J = J |  |
-| Theorem 13.15 | Under Assumption 12.2 and E |  |
-| Theorem 13.16 | Under Assumption 12.2 and E |  |
-| Theorem 13.17 | Under Assumption 12.2 andE |  |
-| Proposition 13.1 | Distribution of Nonlinear GMM Estimator |  |
+| Theorem 13.1 | For the overidentified IV model with weight `W`, `β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)` (eq. 13.6) minimizes the GMM criterion `J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))` | closed form (13.6): [gmmBeta](../HansenEconometrics/Chapter13GMM.lean#L101); minimizer: [gmmCriterion_gmmBeta_le](../HansenEconometrics/Chapter13GMM.lean#L155) / [gmmBeta_isMinOn](../HansenEconometrics/Chapter13GMM.lean#L163); uniqueness: [gmmBeta_eq_of_minimizer](../HansenEconometrics/Chapter13GMM.lean#L171); criterion: [gmmCriterion](../HansenEconometrics/Chapter13GMM.lean#L86) |
+| Theorem 13.2 | If `W = (Z'Z)⁻¹`, then `β̂_gmm = β̂_2sls`. If `k = ℓ`, then `β̂_gmm = β̂_iv`. | 2SLS, Star form: [gmmBetaStar_eq_twoSLSBetaStar](../HansenEconometrics/Chapter13GMM.lean#L207); textbook-facing form: [gmmBetaOrZero_eq_twoSLSBetaOrZero](../HansenEconometrics/Chapter13GMM.lean#L219); ordinary nonsingular form: [gmmBetaOrZero_eq_twoSLSBeta](../HansenEconometrics/Chapter13GMM.lean#L227); just-identified IV: [gmmBetaOrZero_eq_ivBeta_of_justIdentified](../HansenEconometrics/Chapter13GMM.lean#L238) |
+| Theorem 13.3 | Under Assumption 12.2, if `Ŵ →ₚ W > 0`, then `√n(β̂_gmm−β) →d N(0,Vβ)`, where `Vβ = (Q'WQ)⁻¹(Q'WΩWQ)(Q'WQ)⁻¹` (13.7). | covariance (13.7): [gmmAsymptoticVariance](../HansenEconometrics/Chapter13GMM.lean#L252) / [gmmAsymptoticVariance_eq_formula](../HansenEconometrics/Chapter13GMM.lean#L272); random-map CLT: [gmmLinearizedScore_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Asymptotics.lean); Star estimator: [gmmBetaStar_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Asymptotics.lean); Assumption 12.2 OrZero endpoint: [gmmBetaOrZero_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Asymptotics.lean) |
+| Theorem 13.4 | Asymptotic Distribution of GMM with Efficient Weight Matrix | efficient covariance: [gmmAsymptoticVarianceStar_efficient](../HansenEconometrics/Chapter13GMM.lean); Assumption 12.2 distribution: [gmmBetaOrZero_tendstoInDistribution_efficient_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Asymptotics.lean) |
+| Theorem 13.5 | Under Assumption 12.2, for any `W > 0`, `Vβ(W) − (Q'Ω⁻¹Q)⁻¹ ≥ 0`; hence efficient GMM has weakly smaller asymptotic covariance. Hansen also states strict inequality for `W ≠ Ω⁻¹`, subject to the qualification below. | [gmmAsymptoticVariance_sub_efficient_posSemidef](../HansenEconometrics/Chapter13GMM.lean#L340) |
+| Theorem 13.6 | Under Assumption 12.2 and `E[e² ∣ Z] = σ²`, 2SLS is efficient GMM. | observed-row endpoint: [twoSLSWeight_is_efficientGMM_of_assumption12_2_observedRows_homoskedastic](../HansenEconometrics/Chapter13GMM/Efficiency.lean); generalized engine: [twoSLSWeight_is_efficientGMM_of_assumption12_2_homoskedastic](../HansenEconometrics/Chapter13GMM/Efficiency.lean) |
+| Theorem 13.7 | Under Assumption 12.2 and `Ω > 0`, the uncentered (13.8) and centered (13.9) two-step weights give the efficient Gaussian limit. | observed-row uncentered: [gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/Efficiency.lean); observed-row centered: [gmmBetaOrZero_centeredTwoStep_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/Efficiency.lean); generalized uncentered/centered engines: [gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Efficiency.lean) / [gmmBetaOrZero_centeredTwoStep_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Efficiency.lean); weight consistency: [gmmUncenteredTwoStepWeightStar_tendstoInMeasure](../HansenEconometrics/Chapter13GMM/Efficiency.lean) / [gmmCenteredTwoStepWeightStar_tendstoInMeasure](../HansenEconometrics/Chapter13GMM/Efficiency.lean) |
+| Theorem 13.8 | Under Assumption 12.2, Assumption 7.3, and the null, the GMM Wald statistic has a chi-square limit and asymptotic size `alpha`. | limit: [gmmWaldStatOrZero_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Inference.lean); size: [gmmWaldTest_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.9 | The constrained GMM estimator has covariance (13.18) and a Gaussian limit. | covariance: [gmmConstrainedAsymptoticVariance_eq_hansen_1318](../HansenEconometrics/Chapter13GMM/Inference.lean); limit: [gmmConstrainedBetaStar_tendstoInDistribution_of_assumption12_2](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.10 | Efficient constrained GMM has covariance (13.20) and the corresponding Gaussian limit. | covariance: [gmmEfficientConstrainedAsymptoticVariance_eq_hansen_1320](../HansenEconometrics/Chapter13GMM/Inference.lean); limit: [gmmEfficientConstrainedBetaStar_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.11 | Nonlinear constrained GMM has the Chapter 8 constrained-estimator Gaussian limit, with an efficient specialization. | general: [gmmNonlinearConstrainedBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean); efficient: [gmmNonlinearEfficientConstrainedBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Inference.lean) |
+| Theorem 13.12 | Under Assumptions 12.2 and 7.3 and the null, the restricted-minus-unrestricted efficient-GMM criterion converges to `chiSquared(q)` and its upper-tail test has asymptotic size `alpha`. | exact linear-restriction observed-row limit: [gmmUncenteredTwoStepLinearDistanceStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); linear-restriction size: [gmmUncenteredTwoStepLinearDistanceTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); nonlinear endpoint conditional on optimizer linearization: [gmmUncenteredTwoStepDistanceStatOrZero_tendstoInDistribution_observedRows_of_linearization](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.13 | With a common weight, the distance statistic is nonnegative. With a linear restriction and efficient common weight, it equals the Wald statistic. | nonnegative: [gmmDistanceStat_nonneg_of_commonWeight](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); Wald equality: [gmmDistanceStat_eq_wald_of_linear_commonWeight](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.14 | Under Assumption 12.2, the efficient two-step GMM overidentification criterion converges to `chiSquared(l-k)` and its upper-tail test has asymptotic size `alpha`. | observed-row limit: [gmmUncenteredTwoStepJStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row size: [gmmUncenteredTwoStepJTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); generic Gaussian engine: [gmmJStatOrZero_tendstoInDistribution_chiSquared_of_factorSymmIdem](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.15 | For `Z=(Za,Zb)`, the full-minus-maintained efficient two-step GMM criteria `C=Jhat-Jtilde` converge to `chiSquared(lb)` under Assumption 12.2 and full rank of `E[Za X']`; the upper-tail test has asymptotic size `alpha`. | statistic: [gmmUncenteredTwoStepSubsetJStatOrZero](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row limit: [gmmUncenteredTwoStepSubsetJStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row size: [gmmUncenteredTwoStepSubsetJTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.16 | In `Y=Z1'beta1+Y2'beta2+e`, compare instruments `(Z1,Z2,Y2)` with `(Z1,Z2)`. Under the stated rank conditions, `C` converges to `chiSquared(k2)` and the upper-tail test has asymptotic size `alpha`. | conditions: [GMMEndogeneityObservedRowsConditions](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); statistic: [gmmEndogeneityTwoStepStatOrZero](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row limit: [gmmEndogeneityTwoStepStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmEndogeneityTwoStepTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Theorem 13.17 | In `Y=Z1'beta1+Y2'beta2+Y3'beta3+e`, compare instruments `(Z1,Z2,Y2)` with `(Z1,Z2)` to test only `Y2`. Under the stated rank conditions, `C` converges to `chiSquared(k2)` and the upper-tail test has asymptotic size `alpha`. | conditions: [GMMSubsetEndogeneityObservedRowsConditions](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); statistic: [gmmSubsetEndogeneityTwoStepStatOrZero](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row limit: [gmmSubsetEndogeneityTwoStepStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmSubsetEndogeneityTwoStepTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
+| Proposition 13.1 | A nonlinear GMM estimator has the sandwich Gaussian limit; efficient weighting gives covariance $(Q'\Omega^{-1}Q)^{-1}$. | general: [nonlinearGMMBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Nonlinear.lean); efficient: [nonlinearGMMBeta_tendstoInDistribution_efficient](../HansenEconometrics/Chapter13GMM/Nonlinear.lean) |
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- **Coverage boundary**: this is a theorem-surface map. It covers all 17 numbered theorems and
+  Proposition 13.1, but it does not claim complete coverage of every section, derivation, or
+  exercise.
+- **Verification**: `lake build` completed successfully on 2026-08-11 with all 3225 jobs. The build
+  emitted existing linter warnings, but no errors.
+- **Theorem 13.1**: both clauses of Hansen's statement are covered — the closed form (13.6) is the
+  definition `gmmBeta`, and "the GMM estimator minimizes `J`" is `gmmCriterion_gmmBeta_le` /
+  `gmmBeta_isMinOn` (with uniqueness `gmmBeta_eq_of_minimizer`). Hansen assumes `W > 0`; the Lean
+  theorem is more general because it uses `W.PosSemidef` together with the already required
+  invertibility of `X'Z W Z'X`. Hansen's `n·` prefactor is dropped — a positive scalar that does not
+  affect the minimizer — exactly as `sumSquaredErrors` drops `1/n`.
+- **Theorem 13.2**: the 2SLS equality is first proved for the Star estimators and then exposed through
+  the textbook-facing OrZero API. The OrZero equality also holds on singular designs because both
+  sides use the same totalized matrix inverse. The just-identified result assumes `Z'X` and `W` are
+  invertible. This follows Hansen's positive-definite weight setting and removes the weight from the
+  estimator by solving the square moment equation directly.
+- **Module boundary**: [Primitives.lean](../HansenEconometrics/Chapter13GMM/Primitives.lean) contains
+  the generic linear moment criterion, optimization theorem, exact estimator decomposition, and
+  sandwich covariance formula. [Asymptotics.lean](../HansenEconometrics/Chapter13GMM/Asymptotics.lean)
+  contains the general GMM convergence packages and measure-theoretic proofs.
+  [Efficiency.lean](../HansenEconometrics/Chapter13GMM/Efficiency.lean) contains the Chapter 12 reuse
+  and feasible-weight arguments for Theorems 13.6 and 13.7.
+  [Inference.lean](../HansenEconometrics/Chapter13GMM/Inference.lean) reuses Chapters 6, 8, and 9 for
+  Theorems 13.8--13.11.
+  [SpecificationTests.lean](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) contains the
+  distance and specification tests in Theorems 13.12--13.17.
+  [Nonlinear.lean](../HansenEconometrics/Chapter13GMM/Nonlinear.lean) contains Proposition 13.1.
+  The root
+  [Chapter13GMM.lean](../HansenEconometrics/Chapter13GMM.lean) contains sample-notation bridges and
+  concise textbook-facing deterministic statements.
+- **Theorem 13.5**: the semidefinite covariance comparison is proved by applying Chapter 4's
+  `generalizedGaussMarkov_variance_gap_posSemidef` theorem to the transpose of the GMM influence
+  matrix. The excerpt's strict claim for every `W ≠ Omega⁻¹` is not formalized because GMM is
+  invariant to nonzero scalar rescaling of `W`; a distinct scalar multiple of `Omega⁻¹` gives the
+  same estimator and covariance. A strict result needs a normalization or a condition stated on the
+  induced influence matrix.
+- **Theorem 13.12, nonlinear optimizer qualification**: the crosswalk records the exact linear
+  endpoint and the conditional nonlinear endpoint separately. Assumption 7.3 supplies smoothness
+  and derivative rank, but it does **not** by itself establish the
+  first-order expansion of a selected nonlinear constrained-GMM optimizer. The textbook proof uses
+  that expansion without stating the local optimizer, consistency, and first-order-condition
+  regularity needed to derive it. Lean therefore does not relabel the stronger interface theorem as
+  the full result. The exact linear-restriction statistic and limit are
+  [gmmUncenteredTwoStepLinearDistanceStatOrZero](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean)
+  and
+  [gmmUncenteredTwoStepLinearDistanceStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean);
+  its size theorem is
+  [gmmUncenteredTwoStepLinearDistanceTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean).
+  The nonlinear result conditional on the missing optimizer expansion is exposed separately as
+  [gmmUncenteredTwoStepDistanceStatOrZero_tendstoInDistribution_observedRows_of_linearization](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean).
+- **Theorems 13.16 and 13.17, rank qualification**: Hansen displays full rank of
+  `E[Z2 Y2']` and `E[Z2 (Y2',Y3')]`, respectively. For unrestricted correlated blocks, those raw
+  submatrix ranks do **not** imply full rank of the maintained moment derivative
+  `E[(Z1,Z2)(Z1,Y2)']` or `E[(Z1,Z2)(Z1,Y2,Y3)']`; a Schur-complement (partialled-out) rank
+  condition or an orthogonalization convention is additionally needed. The Lean condition packages
+  record Hansen's displayed rank verbatim and separately require maintained relevance, so the
+  formalized conclusions are valid without silently treating the insufficient raw-block condition as
+  sufficient.

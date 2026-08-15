@@ -323,8 +323,8 @@ omit [Fintype k] [DecidableEq k] in
 
 If `Tₙ ⇒ Z` and `Ahatₙ →ₚ A`, then
 `Tₙ' Ahatₙ Tₙ ⇒ Z' A Z`. This is the statistic-level CMT used by the
-nonlinear Hausman layer. -/
-private theorem quadraticForm_tendstoInDistribution_of_vector_and_matrix
+nonlinear Hausman layer and later GMM specification tests. -/
+theorem quadraticForm_tendstoInDistribution_of_vector_and_matrix
     {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
