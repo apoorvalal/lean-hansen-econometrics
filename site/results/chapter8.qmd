@@ -508,7 +508,7 @@ of the MD map at the limiting values. </p></div>
                   Filter.atTop fun x =&gt; β</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2148">HansenEconometrics/Chapter8Asymptotics.lean:2148</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L1930">HansenEconometrics/Chapter8Asymptotics.lean:1930</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoinmeasure-beta-of-nonsingular">
@@ -534,7 +534,7 @@ side conditions discharged from nonsingularity of the population weight and rest
                   Filter.atTop fun x =&gt; β</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2177">HansenEconometrics/Chapter8Asymptotics.lean:2177</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L1959">HansenEconometrics/Chapter8Asymptotics.lean:1959</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoinmeasure-beta-of-consistency">
@@ -551,7 +551,7 @@ side conditions discharged from nonsingularity of the population weight and rest
       fun x =&gt; β</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.MinimumDistanceConsistencyConditions</code></li><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2197">HansenEconometrics/Chapter8Asymptotics.lean:2197</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L1979">HansenEconometrics/Chapter8Asymptotics.lean:1979</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-restrict">
@@ -569,7 +569,7 @@ side conditions discharged from nonsingularity of the population weight and rest
   Eq (R.transpose.mulVec (HansenEconometrics.mdBeta W R c bhat)) c</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBeta</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L36">HansenEconometrics/Chapter8Asymptotics.lean:36</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L38">HansenEconometrics/Chapter8Asymptotics.lean:38</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-minimumdistanceconsistencyconditions-of-weight-posdef">
@@ -591,7 +591,7 @@ minimum-distance consistency interface. </p></div>
               Eq (R.transpose.mulVec β) c → HansenEconometrics.MinimumDistanceConsistencyConditions μ bhat What W R c β</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.MinimumDistanceConsistencyConditions</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2065">HansenEconometrics/Chapter8Asymptotics.lean:2065</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L1847">HansenEconometrics/Chapter8Asymptotics.lean:1847</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-eq-mdbetastar">
@@ -609,7 +609,7 @@ minimum-distance consistency interface. </p></div>
   Eq (HansenEconometrics.mdBeta W R c bhat) (HansenEconometrics.mdBetaStar W R c bhat)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdBeta</code></li><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L53">HansenEconometrics/Chapter8Asymptotics.lean:53</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L55">HansenEconometrics/Chapter8Asymptotics.lean:55</a></p>
 </div>
 </details>
 </div>
@@ -641,7 +641,7 @@ minimum-distance consistency interface. </p></div>
           (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdLinearMap</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3140">HansenEconometrics/Chapter8Asymptotics.lean:3140</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2798">HansenEconometrics/Chapter8Asymptotics.lean:2798</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-eq-hansen-expanded">
@@ -695,7 +695,7 @@ the four-term textbook formula when the weight matrix is symmetric. </p></div>
           (Matrix.inv.inv W)))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L294">HansenEconometrics/Chapter8Asymptotics.lean:294</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L296">HansenEconometrics/Chapter8Asymptotics.lean:296</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoindistribution-multivariategaussian">
@@ -725,7 +725,7 @@ linearization capability as <code>AsymptoticallyLinearEstimator</code>. </p></di
               (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdLinearMap</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3180">HansenEconometrics/Chapter8Asymptotics.lean:3180</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2838">HansenEconometrics/Chapter8Asymptotics.lean:2838</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoindistribution-gaussian-of-measurable">
@@ -752,7 +752,7 @@ unrestricted estimator and weight process. </p></div>
             (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdLinearMap</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3159">HansenEconometrics/Chapter8Asymptotics.lean:3159</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2817">HansenEconometrics/Chapter8Asymptotics.lean:2817</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-fixedweight-tendstoindistribution-multivariategaussian">
@@ -775,7 +775,7 @@ discharges the remainder side condition. </p></div>
             (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3238">HansenEconometrics/Chapter8Asymptotics.lean:3238</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2896">HansenEconometrics/Chapter8Asymptotics.lean:2896</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-randomweight-tendstoindistribution-multivariategaussian">
@@ -805,7 +805,7 @@ linearization step. </p></div>
                   (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3259">HansenEconometrics/Chapter8Asymptotics.lean:3259</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2917">HansenEconometrics/Chapter8Asymptotics.lean:2917</a></p>
 </div>
 </details>
 </div>
@@ -837,7 +837,7 @@ linearization step. </p></div>
           (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3306">HansenEconometrics/Chapter8Asymptotics.lean:3306</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2964">HansenEconometrics/Chapter8Asymptotics.lean:2964</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsasymptoticvariance-eq-hansen-expanded">
@@ -891,7 +891,7 @@ minimum-distance formula with the population Gram weight. </p></div>
           (Matrix.inv.inv Q)))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.clsAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L335">HansenEconometrics/Chapter8Asymptotics.lean:335</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L337">HansenEconometrics/Chapter8Asymptotics.lean:337</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-multivariategaussian">
@@ -921,7 +921,7 @@ CLS-as-MD linearization capability as <code>AsymptoticallyLinearEstimator</code>
               (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3344">HansenEconometrics/Chapter8Asymptotics.lean:3344</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3002">HansenEconometrics/Chapter8Asymptotics.lean:3002</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-gaussian-of-measurable">
@@ -948,7 +948,7 @@ sample-Gram measurability. </p></div>
             (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3323">HansenEconometrics/Chapter8Asymptotics.lean:3323</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2981">HansenEconometrics/Chapter8Asymptotics.lean:2981</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-randomweight-tendstoindistribution-multivariategaussian">
@@ -977,7 +977,7 @@ discharges the CLS-as-MD linearization through the random-weight MD theorem. </p
                   (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.clsMDScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3403">HansenEconometrics/Chapter8Asymptotics.lean:3403</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3061">HansenEconometrics/Chapter8Asymptotics.lean:3061</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-multivariategaussian-of-linearization">
@@ -1000,7 +1000,7 @@ discharges the CLS-as-MD linearization through the random-weight MD theorem. </p
           (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.AsymptoticallyLinearEstimator</code></li><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3369">HansenEconometrics/Chapter8Asymptotics.lean:3369</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3027">HansenEconometrics/Chapter8Asymptotics.lean:3027</a></p>
 </div>
 </details>
 </div>
@@ -1013,16 +1013,16 @@ discharges the CLS-as-MD linearization through the random-weight MD theorem. </p
 <details class="lean-declaration" id="decl-hanseneconometrics-covariancestderrorscale-aemeasurable">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covarianceStdErrorScale_aemeasurable</code></summary>
 <div class="declaration-body">
-<div class="declaration-doc"><p>A fixed-linear-combination standard-error scale is a.e. measurable whenever the covariance
-estimator is. </p></div>
+<div class="declaration-doc"><p>A fixed-linear-combination standard-error scale is a.e. measurable whenever
+the covariance estimator is. </p></div>
 <details class="formal-statement"><summary>Formal statement</summary>
-<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] {Ω : Type u_3} [inst_1 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] {Ω : Type u_2} [inst_1 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
   (h : k → Real) {Vhat : Ω → Matrix k k Real},
   MeasureTheory.AEStronglyMeasurable Vhat μ →
     AEMeasurable (fun ω =&gt; HansenEconometrics.covarianceStdErrorScale h (Vhat ω)) μ</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.covarianceStdErrorScale</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L486">HansenEconometrics/Chapter8Asymptotics.lean:486</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/InferenceUtils.lean#L66">HansenEconometrics/InferenceUtils.lean:66</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-aestronglymeasurable">
@@ -1039,7 +1039,7 @@ unrestricted covariance inputs are. </p></div>
       MeasureTheory.AEStronglyMeasurable (fun ω =&gt; HansenEconometrics.mdAsymptoticVariance (Wseq ω) R (Vseq ω)) μ</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L586">HansenEconometrics/Chapter8Asymptotics.lean:586</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L408">HansenEconometrics/Chapter8Asymptotics.lean:408</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdcovarianceestimatorconsistent-of-consistency">
@@ -1062,7 +1062,7 @@ unrestricted covariance inputs are. </p></div>
             (HansenEconometrics.mdAsymptoticVariance W R V)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.CovarianceEstimatorConsistent</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L661">HansenEconometrics/Chapter8Asymptotics.lean:661</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L483">HansenEconometrics/Chapter8Asymptotics.lean:483</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-clscovarianceestimatorconsistent-of-consistency">
@@ -1086,7 +1086,7 @@ matrix as the weight. </p></div>
             (HansenEconometrics.clsAsymptoticVariance Q R V)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.CovarianceEstimatorConsistent</code></li><li><code>HansenEconometrics.clsAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L681">HansenEconometrics/Chapter8Asymptotics.lean:681</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L503">HansenEconometrics/Chapter8Asymptotics.lean:503</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-continuousat-of-nonsingular">
@@ -1104,22 +1104,22 @@ restriction Gram is nonsingular. </p></div>
       ContinuousAt (fun p =&gt; HansenEconometrics.mdAsymptoticVariance p.fst R p.snd) { fst := W, snd := V }</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L607">HansenEconometrics/Chapter8Asymptotics.lean:607</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L429">HansenEconometrics/Chapter8Asymptotics.lean:429</a></p>
 </div>
 </details>
-<details class="lean-declaration" id="decl-hanseneconometrics-feasiblestandarderrorconsistent-of-tendstoinmeasure">
-<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.feasibleStandardErrorConsistent_of_tendstoInMeasure</code></summary>
+<details class="lean-declaration" id="decl-hanseneconometrics-covarianceestimatorconsistent-of-tendstoinmeasure">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covarianceEstimatorConsistent_of_tendstoInMeasure</code></summary>
 <div class="declaration-body">
-<div class="declaration-doc"><p>Constructor for the feasible-standard-error interface from explicit measurability and
-convergence fields. </p></div>
+<div class="declaration-doc"><p>Constructor for covariance-estimator consistency from its two defining fields. </p></div>
 <details class="formal-statement"><summary>Formal statement</summary>
-<pre><code class="language-lean">∀ {Ω : Type u_3} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (sehat : Nat → Ω → Real) (se : Real),
-  (∀ (n : Nat), AEMeasurable (sehat n) μ) →
-    (MeasureTheory.TendstoInMeasure μ sehat Filter.atTop fun x =&gt; se) →
-      HansenEconometrics.FeasibleStandardErrorConsistent μ sehat se</code></pre>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} {k : Type u_2} [inst_1 : Fintype k]
+  (Vhat : Nat → Ω → Matrix k k Real) (V : Matrix k k Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (Vhat n) μ) →
+    (MeasureTheory.TendstoInMeasure μ Vhat Filter.atTop fun x =&gt; V) →
+      HansenEconometrics.CovarianceEstimatorConsistent μ Vhat V</code></pre>
 </details>
-<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.FeasibleStandardErrorConsistent</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L526">HansenEconometrics/Chapter8Asymptotics.lean:526</a></p>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.CovarianceEstimatorConsistent</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticInterfaces.lean#L61">HansenEconometrics/AsymptoticInterfaces.lean:61</a></p>
 </div>
 </details>
 </div>
@@ -1172,7 +1172,7 @@ minimum-distance variance gap relative to the efficient-MD variance. </p></div>
                       (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R)))).transpose)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3907">HansenEconometrics/Chapter8Asymptotics.lean:3907</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3565">HansenEconometrics/Chapter8Asymptotics.lean:3565</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdasymptoticvariance-le-md-concrete">
@@ -1194,7 +1194,7 @@ relative to any symmetric minimum-distance weight at this abstraction layer. </p
               (HansenEconometrics.emdAsymptoticVariance R V)).PosSemidef</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3961">HansenEconometrics/Chapter8Asymptotics.lean:3961</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3619">HansenEconometrics/Chapter8Asymptotics.lean:3619</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdbeta-tendstoindistribution-gaussian">
@@ -1218,7 +1218,7 @@ relative to any symmetric minimum-distance weight at this abstraction layer. </p
           (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3632">HansenEconometrics/Chapter8Asymptotics.lean:3632</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3290">HansenEconometrics/Chapter8Asymptotics.lean:3290</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-efficientweight-eq-emd">
@@ -1238,7 +1238,7 @@ equals the efficient-MD asymptotic variance. </p></div>
           (HansenEconometrics.emdAsymptoticVariance R V)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3717">HansenEconometrics/Chapter8Asymptotics.lean:3717</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3375">HansenEconometrics/Chapter8Asymptotics.lean:3375</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdbeta-tendstoindistribution-multivariategaussian">
@@ -1271,7 +1271,7 @@ EMD linearization capability as <code>AsymptoticallyLinearEstimator</code>. </p>
                   (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.emdAsymptoticVariance R V))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.emdScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3761">HansenEconometrics/Chapter8Asymptotics.lean:3761</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3419">HansenEconometrics/Chapter8Asymptotics.lean:3419</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdbeta-tendstoindistribution-gaussian-of-measurable">
@@ -1297,7 +1297,7 @@ discharged from unrestricted-estimator measurability. </p></div>
           (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3650">HansenEconometrics/Chapter8Asymptotics.lean:3650</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3308">HansenEconometrics/Chapter8Asymptotics.lean:3308</a></p>
 </div>
 </details>
 </div>
@@ -1315,7 +1315,7 @@ discharged from unrestricted-estimator measurability. </p></div>
 <pre><code class="language-lean">Eq (HansenEconometrics.scalarSchurVariance 1 (1 / 2) (1 / 2) 1) (3 / 4)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarSchurVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L372">HansenEconometrics/Chapter8Asymptotics.lean:372</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L374">HansenEconometrics/Chapter8Asymptotics.lean:374</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarlongregressionasymptoticvariance-heteroskedasticexample">
@@ -1326,7 +1326,7 @@ discharged from unrestricted-estimator measurability. </p></div>
 <pre><code class="language-lean">Eq (HansenEconometrics.scalarLongRegressionAsymptoticVariance 1 (1 / 2) (1 / 2) 1 1 (7 / 8) (7 / 8) 1) (2 / 3)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarLongRegressionAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L377">HansenEconometrics/Chapter8Asymptotics.lean:377</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L379">HansenEconometrics/Chapter8Asymptotics.lean:379</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarshortregressionasymptoticvariance-heteroskedasticexample">
@@ -1337,7 +1337,7 @@ discharged from unrestricted-estimator measurability. </p></div>
 <pre><code class="language-lean">Eq (HansenEconometrics.scalarShortRegressionAsymptoticVariance 1 1) 1</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarShortRegressionAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L383">HansenEconometrics/Chapter8Asymptotics.lean:383</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L385">HansenEconometrics/Chapter8Asymptotics.lean:385</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarexclusionrestriction-heteroskedasticexample-variance-order">
@@ -1353,7 +1353,7 @@ the short-regression CLS variance exceeds the unrestricted long-regression varia
     (HansenEconometrics.scalarShortRegressionAsymptoticVariance 1 1))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance</code></li><li><code>HansenEconometrics.scalarLongRegressionAsymptoticVariance</code></li><li><code>HansenEconometrics.scalarShortRegressionAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L395">HansenEconometrics/Chapter8Asymptotics.lean:395</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L397">HansenEconometrics/Chapter8Asymptotics.lean:397</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarefficientrestrictedasymptoticvariance-heteroskedasticexample">
@@ -1364,7 +1364,7 @@ the short-regression CLS variance exceeds the unrestricted long-regression varia
 <pre><code class="language-lean">Eq (HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance (2 / 3) (1 / 6) (1 / 6) (2 / 3)) (5 / 8)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L388">HansenEconometrics/Chapter8Asymptotics.lean:388</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L390">HansenEconometrics/Chapter8Asymptotics.lean:390</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarschurvariance">
@@ -1375,7 +1375,7 @@ the short-regression CLS variance exceeds the unrestricted long-regression varia
 <pre><code class="language-lean">Real → Real → Real → Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L347">HansenEconometrics/Chapter8Asymptotics.lean:347</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L349">HansenEconometrics/Chapter8Asymptotics.lean:349</a></p>
 </div>
 </details>
 </div>
@@ -1404,7 +1404,7 @@ the short-regression CLS variance exceeds the unrestricted long-regression varia
         Vhat))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.emdCovarianceEstimator</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L708">HansenEconometrics/Chapter8Asymptotics.lean:708</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L530">HansenEconometrics/Chapter8Asymptotics.lean:530</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdstderror">
@@ -1417,19 +1417,7 @@ the short-regression CLS variance exceeds the unrestricted long-regression varia
     [Fintype k] → [Fintype q] → [DecidableEq q] → Real → (k → Real) → Matrix k q Real → Matrix k k Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L715">HansenEconometrics/Chapter8Asymptotics.lean:715</a></p>
-</div>
-</details>
-<details class="lean-declaration" id="decl-hanseneconometrics-covariancestderror">
-<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.covarianceStdError</code></summary>
-<div class="declaration-body">
-<div class="declaration-doc"><p>Hansen equation (8.36): finite-sample standard error for <code>h'β̂</code>, written as the
-asymptotic covariance scale divided by the square-root normalization. </p></div>
-<details class="formal-statement"><summary>Formal statement</summary>
-<pre><code class="language-lean">{k : Type u_1} → [Fintype k] → Real → (k → Real) → Matrix k k Real → Real</code></pre>
-</details>
-
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L454">HansenEconometrics/Chapter8Asymptotics.lean:454</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L537">HansenEconometrics/Chapter8Asymptotics.lean:537</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdcovarianceestimator">
@@ -1442,7 +1430,7 @@ covariance estimator. </p></div>
   {q : Type u_2} → [Fintype k] → [Fintype q] → [DecidableEq q] → Matrix k q Real → Matrix k k Real → Matrix k k Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L702">HansenEconometrics/Chapter8Asymptotics.lean:702</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L524">HansenEconometrics/Chapter8Asymptotics.lean:524</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdstderror-eq-hansen">
@@ -1456,13 +1444,13 @@ covariance estimator. </p></div>
     (instHDiv.hDiv (dotProduct h ((HansenEconometrics.emdCovarianceEstimator R Vhat).mulVec h)).sqrt root)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdCovarianceEstimator</code></li><li><code>HansenEconometrics.emdStdError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L721">HansenEconometrics/Chapter8Asymptotics.lean:721</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L543">HansenEconometrics/Chapter8Asymptotics.lean:543</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-covariancestderror-eq-inv-mul-scale">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covarianceStdError_eq_inv_mul_scale</code></summary>
 <div class="declaration-body">
-<div class="declaration-doc"><p>The finite-sample standard error in (8.36) is the same as <code>root⁻¹</code> times the
+<div class="declaration-doc"><p>The finite-sample standard error is the inverse normalization times the
 asymptotic standard-error scale. </p></div>
 <details class="formal-statement"><summary>Formal statement</summary>
 <pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] (root : Real) (h : k → Real) (V : Matrix k k Real),
@@ -1470,7 +1458,23 @@ asymptotic standard-error scale. </p></div>
     (instHMul.hMul (Real.instInv.inv root) (HansenEconometrics.covarianceStdErrorScale h V))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.covarianceStdError</code></li><li><code>HansenEconometrics.covarianceStdErrorScale</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L466">HansenEconometrics/Chapter8Asymptotics.lean:466</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/InferenceUtils.lean#L46">HansenEconometrics/InferenceUtils.lean:46</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-covariancetstatistic-eq-scaled-div-scale">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covarianceTStatistic_eq_scaled_div_scale</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Rewrites a t-statistic as the scaled numerator divided by its asymptotic
+standard-error scale. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] (root θhat θ : Real) (h : k → Real) (V : Matrix k k Real),
+  Ne root 0 →
+    Ne (HansenEconometrics.covarianceStdErrorScale h V) 0 →
+      Eq (HansenEconometrics.covarianceTStatistic root θhat θ h V)
+        (instHDiv.hDiv (instHMul.hMul root (instHSub.hSub θhat θ)) (HansenEconometrics.covarianceStdErrorScale h V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.covarianceStdErrorScale</code></li><li><code>HansenEconometrics.covarianceTStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/InferenceUtils.lean#L55">HansenEconometrics/InferenceUtils.lean:55</a></p>
 </div>
 </details>
 </div>
@@ -1496,7 +1500,7 @@ equals the unrestricted asymptotic variance minus the efficient restricted asymp
         (instHSub.hSub V (HansenEconometrics.emdAsymptoticVariance R V))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.emdDifferenceAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4035">HansenEconometrics/Chapter8Asymptotics.lean:4035</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3693">HansenEconometrics/Chapter8Asymptotics.lean:3693</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emddifference-tendstoindistribution-multivariategaussian">
@@ -1519,7 +1523,7 @@ estimator and the efficient minimum-distance estimator. </p></div>
             (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.emdDifferenceAsymptoticVariance R V))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdDifferenceAsymptoticVariance</code></li><li><code>HansenEconometrics.emdDifferenceScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4092">HansenEconometrics/Chapter8Asymptotics.lean:4092</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3750">HansenEconometrics/Chapter8Asymptotics.lean:3750</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emddifference-tendstoindistribution-multivariategaussian-gap">
@@ -1547,7 +1551,7 @@ estimator and the efficient minimum-distance estimator. </p></div>
                   (instHSub.hSub V (HansenEconometrics.emdAsymptoticVariance R V)))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.emdDifferenceScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4119">HansenEconometrics/Chapter8Asymptotics.lean:4119</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3777">HansenEconometrics/Chapter8Asymptotics.lean:3777</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emddifferencescalederror-eq-linearmap">
@@ -1565,7 +1569,7 @@ unrestricted scaled error. </p></div>
         (HansenEconometrics.emdDifferenceLinearMap R V).mulVec (instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdDifferenceLinearMap</code></li><li><code>HansenEconometrics.emdDifferenceScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4079">HansenEconometrics/Chapter8Asymptotics.lean:4079</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3737">HansenEconometrics/Chapter8Asymptotics.lean:3737</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdbetastar-difference-eq-linearmap">
@@ -1581,7 +1585,7 @@ unrestricted scaled error. </p></div>
         ((HansenEconometrics.emdDifferenceLinearMap R V).mulVec (instHSub.hSub bhat β))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdBetaStar</code></li><li><code>HansenEconometrics.emdDifferenceLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4059">HansenEconometrics/Chapter8Asymptotics.lean:4059</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3717">HansenEconometrics/Chapter8Asymptotics.lean:3717</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emddifferencelinearmap">
@@ -1594,7 +1598,7 @@ minimum-distance estimator. </p></div>
   {q : Type u_2} → [Fintype k] → [Fintype q] → [DecidableEq q] → Matrix k q Real → Matrix k k Real → Matrix k k Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4003">HansenEconometrics/Chapter8Asymptotics.lean:4003</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3661">HansenEconometrics/Chapter8Asymptotics.lean:3661</a></p>
 </div>
 </details>
 </div>
@@ -1631,7 +1635,7 @@ variance when centered at the sample pseudo-true value. </p></div>
                   (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdMisspecifiedScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3086">HansenEconometrics/Chapter8Asymptotics.lean:3086</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2774">HansenEconometrics/Chapter8Asymptotics.lean:2774</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdlocalalternative-fixedweight-tendstoindistribution-multivariategaussian">
@@ -1655,7 +1659,7 @@ the usual MD covariance and a fixed local-alternative mean shift. </p></div>
             (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LocalAlternativeRestriction</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdLocalAlternativeBias</code></li><li><code>HansenEconometrics.mdLocalAlternativeScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2830">HansenEconometrics/Chapter8Asymptotics.lean:2830</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2518">HansenEconometrics/Chapter8Asymptotics.lean:2518</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdpseudotruevalue">
@@ -1672,7 +1676,7 @@ population restriction is <code>Rᵀ β = cStar</code>, but the imposed restrict
           [DecidableEq q] → Matrix k k Real → Matrix k q Real → (q → Real) → (q → Real) → (k → Real) → k → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2265">HansenEconometrics/Chapter8Asymptotics.lean:2265</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2047">HansenEconometrics/Chapter8Asymptotics.lean:2047</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdsamplepseudotruevalue">
@@ -1691,7 +1695,7 @@ the limiting weight in (8.38) with the sample weight. </p></div>
               (Nat → Ω → Matrix k k Real) → Matrix k q Real → (q → Real) → (q → Real) → (k → Real) → Nat → Ω → k → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2428">HansenEconometrics/Chapter8Asymptotics.lean:2428</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2210">HansenEconometrics/Chapter8Asymptotics.lean:2210</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-localunrestrictedscalederror">
@@ -1703,7 +1707,7 @@ parameter sequence. </p></div>
 <pre><code class="language-lean">{k : Type u_1} → {Ω : Type u_3} → (Nat → Real) → (Nat → Ω → k → Real) → (Nat → k → Real) → Nat → Ω → k → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2318">HansenEconometrics/Chapter8Asymptotics.lean:2318</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2100">HansenEconometrics/Chapter8Asymptotics.lean:2100</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdpseudotruevalue-restrict">
@@ -1721,7 +1725,7 @@ nonsingular. </p></div>
       Eq (R.transpose.mulVec (HansenEconometrics.mdPseudoTrueValue W R cStar c β)) c</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdPseudoTrueValue</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2272">HansenEconometrics/Chapter8Asymptotics.lean:2272</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2054">HansenEconometrics/Chapter8Asymptotics.lean:2054</a></p>
 </div>
 </details>
 </div>
@@ -1748,7 +1752,7 @@ nonsingular. </p></div>
         (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4545">HansenEconometrics/Chapter8Asymptotics.lean:4545</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4203">HansenEconometrics/Chapter8Asymptotics.lean:4203</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearclsbeta-tendstoindistribution-gaussian">
@@ -1770,7 +1774,7 @@ restriction specialization in Theorem 8.8. </p></div>
         (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4594">HansenEconometrics/Chapter8Asymptotics.lean:4594</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4252">HansenEconometrics/Chapter8Asymptotics.lean:4252</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearfirstorder-lagrangemultiplier-eq-hansen">
@@ -1795,7 +1799,7 @@ between the linearized constraint (8.53) and the substitution producing (8.54). 
             (Rstar.transpose.mulVec (instHSub.hSub bhat β)))</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L1562">HansenEconometrics/Chapter8Asymptotics.lean:1562</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L1344">HansenEconometrics/Chapter8Asymptotics.lean:1344</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearmdbeta-tendstoindistribution-multivariategaussian">
@@ -1817,7 +1821,7 @@ derived from the unrestricted estimator CLT. </p></div>
           (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W Rderiv S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4560">HansenEconometrics/Chapter8Asymptotics.lean:4560</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4218">HansenEconometrics/Chapter8Asymptotics.lean:4218</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearclsbeta-tendstoindistribution-multivariategaussian">
@@ -1839,7 +1843,7 @@ derived from the unrestricted estimator CLT. </p></div>
           (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q Rderiv S))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4609">HansenEconometrics/Chapter8Asymptotics.lean:4609</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4267">HansenEconometrics/Chapter8Asymptotics.lean:4267</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearconstrainedestimator-tendstoindistribution-gaussian">
@@ -1863,7 +1867,7 @@ linearized representation to the asymptotic distribution. </p></div>
         (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4493">HansenEconometrics/Chapter8Asymptotics.lean:4493</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4151">HansenEconometrics/Chapter8Asymptotics.lean:4151</a></p>
 </div>
 </details>
 </div>
@@ -1893,7 +1897,7 @@ unrestricted estimator. </p></div>
             Filter.atTop Z (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.nonnegativeConstrainedScalarScaledError</code></li><li><code>HansenEconometrics.scalarScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2985">HansenEconometrics/Chapter8Asymptotics.lean:2985</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2673">HansenEconometrics/Chapter8Asymptotics.lean:2673</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeinterior-asymptoticallyinactiveconstraint">
@@ -1911,7 +1915,7 @@ scalar nonnegativity constraint asymptotically inactive. </p></div>
           (HansenEconometrics.nonnegativeConstrainedScalarScaledError root bhat β)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ScalarAsymptoticallyInactiveConstraint</code></li><li><code>HansenEconometrics.nonnegativeConstrainedScalarScaledError</code></li><li><code>HansenEconometrics.scalarScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2951">HansenEconometrics/Chapter8Asymptotics.lean:2951</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2639">HansenEconometrics/Chapter8Asymptotics.lean:2639</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeboundaryscalederror-tendstoindistribution">
@@ -1930,7 +1934,7 @@ image <code>max Z 0</code>. </p></div>
         (fun ω =&gt; Real.instMax.max (Z ω) 0) (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.nonnegativeBoundaryScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3022">HansenEconometrics/Chapter8Asymptotics.lean:3022</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2710">HansenEconometrics/Chapter8Asymptotics.lean:2710</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeboundaryscalederror-eq-max-scaled">
@@ -1945,7 +1949,7 @@ nonnegativity projection at the boundary. </p></div>
       Real.instMax.max (instHMul.hMul (root n) (bhat n ω)) 0</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.nonnegativeBoundaryScaledError</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3009">HansenEconometrics/Chapter8Asymptotics.lean:3009</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2697">HansenEconometrics/Chapter8Asymptotics.lean:2697</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarasymptoticallyinactiveconstraint-of-eventuallyeq">
@@ -1961,7 +1965,7 @@ of the scaled constrained and unrestricted statistics. </p></div>
       HansenEconometrics.ScalarAsymptoticallyInactiveConstraint μ unrestricted constrained</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.ScalarAsymptoticallyInactiveConstraint</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2915">HansenEconometrics/Chapter8Asymptotics.lean:2915</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2603">HansenEconometrics/Chapter8Asymptotics.lean:2603</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarasymptoticallyinactiveconstraint-tendstoindistribution">
@@ -1978,7 +1982,7 @@ the same distributional limit as the unrestricted statistic. </p></div>
       MeasureTheory.TendstoInDistribution constrained Filter.atTop Z (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.ScalarAsymptoticallyInactiveConstraint</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2902">HansenEconometrics/Chapter8Asymptotics.lean:2902</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2590">HansenEconometrics/Chapter8Asymptotics.lean:2590</a></p>
 </div>
 </details>
 </div>
@@ -2001,7 +2005,7 @@ the same distributional limit as the unrestricted statistic. </p></div>
           [DecidableEq q] → Real → Matrix k k Real → Matrix k q Real → (q → Real) → (k → Real) → q → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L76">HansenEconometrics/Chapter8Asymptotics.lean:76</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L78">HansenEconometrics/Chapter8Asymptotics.lean:78</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdlagrangemultiplier-eq-hansen-822">
@@ -2020,7 +2024,7 @@ the same distributional limit as the unrestricted statistic. </p></div>
         (instHSub.hSub (R.transpose.mulVec bhat) c)))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdLagrangeMultiplier</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L82">HansenEconometrics/Chapter8Asymptotics.lean:82</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L84">HansenEconometrics/Chapter8Asymptotics.lean:84</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbetastar-eq-hansen-823">
@@ -2040,7 +2044,7 @@ the same distributional limit as the unrestricted statistic. </p></div>
         (instHSub.hSub (R.transpose.mulVec bhat) c)))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L89">HansenEconometrics/Chapter8Asymptotics.lean:89</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L91">HansenEconometrics/Chapter8Asymptotics.lean:91</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-samplegram-nonsinginv-eq-card-smul-invof">
@@ -2056,7 +2060,7 @@ typeclass inverse of the unnormalized Gram. </p></div>
       (inst_3.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.sampleGram</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L96">HansenEconometrics/Chapter8Asymptotics.lean:96</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L98">HansenEconometrics/Chapter8Asymptotics.lean:98</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbetastar-samplegram-olsbetastar-eq-clsbetastar">
@@ -2071,7 +2075,7 @@ typeclass inverse of the unnormalized Gram. </p></div>
     (HansenEconometrics.clsBetaStar X y R c)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.clsBetaStar</code></li><li><code>HansenEconometrics.mdBetaStar</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.sampleGram</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L104">HansenEconometrics/Chapter8Asymptotics.lean:104</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L106">HansenEconometrics/Chapter8Asymptotics.lean:106</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsbetastar-eq-clsbeta">
@@ -2088,7 +2092,7 @@ minimum-distance specialization agrees with the finite-sample CLS estimator. </p
   Eq (HansenEconometrics.clsBetaStar X y R c) (HansenEconometrics.clsBeta X y R c)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsBeta</code></li><li><code>HansenEconometrics.clsBetaStar</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L111">HansenEconometrics/Chapter8Asymptotics.lean:111</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L113">HansenEconometrics/Chapter8Asymptotics.lean:113</a></p>
 </div>
 </details>
 </div>
@@ -2117,7 +2121,7 @@ minimum-distance specialization agrees with the finite-sample CLS estimator. </p
         V))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3890">HansenEconometrics/Chapter8Asymptotics.lean:3890</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3548">HansenEconometrics/Chapter8Asymptotics.lean:3548</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-efficientweight-eq-hansen-826">
@@ -2146,7 +2150,7 @@ weight <code>W = V⁻¹</code>. </p></div>
               V))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3897">HansenEconometrics/Chapter8Asymptotics.lean:3897</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3555">HansenEconometrics/Chapter8Asymptotics.lean:3555</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdasymptoticvariance-le-unrestricted-hansen-827">
@@ -2164,7 +2168,7 @@ variance relative to the unrestricted estimator. </p></div>
       (instHSub.hSub V (HansenEconometrics.emdAsymptoticVariance R V)).PosSemidef</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3994">HansenEconometrics/Chapter8Asymptotics.lean:3994</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3652">HansenEconometrics/Chapter8Asymptotics.lean:3652</a></p>
 </div>
 </details>
 </div>

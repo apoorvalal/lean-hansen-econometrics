@@ -5017,6 +5017,12 @@ margin-left: 0;
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../metricslib.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Use as MetricsLib</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../crash-course.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lean crash course</span></a>
   </div>
@@ -5282,7 +5288,7 @@ Formal statement
           fun x =&gt; MeasureTheory.integral μ fun x =&gt; X 0 x</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2875">HansenEconometrics/AsymptoticUtils.lean:2875</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2858">HansenEconometrics/AsymptoticUtils.lean:2858</a>
 </p>
 </div>
 </details>
@@ -5327,7 +5333,7 @@ Formal statement
             Filter.atTop fun x =&gt; MeasureTheory.integral μ fun x =&gt; (fun ω =&gt; h (X 0 ω)) x</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2913">HansenEconometrics/AsymptoticUtils.lean:2913</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2896">HansenEconometrics/AsymptoticUtils.lean:2896</a>
 </p>
 </div>
 </details>
@@ -5939,7 +5945,7 @@ Formal statement
     MeasureTheory.TendstoInMeasure μ f Filter.atTop g</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1312">HansenEconometrics/AsymptoticUtils.lean:1312</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1295">HansenEconometrics/AsymptoticUtils.lean:1295</a>
 </p>
 </div>
 </details>
@@ -5968,7 +5974,7 @@ Formal statement
             instHAdd.hAdd (finf ω) (ginf ω)</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1579">HansenEconometrics/AsymptoticUtils.lean:1579</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1562">HansenEconometrics/AsymptoticUtils.lean:1562</a>
 </p>
 </div>
 </details>
@@ -5995,7 +6001,7 @@ Formal statement
         { fst := finf ω, snd := ginf ω }</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1547">HansenEconometrics/AsymptoticUtils.lean:1547</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1530">HansenEconometrics/AsymptoticUtils.lean:1530</a>
 </p>
 </div>
 </details>
@@ -6024,7 +6030,7 @@ Formal statement
             (Ainf ω).mulVec (vinf ω)</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1654">HansenEconometrics/AsymptoticUtils.lean:1654</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1637">HansenEconometrics/AsymptoticUtils.lean:1637</a>
 </p>
 </div>
 </details>
@@ -6053,7 +6059,7 @@ Formal statement
         MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; Matrix.inv.inv (A n ω)) Filter.atTop fun ω =&gt; Matrix.inv.inv (A&#39; ω)</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1520">HansenEconometrics/AsymptoticUtils.lean:1520</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1503">HansenEconometrics/AsymptoticUtils.lean:1503</a>
 </p>
 </div>
 </details>
@@ -6082,7 +6088,7 @@ Formal statement
             Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Ainf ω) (Binf ω)</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1699">HansenEconometrics/AsymptoticUtils.lean:1699</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1682">HansenEconometrics/AsymptoticUtils.lean:1682</a>
 </p>
 </div>
 </details>
@@ -6128,7 +6134,7 @@ Formal statement
             MeasureTheory.TendstoInDistribution (fun n ω =&gt; g (X n ω)) Filter.atTop (fun ω =&gt; g (Z ω)) P ν</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L238">HansenEconometrics/AsymptoticUtils.lean:238</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L221">HansenEconometrics/AsymptoticUtils.lean:221</a>
 </p>
 </div>
 </details>
@@ -6163,7 +6169,7 @@ Formal statement
           Filter.Tendsto (fun i =&gt; (νs i).map ⋯) L (nhds (ν.map ⋯))</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L178">HansenEconometrics/AsymptoticUtils.lean:178</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L161">HansenEconometrics/AsymptoticUtils.lean:161</a>
 </p>
 </div>
 </details>
@@ -6193,7 +6199,7 @@ Formal statement
     Continuous g → MeasureTheory.TendstoInDistribution (fun n ω =&gt; g (X n ω)) Filter.atTop (fun ω =&gt; g (Z ω)) P ν</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L157">HansenEconometrics/AsymptoticUtils.lean:157</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L140">HansenEconometrics/AsymptoticUtils.lean:140</a>
 </p>
 </div>
 </details>
@@ -6464,7 +6470,7 @@ Formal statement
         ContinuousAt h x → MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; h (f n ω)) Filter.atTop fun x_1 =&gt; h x</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L135">HansenEconometrics/AsymptoticUtils.lean:135</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L118">HansenEconometrics/AsymptoticUtils.lean:118</a>
 </p>
 </div>
 </details>
@@ -6866,7 +6872,7 @@ Direct statement dependencies (1)
 </ul>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2217">HansenEconometrics/AsymptoticUtils.lean:2217</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2200">HansenEconometrics/AsymptoticUtils.lean:2200</a>
 </p>
 </div>
 </details>
@@ -6908,7 +6914,7 @@ Direct statement dependencies (1)
 </ul>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2294">HansenEconometrics/AsymptoticUtils.lean:2294</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2277">HansenEconometrics/AsymptoticUtils.lean:2277</a>
 </p>
 </div>
 </details>
@@ -6943,7 +6949,7 @@ Formal statement
             fun x =&gt; 0</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2503">HansenEconometrics/AsymptoticUtils.lean:2503</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2486">HansenEconometrics/AsymptoticUtils.lean:2486</a>
 </p>
 </div>
 </details>
@@ -6985,7 +6991,7 @@ Direct statement dependencies (1)
 </ul>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2360">HansenEconometrics/AsymptoticUtils.lean:2360</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2343">HansenEconometrics/AsymptoticUtils.lean:2343</a>
 </p>
 </div>
 </details>
@@ -7027,7 +7033,7 @@ Direct statement dependencies (1)
 </ul>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2604">HansenEconometrics/AsymptoticUtils.lean:2604</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2587">HansenEconometrics/AsymptoticUtils.lean:2587</a>
 </p>
 </div>
 </details>
@@ -7072,7 +7078,7 @@ Direct statement dependencies (1)
 </ul>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2427">HansenEconometrics/AsymptoticUtils.lean:2427</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2410">HansenEconometrics/AsymptoticUtils.lean:2410</a>
 </p>
 </div>
 </details>
@@ -7113,7 +7119,7 @@ Formal statement
         ENNReal.instPartialOrder.le (MeasureTheory.eLpNorm Zlim 1 μ) C</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1265">HansenEconometrics/AsymptoticUtils.lean:1265</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1248">HansenEconometrics/AsymptoticUtils.lean:1248</a>
 </p>
 </div>
 </details>
@@ -7148,7 +7154,7 @@ Formal statement
         MeasureTheory.Integrable (fun ω =&gt; inst_2.norm (Z ω)) ν</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L475">HansenEconometrics/AsymptoticUtils.lean:475</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L458">HansenEconometrics/AsymptoticUtils.lean:458</a>
 </p>
 </div>
 </details>
@@ -7183,7 +7189,7 @@ Formal statement
         Real.instLE.le (MeasureTheory.integral ν fun ω =&gt; inst_2.norm (Z ω)) C</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L604">HansenEconometrics/AsymptoticUtils.lean:604</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L587">HansenEconometrics/AsymptoticUtils.lean:587</a>
 </p>
 </div>
 </details>
@@ -7232,7 +7238,7 @@ Direct statement dependencies (1)
 </ul>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L442">HansenEconometrics/AsymptoticUtils.lean:442</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L425">HansenEconometrics/AsymptoticUtils.lean:425</a>
 </p>
 </div>
 </details>
@@ -7269,7 +7275,7 @@ Formal statement
             Real.instLE.le (MeasureTheory.integral ν fun ω =&gt; BoundedContinuousFunction.instFunLike.coe f (Z ω)) C</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L369">HansenEconometrics/AsymptoticUtils.lean:369</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L352">HansenEconometrics/AsymptoticUtils.lean:352</a>
 </p>
 </div>
 </details>
@@ -7293,7 +7299,7 @@ Formal statement
 <pre><code class="language-lean">(E : Type u_4) → [inst : SeminormedAddCommGroup E] → (R : Real) → Real.instLE.le 0 R → BoundedContinuousFunction E Real</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L400">HansenEconometrics/AsymptoticUtils.lean:400</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L383">HansenEconometrics/AsymptoticUtils.lean:383</a>
 </p>
 </div>
 </details>
@@ -7523,7 +7529,7 @@ Formal statement
         (nhds (MeasureTheory.integral ν fun ω =&gt; Z ω))</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1130">HansenEconometrics/AsymptoticUtils.lean:1130</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1113">HansenEconometrics/AsymptoticUtils.lean:1113</a>
 </p>
 </div>
 </details>
@@ -7552,7 +7558,7 @@ Formal statement
         (nhds (MeasureTheory.integral μ fun ω =&gt; Zlim ω))</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1280">HansenEconometrics/AsymptoticUtils.lean:1280</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1263">HansenEconometrics/AsymptoticUtils.lean:1263</a>
 </p>
 </div>
 </details>
@@ -7710,7 +7716,7 @@ Formal statement
       MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; (X n ω).sqrt) Filter.atTop fun x =&gt; 0</code></pre>
 </details>
 <p class="declaration-meta">
-<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1236">HansenEconometrics/AsymptoticUtils.lean:1236</a>
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1219">HansenEconometrics/AsymptoticUtils.lean:1219</a>
 </p>
 </div>
 </details>

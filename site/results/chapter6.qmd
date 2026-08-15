@@ -37,7 +37,7 @@ econometrics literature's WLLN statement. </p></div>
           fun x =&gt; MeasureTheory.integral μ fun x =&gt; X 0 x</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2875">HansenEconometrics/AsymptoticUtils.lean:2875</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2858">HansenEconometrics/AsymptoticUtils.lean:2858</a></p>
 </div>
 </details>
 </div>
@@ -68,7 +68,7 @@ Banach-valued WLLN with measurable-map preservation of independence and identica
             Filter.atTop fun x =&gt; MeasureTheory.integral μ fun x =&gt; (fun ω =&gt; h (X 0 ω)) x</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2913">HansenEconometrics/AsymptoticUtils.lean:2913</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2896">HansenEconometrics/AsymptoticUtils.lean:2896</a></p>
 </div>
 </details>
 </div>
@@ -467,7 +467,7 @@ if every coordinate sequence converges in measure, so does the joint sequence. <
     MeasureTheory.TendstoInMeasure μ f Filter.atTop g</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1312">HansenEconometrics/AsymptoticUtils.lean:1312</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1295">HansenEconometrics/AsymptoticUtils.lean:1295</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-add">
@@ -489,7 +489,7 @@ in a pseudo-metrizable additive topological group, then
             instHAdd.hAdd (finf ω) (ginf ω)</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1579">HansenEconometrics/AsymptoticUtils.lean:1579</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1562">HansenEconometrics/AsymptoticUtils.lean:1562</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-prodmk">
@@ -507,7 +507,7 @@ in a pseudo-metrizable additive topological group, then
         { fst := finf ω, snd := ginf ω }</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1547">HansenEconometrics/AsymptoticUtils.lean:1547</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1530">HansenEconometrics/AsymptoticUtils.lean:1530</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-mulvec">
@@ -527,7 +527,7 @@ in a pseudo-metrizable additive topological group, then
             (Ainf ω).mulVec (vinf ω)</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1654">HansenEconometrics/AsymptoticUtils.lean:1654</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1637">HansenEconometrics/AsymptoticUtils.lean:1637</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-matrix-inv">
@@ -547,7 +547,7 @@ of the inverse sequence reuses <code>aestronglyMeasurable_matrix_inv</code>. </p
         MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; Matrix.inv.inv (A n ω)) Filter.atTop fun ω =&gt; Matrix.inv.inv (A&#x27; ω)</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1520">HansenEconometrics/AsymptoticUtils.lean:1520</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1503">HansenEconometrics/AsymptoticUtils.lean:1503</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-matrix-mul">
@@ -567,7 +567,7 @@ measure, then <code>A n * B n →ₚ Ainf * Binf</code>. </p></div>
             Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Ainf ω) (Binf ω)</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1699">HansenEconometrics/AsymptoticUtils.lean:1699</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1682">HansenEconometrics/AsymptoticUtils.lean:1682</a></p>
 </div>
 </details>
 </div>
@@ -599,7 +599,7 @@ on the law of <code>Z</code>, i.e. <code>(ν.map Z) D = 0</code>. </p></div>
             MeasureTheory.TendstoInDistribution (fun n ω =&gt; g (X n ω)) Filter.atTop (fun ω =&gt; g (Z ω)) P ν</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L238">HansenEconometrics/AsymptoticUtils.lean:238</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L221">HansenEconometrics/AsymptoticUtils.lean:221</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-probabilitymeasure-tendsto-map-of-tendsto-of-ae-continuous">
@@ -625,7 +625,7 @@ the closed closure, and the null set removes the discontinuity contribution. </p
           Filter.Tendsto (fun i =&gt; (νs i).map ⋯) L (nhds (ν.map ⋯))</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L178">HansenEconometrics/AsymptoticUtils.lean:178</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L161">HansenEconometrics/AsymptoticUtils.lean:161</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-continuous-comp">
@@ -646,7 +646,7 @@ form. </p></div>
     Continuous g → MeasureTheory.TendstoInDistribution (fun n ω =&gt; g (X n ω)) Filter.atTop (fun ω =&gt; g (Z ω)) P ν</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L157">HansenEconometrics/AsymptoticUtils.lean:157</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L140">HansenEconometrics/AsymptoticUtils.lean:140</a></p>
 </div>
 </details>
 </div>
@@ -829,7 +829,7 @@ when those technical premises are not part of the mathematical statement. </p></
         ContinuousAt h x → MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; h (f n ω)) Filter.atTop fun x_1 =&gt; h x</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L135">HansenEconometrics/AsymptoticUtils.lean:135</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L118">HansenEconometrics/AsymptoticUtils.lean:118</a></p>
 </div>
 </details>
 </div>
@@ -1092,7 +1092,7 @@ after applying the theorem to the nonnegative transformed sequence. </p></div>
         HansenEconometrics.BoundedInProbability μ X</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2217">HansenEconometrics/AsymptoticUtils.lean:2217</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2200">HansenEconometrics/AsymptoticUtils.lean:2200</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-pow-bound">
@@ -1115,7 +1115,7 @@ keeps the common integer-moment cases convenient. </p></div>
           HansenEconometrics.BoundedInProbability μ X</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2294">HansenEconometrics/AsymptoticUtils.lean:2294</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2277">HansenEconometrics/AsymptoticUtils.lean:2277</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-of-integral-norm-rpow-scaled-tendsto-zero">
@@ -1140,7 +1140,7 @@ keeps the common integer-moment cases convenient. </p></div>
             fun x =&gt; 0</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2503">HansenEconometrics/AsymptoticUtils.lean:2503</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2486">HansenEconometrics/AsymptoticUtils.lean:2486</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-rpow-bound">
@@ -1162,7 +1162,7 @@ Theorem 6.12 for the unit scale: if <code>E|Xₙ|^p</code> is eventually bounded
           HansenEconometrics.BoundedInProbability μ X</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2360">HansenEconometrics/AsymptoticUtils.lean:2360</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2343">HansenEconometrics/AsymptoticUtils.lean:2343</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-scaled-bound">
@@ -1184,7 +1184,7 @@ then <code>aₙ⁻¹ Xₙ</code> is bounded in probability. </p></div>
           HansenEconometrics.BoundedInProbability μ fun n ω =&gt; instHMul.hMul (Real.instInv.inv (a n)) (X n ω)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2604">HansenEconometrics/AsymptoticUtils.lean:2604</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2587">HansenEconometrics/AsymptoticUtils.lean:2587</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-pow-scaled-bound">
@@ -1211,7 +1211,7 @@ positive-real-exponent version. </p></div>
             HansenEconometrics.BoundedInProbability μ fun n ω =&gt; instHMul.hMul (Real.instInv.inv (a n)) (X n ω)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2427">HansenEconometrics/AsymptoticUtils.lean:2427</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2410">HansenEconometrics/AsymptoticUtils.lean:2410</a></p>
 </div>
 </details>
 </div>
@@ -1238,7 +1238,7 @@ limit; the textbook weak-convergence statement is stronger. </p></div>
         ENNReal.instPartialOrder.le (MeasureTheory.eLpNorm Zlim 1 μ) C</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1265">HansenEconometrics/AsymptoticUtils.lean:1265</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1248">HansenEconometrics/AsymptoticUtils.lean:1248</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integrable-norm-limit-of-eventually-integral-norm-bound">
@@ -1263,7 +1263,7 @@ truncations and passes to the monotone limit at the <code>lintegral</code> level
         MeasureTheory.Integrable (fun ω =&gt; inst_2.norm (Z ω)) ν</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L475">HansenEconometrics/AsymptoticUtils.lean:475</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L458">HansenEconometrics/AsymptoticUtils.lean:458</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integral-norm-limit-le-of-eventually-integral-norm-bound">
@@ -1287,7 +1287,7 @@ the limit-law expected norm is at most <code>C</code>. </p></div>
         Real.instLE.le (MeasureTheory.integral ν fun ω =&gt; inst_2.norm (Z ω)) C</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L604">HansenEconometrics/AsymptoticUtils.lean:604</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L587">HansenEconometrics/AsymptoticUtils.lean:587</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integral-normtrunc-limit-le-of-eventually-integral-norm-bound">
@@ -1317,7 +1317,7 @@ statement. </p></div>
           C</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.normTruncBoundedContinuousFunction</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L442">HansenEconometrics/AsymptoticUtils.lean:442</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L425">HansenEconometrics/AsymptoticUtils.lean:425</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integral-boundedcontinuous-nonneg-limit-le-of-eventually-bound">
@@ -1345,7 +1345,7 @@ face of bounded first moments passing to the weak limit. </p></div>
             Real.instLE.le (MeasureTheory.integral ν fun ω =&gt; BoundedContinuousFunction.instFunLike.coe f (Z ω)) C</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L369">HansenEconometrics/AsymptoticUtils.lean:369</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L352">HansenEconometrics/AsymptoticUtils.lean:352</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-normtruncboundedcontinuousfunction">
@@ -1359,7 +1359,7 @@ layer in Hansen Theorem 6.13. </p></div>
 <pre><code class="language-lean">(E : Type u_4) → [inst : SeminormedAddCommGroup E] → (R : Real) → Real.instLE.le 0 R → BoundedContinuousFunction E Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L400">HansenEconometrics/AsymptoticUtils.lean:400</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L383">HansenEconometrics/AsymptoticUtils.lean:383</a></p>
 </div>
 </details>
 </div>
@@ -1516,7 +1516,7 @@ wrapper above. </p></div>
         (nhds (MeasureTheory.integral ν fun ω =&gt; Z ω))</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1130">HansenEconometrics/AsymptoticUtils.lean:1130</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1113">HansenEconometrics/AsymptoticUtils.lean:1113</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendsto-integral-of-tendstoinmeasure-uniformintegrable">
@@ -1536,7 +1536,7 @@ stronger mode-of-convergence premise than this wrapper exposes. </p></div>
         (nhds (MeasureTheory.integral μ fun ω =&gt; Zlim ω))</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1280">HansenEconometrics/AsymptoticUtils.lean:1280</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1263">HansenEconometrics/AsymptoticUtils.lean:1263</a></p>
 </div>
 </details>
 </div>
@@ -1618,7 +1618,7 @@ events <code>{sqrt Xₙ ≥ ε}</code> and <code>{Xₙ ≥ ε²}</code> directly
       MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; (X n ω).sqrt) Filter.atTop fun x =&gt; 0</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1236">HansenEconometrics/AsymptoticUtils.lean:1236</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1219">HansenEconometrics/AsymptoticUtils.lean:1219</a></p>
 </div>
 </details>
 </div>

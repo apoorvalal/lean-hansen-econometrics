@@ -1,0 +1,110 @@
+---
+title: "Use as MetricsLib"
+---
+
+`HansenEconometrics.MetricsLib` is the curated import for new econometric
+formalizations. It exposes workhorse linear algebra, probability, asymptotic,
+regression, inference, and bootstrap results without importing the complete
+textbook development.
+
+The library is now a useful Mathlib analogue within its current domain. It is
+strongest for finite-dimensional matrix algebra, conditional expectation and
+projection, OLS, large-sample limit arguments, covariance and standard-error
+consistency, classical inference, and bootstrap arguments. Instrumental
+variables, multivariate regression, restricted estimation, and GMM still have
+many useful results, but their public surfaces remain chapter modules. Time
+series, panel, nonparametric, limited-dependent-variable, and machine-learning
+chapters are not yet formalized.
+
+## Add the dependency
+
+Pin a commit or release in the consuming project's `lakefile.toml`:
+
+```toml
+[[require]]
+name = "hansenEconometrics"
+git = "https://github.com/mostlyharmfuleconometrics/lean-hansen-econometrics"
+rev = "<commit-or-tag>"
+```
+
+Then use the broad curated import:
+
+```lean
+import HansenEconometrics.MetricsLib
+```
+
+Use a domain facade when a smaller import surface is useful:
+
+| Import | Main surface |
+|---|---|
+| `HansenEconometrics.MetricsLib.LinearAlgebra` | finite matrices, total inverse support, projections, and measurability |
+| `HansenEconometrics.MetricsLib.Probability` | conditional expectation, moments, covariance, and distributional bridges |
+| `HansenEconometrics.MetricsLib.Asymptotics` | WLLN, CLT, stochastic order, Delta methods, stable interfaces, and Gaussian linearization |
+| `HansenEconometrics.MetricsLib.Regression` | population projection, OLS, FWL, covariance estimation, and OLS asymptotics |
+| `HansenEconometrics.MetricsLib.Inference` | standard errors, studentization, named distributions, and large-sample tests |
+| `HansenEconometrics.MetricsLib.Bootstrap` | finite bootstrap populations, convergence, intervals, tests, and regression bootstrap |
+
+## Build new results against capabilities
+
+The neutral interface module separates downstream theorems from the
+assumptions used to prove them. For example, a Gaussian estimator limit needs
+an asymptotic linear representation and a Gaussian limit for its driving
+statistic:
+
+```lean
+open MeasureTheory ProbabilityTheory Filter
+open scoped Matrix Matrix.Norms.Elementwise Topology MeasureTheory ProbabilityTheory
+
+open HansenEconometrics
+
+variable {Omega k : Type*} [MeasurableSpace Omega]
+variable [Fintype k] [DecidableEq k]
+variable {mu : Measure Omega} [IsProbabilityMeasure mu]
+
+example (Y T : Nat -> Omega -> k -> Real) (A S : Matrix k k Real)
+    (hlinear : AsymptoticallyLinearEstimator mu Y A T)
+    (hT : GaussianLimit mu T S) :
+    TendstoInDistribution Y atTop
+      (fun z : EuclideanSpace Real k => z.ofLp)
+      (fun _ => mu)
+      (multivariateGaussian 0 (A * S * A.transpose)) :=
+  hlinear.tendstoInDistribution_multivariateGaussian hT
+```
+
+The main capability structures are:
+
+- `MatrixEstimatorConsistent` for rectangular plug-in estimators;
+- `GramConsistency` for a convergent sample Gram matrix with a nonsingular
+  target;
+- `CovarianceEstimatorConsistent` for feasible covariance matrices;
+- `AsymptoticallyLinearEstimator` and
+  `BiasedAsymptoticallyLinearEstimator` for first-order expansions;
+- `GaussianLimit`, also exposed as the score-facing name `ScoreCLT`;
+- `FeasibleStandardErrorConsistent` for studentization.
+
+Each interface has a direct constructor from its defining convergence and
+measurability facts. Model-specific condition packages can also provide
+constructors. For example, Chapter 7 supplies
+`LeastSquaresConsistencyConditions.toGramConsistency` and
+`ScoreCLT.ofConditions`.
+
+## Add a reusable theorem
+
+Use this order when a new formalization needs a result that should become part
+of the workhorse library:
+
+1. State the theorem against a neutral capability interface when possible.
+2. Put the generic proof in a neutral module, not in the first chapter that
+   uses it.
+3. Add constructors from concrete iid, regression, IV, GMM, or bootstrap
+   assumptions.
+4. Keep textbook notation in a thin chapter-facing wrapper.
+5. Export the generic result from the smallest applicable MetricsLib facade.
+6. Add a consumer check when the change extends the public facade.
+
+The neutral modules `AsymptoticInterfaces`, `InferenceUtils`, and
+`GaussianLinearization`, and the `MetricsLib` import paths, are the intended
+stable surface. Chapter modules remain supported for textbook-facing names,
+but their specialized condition packages and proof scaffolding can change as
+coverage improves. Private declarations are not part of the compatibility
+surface.

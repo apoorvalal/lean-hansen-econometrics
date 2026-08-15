@@ -1,35 +1,21 @@
-import HansenEconometrics.Basic
-import HansenEconometrics.LinearAlgebraUtils
-import HansenEconometrics.ProbabilityUtils
-import HansenEconometrics.AsymptoticUtils
-import HansenEconometrics.AsymptoticUtils.StochasticOrder
-import HansenEconometrics.AsymptoticUtils.DeltaMethod
-import HansenEconometrics.AsymptoticUtils.MaxBounds
-
+import HansenEconometrics.MetricsLib
 import HansenEconometrics.Chapter2CondExp
-
-import HansenEconometrics.Chapter2LinearProjection
 import HansenEconometrics.Chapter2Variance
 import HansenEconometrics.Chapter2PotentialOutcomes
-import HansenEconometrics.Chapter3LeastSquaresAlgebra
-import HansenEconometrics.Chapter3Projections
-import HansenEconometrics.Chapter3FWL
-
-import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.MultivariateNormal
-import HansenEconometrics.ChiSquared
-import HansenEconometrics.FDist
-import HansenEconometrics.StudentT
 import HansenEconometrics.Chapter5NormalRegression
 import HansenEconometrics.Chapter5LikelihoodRatioTest
-import HansenEconometrics.Chapter6Asymptotics
-import HansenEconometrics.Chapter7Asymptotics
 import HansenEconometrics.Chapter8RestrictedEstimation
 import HansenEconometrics.Chapter8Asymptotics
-import HansenEconometrics.Chapter9HypothesisTesting
-import HansenEconometrics.BootstrapUtils
-import HansenEconometrics.Chapter10Bootstrap
 import HansenEconometrics.Chapter11MultivariateRegression
 import HansenEconometrics.Chapter12InstrumentalVariables
 import HansenEconometrics.Chapter13GMM.SpecificationTests
 import HansenEconometrics.Chapter13GMM.Nonlinear
+
+/-!
+# Hansen Econometrics
+
+This is the complete textbook formalization import. New developments that
+primarily need reusable econometric tools should import
+`HansenEconometrics.MetricsLib` or one of its domain modules instead.
+-/

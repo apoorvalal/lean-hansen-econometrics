@@ -30,7 +30,7 @@ This page is generated from the [canonical Chapter 7 inventory](https://github.c
             [MeasureTheory.IsFiniteMeasure μ] → (Nat → Ω → k → Real) → (Nat → Ω → Real) → Prop</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L77">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:77</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L78">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:78</a></p>
 </div>
 </details>
 </div>
@@ -68,7 +68,7 @@ converges in probability to <code>β</code>.</p>
         Filter.atTop fun x =&gt; β</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LeastSquaresConsistencyConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1128">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1128</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1142">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1142</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbetaorzero-stack-tendstoinmeasure-beta">
@@ -91,7 +91,7 @@ totalized consistency theorem transfers directly. </p></div>
         Filter.atTop fun x =&gt; β</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LeastSquaresConsistencyConditions</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1389">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1389</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1403">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1403</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-stack-tendstoinmeasure-beta-of-invertible">
@@ -121,7 +121,7 @@ surface. </p></div>
         Filter.atTop fun x =&gt; β</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LeastSquaresConsistencyConditions</code></li><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1407">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1407</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1421">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1421</a></p>
 </div>
 </details>
 </div>
@@ -321,7 +321,7 @@ wrapper is formalized. </p></div>
                 Filter.atTop (Z a) (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.olsProjectionAsymVar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3214">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3214</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3215">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3215</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-olsbetaorzero-tendstoindistribution-gaussian-cov-all">
@@ -356,7 +356,7 @@ the same scalar Gaussian limit as the totalized estimator. </p></div>
                 Filter.atTop (Z a) (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.olsProjectionAsymVar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3263">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3263</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3264">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3264</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar-vector-tendstoindistribution-multivariategaussian">
@@ -385,7 +385,7 @@ Cramér-Wold score theorem above. </p></div>
           (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L384">HansenEconometrics/Chapter7Asymptotics/Normality.lean:384</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L398">HansenEconometrics/Chapter7Asymptotics/Normality.lean:398</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbetaorzero-vector-tendstoindistribution-multivariategaussian">
@@ -412,7 +412,7 @@ wrapper, using the pointwise equality with <code>olsBetaStar</code>. </p></div>
           (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L601">HansenEconometrics/Chapter7Asymptotics/Normality.lean:601</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L615">HansenEconometrics/Chapter7Asymptotics/Normality.lean:615</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-olsbeta-tendstoindistribution-gaussian-cov-all-of-invertible">
@@ -451,7 +451,7 @@ sample-Gram invertibility.</strong> </p></div>
                 Filter.atTop (Z a) (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.olsProjectionAsymVar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3324">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3324</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3325">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3325</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-vector-tendstoindistribution-multivariategaussian-of-invertible">
@@ -486,7 +486,7 @@ ordinary-OLS surface. </p></div>
           (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L628">HansenEconometrics/Chapter7Asymptotics/Normality.lean:628</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L642">HansenEconometrics/Chapter7Asymptotics/Normality.lean:642</a></p>
 </div>
 </details>
 </div>
@@ -516,7 +516,7 @@ OLS residual average <code>σ̂²ₙ</code> converges in probability to <code>σ
           Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsSigmaSqHatStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1720">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1720</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1734">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1734</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olss2star-tendstoinmeasure-errorvariance">
@@ -540,7 +540,7 @@ probability to <code>σ² = E[e₀²]</code>. </p></div>
           Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsS2Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1826">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1826</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1840">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1840</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olssigmasqhatstar-tendstoinmeasure-errorvariance-of-iidrobustfeasiblehcmomentconditions">
@@ -559,7 +559,7 @@ probability to <code>σ² = E[e₀²]</code>. </p></div>
       Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsSigmaSqHatStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4634">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4634</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4568">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4568</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olss2star-tendstoinmeasure-errorvariance-of-iidrobustfeasiblehcmomentconditions">
@@ -578,7 +578,7 @@ probability to <code>σ² = E[e₀²]</code>. </p></div>
       Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsS2Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4648">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4648</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4582">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4582</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-samplevarianceassumption74">
@@ -596,7 +596,7 @@ probability to <code>σ² = E[e₀²]</code>. </p></div>
             [MeasureTheory.IsFiniteMeasure μ] → (Nat → Ω → k → Real) → (Nat → Ω → Real) → Prop</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L154">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:154</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L155">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:155</a></p>
 </div>
 </details>
 </div>
@@ -627,7 +627,7 @@ homoskedastic covariance estimator <code>V̂⁰_β = s² Q̂⁻¹</code> converg
           Filter.atTop fun x =&gt; HansenEconometrics.homoAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1855">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1855</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1869">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1869</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshomocovstar-tendstoinmeasure-of-iidrobustfeasiblehcmomentconditions">
@@ -646,7 +646,7 @@ homoskedastic covariance estimator <code>V̂⁰_β = s² Q̂⁻¹</code> converg
       Filter.atTop fun x =&gt; HansenEconometrics.homoAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4662">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4662</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4596">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4596</a></p>
 </div>
 </details>
 </div>
@@ -688,7 +688,7 @@ controls. </p></div>
                   Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovStar</code></li><li><code>HansenEconometrics.sampleScoreCovCrossWeight</code></li><li><code>HansenEconometrics.sampleScoreCovQuadraticWeight</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3344">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3344</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3278">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3278</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovstar-tendstoinmeasure-of-feasiblehcremainderconditions">
@@ -713,7 +713,7 @@ carried by <code>FeasibleHCRemainderConditions</code>. </p></div>
           Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCRemainderConditions</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3378">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3378</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3312">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3312</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovstar-tendstoinmeasure-of-robustfeasiblehcmomentconditions">
@@ -734,7 +734,7 @@ both the robust covariance assumptions and the feasible HC0 remainder package. <
       Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.RobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3397">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3397</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3331">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3331</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-iidrobustfeasiblehcmomentconditions-torobustfeasiblehcmomentconditions">
@@ -792,7 +792,7 @@ needed by the HC1 assembly theorem. </p></div>
                   Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC1Star</code></li><li><code>HansenEconometrics.sampleScoreCovCrossWeight</code></li><li><code>HansenEconometrics.sampleScoreCovQuadraticWeight</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3710">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3710</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3644">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3644</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc2star-tendstoinmeasure-of-feasiblehcleverageconditions">
@@ -815,7 +815,7 @@ bundled together with maximal leverage <code>oₚ(1)</code>. </p></div>
           Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCLeverageConditions</code></li><li><code>HansenEconometrics.RobustCovarianceConsistencyConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC2Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4335">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4335</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4269">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4269</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc3star-tendstoinmeasure-of-feasiblehcleverageconditions">
@@ -838,7 +838,7 @@ bundled together with maximal leverage <code>oₚ(1)</code>. </p></div>
           Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCLeverageConditions</code></li><li><code>HansenEconometrics.RobustCovarianceConsistencyConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC3Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4368">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4368</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4302">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4302</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc1star-tendstoinmeasure-of-feasiblehcremainderconditions">
@@ -861,7 +861,7 @@ remainder conditions. </p></div>
           Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCRemainderConditions</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC1Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3742">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3742</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3676">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3676</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc1star-tendstoinmeasure-of-robustfeasiblehcmomentconditions">
@@ -880,7 +880,7 @@ remainder conditions. </p></div>
       Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.RobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC1Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3758">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3758</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3692">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3692</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-hc1finitesamplescale-tendsto-one">
@@ -892,7 +892,7 @@ remainder conditions. </p></div>
   Filter.Tendsto (fun n =&gt; instHDiv.hDiv n.cast (instHSub.hSub n.cast (Fintype.card k).cast)) Filter.atTop (nhds 1)</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3624">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3624</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3558">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3558</a></p>
 </div>
 </details>
 </div>
@@ -998,7 +998,7 @@ Fréchet-derivative remainder. </p></div>
                       R.transpose))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (8)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L684">HansenEconometrics/Chapter7Asymptotics/Normality.lean:684</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L698">HansenEconometrics/Chapter7Asymptotics/Normality.lean:698</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearfunction-olsbetaorzero-delta-tendstoindistribution-gaussian">
@@ -1044,7 +1044,7 @@ Fréchet-derivative remainder. </p></div>
                       R.transpose))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (8)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L758">HansenEconometrics/Chapter7Asymptotics/Normality.lean:758</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L772">HansenEconometrics/Chapter7Asymptotics/Normality.lean:772</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar">
@@ -1123,7 +1123,7 @@ corresponding ratio limit. </p></div>
             (fun ω =&gt; instHDiv.hDiv (Z ω) c) (fun x =&gt; μ) ν</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L758">HansenEconometrics/Chapter7Asymptotics/Inference.lean:758</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L759">HansenEconometrics/Chapter7Asymptotics/Inference.lean:759</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearscalartstat-tendstoindistribution">
@@ -1149,7 +1149,7 @@ limit. </p></div>
             (fun ω =&gt; instHDiv.hDiv (Z ω) c) (fun x =&gt; μ) ν</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarFunctionTStat</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L781">HansenEconometrics/Chapter7Asymptotics/Inference.lean:781</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L782">HansenEconometrics/Chapter7Asymptotics/Inference.lean:782</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-linearrestrictionstderror">
@@ -1160,7 +1160,7 @@ limit. </p></div>
 <pre><code class="language-lean">{k : Type u_3} → [Fintype k] → Matrix Unit k Real → Matrix k k Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L104">HansenEconometrics/Chapter7Asymptotics/Inference.lean:104</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L105">HansenEconometrics/Chapter7Asymptotics/Inference.lean:105</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarfunctiontstat">
@@ -1171,7 +1171,7 @@ limit. </p></div>
 <pre><code class="language-lean">Real → Real → Real → Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L119">HansenEconometrics/Chapter7Asymptotics/Inference.lean:119</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L120">HansenEconometrics/Chapter7Asymptotics/Inference.lean:120</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olslineartstatstar">
@@ -1186,7 +1186,7 @@ limit. </p></div>
         [Fintype n] → Matrix Unit k Real → Matrix k k Real → Matrix n k Real → (n → Real) → (k → Real) → Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L476">HansenEconometrics/Chapter7Asymptotics/Inference.lean:476</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L477">HansenEconometrics/Chapter7Asymptotics/Inference.lean:477</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olslineartstatorzero">
@@ -1201,7 +1201,7 @@ limit. </p></div>
         [Fintype n] → Matrix Unit k Real → Matrix k k Real → Matrix n k Real → (n → Real) → (k → Real) → Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L485">HansenEconometrics/Chapter7Asymptotics/Inference.lean:485</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L486">HansenEconometrics/Chapter7Asymptotics/Inference.lean:486</a></p>
 </div>
 </details>
 </div>
@@ -1247,7 +1247,7 @@ only on a negligible bad set. </p></div>
                 (MeasureTheory.Measure.map (fun x =&gt; abs x) (ProbabilityTheory.gaussianReal 0 1)) (Set.Iic crit)))</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L625">HansenEconometrics/Chapter7Asymptotics/Inference.lean:625</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L626">HansenEconometrics/Chapter7Asymptotics/Inference.lean:626</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-symmetricci-coverage-of-abs-tstat-standardnormal-se-tendsto-pos">
@@ -1278,7 +1278,7 @@ of the standard error to a positive constant. </p></div>
                 (MeasureTheory.Measure.map (fun x =&gt; abs x) (ProbabilityTheory.gaussianReal 0 1)) (Set.Iic crit)))</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L716">HansenEconometrics/Chapter7Asymptotics/Inference.lean:716</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L717">HansenEconometrics/Chapter7Asymptotics/Inference.lean:717</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearscalarci-coverage-of-tstat-standardnormal-se-tendsto-pos">
@@ -1307,7 +1307,7 @@ interval has standard-normal asymptotic coverage. </p></div>
                 (MeasureTheory.Measure.map (fun x =&gt; abs x) (ProbabilityTheory.gaussianReal 0 1)) (Set.Iic crit)))</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.scalarFunctionCIEvent</code></li><li><code>HansenEconometrics.scalarFunctionTStat</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L807">HansenEconometrics/Chapter7Asymptotics/Inference.lean:807</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L808">HansenEconometrics/Chapter7Asymptotics/Inference.lean:808</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olslinearcieventorzero">
@@ -1323,7 +1323,7 @@ interval has standard-normal asymptotic coverage. </p></div>
           Matrix Unit k Real → Matrix k k Real → Matrix n k Real → (n → Real) → (k → Real) → Real → Real → Prop</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L494">HansenEconometrics/Chapter7Asymptotics/Inference.lean:494</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L495">HansenEconometrics/Chapter7Asymptotics/Inference.lean:495</a></p>
 </div>
 </details>
 </div>
@@ -1460,7 +1460,7 @@ already-finished covariance identity. </p></div>
                       Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared 1)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (13)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.linearRestrictionStdError</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.olsLinearWaldStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1288">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1288</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1289">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1289</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-linmap-olshomowaldstatorzero-tendstoindistribution-chisquared-homo">
@@ -1508,7 +1508,7 @@ variance given <code>X₀</code>, then applies the covariance-identity bridge. <
                       Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared r)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (12)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L2069">HansenEconometrics/Chapter7Asymptotics/Normality.lean:2069</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L2083">HansenEconometrics/Chapter7Asymptotics/Normality.lean:2083</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshomolinwaldstatorzero-tendstoindistribution-chisquared-one-of-iidrobustfeasiblehc">
@@ -1532,7 +1532,7 @@ variance given <code>X₀</code>, then applies the covariance-identity bridge. <
             Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared 1)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (12)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.linearRestrictionStdError</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.olsLinearWaldStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1317">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1317</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1318">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1318</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-linmap-olshomowaldstatorzero-tendstoindistribution-chisquared-of-iidrobustfeasiblehc">
@@ -1573,7 +1573,7 @@ variance given <code>X₀</code>, then applies the covariance-identity bridge. <
             Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared r)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (11)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L2100">HansenEconometrics/Chapter7Asymptotics/Normality.lean:2100</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L2114">HansenEconometrics/Chapter7Asymptotics/Normality.lean:2114</a></p>
 </div>
 </details>
 </div>
@@ -1612,7 +1612,7 @@ coverage error. </p></div>
               Filter.atTop (nhds 0)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.SecondOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.statisticCDFReal</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L394">HansenEconometrics/Chapter7Asymptotics/Inference.lean:394</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L395">HansenEconometrics/Chapter7Asymptotics/Inference.lean:395</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-edgeworthp1polynomial">
@@ -1626,7 +1626,7 @@ polynomial order and parity. </p></div>
 <pre><code class="language-lean">Real → Real → Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L251">HansenEconometrics/Chapter7Asymptotics/Inference.lean:251</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L252">HansenEconometrics/Chapter7Asymptotics/Inference.lean:252</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-edgeworthp2polynomial">
@@ -1638,7 +1638,7 @@ Theorem 7.15 Edgeworth expansion. </p></div>
 <pre><code class="language-lean">Real → Real → Real → Real → Real</code></pre>
 </details>
 
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L258">HansenEconometrics/Chapter7Asymptotics/Inference.lean:258</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L259">HansenEconometrics/Chapter7Asymptotics/Inference.lean:259</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-firstorderedgeworthexpansion-scaled-remainder-tendsto-zero">
@@ -1658,7 +1658,7 @@ Theorem 7.15 Edgeworth expansion. </p></div>
         Filter.atTop (nhds 0)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.FirstOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.statisticCDFReal</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L157">HansenEconometrics/Chapter7Asymptotics/Inference.lean:157</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L158">HansenEconometrics/Chapter7Asymptotics/Inference.lean:158</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-secondorderedgeworthexpansion-tofirstorderedgeworthexpansion">
@@ -1673,7 +1673,7 @@ interface, with correction <code>p1(x) * density(x)</code>. </p></div>
     HansenEconometrics.FirstOrderEdgeworthExpansion μ T baseCDF fun x =&gt; instHMul.hMul (p1 x) (density x)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.FirstOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.SecondOrderEdgeworthExpansion</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L326">HansenEconometrics/Chapter7Asymptotics/Inference.lean:326</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L327">HansenEconometrics/Chapter7Asymptotics/Inference.lean:327</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-secondorderedgeworthexpansion-pointwise-remainder-tendsto-zero">
@@ -1694,7 +1694,7 @@ interface, with correction <code>p1(x) * density(x)</code>. </p></div>
         Filter.atTop (nhds 0)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.SecondOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.statisticCDFReal</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L293">HansenEconometrics/Chapter7Asymptotics/Inference.lean:293</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L294">HansenEconometrics/Chapter7Asymptotics/Inference.lean:294</a></p>
 </div>
 </details>
 </div>
@@ -1739,7 +1739,7 @@ norm and the Chapter 7 OLS rate. </p></div>
         Filter.atTop fun x =&gt; 0</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.maxRowNorm</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1512">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1512</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1526">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1526</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-sqrt-smul-olsbetastar-sub-boundedinprobabilitynorm">
@@ -1764,7 +1764,7 @@ needed by the max-residual product-rate proof. </p></div>
               β)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.BoundedInProbabilityNorm</code></li><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L410">HansenEconometrics/Chapter7Asymptotics/Normality.lean:410</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L424">HansenEconometrics/Chapter7Asymptotics/Normality.lean:424</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-sqrt-scaledmaxrownorm-sq-tendstoinmeasure-zero-of-uniformintegrable-norm-sq">
@@ -1811,7 +1811,7 @@ OLS CLT's <code>√n(β̂*ₙ - β)=Oₚ(1)</code> factor and the deterministic 
             Filter.atTop fun x =&gt; 0</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L429">HansenEconometrics/Chapter7Asymptotics/Normality.lean:429</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L443">HansenEconometrics/Chapter7Asymptotics/Normality.lean:443</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-maxresidualerrorstar-tendstoinmeasure-zero-of-identdistrib-memlp-rownorm-sq">
@@ -1839,7 +1839,7 @@ uniform-integrability assumption in the max-residual rate theorem. </p></div>
               Filter.atTop fun x =&gt; 0</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L564">HansenEconometrics/Chapter7Asymptotics/Normality.lean:564</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L578">HansenEconometrics/Chapter7Asymptotics/Normality.lean:578</a></p>
 </div>
 </details>
 <details class="lean-declaration" id="decl-hanseneconometrics-maxresidualerrorstar-tendstoinmeasure-zero-of-iidrobustfeasiblehcmomentconditions">
@@ -1861,7 +1861,7 @@ identical-distribution fields. </p></div>
       Filter.atTop fun x =&gt; 0</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L585">HansenEconometrics/Chapter7Asymptotics/Normality.lean:585</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L599">HansenEconometrics/Chapter7Asymptotics/Normality.lean:599</a></p>
 </div>
 </details>
 </div>

@@ -161,7 +161,7 @@ that the absolute-standard-normal upper-tail mass is <code>α</code>. </p></div>
                     Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (ProbabilityTheory.gaussianReal 0 1)</code></pre>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (11)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li><li><code>HansenEconometrics.RobustCovarianceConsistencyConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.linearRestrictionStdError</code></li><li><code>HansenEconometrics.olsHetCovStar</code></li><li><code>HansenEconometrics.olsLinearTStatOrZero</code></li><li><code>HansenEconometrics.sampleScoreCovCrossWeight</code></li><li><code>HansenEconometrics.sampleScoreCovQuadraticWeight</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
-<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1523">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1523</a></p>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1524">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1524</a></p>
 </div>
 </details>
 </div>

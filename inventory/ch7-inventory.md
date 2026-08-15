@@ -188,6 +188,12 @@ inference packaging, max-residual rate packaging, and max-leverage rate
 packaging are all landed.
 
 ## Status
+- Chapter 7 now constructs the neutral MetricsLib capabilities
+  `GramConsistency` and `ScoreCLT` through
+  `LeastSquaresConsistencyConditions.toGramConsistency` and
+  `ScoreCLT.ofConditions`. The condition packages remain in Chapter 7; the
+  capability structures live in `AsymptoticInterfaces` so later work does not
+  need a Chapter 7 dependency to consume them.
 - The totalized-estimator consistency theorem corresponding to the start of Theorem 7.1 is formalized.
 - Theorem 7.2 is formalized at the current assumption layer: the projection-family CLT, score-covariance `Ω` wrappers, and vector-valued score CLT are landed.
 - Scalar-projection CLTs for fixed-`Q⁻¹` leading terms are formalized.

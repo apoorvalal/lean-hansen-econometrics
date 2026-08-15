@@ -1,4 +1,5 @@
 import HansenEconometrics.Chapter7Asymptotics.Normality
+import HansenEconometrics.InferenceUtils
 
 /-!
 # Chapter 7 Asymptotics: Inference

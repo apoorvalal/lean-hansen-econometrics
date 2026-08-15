@@ -30,6 +30,9 @@ jobs:
           test: false
           use-mathlib-cache: true
 
+      - name: Check MetricsLib consumer import
+        run: lake env lean tests/MetricsLibSmoke.lean
+
       - name: Build Mathlib text-style linter
         run: lake build @mathlib/lint-style
 
