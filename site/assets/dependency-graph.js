@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let simulation = null;
   let zoom = null;
   let currentFit = null;
+  let currentZoomScale = 1;
 
   for (const chapter of data.chapters) {
     const option = document.createElement("option");
@@ -41,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const clear = () => {
     if (simulation) simulation.stop();
+    currentZoomScale = 1;
     canvas.selectAll("*").remove();
     defineArrow();
   };
@@ -59,6 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const enableZoom = (root, labels) => {
     zoom = d3.zoom().scaleExtent([0.08, 5]).on("zoom", (event) => {
+      currentZoomScale = event.transform.k;
       root.attr("transform", event.transform);
       if (labels) {
         labels.style("display", (node) =>
@@ -236,9 +239,9 @@ document.addEventListener("DOMContentLoaded", () => {
       degree[link.source] += 1;
       degree[link.target] += 1;
     }
-    const degreeCut = [...degree].sort((a, b) => b - a)[Math.min(29, degree.length - 1)] || 0;
+    const degreeCut = [...degree].sort((a, b) => b - a)[Math.min(11, degree.length - 1)] || 0;
     nodes.forEach((node, index) => {
-      node.showLabel = node.important || degree[index] >= degreeCut;
+      node.showLabel = degree[index] > 0 && degree[index] >= degreeCut;
     });
     const root = canvas.append("g");
     const link = root
@@ -257,6 +260,22 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("g")
       .attr("tabindex", 0)
       .style("cursor", "pointer")
+      .on("mouseenter", (event) => {
+        d3.select(event.currentTarget).select("text").style("display", null);
+      })
+      .on("mouseleave", (event, item) => {
+        if (!item.showLabel && currentZoomScale < 1.5) {
+          d3.select(event.currentTarget).select("text").style("display", "none");
+        }
+      })
+      .on("focus", (event) => {
+        d3.select(event.currentTarget).select("text").style("display", null);
+      })
+      .on("blur", (event, item) => {
+        if (!item.showLabel && currentZoomScale < 1.5) {
+          d3.select(event.currentTarget).select("text").style("display", "none");
+        }
+      })
       .on("click", (_event, item) => {
         location.href = item.page;
       })
@@ -277,6 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .style("font-family", "ui-monospace, SFMono-Regular, Menlo, monospace")
       .style("font-size", "0.59rem")
       .style("fill", "#34434a")
+      .style("pointer-events", "none")
       .attr("paint-order", "stroke")
       .attr("stroke", "#fcfdfd")
       .attr("stroke-width", 3)
@@ -321,4 +341,3 @@ document.addEventListener("DOMContentLoaded", () => {
   if (data.chapters.includes(requested)) drawChapter(requested);
   else drawOverview();
 });
-

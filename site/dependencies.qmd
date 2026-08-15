@@ -21,6 +21,7 @@ Arrows point from a prerequisite declaration to the result that uses it in its f
 <span class="legend-important">Important result</span>
 <span class="legend-supporting">Direct dependency</span>
 <span class="legend-arrow">Arrow: prerequisite to result</span>
+<span>Zoom in or point at a node to show more labels.</span>
 </div>
 <svg id="graph-canvas" width="100%" height="680" role="img" aria-label="Lean declaration dependency graph"></svg>
 </div>

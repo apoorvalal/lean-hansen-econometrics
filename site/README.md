@@ -66,6 +66,10 @@ just site-crash-course
 After a refresh, inspect the course's adaptation summary, update the retrieval
 date and checksum in `assets/README.md`, and render the site.
 
+The wrapper loads the packaged file after its own page has loaded and marks the
+placeholder iframe as external to Quarto's resource embedder. Keep this design.
+Inlining the course as a `data:` URL disables browser storage inside the course.
+
 ## Tests
 
 Run the generator tests with:

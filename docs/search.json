@@ -369,7 +369,7 @@
     "href": "crash-course.html",
     "title": "Lean crash course",
     "section": "",
-    "text": "This site includes a self-contained snapshot of the Lean crash course on lalten.org. The course adapts the IntroToLean4 examples and places the Lean source beside its observed terminal output.\nOpen the packaged course in a full page Open the current course on lalten.org\nThe packaged snapshot covers 14 tutorial chapters. Chapters 1–12 contain executed examples. Chapters 13 and 14 are source-only because those two upstream files did not compile in the source state used to make the course.",
+    "text": "This site includes a self-contained snapshot of the Lean crash course on lalten.org. The course adapts the IntroToLean4 examples and places the Lean source beside its observed terminal output.\nOpen the packaged course in a full page Open the current course on lalten.org\nThe packaged snapshot covers 14 tutorial chapters. Chapters 1–12 contain executed examples. Chapters 13 and 14 are source-only because those two upstream files did not compile in the source state used to make the course.\n\n\n\n\nOpen the packaged course in a separate page.",
     "crumbs": [
       "Lean crash course"
     ]
@@ -419,7 +419,7 @@
     "href": "dependencies.html",
     "title": "Dependency graph",
     "section": "",
-    "text": "Arrows point from a prerequisite declaration to the result that uses it in its formal statement. This follows the CausalForge and LeanBlueprint convention. The overview aggregates links by textbook chapter. Select a chapter to inspect its important endpoints and their direct project dependencies.\n\n\n\nChapter overview\n\nChapter Overview Reset view \n\n\nImportant result Direct dependency Arrow: prerequisite to result",
+    "text": "Arrows point from a prerequisite declaration to the result that uses it in its formal statement. This follows the CausalForge and LeanBlueprint convention. The overview aggregates links by textbook chapter. Select a chapter to inspect its important endpoints and their direct project dependencies.\n\n\n\nChapter overview\n\nChapter Overview Reset view \n\n\nImportant result Direct dependency Arrow: prerequisite to result Zoom in or point at a node to show more labels.",
     "crumbs": [
       "Dependency graph"
     ]

@@ -11,5 +11,14 @@ This site includes a self-contained snapshot of the [Lean crash course on lalten
 
 The packaged snapshot covers 14 tutorial chapters. Chapters 1--12 contain executed examples. Chapters 13 and 14 are source-only because those two upstream files did not compile in the source state used to make the course.
 
-<iframe class="crash-course-frame" src="assets/lean-crash-course.html" title="Packaged Lean crash course"></iframe>
+<iframe class="crash-course-frame" id="lean-crash-course-frame" src="about:blank" data-external="1" title="Packaged Lean crash course"></iframe>
 
+<script>
+window.addEventListener("load", function () {
+  document.getElementById("lean-crash-course-frame").src = "assets/lean-crash-course.html";
+});
+</script>
+
+<noscript>
+Open the [packaged course](assets/lean-crash-course.html) in a separate page.
+</noscript>
