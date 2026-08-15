@@ -357,6 +357,19 @@ theorem sampleGram_stackRegressors_aestronglyMeasurable
   sampleGram_stackRegressors_aestronglyMeasurable_of_wlln
     (SampleGramWLLNConditions.ofSampleMoment h) n
 
+/-- The Chapter 7 least-squares moment conditions construct the reusable
+sample-Gram consistency interface. -/
+theorem LeastSquaresConsistencyConditions.toGramConsistency
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : LeastSquaresConsistencyConditions μ X e) :
+    GramConsistency μ
+      (fun n ω => sampleGram (stackRegressors X n ω))
+      (popGram μ X) where
+  gram_measurable := sampleGram_stackRegressors_aestronglyMeasurable h
+  consistent := sampleGram_stackRegressors_tendstoInMeasure_popGram h
+  nonsingular := by simpa [popGram] using h.Q_nonsing
+
 /-- Measurability of the stacked sample cross moment under the Chapter 7.1 moment layer. -/
 theorem sampleCrossMoment_stack_aestronglyMeasurable
     {μ : Measure Ω} [IsFiniteMeasure μ]

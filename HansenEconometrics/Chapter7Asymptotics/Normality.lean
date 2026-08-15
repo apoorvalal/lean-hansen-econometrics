@@ -251,6 +251,20 @@ theorem scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
     (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)) hEuclid
   simpa [Function.comp_def] using hMap
 
+/-- The Chapter 7 score conditions construct the reusable `ScoreCLT`
+interface for the scaled sample score. -/
+theorem ScoreCLT.ofConditions
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : ScoreCLTConditions μ X e) :
+    ScoreCLT μ
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      (scoreCovMat μ X e) where
+  covariance_posSemidef := scoreCovMat_posSemidef (μ := μ) (X := X) (e := e) h
+  limit := scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian h
+
 /-- **Hansen Theorem 7.3, feasible leading-score vector Slutsky bridge.**
 
 Conditional on a vector-valued score CLT for `√n · ĝₙ(e)`, the feasible OLS
