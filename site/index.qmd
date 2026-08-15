@@ -35,9 +35,9 @@ The [dependency graph](dependencies.qmd) uses the constants named in each formal
 :::
 
 ::: {.g-col-12 .g-col-md-6}
-### Read walkthroughs
+### Read proof deep dives
 
-The hand-written walkthroughs explain selected results from Chapters 3, 5, and 7. They discuss assumptions, proof structure, and differences between the textbook notation and the formal API.
+The hand-written proof deep dives explain selected results from Chapters 3, 5, and 7. Each page links to its canonical result card and discusses assumptions, proof structure, and differences between the textbook notation and the formal API.
 :::
 :::
 

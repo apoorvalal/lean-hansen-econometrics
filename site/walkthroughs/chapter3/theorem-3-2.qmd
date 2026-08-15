@@ -4,6 +4,8 @@ lean_name: "HansenEconometrics.normal_equations"
 chapter: 3
 ---
 
+[Open the canonical result card](../../results/chapter3.qmd#theorem-3-2-normal-equations){.btn .btn-outline-primary role="button"}
+
 ## Textbook statement
 
 Hansen Theorem 3.2 states: when $X^\top X$ is invertible, the OLS estimator

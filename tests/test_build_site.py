@@ -88,6 +88,16 @@ class RenderingTests(unittest.TestCase):
         self.assertNotIn(r"$\mathbb{E}[Y^2] &lt; \infty$", rendered)
         self.assertIn("<code>x &lt; y</code>", rendered)
 
+    def test_markdown_does_not_parse_tex_subscripts_as_emphasis(self) -> None:
+        rendered = inline_markdown(
+            r"$\hat{e}_{\text{full}} = M_{M_1 X_2} M_1 Y$"
+        )
+        self.assertIn(
+            r"$\hat{e}_{\text{full}} = M_{M_1 X_2} M_1 Y$",
+            rendered,
+        )
+        self.assertNotIn("<em>", rendered)
+
     def test_result_and_formal_statement_are_foldable(self) -> None:
         group = compact_group(
             ResultGroup(

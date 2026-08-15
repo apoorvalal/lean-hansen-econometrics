@@ -4,6 +4,9 @@ lean_name: "HansenEconometrics.fromColsRightBeta_eq_fwlBeta"
 chapter: 3
 ---
 
+[Open the coefficient result card](../../results/chapter3.qmd#theorem-3-5-coefficient-equivalence){.btn .btn-outline-primary role="button"}
+[Open the residual result card](../../results/chapter3.qmd#theorem-3-5-residual-equivalence){.btn .btn-outline-primary role="button"}
+
 ## Textbook statement
 
 Partition the regressors $X = [X_1, X_2]$ with $k_1$ and $k_2$ columns

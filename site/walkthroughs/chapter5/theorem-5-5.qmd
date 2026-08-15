@@ -1,12 +1,15 @@
 ---
-title: "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+title: "Gaussian laws of OLS coefficients and residuals"
 lean_name: "HansenEconometrics.olsBeta_hasGaussianLaw_of_error"
 chapter: 5
 ---
 
+[Open the coefficient result card](../../results/chapter5.qmd#theorem-5-4-conditional-law-of-the-ols-coefficient-vector){.btn .btn-outline-primary role="button"}
+[Open the residual result card](../../results/chapter5.qmd#theorem-5-6-conditional-law-of-the-ols-residual-vector){.btn .btn-outline-primary role="button"}
+
 ## Textbook statement
 
-> Paraphrased textbook statement (Hansen Theorem 5.5 / 5.6): in the
+> Paraphrased textbook statement (Hansen Theorems 5.4 and 5.6): in the
 > homoskedastic normal regression model where $e \sim N(0, \sigma^2 I_n)$,
 > the OLS estimator
 >

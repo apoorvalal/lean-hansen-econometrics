@@ -4,6 +4,8 @@ lean_name: "HansenEconometrics.olsResidualVarianceEstimator_linear_model_quadrat
 chapter: 5
 ---
 
+[Open the canonical result card](../../results/chapter5.qmd#residual-quadratic-form-identity){.btn .btn-outline-primary role="button"}
+
 ## Textbook statement
 
 In the linear model $y = X\beta + e$ with $X^\top X$ invertible, define the

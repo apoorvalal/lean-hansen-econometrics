@@ -312,15 +312,20 @@ def parse_inventory(chapter: int, path: Path, index: DeclarationIndex) -> list[R
 def inline_markdown(text: str) -> str:
     if not text:
         return ""
-    text = MATH_RE.sub(
-        lambda match: (
-            match.group(1)
-            + match.group(2).replace("<", r"\lt ").replace(">", r"\gt ")
-            + match.group(1)
-        ),
-        text,
-    )
-    rendered = markdown.markdown(text, extensions=["sane_lists"])
+    math_spans: list[str] = []
+
+    def protect_math(match: re.Match[str]) -> str:
+        delimiter = match.group(1)
+        body = match.group(2).replace("<", r"\lt ").replace(">", r"\gt ")
+        placeholder = f"HANSENMATHSPAN{len(math_spans)}PLACEHOLDER"
+        math_spans.append(f"{delimiter}{body}{delimiter}")
+        return placeholder
+
+    protected = MATH_RE.sub(protect_math, text)
+    rendered = markdown.markdown(protected, extensions=["sane_lists"])
+    for position, math_span in enumerate(math_spans):
+        placeholder = f"HANSENMATHSPAN{position}PLACEHOLDER"
+        rendered = rendered.replace(placeholder, math_span)
     return rendered
 
 

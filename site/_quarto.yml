@@ -55,7 +55,7 @@ website:
             text: "12: Instrumental variables"
           - href: results/chapter13.qmd
             text: "13: GMM"
-      - section: Walkthroughs
+      - section: Proof deep dives
         contents:
           - section: Chapter 3
             contents:

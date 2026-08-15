@@ -4,6 +4,8 @@ lean_name: "HansenEconometrics.scoreProjection_olsBetaStar_tendstoInDistribution
 chapter: 7
 ---
 
+[Open the canonical result card](../../results/chapter7.qmd#theorem-7-3){.btn .btn-outline-primary role="button"}
+
 ## Textbook statement
 
 Under i.i.d. sampling and the moment conditions of Theorem 7.2 (CLT for the

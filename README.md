@@ -110,7 +110,7 @@ explicit. See [`AGENTS.md`](AGENTS.md) for the full API and proof policy.
 - `textbook/`: extracted chapter text and redirects to the canonical
   inventories.
 - `review/`: adversarial review harness, prompt templates, schema, and reports.
-- `site/`: Quarto sources for the walkthrough site.
+- `site/`: Quarto sources for the documentation site.
 - `docs/`: rendered site committed for GitHub Pages.
 - `scripts/`: extraction, declaration export, site generation, and review tools.
 - `tests/`: tests for the review and documentation tooling.
@@ -158,9 +158,10 @@ workflows.
 
 The Quarto site contains a packaged Lean crash course, a generated
 statement-dependency graph, foldable important-result pages for Chapters
-2--13, and hand-written walkthroughs for selected results in Chapters 3, 5,
-and 7. The generated result pages use the canonical inventory crosswalks and
-metadata from the compiled Lean environment.
+2--13, and hand-written proof deep dives for selected results in Chapters 3,
+5, and 7. Each deep dive links to its canonical generated result card. The
+generated result pages use the canonical inventory crosswalks and metadata
+from the compiled Lean environment.
 
 With Quarto and `just` installed, refresh and render the complete site to
 `docs/`:

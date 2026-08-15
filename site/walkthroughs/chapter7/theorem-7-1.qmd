@@ -4,6 +4,8 @@ lean_name: "HansenEconometrics.olsBetaOrZero_stack_tendstoInMeasure_beta"
 chapter: 7
 ---
 
+[Open the canonical result card](../../results/chapter7.qmd#theorem-7-1-consistency-of-least-squares){.btn .btn-outline-primary role="button"}
+
 ## Textbook statement
 
 Suppose we observe an i.i.d. sample $(X_i, e_i)$ drawn from the population

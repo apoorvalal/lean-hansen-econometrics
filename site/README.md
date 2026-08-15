@@ -9,7 +9,8 @@ writes the complete site to `docs/` at the repository root.
 - `crash-course.qmd` links to and embeds the packaged Lean crash course.
 - `dependencies.qmd` is generated from Lean statement dependencies.
 - `results/` contains generated foldable textbook-to-Lean result pages.
-- `walkthroughs/` contains hand-written explanations of selected results.
+- `walkthroughs/` contains hand-written proof deep dives for selected results.
+  Each deep dive links to its canonical generated result card.
 - `assets/` contains the site style, browser code, the D3 dependency, and the
   self-contained crash-course snapshot.
 
@@ -84,7 +85,7 @@ Then render and inspect at least these pages:
 - the crash-course wrapper and its full-page link;
 - the dependency graph overview and one chapter graph;
 - one early and one late important-result page;
-- one hand-written walkthrough.
+- one hand-written proof deep dive and its canonical result-card link.
 
 ## Publishing
 
