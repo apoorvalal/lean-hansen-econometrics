@@ -6,6 +6,7 @@ default: site-render
 # Local equivalent of the PR Lean CI gate.
 ci:
     lake build
+    lake env lean tests/MetricsLibSmoke.lean
     lake build @mathlib/lint-style
     lake env .lake/packages/mathlib/.lake/build/bin/lint-style HansenEconometrics
 

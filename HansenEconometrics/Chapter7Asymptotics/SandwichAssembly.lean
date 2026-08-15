@@ -1,5 +1,4 @@
 import HansenEconometrics.Chapter7Asymptotics.MiddleConsistency
-import HansenEconometrics.InferenceUtils
 
 /-!
 # Chapter 7 Asymptotics: Sandwich Assembly (RobustCovariance, part 3/3)

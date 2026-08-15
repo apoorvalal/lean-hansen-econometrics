@@ -87,13 +87,17 @@ and the formal results. Important examples are:
 
 The library uses a layered design:
 
-1. `LinearAlgebraUtils`, `ProbabilityUtils`, and `AsymptoticUtils` provide
-   reusable infrastructure.
-2. Early chapter modules provide OLS, projection, distribution, and asymptotic
-   results used by later chapters.
-3. Larger chapters use umbrella modules with focused submodules. Chapters
+1. Neutral modules such as `LinearAlgebraUtils`, `ProbabilityUtils`,
+   `AsymptoticInterfaces`, `AsymptoticUtils`, `InferenceUtils`, and
+   `GaussianLinearization` provide reusable infrastructure and stable
+   capability interfaces.
+2. `HansenEconometrics.MetricsLib` and its domain modules provide curated
+   import paths for downstream econometric formalizations.
+3. Early chapter modules provide reusable OLS, projection, distribution, and
+   asymptotic results used by later chapters.
+4. Larger chapters use umbrella modules with focused submodules. Chapters
    10--13 follow this pattern.
-4. Canonical chapter-facing theorems wrap reusable proof engines and expose
+5. Canonical chapter-facing theorems wrap reusable proof engines and expose
    Hansen's notation when it is mathematically sound.
 
 Finite-sample estimators use a consistent totalization policy. Base definitions
@@ -101,11 +105,31 @@ use invertibility assumptions. `Star` definitions use `Matrix.nonsingInv` as a
 proof engine. Textbook-facing `OrZero` definitions make singular-design behavior
 explicit. See [`AGENTS.md`](AGENTS.md) for the full API and proof policy.
 
+## Use as MetricsLib
+
+New econometric developments should normally start with:
+
+```lean
+import HansenEconometrics.MetricsLib
+```
+
+Smaller stable facades are available for linear algebra, probability,
+asymptotics, regression, inference, and bootstrap. They expose reusable
+theorems without importing the complete textbook development. The main stable
+asymptotic capabilities include `GramConsistency`, `ScoreCLT`,
+`AsymptoticallyLinearEstimator`, `CovarianceEstimatorConsistent`, and
+`FeasibleStandardErrorConsistent`.
+
+See [`site/metricslib.qmd`](site/metricslib.qmd) for dependency instructions,
+facade selection, a complete consumer example, stability expectations, and the
+recommended process for adding workhorse theorems.
+
 ## Repository structure
 
 - `HansenEconometrics/`: Lean source modules.
-- `HansenEconometrics.lean`: root library import; `lake build` checks this
-  complete surface.
+- `HansenEconometrics/MetricsLib.lean`: curated downstream library import.
+- `HansenEconometrics.lean`: complete textbook import; `lake build` checks this
+  full surface.
 - `inventory/`: canonical chapter status notes and LaTeX/Lean crosswalks.
 - `textbook/`: extracted chapter text and redirects to the canonical
   inventories.
@@ -126,6 +150,7 @@ Run the local CI-equivalent check from the repository root:
 
 ```sh
 lake build
+lake env lean tests/MetricsLibSmoke.lean
 lake build @mathlib/lint-style
 lake env .lake/packages/mathlib/.lake/build/bin/lint-style HansenEconometrics
 ```
@@ -133,10 +158,11 @@ lake env .lake/packages/mathlib/.lake/build/bin/lint-style HansenEconometrics
 If [`just`](https://github.com/casey/just) is installed, `just ci` runs the same
 three commands.
 
-The main GitHub Actions workflow runs the same build and text-style checks for
-pull requests and pushes to `main` or `master`. Lean's standard elaboration
-linters are enabled in `lakefile.toml`. Existing warnings mean that the project
-does not yet use `lake build --wfail` as a required gate.
+The main GitHub Actions workflow runs the same build, downstream MetricsLib
+consumer check, and text-style checks for pull requests and pushes to `main` or
+`master`. Lean's standard elaboration linters are enabled in `lakefile.toml`.
+Existing warnings mean that the project does not yet use `lake build --wfail`
+as a required gate.
 
 Run the tooling tests with:
 

@@ -77,6 +77,12 @@
 ## Status
 - partial: Chapter 8 modules added in `HansenEconometrics/Chapter8RestrictedEstimation.lean` and `HansenEconometrics/Chapter8Asymptotics.lean`.
 - The restricted-estimation finite-sample layer now covers Theorems 8.1-8.5, including a packaged exact normal-regression law theorem for Theorem 8.5. The asymptotic layer remains a stable-interface wrapper layer for the Chapter 8 large-sample results.
+- The generic interfaces and workhorse limit theorems first used by this
+  chapter now live in the neutral modules `AsymptoticInterfaces`,
+  `InferenceUtils`, and `GaussianLinearization`. Their public declaration names
+  are unchanged, and `Chapter8Asymptotics` re-exports them for compatibility.
+  New developments can obtain them through `HansenEconometrics.MetricsLib`
+  without importing Chapter 8.
 
 ## LaTeX / Lean Crosswalk
 

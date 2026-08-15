@@ -1,0 +1,10 @@
+{
+  "ignore": {
+    "HansenEconometrics.MetricsLib.Asymptotics": [
+      "HansenEconometrics.AsymptoticUtils",
+      "HansenEconometrics.AsymptoticUtils.DeltaMethod",
+      "HansenEconometrics.AsymptoticUtils.MaxBounds",
+      "HansenEconometrics.Chapter6Asymptotics"
+    ]
+  }
+}

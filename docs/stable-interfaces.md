@@ -249,9 +249,9 @@ theorem wald_limit
 The latter shape may appear in constructors, but it should not be the main
 surface for theorem-facing econometrics.
 
-## Suggested Interfaces for This Repository
+## Implemented Interfaces and Next Step
 
-The current repo already has useful condition packages:
+The repository has useful model-specific condition packages:
 
 - `LeastSquaresConsistencyConditions`
 - `ErrorVarianceConsistencyConditions`
@@ -260,25 +260,30 @@ The current repo already has useful condition packages:
 - `RobustFeasibleHCMomentConditions`
 - `MultivariateLindebergCLTConditions`
 
-The next useful step is not to replace these immediately. Instead, add a small
-number of more stable interfaces above them.
+The neutral module `HansenEconometrics.AsymptoticInterfaces` now puts stable
+capability interfaces above these packages. `InferenceUtils` and
+`GaussianLinearization` contain the generic workhorse theorems that consume
+them. Chapter modules provide constructors from concrete assumptions. For
+example, Chapter 7 provides
+`LeastSquaresConsistencyConditions.toGramConsistency` and
+`ScoreCLT.ofConditions`.
 
 ### `GramConsistency`
 
 Purpose: package convergence of the sample Gram matrix and nonsingularity of
 the population target.
 
-Likely fields:
+Current shape:
 
 ```lean
 structure GramConsistency
     (mu : Measure Omega)
     (Qhat : Nat -> Omega -> Matrix k k Real)
     (Q : Matrix k k Real) where
-  Qhat_measurable : forall n, AEMeasurable (Qhat n) mu
-  Qhat_tendsto :
+  gram_measurable : forall n, AEStronglyMeasurable (Qhat n) mu
+  consistent :
     TendstoInMeasure mu Qhat atTop (fun _ => Q)
-  Q_nonsing : IsUnit Q.det
+  nonsingular : IsUnit Q.det
 ```
 
 Useful for:
@@ -293,18 +298,20 @@ Useful for:
 
 Purpose: package the limiting distribution of the normalized score.
 
-Likely fields:
+Current role: `ScoreCLT` is the score-facing name for the generic
+`GaussianLimit` capability. It records a positive-semidefinite covariance and
+the centered multivariate Gaussian limit:
 
 ```lean
-structure ScoreCLT
+structure GaussianLimit
     (mu : Measure Omega) [IsProbabilityMeasure mu]
     (score : Nat -> Omega -> k -> Real)
     (Omegamat : Matrix k k Real) where
-  score_measurable : forall n, AEMeasurable (score n) mu
-  score_tendsto :
+  covariance_posSemidef : Omegamat.PosSemidef
+  limit :
     TendstoInDistribution
       score atTop
-      (gaussianLimit Omegamat)
+      (fun z : EuclideanSpace Real k => z.ofLp)
       (fun _ => mu)
       (multivariateGaussian 0 Omegamat)
 ```
@@ -320,20 +327,18 @@ Useful constructors:
 Purpose: express that an estimator is equal to a linear transform of a score,
 up to an `o_p(1)` remainder after scaling.
 
-Likely fields:
+Current shape:
 
 ```lean
 structure AsymptoticallyLinearEstimator
     (mu : Measure Omega)
-    (bhat : Nat -> Omega -> k -> Real)
-    (beta : k -> Real)
-    (root : Nat -> Real)
-    (score : Nat -> Omega -> k -> Real)
-    (A : Matrix k k Real) where
-  bhat_measurable : forall n, AEMeasurable (bhat n) mu
+    (Y : Nat -> Omega -> k -> Real)
+    (A : Matrix k k Real)
+    (score : Nat -> Omega -> k -> Real) where
+  scaled_measurable : forall n, AEMeasurable (Y n) mu
   expansion :
     TendstoInMeasure mu
-      (fun n omega => scaledError root bhat beta n omega - A *v score n omega)
+      (Y - fun n omega => A *v score n omega)
       atTop
       (fun _ => 0)
 ```
@@ -350,15 +355,15 @@ Useful for:
 
 Purpose: package convergence of a covariance estimator to a target covariance.
 
-Likely fields:
+Current shape:
 
 ```lean
 structure CovarianceEstimatorConsistent
     (mu : Measure Omega)
     (Vhat : Nat -> Omega -> Matrix k k Real)
     (V : Matrix k k Real) where
-  Vhat_measurable : forall n, AEMeasurable (Vhat n) mu
-  Vhat_tendsto :
+  covariance_measurable : forall n, AEStronglyMeasurable (Vhat n) mu
+  consistent :
     TendstoInMeasure mu Vhat atTop (fun _ => V)
 ```
 
@@ -379,12 +384,14 @@ Useful constructors:
 - homoskedastic covariance consistency,
 - cluster-robust covariance consistency later.
 
-### `StudentizedStatisticReady`
+### Possible future interface: `StudentizedStatisticReady`
 
 Purpose: package the exact ingredients needed for a t-statistic or Wald statistic
 limit without exposing the underlying estimator/covariance proof.
 
-This may be useful after the lower-level interfaces settle.
+This may be useful after the lower-level interfaces settle. The current API
+uses `FeasibleStandardErrorConsistent`, together with generic studentization
+theorems in `InferenceUtils`, because this preserves more reusable structure.
 
 Likely fields:
 

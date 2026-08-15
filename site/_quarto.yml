@@ -3,6 +3,7 @@ project:
   output-dir: ../docs
   render:
     - "index.qmd"
+    - "metricslib.qmd"
     - "crash-course.qmd"
     - "dependencies.qmd"
     - "results/**/*.qmd"
@@ -23,6 +24,8 @@ website:
     contents:
       - href: index.qmd
         text: Home
+      - href: metricslib.qmd
+        text: Use as MetricsLib
       - href: crash-course.qmd
         text: Lean crash course
       - href: dependencies.qmd

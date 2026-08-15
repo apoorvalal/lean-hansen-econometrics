@@ -1,5 +1,4 @@
 import HansenEconometrics.AsymptoticInterfaces
-import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.StochasticOrder
 import HansenEconometrics.ProbabilityUtils
 
