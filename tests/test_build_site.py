@@ -12,6 +12,7 @@ from build_site import (  # noqa: E402
     ResultGroup,
     compact_group,
     graph_payload,
+    inline_markdown,
     parse_crosswalk_table,
     render_result_group,
 )
@@ -81,6 +82,12 @@ class DeclarationIndexTests(unittest.TestCase):
 
 
 class RenderingTests(unittest.TestCase):
+    def test_math_relations_are_not_encoded_as_html_entities(self) -> None:
+        rendered = inline_markdown(r"$\mathbb{E}[Y^2] < \infty$ and `x < y`")
+        self.assertIn(r"$\mathbb{E}[Y^2] \lt  \infty$", rendered)
+        self.assertNotIn(r"$\mathbb{E}[Y^2] &lt; \infty$", rendered)
+        self.assertIn("<code>x &lt; y</code>", rendered)
+
     def test_result_and_formal_statement_are_foldable(self) -> None:
         group = compact_group(
             ResultGroup(

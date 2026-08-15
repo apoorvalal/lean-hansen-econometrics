@@ -118,7 +118,7 @@ This page is generated from the [canonical Chapter 2 inventory](https://github.c
 <details class="result-group" id="t2-5-finite-regression-error-variance">
 <summary><span>T2.5 Finite Regression-error Variance</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$\mathbb{E}[Y^2] &lt; \infty \Longrightarrow \mathbb{E}[e^2] &lt; \infty$</p></div>
+<div class="textbook-statement"><p>$\mathbb{E}[Y^2] \lt  \infty \Longrightarrow \mathbb{E}[e^2] \lt  \infty$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-memlp-ceferror">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.memLp_cefError</code></summary>
 <div class="declaration-body">

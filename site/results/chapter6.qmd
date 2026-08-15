@@ -14,7 +14,7 @@ This page is generated from the [canonical Chapter 6 inventory](https://github.c
 <details class="result-group" id="theorem-6-1-weak-law-of-large-numbers" open>
 <summary><span>Theorem 6.1 Weak Law of Large Numbers</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d. and $\mathbb{E}\lVert Y \rVert &lt; \infty$, then $\bar{Y} = \frac{1}{n} \sum_{i=1}^n Y_i \xrightarrow{p} \mathbb{E}[Y]$</p></div>
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d. and $\mathbb{E}\lVert Y \rVert \lt  \infty$, then $\bar{Y} = \frac{1}{n} \sum_{i=1}^n Y_i \xrightarrow{p} \mathbb{E}[Y]$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-wlln">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_wlln</code></summary>
 <div class="declaration-body">
@@ -46,7 +46,7 @@ econometrics literature's WLLN statement. </p></div>
 <details class="result-group" id="theorem-6-2-transformed-wlln">
 <summary><span>Theorem 6.2 transformed WLLN</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d., $h : \mathbb{R}^k \to \mathbb{R}^q$, and $\mathbb{E}\lVert h(Y) \rVert &lt; \infty$, then $\hat{\mu} = \frac{1}{n} \sum_{i=1}^n h(Y_i) \xrightarrow{p} \mu = \mathbb{E}[h(Y)]$</p></div>
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d., $h : \mathbb{R}^k \to \mathbb{R}^q$, and $\mathbb{E}\lVert h(Y) \rVert \lt  \infty$, then $\hat{\mu} = \frac{1}{n} \sum_{i=1}^n h(Y_i) \xrightarrow{p} \mu = \mathbb{E}[h(Y)]$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-transformed-wlln">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_transformed_wlln</code></summary>
 <div class="declaration-body">
@@ -100,7 +100,7 @@ limit <code>θ</code> in measure. This is a chapter-facing name for the Mathlib
 <details class="result-group" id="theorem-6-3-multivariate-lindeberg-l-vy-clt">
 <summary><span>Theorem 6.3 multivariate Lindeberg-Lévy CLT</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d. and $\mathbb{E}\lVert Y \rVert^2 &lt; \infty$, then $\sqrt{n}(\bar{Y} - \mu) \xrightarrow{d} N(0,V)$ where $\mu = \mathbb{E}[Y]$ and $V = \mathbb{E}[(Y-\mu)(Y-\mu)']$</p></div>
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d. and $\mathbb{E}\lVert Y \rVert^2 \lt  \infty$, then $\sqrt{n}(\bar{Y} - \mu) \xrightarrow{d} N(0,V)$ where $\mu = \mathbb{E}[Y]$ and $V = \mathbb{E}[(Y-\mu)(Y-\mu)']$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-iidscalarclt-tendstoindistribution-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidScalarCLT_tendstoInDistribution_gaussian</code></summary>
 <div class="declaration-body">
@@ -162,7 +162,7 @@ law infrastructure. </p></div>
 <details class="result-group" id="theorem-6-4-multivariate-lindeberg-clt">
 <summary><span>Theorem 6.4 multivariate Lindeberg CLT</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $Y_{ni}$ are independent with $\mathbb{E}[Y_{ni}] = 0$, variance matrices $V_{ni}$, $\nu_n^2 = \lambda_{\min}(V_n) &gt; 0$, and the Lindeberg condition $\nu_n^{-2} \sum_i \mathbb{E}[\lVert Y_{ni} \rVert^2 1{\lVert Y_{ni} \rVert^2 \ge \epsilon \nu_n^2}] \to 0$, then $V_n^{-1/2} \sum_i Y_{ni} \xrightarrow{d} N(0,I_k)$</p></div>
+<div class="textbook-statement"><p>If $Y_{ni}$ are independent with $\mathbb{E}[Y_{ni}] = 0$, variance matrices $V_{ni}$, $\nu_n^2 = \lambda_{\min}(V_n) \gt  0$, and the Lindeberg condition $\nu_n^{-2} \sum_i \mathbb{E}[\lVert Y_{ni} \rVert^2 1{\lVert Y_{ni} \rVert^2 \ge \epsilon \nu_n^2}] \to 0$, then $V_n^{-1/2} \sum_i Y_{ni} \xrightarrow{d} N(0,I_k)$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-multivariatelindebergclt-tendstoindistribution">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.multivariateLindebergCLT_tendstoInDistribution</code></summary>
 <div class="declaration-body">
@@ -310,7 +310,7 @@ shape of the scalar Lindeberg expression once the normalization is fixed. </p></
 <details class="result-group" id="theorem-6-5-heterogeneous-array-clt">
 <summary><span>Theorem 6.5 heterogeneous-array CLT</span><span class="result-count">6 of 7 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $Y_{ni}$ are independent with $\mathbb{E}[Y_{ni}] = 0$, $n^{-1}\sum_i V_{ni} \to V &gt; 0$, and $\sup_{n,i} \mathbb{E}\lVert Y_{ni} \rVert^{2+\delta} &lt; \infty$ for some $\delta &gt; 0$, then $\sqrt{n}\,\bar{Y} \xrightarrow{d} N(0,V)$</p></div>
+<div class="textbook-statement"><p>If $Y_{ni}$ are independent with $\mathbb{E}[Y_{ni}] = 0$, $n^{-1}\sum_i V_{ni} \to V \gt  0$, and $\sup_{n,i} \mathbb{E}\lVert Y_{ni} \rVert^{2+\delta} \lt  \infty$ for some $\delta \gt  0$, then $\sqrt{n}\,\bar{Y} \xrightarrow{d} N(0,V)$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-heterogeneousarrayclt-tendstoindistribution">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.heterogeneousArrayCLT_tendstoInDistribution</code></summary>
 <div class="declaration-body">
@@ -791,7 +791,7 @@ map <code>β ↦ β_j²</code>. </p></div>
 <details class="result-group" id="theorem-6-9-smooth-function-consistency">
 <summary><span>Theorem 6.9 smooth-function consistency</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^m$ are i.i.d., $h : \mathbb{R}^m \to \mathbb{R}^k$, $\mathbb{E}\lVert h(Y) \rVert &lt; \infty$, and $g : \mathbb{R}^k \to \mathbb{R}^q$ is continuous at $\mu$, then $\hat{\theta} \xrightarrow{p} \theta$</p></div>
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^m$ are i.i.d., $h : \mathbb{R}^m \to \mathbb{R}^k$, $\mathbb{E}\lVert h(Y) \rVert \lt  \infty$, and $g : \mathbb{R}^k \to \mathbb{R}^q$ is continuous at $\mu$, then $\hat{\theta} \xrightarrow{p} \theta$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-smoothfunction-consistency">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.smoothFunction_consistency</code></summary>
 <div class="declaration-body">
@@ -838,7 +838,7 @@ when those technical premises are not part of the mathematical statement. </p></
 <details class="result-group" id="theorem-6-10-smooth-function-asymptotic-normality">
 <summary><span>Theorem 6.10 smooth-function asymptotic normality</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^m$ are i.i.d., $\mathbb{E}\lVert h(Y) \rVert^2 &lt; \infty$, and $g$ is continuously differentiable near $\mu$, then $\sqrt{n}(\hat{\theta} - \theta) \xrightarrow{d} N(0,V_\theta)$ where $V_\theta = G' V G$</p></div>
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^m$ are i.i.d., $\mathbb{E}\lVert h(Y) \rVert^2 \lt  \infty$, and $g$ is continuously differentiable near $\mu$, then $\sqrt{n}(\hat{\theta} - \theta) \xrightarrow{d} N(0,V_\theta)$ where $V_\theta = G' V G$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-smoothfunction-asymptoticnormality-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.smoothFunction_asymptoticNormality_gaussian</code></summary>
 <div class="declaration-body">
@@ -895,7 +895,7 @@ multivariate Gaussian with covariance <code>R S Rᵀ</code>. </p></div>
 <details class="result-group" id="theorem-6-11-best-unbiased-estimation-of-the-mean">
 <summary><span>Theorem 6.11 best unbiased estimation of the mean</span><span class="result-count">6 of 10 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $\tilde{\mu}$ is unbiased for $\mu = \mathbb{E}[h(Y)]$ and $\mathbb{E}\lVert h(Y) \rVert^2 &lt; \infty$, then $\operatorname{Var}(\tilde{\mu}) \ge n^{-1} V$ where $V = \mathbb{E}[(h(Y)-\mu)(h(Y)-\mu)']$</p></div>
+<div class="textbook-statement"><p>If $\tilde{\mu}$ is unbiased for $\mu = \mathbb{E}[h(Y)]$ and $\mathbb{E}\lVert h(Y) \rVert^2 \lt  \infty$, then $\operatorname{Var}(\tilde{\mu}) \ge n^{-1} V$ where $V = \mathbb{E}[(h(Y)-\mu)(h(Y)-\mu)']$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-iidsamplemean-covmat-eq-inv-card-smul">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidSampleMean_covMat_eq_inv_card_smul</code></summary>
 <div class="declaration-body">
@@ -1074,7 +1074,7 @@ orthogonal-residual route to Hansen's best-unbiased-estimation bound. </p></div>
 <details class="result-group" id="theorem-6-12-moment-bound-implies-stochastic-boundedness">
 <summary><span>Theorem 6.12 moment bound implies stochastic boundedness</span><span class="result-count">6 of 14 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $\mathbb{E}\lVert Z_n \rVert^\delta = O(a_n)$ for some $\delta &gt; 0$, then $Z_n = O_p(a_n^{1/\delta})$; if $\mathbb{E}\lVert Z_n \rVert^\delta = o(a_n)$, then $Z_n = o_p(a_n^{1/\delta})$</p></div>
+<div class="textbook-statement"><p>If $\mathbb{E}\lVert Z_n \rVert^\delta = O(a_n)$ for some $\delta \gt  0$, then $Z_n = O_p(a_n^{1/\delta})$; if $\mathbb{E}\lVert Z_n \rVert^\delta = o(a_n)$, then $Z_n = o_p(a_n^{1/\delta})$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-bound">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.BoundedInProbability.of_eventually_integral_norm_bound</code></summary>
 <div class="declaration-body">
@@ -1368,7 +1368,7 @@ layer in Hansen Theorem 6.13. </p></div>
 <details class="result-group" id="theorem-6-14-primitive-condition-for-uniform-integrability">
 <summary><span>Theorem 6.14 primitive condition for uniform integrability</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If for some $\delta &gt; 0$, $\mathbb{E}\lVert Z_n \rVert^{1+\delta} \le C &lt; \infty$, then $Z_n$ is uniformly integrable</p></div>
+<div class="textbook-statement"><p>If for some $\delta \gt  0$, $\mathbb{E}\lVert Z_n \rVert^{1+\delta} \le C \lt  \infty$, then $Z_n$ is uniformly integrable</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-uniformintegrable-one-of-elpnorm-bdd-gt-one">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.uniformIntegrable_one_of_eLpNorm_bdd_gt_one</code></summary>
 <div class="declaration-body">

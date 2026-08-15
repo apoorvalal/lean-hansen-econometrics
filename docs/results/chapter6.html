@@ -5248,7 +5248,7 @@ Collapse all results
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_i \in \mathbb{R}^k</span> are i.i.d. and <span class="math inline">\mathbb{E}\lVert Y \rVert &amp;lt; \infty</span>, then <span class="math inline">\bar{Y} = \frac{1}{n} \sum_{i=1}^n Y_i \xrightarrow{p} \mathbb{E}[Y]</span>
+If <span class="math inline">Y_i \in \mathbb{R}^k</span> are i.i.d. and <span class="math inline">\mathbb{E}\lVert Y \rVert \lt  \infty</span>, then <span class="math inline">\bar{Y} = \frac{1}{n} \sum_{i=1}^n Y_i \xrightarrow{p} \mathbb{E}[Y]</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-wlln">
@@ -5295,7 +5295,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_i \in \mathbb{R}^k</span> are i.i.d., <span class="math inline">h : \mathbb{R}^k \to \mathbb{R}^q</span>, and <span class="math inline">\mathbb{E}\lVert h(Y) \rVert &amp;lt; \infty</span>, then <span class="math inline">\hat{\mu} = \frac{1}{n} \sum_{i=1}^n h(Y_i) \xrightarrow{p} \mu = \mathbb{E}[h(Y)]</span>
+If <span class="math inline">Y_i \in \mathbb{R}^k</span> are i.i.d., <span class="math inline">h : \mathbb{R}^k \to \mathbb{R}^q</span>, and <span class="math inline">\mathbb{E}\lVert h(Y) \rVert \lt  \infty</span>, then <span class="math inline">\hat{\mu} = \frac{1}{n} \sum_{i=1}^n h(Y_i) \xrightarrow{p} \mu = \mathbb{E}[h(Y)]</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-transformed-wlln">
@@ -5378,7 +5378,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_i \in \mathbb{R}^k</span> are i.i.d. and <span class="math inline">\mathbb{E}\lVert Y \rVert^2 &amp;lt; \infty</span>, then <span class="math inline">\sqrt{n}(\bar{Y} - \mu) \xrightarrow{d} N(0,V)</span> where <span class="math inline">\mu = \mathbb{E}[Y]</span> and <span class="math inline">V = \mathbb{E}[(Y-\mu)(Y-\mu)&#39;]</span>
+If <span class="math inline">Y_i \in \mathbb{R}^k</span> are i.i.d. and <span class="math inline">\mathbb{E}\lVert Y \rVert^2 \lt  \infty</span>, then <span class="math inline">\sqrt{n}(\bar{Y} - \mu) \xrightarrow{d} N(0,V)</span> where <span class="math inline">\mu = \mathbb{E}[Y]</span> and <span class="math inline">V = \mathbb{E}[(Y-\mu)(Y-\mu)&#39;]</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-iidscalarclt-tendstoindistribution-gaussian">
@@ -5476,7 +5476,7 @@ Direct statement dependencies (2)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_{ni}</span> are independent with <span class="math inline">\mathbb{E}[Y_{ni}] = 0</span>, variance matrices <span class="math inline">V_{ni}</span>, <span class="math inline">\nu_n^2 = \lambda_{\min}(V_n) &amp;gt; 0</span>, and the Lindeberg condition <span class="math inline">\nu_n^{-2} \sum_i \mathbb{E}[\lVert Y_{ni} \rVert^2 1{\lVert Y_{ni} \rVert^2 \ge \epsilon \nu_n^2}] \to 0</span>, then <span class="math inline">V_n^{-1/2} \sum_i Y_{ni} \xrightarrow{d} N(0,I_k)</span>
+If <span class="math inline">Y_{ni}</span> are independent with <span class="math inline">\mathbb{E}[Y_{ni}] = 0</span>, variance matrices <span class="math inline">V_{ni}</span>, <span class="math inline">\nu_n^2 = \lambda_{\min}(V_n) \gt  0</span>, and the Lindeberg condition <span class="math inline">\nu_n^{-2} \sum_i \mathbb{E}[\lVert Y_{ni} \rVert^2 1{\lVert Y_{ni} \rVert^2 \ge \epsilon \nu_n^2}] \to 0</span>, then <span class="math inline">V_n^{-1/2} \sum_i Y_{ni} \xrightarrow{d} N(0,I_k)</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-multivariatelindebergclt-tendstoindistribution">
@@ -5702,7 +5702,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_{ni}</span> are independent with <span class="math inline">\mathbb{E}[Y_{ni}] = 0</span>, <span class="math inline">n^{-1}\sum_i V_{ni} \to V &amp;gt; 0</span>, and <span class="math inline">\sup_{n,i} \mathbb{E}\lVert Y_{ni} \rVert^{2+\delta} &amp;lt; \infty</span> for some <span class="math inline">\delta &amp;gt; 0</span>, then <span class="math inline">\sqrt{n}\,\bar{Y} \xrightarrow{d} N(0,V)</span>
+If <span class="math inline">Y_{ni}</span> are independent with <span class="math inline">\mathbb{E}[Y_{ni}] = 0</span>, <span class="math inline">n^{-1}\sum_i V_{ni} \to V \gt  0</span>, and <span class="math inline">\sup_{n,i} \mathbb{E}\lVert Y_{ni} \rVert^{2+\delta} \lt  \infty</span> for some <span class="math inline">\delta \gt  0</span>, then <span class="math inline">\sqrt{n}\,\bar{Y} \xrightarrow{d} N(0,V)</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-heterogeneousarrayclt-tendstoindistribution">
@@ -6408,7 +6408,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_i \in \mathbb{R}^m</span> are i.i.d., <span class="math inline">h : \mathbb{R}^m \to \mathbb{R}^k</span>, <span class="math inline">\mathbb{E}\lVert h(Y) \rVert &amp;lt; \infty</span>, and <span class="math inline">g : \mathbb{R}^k \to \mathbb{R}^q</span> is continuous at <span class="math inline">\mu</span>, then <span class="math inline">\hat{\theta} \xrightarrow{p} \theta</span>
+If <span class="math inline">Y_i \in \mathbb{R}^m</span> are i.i.d., <span class="math inline">h : \mathbb{R}^m \to \mathbb{R}^k</span>, <span class="math inline">\mathbb{E}\lVert h(Y) \rVert \lt  \infty</span>, and <span class="math inline">g : \mathbb{R}^k \to \mathbb{R}^q</span> is continuous at <span class="math inline">\mu</span>, then <span class="math inline">\hat{\theta} \xrightarrow{p} \theta</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-smoothfunction-consistency">
@@ -6477,7 +6477,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_i \in \mathbb{R}^m</span> are i.i.d., <span class="math inline">\mathbb{E}\lVert h(Y) \rVert^2 &amp;lt; \infty</span>, and <span class="math inline">g</span> is continuously differentiable near <span class="math inline">\mu</span>, then <span class="math inline">\sqrt{n}(\hat{\theta} - \theta) \xrightarrow{d} N(0,V_\theta)</span> where <span class="math inline">V_\theta = G&#39; V G</span>
+If <span class="math inline">Y_i \in \mathbb{R}^m</span> are i.i.d., <span class="math inline">\mathbb{E}\lVert h(Y) \rVert^2 \lt  \infty</span>, and <span class="math inline">g</span> is continuously differentiable near <span class="math inline">\mu</span>, then <span class="math inline">\sqrt{n}(\hat{\theta} - \theta) \xrightarrow{d} N(0,V_\theta)</span> where <span class="math inline">V_\theta = G&#39; V G</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-smoothfunction-asymptoticnormality-gaussian">
@@ -6567,7 +6567,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">\tilde{\mu}</span> is unbiased for <span class="math inline">\mu = \mathbb{E}[h(Y)]</span> and <span class="math inline">\mathbb{E}\lVert h(Y) \rVert^2 &amp;lt; \infty</span>, then <span class="math inline">\operatorname{Var}(\tilde{\mu}) \ge n^{-1} V</span> where <span class="math inline">V = \mathbb{E}[(h(Y)-\mu)(h(Y)-\mu)&#39;]</span>
+If <span class="math inline">\tilde{\mu}</span> is unbiased for <span class="math inline">\mu = \mathbb{E}[h(Y)]</span> and <span class="math inline">\mathbb{E}\lVert h(Y) \rVert^2 \lt  \infty</span>, then <span class="math inline">\operatorname{Var}(\tilde{\mu}) \ge n^{-1} V</span> where <span class="math inline">V = \mathbb{E}[(h(Y)-\mu)(h(Y)-\mu)&#39;]</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-iidsamplemean-covmat-eq-inv-card-smul">
@@ -6827,7 +6827,7 @@ Direct statement dependencies (1)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">\mathbb{E}\lVert Z_n \rVert^\delta = O(a_n)</span> for some <span class="math inline">\delta &amp;gt; 0</span>, then <span class="math inline">Z_n = O_p(a_n^{1/\delta})</span>; if <span class="math inline">\mathbb{E}\lVert Z_n \rVert^\delta = o(a_n)</span>, then <span class="math inline">Z_n = o_p(a_n^{1/\delta})</span>
+If <span class="math inline">\mathbb{E}\lVert Z_n \rVert^\delta = O(a_n)</span> for some <span class="math inline">\delta \gt  0</span>, then <span class="math inline">Z_n = O_p(a_n^{1/\delta})</span>; if <span class="math inline">\mathbb{E}\lVert Z_n \rVert^\delta = o(a_n)</span>, then <span class="math inline">Z_n = o_p(a_n^{1/\delta})</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-bound">
@@ -7306,7 +7306,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If for some <span class="math inline">\delta &amp;gt; 0</span>, <span class="math inline">\mathbb{E}\lVert Z_n \rVert^{1+\delta} \le C &amp;lt; \infty</span>, then <span class="math inline">Z_n</span> is uniformly integrable
+If for some <span class="math inline">\delta \gt  0</span>, <span class="math inline">\mathbb{E}\lVert Z_n \rVert^{1+\delta} \le C \lt  \infty</span>, then <span class="math inline">Z_n</span> is uniformly integrable
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-uniformintegrable-one-of-elpnorm-bdd-gt-one">

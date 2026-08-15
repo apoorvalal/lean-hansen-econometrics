@@ -50,6 +50,7 @@ LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 CODE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_'.]*)`")
 LINE_RE = re.compile(r"#L(\d+)")
 CH2_HEADING_RE = re.compile(r"^###\s+(T2\.\d+(?:\.\d+)*)\s*(.*)$")
+MATH_RE = re.compile(r"(?s)(?<!\\)(\${1,2})(.+?)(?<!\\)\1")
 
 
 @dataclass
@@ -311,6 +312,14 @@ def parse_inventory(chapter: int, path: Path, index: DeclarationIndex) -> list[R
 def inline_markdown(text: str) -> str:
     if not text:
         return ""
+    text = MATH_RE.sub(
+        lambda match: (
+            match.group(1)
+            + match.group(2).replace("<", r"\lt ").replace(">", r"\gt ")
+            + match.group(1)
+        ),
+        text,
+    )
     rendered = markdown.markdown(text, extensions=["sane_lists"])
     return rendered
 

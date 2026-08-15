@@ -14,7 +14,7 @@ This page is generated from the [canonical Chapter 7 inventory](https://github.c
 <details class="result-group" id="assumption-7-1-iid-sample-with-finite-second-moments-and-nonsingular-population-gram" open>
 <summary><span>Assumption 7.1 iid sample with finite second moments and nonsingular population Gram</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] &lt; \infty$, $\mathbb{E}\lVert X\rVert^2 &lt; \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$</p></div>
+<div class="textbook-statement"><p>$(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] \lt  \infty$, $\mathbb{E}\lVert X\rVert^2 \lt  \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-samplemomentassumption71">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.SampleMomentAssumption71</code></summary>
 <div class="declaration-body">

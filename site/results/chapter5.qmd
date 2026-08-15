@@ -198,7 +198,7 @@ about the inverse random Gram matrix. </p></div>
 <details class="result-group" id="theorem-5-5-kinal-1980-moment-existence">
 <summary><span>Theorem 5.5 Kinal (1980) moment existence</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If $(Y,X)$ are jointly normal, then $\mathbb{E}\|\hat{\beta}\|^r &lt; \infty$ if and only if $r &lt; n-k+1$</p></div>
+<div class="textbook-statement"><p>If $(Y,X)$ are jointly normal, then $\mathbb{E}\|\hat{\beta}\|^r \lt  \infty$ if and only if $r \lt  n-k+1$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-memlp-of-error-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_memLp_of_error_gaussian</code></summary>
 <div class="declaration-body">
@@ -629,7 +629,7 @@ desired <code>α/2</code> and <code>1 - α/2</code> cdf values, then the varianc
 <details class="result-group" id="theorem-5-13-likelihood-ratio-f-test-layer">
 <summary><span>Theorem 5.13 likelihood-ratio / $F$-test layer</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under $H_0 : \beta_2 = 0$, if $F = \dfrac{(\tilde{\sigma}^2 - \hat{\sigma}^2)/q}{\hat{\sigma}^2/(n-k)}$, then $F \sim F_{q,n-k}$ and the test "reject $H_0$ if $F &gt; c$" has significance level $\alpha$ when $\mathbb{P}(F_{q,n-k} \ge c) = \alpha$</p></div>
+<div class="textbook-statement"><p>Under $H_0 : \beta_2 = 0$, if $F = \dfrac{(\tilde{\sigma}^2 - \hat{\sigma}^2)/q}{\hat{\sigma}^2/(n-k)}$, then $F \sim F_{q,n-k}$ and the test "reject $H_0$ if $F \gt  c$" has significance level $\alpha$ when $\mathbb{P}(F_{q,n-k} \ge c) = \alpha$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsfstatistic-haslaw-classicalfdist">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsFStatistic_hasLaw_classicalFDist</code></summary>
 <div class="declaration-body">
