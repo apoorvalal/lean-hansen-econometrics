@@ -14,7 +14,7 @@ This page is generated from the [canonical Chapter 11 inventory](https://github.
 <details class="result-group" id="theorem-11-1" open>
 <summary><span>Theorem 11.1</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2, system least squares has Hansen's stacked Gaussian limit.</p></div>
+<div class="textbook-statement"><p>Under Assumption 7.2, system least squares satisfies $\sqrt n(\hat\beta_{\mathrm{SLS}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{SLS}})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-systemleastsquarestheorem11-1-orzeroobs-of-equation-blocks">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SystemLeastSquaresTheorem11_1.orZeroObs_of_equation_blocks</code></summary>
 <div class="declaration-body">
@@ -78,7 +78,7 @@ orthogonality, and positive definiteness of <code>Q</code>. </p></div>
 <details class="result-group" id="theorem-11-2">
 <summary><span>Theorem 11.2</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2 and 7.3, a smooth function of system least squares has the delta-method Gaussian limit.</p></div>
+<div class="textbook-statement"><p>For a smooth map $h$, $\sqrt n(h(\hat\beta_{\mathrm{SLS}})-h(\beta))\xrightarrow{d}N(0,H'V_{\mathrm{SLS}}H)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-systemdelta-orzeroobs-of-observed-rows-contdiffat">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SystemDelta.orZeroObs_of_observed_rows_contDiffAt</code></summary>
 <div class="declaration-body">
@@ -145,7 +145,7 @@ measurability stated separately. </p></div>
 <details class="result-group" id="theorem-11-3">
 <summary><span>Theorem 11.3</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2, the robust and homoskedastic system covariance estimators are consistent.</p></div>
+<div class="textbook-statement"><p>The robust and homoskedastic system covariance estimators are consistent: $\hat V_{\mathrm{SLS}}\xrightarrow{p}V_{\mathrm{SLS}}$ and $\hat V^0_{\mathrm{SLS}}\xrightarrow{p}V^0_{\mathrm{SLS}}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-systemcovariancetheorem11-3-of-observed-assumption72">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SystemCovarianceTheorem11_3.of_observed_assumption72</code></summary>
 <div class="declaration-body">
@@ -184,7 +184,7 @@ middle matrices is derived from the observed rows and the Star estimator. </p></
 <details class="result-group" id="theorem-11-4">
 <summary><span>Theorem 11.4</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2 and conditional homoskedasticity (11.8), feasible SUR has Hansen's Gaussian limit.</p></div>
+<div class="textbook-statement"><p>Under conditional homoskedasticity, feasible SUR satisfies $\sqrt n(\hat\beta_{\mathrm{SUR}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{SUR}})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-surtheorem11-4-orzeroobs-of-observed-rows">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SURTheorem11_4.orZeroObs_of_observed_rows</code></summary>
 <div class="declaration-body">
@@ -221,7 +221,7 @@ condition <code>(11.8)</code>. </p></div>
 <details class="result-group" id="theorem-11-5">
 <summary><span>Theorem 11.5</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as system least squares.</p></div>
+<div class="textbook-statement"><p>SUR is asymptotically at least as efficient as system least squares: $V_{\mathrm{SLS}}-V_{\mathrm{SUR}}\succeq0$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-surtheorem11-5-efficiency-of-observed-rows">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SURTheorem11_5.efficiency_of_observed_rows</code></summary>
 <div class="declaration-body">
@@ -255,7 +255,7 @@ positive-definite <code>Sigma</code> supplies the inverse used by Hansen's displ
 <details class="result-group" id="theorem-11-6">
 <summary><span>Theorem 11.6</span><span class="result-count">0 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2 and (11.8), the normalized feasible-SUR covariance estimator converges to the OLS variance <code>V_beta</code>.</p></div>
+<div class="textbook-statement"><p>Corrected target: the normalized feasible-SUR covariance converges to $V_\beta^*=(\mathbb E[X_i'\Sigma^{-1}X_i])^{-1}$, not to the OLS variance $V_\beta$ in general.</p></div>
 <p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
 </div>
 </details>
@@ -263,7 +263,7 @@ positive-definite <code>Sigma</code> supplies the inverse used by Hansen's displ
 <details class="result-group" id="theorem-11-7">
 <summary><span>Theorem 11.7</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The reduced-rank normal MLE is characterized by the residualized generalized pencils, least-squares recovery, covariance recovery, and maximized likelihood.</p></div>
+<div class="textbook-statement"><p>The reduced-rank Gaussian estimator solves $(\hat\Gamma,\hat B,\hat\Sigma)\in\operatorname*{arg\,max}_{\Gamma,B,\Sigma}\ell(\Gamma,B,\Sigma)$ and is recovered from the ordered residualized generalized eigenvectors.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-reducedrankhansentheorem11-7gaussianmle-residualized-exists">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.reducedRankHansenTheorem11_7GaussianMLE_residualized_exists</code></summary>
 <div class="declaration-body">
@@ -341,7 +341,7 @@ Gram. </p></div>
 <details class="result-group" id="theorem-11-8">
 <summary><span>Theorem 11.8</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Principal components are sequential variance maximizers, eigenvector projections, and have diagonal score covariance.</p></div>
+<div class="textbook-statement"><p>The $j$th principal component solves $\max_{\lVert h\rVert=1,\,h\perp h_1,\ldots,h_{j-1}}\operatorname{Var}(h'Y)=\lambda_j$, and the score covariance is diagonal.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-ordered-covmat-principalcomponents-theorem11-8">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ordered_covMat_principalComponents_theorem11_8</code></summary>
 <div class="declaration-body">
@@ -389,7 +389,7 @@ form is the correct statement in the presence of repeated eigenvalues. </p></div
 <details class="result-group" id="theorem-11-9">
 <summary><span>Theorem 11.9</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under score normalization, the least-squares factor estimator is the leading sample-covariance PCA solution.</p></div>
+<div class="textbook-statement"><p>Under score normalization, the least-squares factor estimator is the leading PCA solution, $\hat F=YH_mD_m^{-1/2}$, with the corresponding joint least-squares minimum.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-factorpctheorem11-9-with-jointlsminimizer-of-samplecovariance-rank-ge">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.factorPCTheorem11_9_with_jointLSMinimizer_of_sampleCovariance_rank_ge</code></summary>
 <div class="declaration-body">
@@ -429,7 +429,7 @@ normalized joint least-squares minimizer hold together. </p></div>
 <details class="result-group" id="theorem-11-10">
 <summary><span>Theorem 11.10</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The bias-corrected covariance of iid multivariate-normal rows has Hansen's Wishart law.</p></div>
+<div class="textbook-statement"><p>If $Y_i\sim N(\mu,\Sigma)$ independently, then $\hat\Sigma\sim W_m(n-1,\Sigma/(n-1))$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-samplecovariancematrix-haslaw-theorem11-10-wishart">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sampleCovarianceMatrix_hasLaw_theorem11_10_wishart</code></summary>
 <div class="declaration-body">
@@ -460,7 +460,7 @@ normalized joint least-squares minimizer hold together. </p></div>
 <details class="result-group" id="theorem-11-11">
 <summary><span>Theorem 11.11</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If <code>W</code> is Wishart, then Hansen's inverse-Wishart linear form has the scaled chi-squared law.</p></div>
+<div class="textbook-statement"><p>If $W\sim W_m(n,\Sigma)$, then $(\alpha'W^{-1}\alpha)^{-1}\sim\chi^2_{n-m+1}/(\alpha'\Sigma^{-1}\alpha)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-inversewishartlinearform-haslaw-theorem11-11-raw-of-posdef-card-le">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.inverseWishartLinearForm_hasLaw_theorem11_11_raw_of_posDef_card_le</code></summary>
 <div class="declaration-body">
@@ -495,7 +495,7 @@ square-root whitening/alignment. </p></div>
 <details class="result-group" id="theorem-11-12">
 <summary><span>Theorem 11.12</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Hotelling's normalized <code>T^2</code> statistic has the <code>F(m,n-m)</code> law.</p></div>
+<div class="textbook-statement"><p>Hotelling's statistic has the scaled law $T^2\sim\frac{m(n-1)}{n-m}F_{m,n-m}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-hotellingt2hansenfstatistic-haslaw-theorem11-12-of-iid-normal-rows-posdef">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hotellingT2HansenFStatistic_hasLaw_theorem11_12_of_iid_normal_rows_posDef</code></summary>
 <div class="declaration-body">

@@ -668,6 +668,58 @@ Conventions:
 | Theorem 10.19 robust feasible HC finite-replication trimmed covariance wrappers | Robust feasible HC conditions also discharge positive semidefiniteness for the finite-replication Gaussian-limit `L²` routes | [chapter10_regression_finiteReplicationTrimmedVariance_normFourth_gaussianLimit_l2_of_robustFeasibleHCMomentConditions](../HansenEconometrics/Chapter10Bootstrap/FiniteReplication.lean), [chapter10_indexed_regression_finiteReplicationTrimmedVariance_normFourth_gaussianLimit_l2_of_robustFeasibleHCMomentConditions](../HansenEconometrics/Chapter10Bootstrap/FiniteReplication.lean), [chapter10_regression_finiteReplicationTrimmedVariance_secondMoment_gaussianLimit_l2_of_robustFeasibleHCMomentConditions](../HansenEconometrics/Chapter10Bootstrap/FiniteReplication.lean), and [chapter10_indexed_regression_finiteReplicationTrimmedVariance_secondMoment_gaussianLimit_l2_of_robustFeasibleHCMomentConditions](../HansenEconometrics/Chapter10Bootstrap/FiniteReplication.lean) specialize the fixed/indexed finite-replication Theorem 10.19 norm-fourth and second-moment routes to `Vβ = heteroAsymCov μ X e`. They keep coefficient-level bootstrap weak convergence, trimming, conditional moment, norm-fourth, and coordinatewise `L²` simulation-error premises explicit while deriving covariance `PosSemidef` from `RobustFeasibleHCMomentConditions`. |
 | Theorem 10.20 | Marcinkiewicz WLLN If `u_i` are independent and uniformly integrable, then for any `r > 1`, `n^{-r} ∑ |u_i|^r →p 0` | [chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap/WLLN.lean), with shifted ordinary-bootstrap support [marcinkiewiczWLLNStatisticRpow_succ_tendsto_zero_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap/WLLN.lean). Natural-power convenience face: [chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap/WLLN.lean), with shifted support [marcinkiewiczWLLNStatisticNat_succ_tendsto_zero_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap/WLLN.lean). The deterministic proof inequalities are [marcinkiewiczWLLNStatisticRpow_le_max_mul_sampleAbsMean](../HansenEconometrics/Chapter10Bootstrap/WLLN.lean) and [marcinkiewiczWLLNStatisticNat_le_max_mul_sampleAbsMean](../HansenEconometrics/Chapter10Bootstrap/WLLN.lean). |
 
+## Reader-facing TeX statements
+
+Each prefix supplies the textbook formula for the main result and for its
+implementation-specific support cards. The detailed statement in the crosswalk
+is kept after the shared formula on support cards.
+
+| Result prefix | Reader-facing TeX statement |
+| --- | --- |
+| Definition 10.1 | Bootstrap convergence in probability means $P^*(\lVert Z_n^*-Z\rVert>\varepsilon)\xrightarrow{p}0$ for every $\varepsilon>0$. |
+| Equation 10.1 | Tukey's jackknife covariance is $\hat V_J=\frac{n-1}{n}\sum_{i=1}^n(\hat\theta_{(-i)}-\bar\theta_J)(\hat\theta_{(-i)}-\bar\theta_J)'$. |
+| Equation 10.2 | For the sample mean, $\bar Y_{(-i)}-\bar Y=(\bar Y-Y_i)/(n-1)$ and $n^{-1}\sum_i\bar Y_{(-i)}=\bar Y$. |
+| Equation 10.3 | For the sample mean, the jackknife covariance equals the usual estimated variance: $\hat V_J(\bar Y)=s_Y^2/n$. |
+| Equation 10.4 | Leave-one-out OLS obeys $\hat\beta_{(-i)}=\hat\beta-(X'X)^{-1}X_i\hat e_i/(1-h_{ii})$ and $\hat e_{i,(-i)}=\hat e_i/(1-h_{ii})$. |
+| Equation 10.5 | The OLS jackknife covariance is the HC3 covariance minus its finite-sample mean-adjustment outer product: $\hat V_J=\hat V_{\mathrm{HC3}}-aa'$. |
+| Section 10.5 | The delete-cluster estimator uses $\hat\beta_{(-g)}$ and the CR3 adjusted cluster score $X_g'(I-H_{gg})^{-1}\hat e_g$. |
+| Equation 10.6 | A fixed observation appears in an $n$-draw bootstrap sample with probability $1-(1-1/n)^n\to1-e^{-1}$. |
+| Equation 10.7 | With $B$ draws, $\hat V_B^*=\frac{1}{B-1}\sum_{b=1}^B(\hat\theta_b^*-\bar\theta^*)(\hat\theta_b^*-\bar\theta^*)'$. |
+| Equation 10.8 | The percentile interval is $C_{\mathrm{pct}}=[q_{\alpha/2}^*,q_{1-\alpha/2}^*]$. |
+| Equation 10.9 | The ideal bootstrap CDF is $F_n^*(x)=P^*(Z_n^*\le x)$. |
+| Equations 10.10/10.12 | One empirical bootstrap draw satisfies $\mathbb E^*[Y_i^*]=\bar Y$. |
+| Equation 10.11 | One empirical bootstrap draw satisfies $\operatorname{Var}^*(Y_i^*)=n^{-1}\sum_{i=1}^n(Y_i-\bar Y)(Y_i-\bar Y)'$. |
+| Equation 10.13 | The bootstrap mean satisfies $\operatorname{Var}^*(\bar Y^*)=m^{-1}\operatorname{Var}^*(Y_i^*)$ for resample size $m$. |
+| Theorem 10.1 | If $Z_n\xrightarrow{p}Z$, then the nonresampled statistic also satisfies $Z_n\xrightarrow{p^*}Z$. |
+| Theorem 10.2 | If $Y_i$ are independent and uniformly integrable, then $\bar Y^*-\bar Y\xrightarrow{p^*}0$ and $\bar Y^*\xrightarrow{p^*}\mu$. |
+| Theorem 10.3 | If $Z_n^*\xrightarrow{p^*}c$ and $g$ is continuous at $c$, then $g(Z_n^*)\xrightarrow{p^*}g(c)$. |
+| Definition 10.2 | Bootstrap convergence in distribution means $P^*(Z_n^*\le x)\xrightarrow{p}P(Z\le x)$ at every continuity point $x$. |
+| Theorem 10.4 | If $\mathbb E\lVert Y\rVert^2<\infty$ and $\Sigma=\operatorname{Var}(Y)\succ0$, then $\sqrt n(\bar Y^*-\bar Y)\xrightarrow{d^*}N(0,\Sigma)$. |
+| Theorem 10.5 | If $Z_n^*\xrightarrow{d^*}Z$ and $g$ is continuous on the support of $Z$, then $g(Z_n^*)\xrightarrow{d^*}g(Z)$. |
+| Theorem 10.6 | If $a_n(Z_n^*-Z_n)\xrightarrow{d^*}Z$ and $g$ is differentiable, then $a_n(g(Z_n^*)-g(Z_n))\xrightarrow{d^*}G'Z$. |
+| Theorem 10.7 | In the smooth-function model, $p_n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$, the same limit as $p_n(\hat\theta-\theta)$. |
+| Theorem 10.8 | The smooth plug-in covariance satisfies $V_\theta^*=G^{*'}V^*G^*\xrightarrow{p^*}V_\theta$. |
+| Theorem 10.9 | Under a common limit law and uniform square integrability, $\operatorname{Var}^*(Z_n^*)\xrightarrow{p}V$ and the finite-replication variance is consistent for $V$. |
+| Theorem 10.10 | Bounded higher derivatives give uniform square integrability of $Z_n^*=p_n(\hat\theta^*-\hat\theta)$, so the untrimmed bootstrap variance satisfies $\hat V_{\theta}^{\mathrm{boot}}\xrightarrow{p}V_\theta$. |
+| Theorem 10.11 | For fixed $n$, the finite-replication trimmed covariance satisfies $\hat V_{B,n}^{*,\tau}\xrightarrow{p^*}\operatorname{Var}^*(Z_n^{*,\tau})$ as $B\to\infty$. |
+| Theorem 10.12 | As $n\to\infty$, the trimmed conditional covariance satisfies $\operatorname{Var}^*(Z_n^{*,\tau})\xrightarrow{p}V_\theta$. |
+| Equation 10.14 | The third through sixth conditional moments of $\sqrt n(\bar Y^*-\bar Y)$ are exact polynomials in the empirical cumulants. |
+| Equations 10.15/10.16 | The sample and bootstrap statistics share the limit $Z_n\xrightarrow{d}Z$ and $Z_n^*\xrightarrow{d^*}Z$. |
+| Equation 10.17 | The normalized bootstrap mean has bounded fourth conditional moment: $\mathbb E^*[(Z_n^*)^4]=O_p(1)$. |
+| Equations 10.18/10.19 | The percentile method assumes $a_n(\hat\theta-\theta)\xrightarrow{d}\xi$ and $a_n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}\xi$. |
+| Equation 10.20 | The bootstrap quantile endpoint satisfies $a_n(q_\alpha^*-\hat\theta)\xrightarrow{p}q_\alpha$. |
+| Theorem 10.13 | If the sample and bootstrap centered statistics share a continuous symmetric limit, then $\Pr(\theta\in C_{\mathrm{pct}})\to1-\alpha$. |
+| Equations 10.21-10.27 | The bias-corrected interval uses $z_0=\Phi^{-1}(P^*(\hat\theta^*\le\hat\theta))$ and adjusted levels $\Phi(2z_0+z_\alpha)$. |
+| Equations 10.28/10.29 | The BCa interval adds acceleration $a$ and uses adjusted level $\Phi(z_0+(z_0+z_\alpha)/(1-a(z_0+z_\alpha)))$. |
+| Equations 10.30/10.31 | The sample and bootstrap t ratios share the limit $T_n\xrightarrow{d}\xi$ and $T_n^*\xrightarrow{d^*}\xi$. |
+| Theorem 10.14 | If the sample and bootstrap t ratios share a continuous limit, then $\Pr(\theta\in C_{\mathrm{pt}})\to1-\alpha$. |
+| Theorem 10.15 | Under the stated Edgeworth conditions, $\Pr(\theta\in C_{\mathrm{pt}})=1-\alpha+O(n^{-1})$. |
+| Theorem 10.16 | The bootstrap critical value satisfies $q_{1-\alpha}^*\xrightarrow{p}q_{1-\alpha}$ and $\Pr(\lvert T\rvert>q_{1-\alpha}^*\mid H_0)\to\alpha$. |
+| Theorem 10.17 | The bootstrap two-sided test has the higher-order refinement $q_{1-\alpha}^*=z_{1-\alpha}+o_p(n^{-1})$ and size error $O(n^{-1})$. |
+| Theorem 10.18 | For regression, $\sqrt n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$ and the studentized statistic satisfies $T^*\xrightarrow{d^*}N(0,1)$. |
+| Theorem 10.19 | The trimmed bootstrap covariance for the transformed regression statistic satisfies $\hat V_{\theta}^{\mathrm{boot},\tau}\xrightarrow{p^*}V_\theta$. |
+| Theorem 10.20 | If $u_i$ are independent and uniformly integrable, then for every $r>1$, $n^{-r}\sum_{i=1}^n\lvert u_i\rvert^r\xrightarrow{p}0$. |
+
 ## Lean-only bridge results
 
 | Lean theorem or definition | Role |

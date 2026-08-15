@@ -155,6 +155,22 @@ Conventions:
 | Theorem 9.10 | Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = r0 + n−1/2h, the scalar t test has shifted-normal local power | [tTest_localPower_tendsto_of_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives two-sided local power and [tTest_oneSidedLocalPower_tendsto_of_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the one-sided version. The shifted-normal t-statistic limit is the Chapter 7 local-limit input. |
 | Theorem 9.11 | Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = θ0 + n−1/2h, the Wald test has noncentral-χ² local power | [restrictionWaldStatOrZero_tendstoInDistribution_noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the local Wald statistic limit and [waldTest_localPower_tendsto_noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the local-power rejection-probability conclusion. [noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) names the shifted-Gaussian Wald law. |
 
+## Reader-facing TeX statements
+
+| Result prefix | Reader-facing TeX statement |
+| --- | --- |
+| Theorem 9.1 | Under $H_0:\theta=\theta_0$, $T(\theta_0)\xrightarrow{d}N(0,1)$ and $\Pr(\lvert T\rvert>c)\to2(1-\Phi(c))$. |
+| Theorem 9.2 | Under the multivariate null, $W\xrightarrow{d}\chi_q^2$; a calibrated upper-tail critical value gives asymptotic size $\alpha$. |
+| Theorem 9.3 | Under homoskedasticity and the null, $W^0\xrightarrow{d}\chi_q^2$. |
+| Theorem 9.4 | Under the null, the efficient minimum-distance statistic satisfies $J^*\xrightarrow{d}\chi_q^2$. |
+| Theorem 9.5 | Under homoskedasticity and the null, the homoskedastic minimum-distance statistic satisfies $J^0\xrightarrow{d}\chi_q^2$. |
+| Theorem 9.6 | For $H_0:R'\beta=\theta_0$, $F=W^0/q$ and $F\xrightarrow{d}\chi_q^2/q$. |
+| Theorem 9.7 | The Hausman statistic has the null limit $H\xrightarrow{d}\chi_q^2$; for linear restrictions, $H=W$. |
+| Theorem 9.8 | Under a fixed alternative, $\lvert T\rvert\xrightarrow{p}\infty$, so every fixed-threshold two-sided t test is consistent. |
+| Theorem 9.9 | Under a fixed alternative $\theta=r(\beta)\ne\theta_0$, $W\xrightarrow{p}\infty$, so every fixed-threshold Wald test is consistent. |
+| Theorem 9.10 | Under $\theta_n=\theta_0+n^{-1/2}h$, the t statistic has a shifted-normal limit $T_n\xrightarrow{d}N(h/\sigma_\theta,1)$. |
+| Theorem 9.11 | Under $\theta_n=\theta_0+n^{-1/2}h$, the Wald statistic has a noncentral chi-square limit $W_n\xrightarrow{d}\chi_q^2(\lambda)$ with $\lambda=h'V_\theta^{-1}h$. |
+
 ## Lean-only bridge results
 
 | Lean theorem | Role |

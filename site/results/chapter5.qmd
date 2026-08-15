@@ -3,7 +3,7 @@ title: "Chapter 5: Normal Regression"
 description: "Foldable textbook-to-Lean result crosswalk for Chapter 5."
 ---
 
-This page is generated from the [canonical Chapter 5 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch5-inventory.md) and the compiled Lean environment. It contains 14 textbook result groups and 26 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+This page is generated from the [canonical Chapter 5 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch5-inventory.md) and the compiled Lean environment. It contains 16 textbook result groups and 32 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
 
 <div class="results-toolbar" role="group" aria-label="Result display controls">
 <button type="button" data-results-action="expand">Expand all results</button>
@@ -11,7 +11,48 @@ This page is generated from the [canonical Chapter 5 inventory](https://github.c
 </div>
 
 <div class="result-groups">
-<details class="result-group" id="theorem-5-2-affine-image-of-a-multivariate-normal" open>
+<details class="result-group" id="theorem-5-1-standard-normal-moments" open>
+<summary><span>Theorem 5.1 standard normal moments</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Z \sim N(0,1)$, then all integer moments are finite, odd moments vanish, $\mathbb{E}[Z^{2m}] = (2m-1)!!$, and for $r \gt  0$, $\mathbb{E}[|Z|^r] = 2^{r/2} \pi^{-1/2} \Gamma\!\left(\frac{r+1}{2}\right)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-standardnormal-memlp">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.standardNormal_memLp</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Standard normal random variables have finite moments of every finite nonnegative order.  This is
+the Mathlib-backed finite-moment face of Hansen Theorem 5.1. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ (p : NNReal), MeasureTheory.MemLp id (ENNReal.ofNNReal p) (ProbabilityTheory.gaussianReal 0 1)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L23">HansenEconometrics/MultivariateNormal.lean:23</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-standardnormal-mean">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.standardNormal_mean</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The standard normal has mean zero. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Eq (MeasureTheory.integral (ProbabilityTheory.gaussianReal 0 1) fun z =&gt; z) 0</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L28">HansenEconometrics/MultivariateNormal.lean:28</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-standardnormal-variance">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.standardNormal_variance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The standard normal has variance one. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Eq (ProbabilityTheory.variance id (ProbabilityTheory.gaussianReal 0 1)) 1</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L33">HansenEconometrics/MultivariateNormal.lean:33</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-2-affine-image-of-a-multivariate-normal">
 <summary><span>Theorem 5.2 affine image of a multivariate normal</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
 <div class="textbook-statement"><p>If $X \sim N(\mu,\Sigma)$ and $Y = a + B X$, then $Y \sim N(a + B\mu, B \Sigma B')$</p></div>
@@ -156,7 +197,7 @@ the scalar Hansen-facing form of the uncorrelated-subvector property in Theorem 
 <details class="result-group" id="theorem-5-4-conditional-law-of-the-ols-coefficient-vector">
 <summary><span>Theorem 5.4 conditional law of the OLS coefficient vector</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$\hat{\beta} \mid X \sim N!\left(\beta, \sigma^2 (X'X)^{-1}\right)$</p></div>
+<div class="textbook-statement"><p>$\hat{\beta} \mid X \sim N\!\left(\beta, \sigma^2 (X'X)^{-1}\right)$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-hasgaussianlaw-of-error">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_hasGaussianLaw_of_error</code></summary>
 <div class="declaration-body">
@@ -369,7 +410,7 @@ divided by <code>n-k</code>, expressed directly in terms of the model error. </p
 <details class="result-group" id="theorem-5-8-exact-t-statistic-law">
 <summary><span>Theorem 5.8 exact $t$ statistic law</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$T = \dfrac{\hat{\beta}<em>j - \beta_j}{\sqrt{s^2[(X'X)^{-1}]</em>{jj}}} \sim t_{n-k}$</p></div>
+<div class="textbook-statement"><p>$T = \dfrac{\hat{\beta}_j - \beta_j}{\sqrt{s^2[(X'X)^{-1}]_{jj}}} \sim t_{n-k}$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olststat-haslaw-classicalstudentt">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsTStat_hasLaw_classicalStudentT</code></summary>
 <div class="declaration-body">
@@ -621,6 +662,107 @@ desired <code>α/2</code> and <code>1 - α/2</code> cdf values, then the varianc
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.olsVarianceConfidenceInterval</code></li></ul></details>
 <p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1111">HansenEconometrics/Chapter5NormalRegression.lean:1111</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-12-classical-t-test">
+<summary><span>Theorem 5.12 classical $t$ test</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under $H_0 : \beta = \beta_0$, if $T = \dfrac{\hat{\beta} - \beta_0}{s(\hat{\beta})}$ and $c$ satisfies $\mathbb{P}(|t_{n-k}| \ge c) = \alpha$, then the test "reject $H_0$ if $|T| \gt  c$" has significance level $\alpha$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsnulltstat-haslaw-classicalstudentt">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsNullTStat_hasLaw_classicalStudentT</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.12 null-law wrapper: under the null hypothesis <code>H₀ : β_j = β₀</code>, the literal
+null-centered t-statistic has the classical Student-t law with <code>n-k</code> degrees of freedom. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real} (j : k) (β0 : Real),
+  Eq (β j) β0 →
+    Real.instLT.lt 0 σ2 →
+      instLTNat.lt (Fintype.card k) (Fintype.card n) →
+        ∀ (ε : Ω → EuclideanSpace Real n)
+          [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+          ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+            ProbabilityTheory.HasLaw
+              (fun ω =&gt; HansenEconometrics.olsNullTStat X j β0 (instHAdd.hAdd (X.mulVec β) (ε ω).ofLp))
+              (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k))) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalStudentT</code></li><li><code>HansenEconometrics.olsNullTStat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L732">HansenEconometrics/Chapter5NormalRegression.lean:732</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olststat-rejection-probability-eq-alpha-classical">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsTStat_rejection_probability_eq_alpha_classical</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.12 in classical form: if the critical value <code>c</code> is calibrated against the
+standalone density-backed Student-t law, then the two-sided rejection rule <code>c &lt; |T|</code> has exact
+size <code>α</code> under the null. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 α : Real} (j : k) (c : Real),
+  Real.instLE.le 0 c →
+    Eq
+        ((ProbabilityTheory.cdf
+              (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+          c)
+        (instHSub.hSub 1 (instHDiv.hDiv α 2)) →
+      Eq
+          (Function.leftLim
+            (ProbabilityTheory.cdf
+                (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+            (Real.instNeg.neg c))
+          (instHDiv.hDiv α 2) →
+        Real.instLT.lt 0 σ2 →
+          instLTNat.lt (Fintype.card k) (Fintype.card n) →
+            ∀ (ε : Ω → EuclideanSpace Real n)
+              [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+              ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+                Eq (μ.real (setOf fun ω =&gt; Real.instLT.lt c (abs (HansenEconometrics.olsTStat X β σ2 j ε ω)))) α</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalStudentT</code></li><li><code>HansenEconometrics.olsTStat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1197">HansenEconometrics/Chapter5NormalRegression.lean:1197</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsttest-rejection-probability-eq-alpha">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsTTest_rejection_probability_eq_alpha</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.12 in explicit testing language: under the null hypothesis <code>H₀ : β_j = β₀</code>,
+if the critical value <code>c</code> is calibrated against the classical Student-t law, then the two-sided
+test that rejects when <code>|T_j(β₀)| &gt; c</code> has exact size <code>α</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 α : Real} (j : k) (β0 c : Real),
+  Eq (β j) β0 →
+    Real.instLE.le 0 c →
+      Eq
+          ((ProbabilityTheory.cdf
+                (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+            c)
+          (instHSub.hSub 1 (instHDiv.hDiv α 2)) →
+        Eq
+            (Function.leftLim
+              (ProbabilityTheory.cdf
+                  (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+              (Real.instNeg.neg c))
+            (instHDiv.hDiv α 2) →
+          Real.instLT.lt 0 σ2 →
+            instLTNat.lt (Fintype.card k) (Fintype.card n) →
+              ∀ (ε : Ω → EuclideanSpace Real n)
+                [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+                ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+                  Eq
+                    (μ.real
+                      (setOf fun ω =&gt;
+                        HansenEconometrics.olsTTestRejects X j β0 c (instHAdd.hAdd (X.mulVec β) (ε ω).ofLp)))
+                    α</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalStudentT</code></li><li><code>HansenEconometrics.olsTTestRejects</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1221">HansenEconometrics/Chapter5NormalRegression.lean:1221</a></p>
 </div>
 </details>
 </div>

@@ -14,7 +14,7 @@ This page is generated from the [canonical Chapter 13 inventory](https://github.
 <details class="result-group" id="theorem-13-1" open>
 <summary><span>Theorem 13.1</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>For the overidentified IV model with weight <code>W</code>, <code>β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)</code> (eq. 13.6) minimizes the GMM criterion <code>J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))</code></p></div>
+<div class="textbook-statement"><p>With positive weight $W$, $\hat\beta_{\mathrm{GMM}}=(X'ZWZ'X)^{-1}X'ZWZ'Y$ minimizes $J(\beta)=(Z'(Y-X\beta))'W(Z'(Y-X\beta))$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmbeta">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmBeta</code></summary>
 <div class="declaration-body">
@@ -105,7 +105,7 @@ minimum equals the one-step GMM estimator. </p></div>
 <details class="result-group" id="theorem-13-2">
 <summary><span>Theorem 13.2</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If <code>W = (Z'Z)⁻¹</code>, then <code>β̂_gmm = β̂_2sls</code>. If <code>k = ℓ</code>, then <code>β̂_gmm = β̂_iv</code>.</p></div>
+<div class="textbook-statement"><p>If $W=(Z'Z)^{-1}$, then $\hat\beta_{\mathrm{GMM}}=\hat\beta_{\mathrm{2SLS}}$; if $k=\ell$, then $\hat\beta_{\mathrm{GMM}}=\hat\beta_{\mathrm{IV}}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmbetastar-eq-twoslsbetastar">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaStar_eq_twoSLSBetaStar</code></summary>
 <div class="declaration-body">
@@ -180,7 +180,7 @@ square and nonsingular, GMM equals IV for every invertible weight. </p></div>
 <details class="result-group" id="theorem-13-3">
 <summary><span>Theorem 13.3</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 12.2, if <code>Ŵ →ₚ W &gt; 0</code>, then <code>√n(β̂_gmm−β) →d N(0,Vβ)</code>, where <code>Vβ = (Q'WQ)⁻¹(Q'WΩWQ)(Q'WQ)⁻¹</code> (13.7).</p></div>
+<div class="textbook-statement"><p>If $\hat W\xrightarrow{p}W\succ0$, then $\sqrt n(\hat\beta_{\mathrm{GMM}}-\beta)\xrightarrow{d}N(0,V_\beta)$ with $V_\beta=(Q'WQ)^{-1}(Q'W\Omega WQ)(Q'WQ)^{-1}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmasymptoticvariance">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmAsymptoticVariance</code></summary>
 <div class="declaration-body">
@@ -349,7 +349,7 @@ positive-definite weight sequence gives the standard GMM sandwich limit. </p></d
 <details class="result-group" id="theorem-13-4">
 <summary><span>Theorem 13.4</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Asymptotic Distribution of GMM with Efficient Weight Matrix</p></div>
+<div class="textbook-statement"><p>With efficient weight $W=\Omega^{-1}$, $\sqrt n(\hat\beta_{\mathrm{GMM}}-\beta)\xrightarrow{d}N(0,(Q'\Omega^{-1}Q)^{-1})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmasymptoticvariancestar-efficient">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmAsymptoticVarianceStar_efficient</code></summary>
 <div class="declaration-body">
@@ -420,7 +420,7 @@ covariance, the coefficient limit has covariance <code>(Q'Omega⁻¹Q)⁻¹</cod
 <details class="result-group" id="theorem-13-5">
 <summary><span>Theorem 13.5</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 12.2, for any <code>W &gt; 0</code>, <code>Vβ(W) − (Q'Ω⁻¹Q)⁻¹ ≥ 0</code>; hence efficient GMM has weakly smaller asymptotic covariance. Hansen also states strict inequality for <code>W ≠ Ω⁻¹</code>, subject to the qualification below.</p></div>
+<div class="textbook-statement"><p>For every $W\succ0$, $V_\beta(W)-(Q'\Omega^{-1}Q)^{-1}\succeq0$; efficient GMM has weakly smaller asymptotic covariance.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmasymptoticvariance-sub-efficient-possemidef">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmAsymptoticVariance_sub_efficient_posSemidef</code></summary>
 <div class="declaration-body">
@@ -445,7 +445,7 @@ estimator dominates the efficient GMM covariance in Loewner order. </p></div>
 <details class="result-group" id="theorem-13-6">
 <summary><span>Theorem 13.6</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 12.2 and <code>E[e² ∣ Z] = σ²</code>, 2SLS is efficient GMM.</p></div>
+<div class="textbook-statement"><p>If $\mathbb E[e^2\mid Z]=\sigma^2$, then $\Omega=\sigma^2Q_{ZZ}$ and the 2SLS weight $Q_{ZZ}^{-1}$ is efficient.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslsweight-is-efficientgmm-of-assumption12-2-observedrows-homoskedastic">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSWeight_is_efficientGMM_of_assumption12_2_observedRows_homoskedastic</code></summary>
 <div class="declaration-body">
@@ -516,7 +516,7 @@ covariance. </p></div>
 <details class="result-group" id="theorem-13-7">
 <summary><span>Theorem 13.7</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 12.2 and <code>Ω &gt; 0</code>, the uncentered (13.8) and centered (13.9) two-step weights give the efficient Gaussian limit.</p></div>
+<div class="textbook-statement"><p>If $\Omega\succ0$, both two-step weights satisfy $\hat W_{\mathrm{unc}},\hat W_{\mathrm{cen}}\xrightarrow{p}\Omega^{-1}$ and give the efficient Gaussian limit.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-uncenteredtwostep-tendstoindistribution-observedrows">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution_observedRows</code></summary>
 <div class="declaration-body">
@@ -703,7 +703,7 @@ weight. </p></div>
 <details class="result-group" id="theorem-13-8">
 <summary><span>Theorem 13.8</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 12.2, Assumption 7.3, and the null, the GMM Wald statistic has a chi-square limit and asymptotic size <code>alpha</code>.</p></div>
+<div class="textbook-statement"><p>Under the null, the GMM Wald statistic satisfies $W(\theta)\xrightarrow{d}\chi_q^2$, so its calibrated upper-tail test has asymptotic size $\alpha$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmwaldstatorzero-tendstoindistribution-of-assumption12-2">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmWaldStatOrZero_tendstoInDistribution_of_assumption12_2</code></summary>
 <div class="declaration-body">
@@ -836,7 +836,7 @@ tail mass <code>alpha</code> gives asymptotic rejection probability <code>alpha<
 <details class="result-group" id="theorem-13-9">
 <summary><span>Theorem 13.9</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The constrained GMM estimator has covariance (13.18) and a Gaussian limit.</p></div>
+<div class="textbook-statement"><p>The linearly constrained estimator satisfies $\sqrt n(\hat\beta_{\mathrm{CGMM}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{CGMM}})$ with covariance (13.18).</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmconstrainedasymptoticvariance-eq-hansen-1318">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmConstrainedAsymptoticVariance_eq_hansen_1318</code></summary>
 <div class="declaration-body">
@@ -961,7 +961,7 @@ GMM estimator has the minimum-distance Gaussian limit in equation (13.18). </p><
 <details class="result-group" id="theorem-13-10">
 <summary><span>Theorem 13.10</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Efficient constrained GMM has covariance (13.20) and the corresponding Gaussian limit.</p></div>
+<div class="textbook-statement"><p>Efficient constrained GMM satisfies $\sqrt n(\hat\beta_{\mathrm{ECGMM}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{ECGMM}})$ with covariance (13.20).</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmefficientconstrainedasymptoticvariance-eq-hansen-1320">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance_eq_hansen_1320</code></summary>
 <div class="declaration-body">
@@ -1022,7 +1022,7 @@ efficient-GMM covariance gives the efficient constrained Gaussian limit. </p></d
 <details class="result-group" id="theorem-13-11">
 <summary><span>Theorem 13.11</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Nonlinear constrained GMM has the Chapter 8 constrained-estimator Gaussian limit, with an efficient specialization.</p></div>
+<div class="textbook-statement"><p>For smooth restrictions $r(\beta)=0$, nonlinear constrained GMM has the Chapter 8 Gaussian limit, with efficient covariance when $W=\Omega^{-1}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmnonlinearconstrainedbeta-tendstoindistribution">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmNonlinearConstrainedBeta_tendstoInDistribution</code></summary>
 <div class="declaration-body">
@@ -1078,7 +1078,7 @@ linearization. </p></div>
 <details class="result-group" id="theorem-13-12">
 <summary><span>Theorem 13.12</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 12.2 and 7.3 and the null, the restricted-minus-unrestricted efficient-GMM criterion converges to <code>chiSquared(q)</code> and its upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<div class="textbook-statement"><p>Under the null, the efficient criterion distance satisfies $D=J(\tilde\beta)-J(\hat\beta)\xrightarrow{d}\chi_q^2$, and its calibrated test has asymptotic size $\alpha$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwosteplineardistancestatorzero-tendstoindistribution-observedrows">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepLinearDistanceStatOrZero_tendstoInDistribution_observedRows</code></summary>
 <div class="declaration-body">
@@ -1186,7 +1186,7 @@ from the concrete constrained estimator. </p></div>
 <details class="result-group" id="theorem-13-13">
 <summary><span>Theorem 13.13</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>With a common weight, the distance statistic is nonnegative. With a linear restriction and efficient common weight, it equals the Wald statistic.</p></div>
+<div class="textbook-statement"><p>With a common weight, $D\ge0$; for linear restrictions and the efficient common weight, $D=W$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmdistancestat-nonneg-of-commonweight">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmDistanceStat_nonneg_of_commonWeight</code></summary>
 <div class="declaration-body">
@@ -1237,7 +1237,7 @@ statistic exactly. </p></div>
 <details class="result-group" id="theorem-13-14">
 <summary><span>Theorem 13.14</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 12.2, the efficient two-step GMM overidentification criterion converges to <code>chiSquared(l-k)</code> and its upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<div class="textbook-statement"><p>The efficient two-step overidentification statistic satisfies $J(\hat\beta)\xrightarrow{d}\chi^2_{\ell-k}$, and its calibrated test has asymptotic size $\alpha$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepjstatorzero-tendstoindistribution-observedrows">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepJStatOrZero_tendstoInDistribution_observedRows</code></summary>
 <div class="declaration-body">
@@ -1329,7 +1329,7 @@ feasible-quadratic transfer engine used by Hansen Theorem 13.14. </p></div>
 <details class="result-group" id="theorem-13-15">
 <summary><span>Theorem 13.15</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>For <code>Z=(Za,Zb)</code>, the full-minus-maintained efficient two-step GMM criteria <code>C=Jhat-Jtilde</code> converge to <code>chiSquared(lb)</code> under Assumption 12.2 and full rank of <code>E[Za X']</code>; the upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<div class="textbook-statement"><p>For $Z=(Z_a,Z_b)$, the subset statistic $C=\hat J-\tilde J\xrightarrow{d}\chi^2_{\ell_b}$ under full rank of $\mathbb E[Z_aX']$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepsubsetjstatorzero">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmUncenteredTwoStepSubsetJStatOrZero</code></summary>
 <div class="declaration-body">
@@ -1422,7 +1422,7 @@ full-minus-maintained efficient two-step GMM criterion. </p></div>
 <details class="result-group" id="theorem-13-16">
 <summary><span>Theorem 13.16</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>In <code>Y=Z1'beta1+Y2'beta2+e</code>, compare instruments <code>(Z1,Z2,Y2)</code> with <code>(Z1,Z2)</code>. Under the stated rank conditions, <code>C</code> converges to <code>chiSquared(k2)</code> and the upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<div class="textbook-statement"><p>In $Y=Z_1'\beta_1+Y_2'\beta_2+e$, the endogeneity statistic comparing instruments $(Z_1,Z_2,Y_2)$ and $(Z_1,Z_2)$ satisfies $C\xrightarrow{d}\chi^2_{k_2}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmendogeneitytwostepstatorzero">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmEndogeneityTwoStepStatOrZero</code></summary>
 <div class="declaration-body">
@@ -1505,7 +1505,7 @@ observed-row endogeneity statistic. </p></div>
 <details class="result-group" id="theorem-13-17">
 <summary><span>Theorem 13.17</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>In <code>Y=Z1'beta1+Y2'beta2+Y3'beta3+e</code>, compare instruments <code>(Z1,Z2,Y2)</code> with <code>(Z1,Z2)</code> to test only <code>Y2</code>. Under the stated rank conditions, <code>C</code> converges to <code>chiSquared(k2)</code> and the upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<div class="textbook-statement"><p>In $Y=Z_1'\beta_1+Y_2'\beta_2+Y_3'\beta_3+e$, the subset test for $Y_2$ satisfies $C\xrightarrow{d}\chi^2_{k_2}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-gmmsubsetendogeneitytwostepstatorzero">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmSubsetEndogeneityTwoStepStatOrZero</code></summary>
 <div class="declaration-body">
@@ -1595,7 +1595,7 @@ observed-row subset-endogeneity statistic. </p></div>
 <details class="result-group" id="proposition-13-1">
 <summary><span>Proposition 13.1</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>A nonlinear GMM estimator has the sandwich Gaussian limit; efficient weighting gives covariance $(Q'\Omega^{-1}Q)^{-1}$.</p></div>
+<div class="textbook-statement"><p>A nonlinear GMM estimator satisfies $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,V)$ with sandwich covariance; efficient weighting gives $V=(Q'\Omega^{-1}Q)^{-1}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlineargmmbeta-tendstoindistribution">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearGMMBeta_tendstoInDistribution</code></summary>
 <div class="declaration-body">

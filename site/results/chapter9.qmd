@@ -3,7 +3,7 @@ title: "Chapter 9: Hypothesis Testing"
 description: "Foldable textbook-to-Lean result crosswalk for Chapter 9."
 ---
 
-This page is generated from the [canonical Chapter 9 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch9-inventory.md) and the compiled Lean environment. It contains 10 textbook result groups and 23 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+This page is generated from the [canonical Chapter 9 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch9-inventory.md) and the compiled Lean environment. It contains 11 textbook result groups and 24 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
 
 <div class="results-toolbar" role="group" aria-label="Result display controls">
 <button type="button" data-results-action="expand">Expand all results</button>
@@ -14,7 +14,7 @@ This page is generated from the [canonical Chapter 9 inventory](https://github.c
 <details class="result-group" id="theorem-9-1" open>
 <summary><span>Theorem 9.1</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3 and H₀ : θ = θ₀ ∈ ℝ, T(θ₀) →d N(0,1); the two-sided t-test "reject if absolute t exceeds c" has asymptotic size 2(1−Φ(c))</p></div>
+<div class="textbook-statement"><p>Under $H_0:\theta=\theta_0$, $T(\theta_0)\xrightarrow{d}N(0,1)$ and $\Pr(\lvert T\rvert\gt c)\to2(1-\Phi(c))$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshc0linttest-rejectionprob-tendsto">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHC0LinTTest_rejectionProb_tendsto</code></summary>
 <div class="declaration-body">
@@ -170,7 +170,7 @@ that the absolute-standard-normal upper-tail mass is <code>α</code>. </p></div>
 <details class="result-group" id="theorem-9-2">
 <summary><span>Theorem 9.2</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, 7.4, and H₀ : θ = θ₀ ∈ ℝq, W →d χ²q; calibrated critical values give asymptotic size α</p></div>
+<div class="textbook-statement"><p>Under the multivariate null, $W\xrightarrow{d}\chi_q^2$; a calibrated upper-tail critical value gives asymptotic size $\alpha$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearolswaldtest-rejectionprob-tendsto-alpha-of-chapter7">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearOlsWaldTest_rejectionProb_tendsto_alpha_of_chapter7</code></summary>
 <div class="declaration-body">
@@ -307,7 +307,7 @@ HC moment package, which is stronger than Hansen's bare Assumptions 7.2--7.4. </
 <details class="result-group" id="theorem-9-3">
 <summary><span>Theorem 9.3</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, homoskedasticity, and H₀ : θ = θ₀ ∈ ℝq, W⁰ →d χ²q; calibrated critical values give asymptotic size α</p></div>
+<div class="textbook-statement"><p>Under homoskedasticity and the null, $W^0\xrightarrow{d}\chi_q^2$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearolshomowaldtest-rejectionprob-tendsto-alpha-of-chapter7">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearOlsHomoWaldTest_rejectionProb_tendsto_alpha_of_chapter7</code></summary>
 <div class="declaration-body">
@@ -447,7 +447,7 @@ homoskedastic Wald limit and the iid robust feasible HC package used there. </p>
 <details class="result-group" id="theorem-9-4">
 <summary><span>Theorem 9.4</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, 7.4, and H₀, efficient minimum-distance statistic J* →d χ²q; calibrated critical values give asymptotic size α</p></div>
+<div class="textbook-statement"><p>Under the null, the efficient minimum-distance statistic satisfies $J^*\xrightarrow{d}\chi_q^2$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdjtest-rejectionprob-tendsto-alpha-of-chapter8">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdJTest_rejectionProb_tendsto_alpha_of_chapter8</code></summary>
 <div class="declaration-body">
@@ -524,7 +524,7 @@ wrapper is <code>emdJTest_rejectionProb_tendsto_alpha_of_limitLaw</code>. </p></
 <details class="result-group" id="theorem-9-5">
 <summary><span>Theorem 9.5</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, homoskedasticity, and H₀, homoskedastic MD statistic J⁰ →d χ²q; calibrated critical values give asymptotic size α</p></div>
+<div class="textbook-statement"><p>Under homoskedasticity and the null, the homoskedastic minimum-distance statistic satisfies $J^0\xrightarrow{d}\chi_q^2$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsjtest-rejectionprob-tendsto-alpha-of-chapter8">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsJTest_rejectionProb_tendsto_alpha_of_chapter8</code></summary>
 <div class="declaration-body">
@@ -606,7 +606,7 @@ nonlinear criterion-statistic wrapper is
 <details class="result-group" id="theorem-9-6">
 <summary><span>Theorem 9.6</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>For tests of linear hypotheses H0 : R′β = θ0 ∈ ℝq, the F statistic equals F = W⁰/q and, under the homoskedastic null, F →d χ²q/q</p></div>
+<div class="textbook-statement"><p>For $H_0:R'\beta=\theta_0$, $F=W^0/q$ and $F\xrightarrow{d}\chi_q^2/q$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-linmap-olshomofstatorzero-tendstoindistribution-chisquareddivdegrees">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linMap_olsHomoFStatOrZero_tendstoInDistribution_chiSquaredDivDegrees</code></summary>
 <div class="declaration-body">
@@ -695,7 +695,7 @@ then the homoskedastic OLS F-test rejection probability tends to <code>α</code>
 <details class="result-group" id="theorem-9-7">
 <summary><span>Theorem 9.7</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>For general hypotheses the Hausman statistic has χ²q null limit; for linear hypotheses it is precisely the Wald statistic</p></div>
+<div class="textbook-statement"><p>The Hausman statistic has the null limit $H\xrightarrow{d}\chi_q^2$; for linear restrictions, $H=W$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearhausmantest-rejectionprob-tendsto-alpha-of-chapter8">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearHausmanTest_rejectionProb_tendsto_alpha_of_chapter8</code></summary>
 <div class="declaration-body">
@@ -784,10 +784,38 @@ conclusion. The general nonlinear statistic-level wrapper is
 </div>
 </details>
 
+<details class="result-group" id="theorem-9-8">
+<summary><span>Theorem 9.8</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under a fixed alternative, $\lvert T\rvert\xrightarrow{p}\infty$, so every fixed-threshold two-sided t test is consistent.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-ttest-consistent-of-abs-tstat-tendstoinprobabilityattop">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tTest_consistent_of_abs_tstat_tendstoInProbabilityAtTop</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Reusable consistency bridge for two-sided t tests.</p>
+<p>Once the absolute t statistic diverges to <code>+∞</code> in probability under a fixed
+alternative, every fixed two-sided rejection threshold is crossed with
+probability tending to one. The model-specific proof of <code>|Tₙ| →p +∞</code> remains a
+separate premise. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsProbabilityMeasure μ]
+  {T : Nat → Ω → Real} {crit : Real},
+  (∀ (n : Nat), MeasureTheory.NullMeasurableSet (setOf fun ω =&gt; Real.instLE.le (abs (T n ω)) crit) μ) →
+    (HansenEconometrics.TendstoInProbabilityAtTop μ fun n ω =&gt; abs (T n ω)) →
+      Filter.Tendsto
+        (fun n =&gt; MeasureTheory.Measure.instFunLike.coe μ (setOf fun ω =&gt; Real.instLT.lt crit (abs (T n ω))))
+        Filter.atTop (nhds 1)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.TendstoInProbabilityAtTop</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter9HypothesisTesting.lean#L1493">HansenEconometrics/Chapter9HypothesisTesting.lean:1493</a></p>
+</div>
+</details>
+</div>
+</details>
+
 <details class="result-group" id="theorem-9-9">
 <summary><span>Theorem 9.9</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, and 7.4, for θ = r(β) ≠ θ0, <code>W →p ∞</code>; fixed-threshold Wald tests are consistent</p></div>
+<div class="textbook-statement"><p>Under a fixed alternative $\theta=r(\beta)\ne\theta_0$, $W\xrightarrow{p}\infty$, so every fixed-threshold Wald test is consistent.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-waldtest-consistent-of-stat-tendstoinprobabilityattop">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.waldTest_consistent_of_stat_tendstoInProbabilityAtTop</code></summary>
 <div class="declaration-body">
@@ -814,7 +842,7 @@ separate premise. </p></div>
 <details class="result-group" id="theorem-9-10">
 <summary><span>Theorem 9.10</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = r0 + n−1/2h, the scalar t test has shifted-normal local power</p></div>
+<div class="textbook-statement"><p>Under $\theta_n=\theta_0+n^{-1/2}h$, the t statistic has a shifted-normal limit $T_n\xrightarrow{d}N(h/\sigma_\theta,1)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-ttest-localpower-tendsto-of-tstat-shiftednormal">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tTest_localPower_tendsto_of_tstat_shiftedNormal</code></summary>
 <div class="declaration-body">
@@ -864,7 +892,7 @@ upper-tail probability. </p></div>
 <details class="result-group" id="theorem-9-11">
 <summary><span>Theorem 9.11</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = θ0 + n−1/2h, the Wald test has noncentral-χ² local power</p></div>
+<div class="textbook-statement"><p>Under $\theta_n=\theta_0+n^{-1/2}h$, the Wald statistic has a noncentral chi-square limit $W_n\xrightarrow{d}\chi_q^2(\lambda)$ with $\lambda=h'V_\theta^{-1}h$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-restrictionwaldstatorzero-tendstoindistribution-noncentralchisquared">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.restrictionWaldStatOrZero_tendstoInDistribution_noncentralChiSquared</code></summary>
 <div class="declaration-body">

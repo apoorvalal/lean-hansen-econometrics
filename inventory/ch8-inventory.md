@@ -115,6 +115,32 @@ Conventions:
 | Exercise 8.10 | Verify (8.22), (8.23), and that MD with `W = QXX` equals CLS | Lagrange multiplier formula `mdLagrangeMultiplier` with display theorem `mdLagrangeMultiplier_eq_hansen_822`, MD estimator display theorem `mdBetaStar_eq_hansen_823`, sample-Gram inverse scaling `sampleGram_nonsingInv_eq_card_smul_invOf`, Star MD/CLS definitional bridge `mdBetaStar_sampleGram_olsBetaStar_eq_clsBetaStar`, finite-sample bridge `clsBetaStar_eq_clsBeta` |
 | Exercises 8.14-8.15 | Verify (8.26) as the efficient-weight MD variance and prove (8.27) | displayed efficient covariance `emdAsymptoticVariance_eq_hansen_826`, efficient-weight specialization `mdAsymptoticVariance_efficientWeight_eq_hansen_826`, unrestricted dominance `emdAsymptoticVariance_le_unrestricted_hansen_827` |
 
+## Reader-facing TeX statements
+
+This table controls the compact textbook statement shown before each Lean proof
+skeleton. The detailed crosswalk above remains the source for endpoint links.
+
+| Result prefix | Reader-facing TeX statement |
+| --- | --- |
+| Theorem 8.1 | For $R'\beta=c$, constrained least squares has $R'\tilde\beta_{\mathrm{CLS}}=c$ and $\tilde e=(I-P+XAX')e$; the residual maker is symmetric and idempotent with rank $n-k+q$. |
+| Theorem 8.2 | Under conditional mean zero, $\mathbb E[\tilde\beta_{\mathrm{CLS}}\mid X]=\beta$. |
+| Theorem 8.3 | Under $\mathbb E[e^2\mid X]=\sigma^2$, $\operatorname{Var}(\tilde\beta_{\mathrm{CLS}}\mid X)=V^0_{\tilde\beta}$. |
+| Theorem 8.4 | Under conditional homoskedasticity, $\mathbb E[s^2_{\mathrm{CLS}}\mid X]=\sigma^2$ and $\mathbb E[\hat V^0_{\tilde\beta}\mid X]=V^0_{\tilde\beta}$. |
+| Theorem 8.5 | In the constrained normal model, $\tilde\beta_{\mathrm{CLS}}\sim N(\beta,V^0_{\tilde\beta})$, $(n-k+q)s^2_{\mathrm{CLS}}/\sigma^2\sim\chi^2_{n-k+q}$, and $T\sim t_{n-k+q}$. |
+| Theorem 8.6 | Under Assumptions 7.1, 8.1, and 8.2, $\tilde\beta_{\mathrm{MD}}\xrightarrow{p}\beta$. |
+| Theorem 8.7 | Under Assumptions 7.2, 8.1, and 8.2, $\sqrt n(\tilde\beta_{\mathrm{MD}}-\beta)\xrightarrow{d}N(0,V_\beta(W))$. |
+| Theorem 8.8 | Under Assumptions 7.2 and 8.1, $\sqrt n(\tilde\beta_{\mathrm{CLS}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{CLS}})$. |
+| Section 8.7 | If $\hat V\xrightarrow{p}V$, then $\sqrt{a'\hat Va}\xrightarrow{p}\sqrt{a'Va}$ and the corresponding studentized statistic has its stated limit. |
+| Theorem 8.9 | Efficient MD uses $W=V_\beta^{-1}$ and has $\sqrt n(\tilde\beta_{\mathrm{EMD}}-\beta)\xrightarrow{d}N(0,V_{\beta,\mathrm{EMD}})$, where $V_{\beta,\mathrm{EMD}}=V_\beta-V_\beta R(R'V_\beta R)^{-1}R'V_\beta\preceq V_\beta(W)$. |
+| Section 8.9 | For the exclusion restriction $\beta_2=0$, the long, short/CLS, and efficient restricted estimators have the displayed asymptotic variances; under heteroskedasticity, $V_{\mathrm{EMD}}\preceq V_{\mathrm{long}}$ while $V_{\mathrm{short}}$ can be larger. |
+| Section 8.10 | The plug-in covariance and standard error satisfy $\hat V_{\mathrm{EMD}}\xrightarrow{p}V_{\mathrm{EMD}}$ and $\widehat{\operatorname{se}}(a'\tilde\beta)=n^{-1/2}\sqrt{a'\hat V_{\mathrm{EMD}}a}$. |
+| Section 8.11 | Under the restriction, $\operatorname{Avar}(\hat\beta-\tilde\beta_{\mathrm{EMD}})=V_\beta-V_{\beta,\mathrm{EMD}}$. |
+| Section 8.13 | Under misspecification, MD converges to its weighted pseudo-true projection; under $n^{-1/2}$ local alternatives, $\sqrt n(\tilde\beta_{\mathrm{MD}}-\beta_n)$ has the stated shifted Gaussian limit. |
+| Theorem 8.10 | For smooth nonlinear restrictions $r(\beta)=c$, both nonlinear MD and nonlinear CLS satisfy $\sqrt n(\tilde\beta-\beta)\xrightarrow{d}N(0,V_{\mathrm{constrained}})$. |
+| Section 8.15 | For the restriction $\beta\ge0$, the constraint is asymptotically inactive when $\beta>0$; at the boundary, $\sqrt n\,\tilde\beta\xrightarrow{d}\max\{Z,0\}$. |
+| Exercise 8.10 | Equations (8.22)--(8.23) give the MD multiplier and estimator; with $W=Q_{XX}$, $\tilde\beta_{\mathrm{MD}}=\tilde\beta_{\mathrm{CLS}}$. |
+| Exercises 8.14-8.15 | With $W=V_\beta^{-1}$, the MD covariance is $V_{\beta,\mathrm{EMD}}=V_\beta-V_\beta R(R'V_\beta R)^{-1}R'V_\beta\preceq V_\beta$. |
+
 ## Notes
 
 - The finite-sample definitions `clsConstraintGram`, `clsRestrictionAdjustmentMatrix`, `clsCorrectionMatrix`, `clsBeta`, `clsResidual`, `clsProjectionMatrix`, `clsResidualVariance`, and covariance-estimator definitions are now present.

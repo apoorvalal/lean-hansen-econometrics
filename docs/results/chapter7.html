@@ -5119,7 +5119,7 @@ margin-left: 0;
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Walkthroughs</span></a>
+ <span class="menu-text">Proof deep dives</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -5160,7 +5160,7 @@ margin-left: 0;
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
+ <span class="menu-text">Gaussian laws of OLS coefficients and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -5461,7 +5461,7 @@ Direct statement dependencies (4)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Stronger moment assumptions for asymptotic normality
+The score has sufficient moments for <span class="math inline">\Omega=\mathbb E[e_i^2X_iX_i&#39;]\lt \infty</span> and a central limit theorem.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-samplecltassumption72">
@@ -5500,7 +5500,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Assumption 7.2 implies <code>Ω &lt; ∞</code> and <code>(1 / √n)∑ Xᵢeᵢ ⇒ N(0, Ω)</code>
+Assumption 7.2 implies <span class="math inline">\Omega\lt \infty</span> and <span class="math inline">n^{-1/2}\sum_{i=1}^n X_i e_i\xrightarrow{d}N(0,\Omega)</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-samplecrossmoment-tendstoindistribution-gaussian-cov-all">
@@ -5775,7 +5775,7 @@ Direct statement dependencies (2)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Asymptotic Normality of Least Squares Estimator
+Under Assumption 7.2, <span class="math inline">\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,Q_{XX}^{-1}\Omega Q_{XX}^{-1})</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-olsbetastar-tendstoindistribution-gaussian-cov-all">
@@ -6186,7 +6186,7 @@ Direct statement dependencies (6)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞.
+Under Assumption 7.1, <span class="math inline">\hat\sigma^2\xrightarrow{p}\sigma^2</span> and <span class="math inline">s^2\xrightarrow{p}\sigma^2</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olssigmasqhatstar-tendstoinmeasure-errorvariance">
@@ -6439,7 +6439,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumption 7.1, ˆV
+Under Assumption 7.1, the homoskedastic covariance estimator is consistent: <span class="math inline">\hat V_\beta^0\xrightarrow{p}V_\beta^0</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshomocovstar-tendstoinmeasure">
@@ -6558,7 +6558,7 @@ Direct statement dependencies (5)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV
+Under Assumption 7.2, <span class="math inline">\hat\Omega\xrightarrow{p}\Omega</span> and the HC0 covariance estimator satisfies <span class="math inline">\hat V_\beta\xrightarrow{p}V_\beta</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovstar-tendstoinmeasure-of-bddwts-components">
@@ -6799,7 +6799,7 @@ Direct statement dependencies (2)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV
+Under Assumption 7.2, the HC1, HC2, and HC3 middle matrices and covariance estimators converge to <span class="math inline">\Omega</span> and <span class="math inline">V_\beta</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc1star-tendstoinmeasure-of-bddwts-components">
@@ -7139,7 +7139,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumption 7.1, if r (β) is continuous at the true value of
+If <span class="math inline">r</span> is continuous at <span class="math inline">\beta</span>, then <span class="math inline">r(\hat\beta)\xrightarrow{p}r(\beta)</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar">
@@ -7208,7 +7208,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Asymptotic Distribution of Functions of Parameters
+If <span class="math inline">r</span> is differentiable at <span class="math inline">\beta</span> with derivative <span class="math inline">R</span>, then <span class="math inline">\sqrt n(r(\hat\beta)-r(\beta))\xrightarrow{d}N(0,R&#39;V_\beta R)</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearfunction-olsbetastar-delta-tendstoindistribution-gaussian">
@@ -7453,7 +7453,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ.
+Under Assumptions 7.2 and 7.3, <span class="math inline">\hat V_\theta\xrightarrow{p}V_\theta=R&#39;V_\beta R</span>.
 </p>
 </div>
 <p class="result-gap">
@@ -7468,7 +7468,7 @@ The canonical crosswalk does not name a compiled Lean endpoint. See the chapter 
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, and 7.4, T (θ) − →
+Under Assumptions 7.2–7.4, <span class="math inline">T(\theta)=(\hat\theta-\theta)/\operatorname{se}(\hat\theta)\xrightarrow{d}N(0,1)</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-studentizedlimit-tendstoindistribution">
@@ -7649,7 +7649,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with
+For <span class="math inline">\hat C=[\hat\theta-c\,\operatorname{se}(\hat\theta),\hat\theta+c\,\operatorname{se}(\hat\theta)]</span>, <span class="math inline">\Pr(\theta\in\hat C)\to\Pr(\lvert Z\rvert\le c)</span> with <span class="math inline">Z\sim N(0,1)</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-symmetricci-coverage-of-abs-tstat-nonpos-tendsto-zero">
@@ -7827,7 +7827,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − →
+Under Assumptions 7.2–7.4, the Wald statistic satisfies <span class="math inline">W(\theta)\xrightarrow{d}\chi_r^2</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-haslaw-stdgaussian-normsq-chisquared">
@@ -7943,7 +7943,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, and E
+Under homoskedasticity, the homoskedastic Wald statistic satisfies <span class="math inline">W^0(\theta)\xrightarrow{d}\chi_r^2</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-homoskedasticerrorvariance">
@@ -8400,7 +8400,7 @@ Direct statement dependencies (11)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, Ω &gt; 0, E ∥e∥16 &lt; ∞, E ∥X ∥16 &lt;
+Under the stated high-moment conditions, <span class="math inline">\Pr(T\le x)=\Phi(x)+n^{-1/2}p_1(x)\phi(x)+n^{-1}p_2(x)\phi(x)+o(n^{-1})</span>; the <span class="math inline">n^{-1/2}</span> term cancels for symmetric intervals.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-secondorderedgeworthexpansion-symmetric-interval-scaled-remainder-tendsto-zero">
@@ -8631,7 +8631,7 @@ Direct statement dependencies (2)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumption 7.2 and E ∥X ∥r &lt; ∞, then
+If <span class="math inline">\mathbb E\lVert X\rVert^r\lt \infty</span>, then <span class="math inline">\max_{1\le i\le n}\lvert\hat e_i-e_i\rvert=o_p(n^{-1/2+1/r})</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scaledmaxresidualerrorstar-tendstoinmeasure-zero-of-scaled-product">
@@ -8974,7 +8974,7 @@ Direct statement dependencies (4)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If Xi is i.i.d., Q X X &gt; 0, and E ∥X ∥r &lt; ∞ for some r ≥ 2, then
+If <span class="math inline">X_i</span> is i.i.d., <span class="math inline">Q_{XX}\succ0</span>, and <span class="math inline">\mathbb E\lVert X\rVert^r\lt \infty</span> for <span class="math inline">r\ge2</span>, then <span class="math inline">\max_{1\le i\le n}h_{ii}=o_p(n^{2/r-1})</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scaledmaxleveragestar-tendstoinmeasure-zero-of-scaled-maxrownorm-sq">

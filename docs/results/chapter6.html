@@ -5119,7 +5119,7 @@ margin-left: 0;
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Walkthroughs</span></a>
+ <span class="menu-text">Proof deep dives</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -5160,7 +5160,7 @@ margin-left: 0;
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
+ <span class="menu-text">Gaussian laws of OLS coefficients and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -5231,7 +5231,7 @@ margin-left: 0;
 </header>
 
 
-<p>This page is generated from the <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch6-inventory.md">canonical Chapter 6 inventory</a> and the compiled Lean environment. It contains 16 textbook result groups and 58 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.</p>
+<p>This page is generated from the <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch6-inventory.md">canonical Chapter 6 inventory</a> and the compiled Lean environment. It contains 18 textbook result groups and 66 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.</p>
 <div class="results-toolbar" role="group" aria-label="Result display controls">
 <button type="button" data-results-action="expand">
 Expand all results
@@ -5476,7 +5476,7 @@ Direct statement dependencies (2)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-If <span class="math inline">Y_{ni}</span> are independent with <span class="math inline">\mathbb{E}[Y_{ni}] = 0</span>, variance matrices <span class="math inline">V_{ni}</span>, <span class="math inline">\nu_n^2 = \lambda_{\min}(V_n) \gt  0</span>, and the Lindeberg condition <span class="math inline">\nu_n^{-2} \sum_i \mathbb{E}[\lVert Y_{ni} \rVert^2 1{\lVert Y_{ni} \rVert^2 \ge \epsilon \nu_n^2}] \to 0</span>, then <span class="math inline">V_n^{-1/2} \sum_i Y_{ni} \xrightarrow{d} N(0,I_k)</span>
+If <span class="math inline">Y_{ni}</span> are independent with <span class="math inline">\mathbb{E}[Y_{ni}] = 0</span>, variance matrices <span class="math inline">V_{ni}</span>, <span class="math inline">\nu_n^2 = \lambda_{\min}(V_n) \gt  0</span>, and the Lindeberg condition <span class="math inline">\nu_n^{-2} \sum_i \mathbb{E}[\lVert Y_{ni} \rVert^2 1\{\lVert Y_{ni} \rVert^2 \ge \epsilon \nu_n^2\}] \to 0</span>, then <span class="math inline">V_n^{-1/2} \sum_i Y_{ni} \xrightarrow{d} N(0,I_k)</span>
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-multivariatelindebergclt-tendstoindistribution">
@@ -7299,6 +7299,124 @@ Formal statement
 </details>
 </div>
 </details>
+<details class="result-group" id="definition-6-4-uniform-integrability">
+<summary>
+<span>Definition 6.4 uniform integrability</span><span class="result-count">3 endpoints</span>
+</summary>
+<div class="result-body">
+<div class="textbook-statement">
+<p>
+<span class="math inline">Z_n</span> is uniformly integrable if <span class="math inline">\lim_{M \to \infty} \limsup_{n \to \infty} \mathbb{E}[\lVert Z_n \rVert 1\{\lVert Z_n \rVert \gt  M\}] = 0</span>
+</p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-uniformintegrable-tail-elpnorm-one">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.uniformIntegrable_tail_eLpNorm_one</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Uniform integrability gives uniform control of large-tail <code>L¹</code> seminorms.
+</p>
+<p>
+This is the Mathlib-backed UI layer used by Hansen Theorem 6.16. The result is for a real-valued sequence <code>Z</code>; in the textbook application <code>Z i</code> is the nonnegative power variable <code>|Y_i|^r</code>.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} {Z : Nat → Ω → Real},
+  MeasureTheory.UniformIntegrable Z 1 μ →
+    ∀ {ε : Real},
+      Real.instLT.lt 0 ε →
+        Exists fun C =&gt;
+          ∀ (i : Nat),
+            ENNReal.instPartialOrder.le
+              (MeasureTheory.eLpNorm
+                ((setOf fun ω =&gt; NNReal.instPartialOrder.le C (SeminormedAddGroup.toNNNorm.nnnorm (Z i ω))).indicator
+                  (Z i))
+                1 μ)
+              (ENNReal.ofReal ε)</code></pre>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L37">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:37</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-uniformintegrable-one-of-tail-elpnorm">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.uniformIntegrable_one_of_tail_eLpNorm</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Tail <code>L¹</code> control gives Mathlib’s probability-theory uniform integrability.
+</p>
+<p>
+This is the converse of <code>uniformIntegrable_tail_eLpNorm_one</code>, stated as a chapter-facing Definition 6.4 bridge.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {Z : Nat → Ω → Real},
+  (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (Z i) μ) →
+    (∀ (ε : Real),
+        Real.instLT.lt 0 ε →
+          Exists fun C =&gt;
+            ∀ (i : Nat),
+              ENNReal.instPartialOrder.le
+                (MeasureTheory.eLpNorm
+                  ((setOf fun ω =&gt; NNReal.instPartialOrder.le C (SeminormedAddGroup.toNNNorm.nnnorm (Z i ω))).indicator
+                    (Z i))
+                  1 μ)
+                (ENNReal.ofReal ε)) →
+      MeasureTheory.UniformIntegrable Z 1 μ</code></pre>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L50">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:50</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-uniformintegrable-one-iff-tail-elpnorm">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.uniformIntegrable_one_iff_tail_eLpNorm</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Two-sided tail characterization of <code>L¹</code> uniform integrability for real sequences, with measurability supplied explicitly for the converse direction.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {Z : Nat → Ω → Real},
+  (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (Z i) μ) →
+    Iff (MeasureTheory.UniformIntegrable Z 1 μ)
+      (∀ (ε : Real),
+        Real.instLT.lt 0 ε →
+          Exists fun C =&gt;
+            ∀ (i : Nat),
+              ENNReal.instPartialOrder.le
+                (MeasureTheory.eLpNorm
+                  ((setOf fun ω =&gt; NNReal.instPartialOrder.le C (SeminormedAddGroup.toNNNorm.nnnorm (Z i ω))).indicator
+                    (Z i))
+                  1 μ)
+                (ENNReal.ofReal ε))</code></pre>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L62">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:62</a>
+</p>
+</div>
+</details>
+</div>
+</details>
 <details class="result-group" id="theorem-6-14-primitive-condition-for-uniform-integrability">
 <summary>
 <span>Theorem 6.14 primitive condition for uniform integrability</span><span class="result-count">2 endpoints</span>
@@ -7435,6 +7553,164 @@ Formal statement
 </details>
 <p class="declaration-meta">
 <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1280">HansenEconometrics/AsymptoticUtils.lean:1280</a>
+</p>
+</div>
+</details>
+</div>
+</details>
+<details class="result-group" id="theorem-6-16-uniform-stochastic-bounds-for-maxima">
+<summary>
+<span>Theorem 6.16 uniform stochastic bounds for maxima</span><span class="result-count">5 endpoints</span>
+</summary>
+<div class="result-body">
+<div class="textbook-statement">
+<p>
+If <span class="math inline">\lvert Y_i \rvert^r</span> is uniformly integrable, then <span class="math inline">n^{-1/r} \max_{1 \le i \le n} \lvert Y_i \rvert \xrightarrow{p} 0</span>
+</p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-maxnnnorm">
+<summary>
+<span class="declaration-kind">def</span> <code>HansenEconometrics.maxNNNorm</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Finite-sample maximum of the norms of a real-valued sequence.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">{Ω : Type u_1} → (Nat → Ω → Real) → Nat → Ω → NNReal</code></pre>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L22">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:22</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scaledmaxnnnorm">
+<summary>
+<span class="declaration-kind">def</span> <code>HansenEconometrics.scaledMaxNNNorm</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Power-scale version of Hansen’s maximum statistic.
+</p>
+<p>
+When <code>Z i = |Y i| ^ r</code>, this is <code>n⁻¹ max_i |Y_i|^r</code>, the natural nonnegative-power form of Theorem 6.16 before applying the <code>r</code>th-root CMT.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">{Ω : Type u_1} → (Nat → Ω → Real) → Nat → Ω → Real</code></pre>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L29">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:29</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-max-norm-scaled-tendstoinmeasure-zero-of-uniformintegrable-norm-r">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.max_norm_scaled_tendstoInMeasure_zero_of_uniformIntegrable_norm_r</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Hansen Theorem 6.16 on the nonnegative power scale.
+</p>
+<p>
+If <code>Z_i = |Y_i|^r</code> is uniformly integrable in <code>L¹</code>, then <code>n⁻¹ max_{i&lt;n} |Y_i|^r</code> converges to zero in measure. The textbook <code>n^{-1/r} max_i |Y_i|</code> form follows by applying the <code>r</code>th-root continuous mapping theorem to this nonnegative statistic.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} {Z : Nat → Ω → Real},
+  MeasureTheory.UniformIntegrable Z 1 μ →
+    MeasureTheory.TendstoInMeasure μ (HansenEconometrics.scaledMaxNNNorm Z) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (1)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.scaledMaxNNNorm</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L222">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:222</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-max-norm-scaled-tendstoinmeasure-zero-of-identdistrib-memlp">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.max_norm_scaled_tendstoInMeasure_zero_of_identDistrib_memLp</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+<strong>Hansen Theorem 6.16, iid finite-power-moment maximum wrapper.</strong>
+</p>
+<p>
+If the power variables <code>Z_i</code> are identically distributed and <code>Z_0</code> is in <code>L¹</code>, then <code>n⁻¹ max_{i&lt;n} |Z_i|</code> on the nonnegative-power scale is <code>oₚ(1)</code>. For Hansen’s textbook statement, use <code>Z_i = |Y_i|^r</code>.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {Z : Nat → Ω → Real},
+  MeasureTheory.MemLp (Z 0) 1 μ →
+    (∀ (i : Nat), ProbabilityTheory.IdentDistrib (Z i) (Z 0) μ μ) →
+      MeasureTheory.TendstoInMeasure μ (HansenEconometrics.scaledMaxNNNorm Z) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (1)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.scaledMaxNNNorm</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L361">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:361</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-sqrt-nonneg-zero-real">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.TendstoInMeasure.sqrt_nonneg_zero_real</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Square-root continuous mapping at zero for nonnegative real-valued sequences.
+</p>
+<p>
+This avoids any additional measurability side condition by comparing the tail events <code>{sqrt Xₙ ≥ ε}</code> and <code>{Xₙ ≥ ε²}</code> directly.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} {X : Nat → α → Real},
+  (MeasureTheory.TendstoInMeasure μ X Filter.atTop fun x =&gt; 0) →
+    (∀ (n : Nat) (ω : α), Real.instLE.le 0 (X n ω)) →
+      MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; (X n ω).sqrt) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1236">HansenEconometrics/AsymptoticUtils.lean:1236</a>
 </p>
 </div>
 </details>

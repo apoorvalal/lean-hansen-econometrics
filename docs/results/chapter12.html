@@ -4706,6 +4706,65 @@ vertical-align: -.125em;
 }</script>
 
 
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var head = document.getElementsByTagName("head")[0];
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css";
+      head.appendChild(link);
+
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src  = "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js";
+      script.async = false;
+      script.addEventListener('load', function() {
+        var mathElements = document.getElementsByClassName("math");
+          var macros = [];
+          for (var i = 0; i < mathElements.length; i++) {
+            var texText = mathElements[i].firstChild;
+            if (mathElements[i].tagName == "SPAN") {
+              window.katex.render(texText.data, mathElements[i], {
+                displayMode: mathElements[i].classList.contains('display'),
+                throwOnError: false,
+                macros: macros,
+                fleqn: false
+              });
+            }
+          }
+      });
+      head.appendChild(script);
+    });
+  </script>
+
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
 <style type="text/css">:root {
 --hansen-ink: #263238;
 --hansen-muted: #607078;
@@ -4928,7 +4987,7 @@ margin-left: 0;
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
         <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../results/index.html">Important results</a></li><li class="breadcrumb-item"><a href="../results/chapter12.html">12: Instrumental variables</a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
@@ -4942,115 +5001,115 @@ margin-left: 0;
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">Hansen Econometrics in Lean</a> 
+      <a href="../">Hansen Econometrics in Lean</a>
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
     </div>
       </div>
-    <div class="sidebar-menu-container"> 
+    <div class="sidebar-menu-container">
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../crash-course.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lean crash course</span></a>
   </div>
 </li>
         <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../dependencies.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Dependency graph</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
  <span class="menu-text">Important results</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">2: Conditional expectation</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">3: Least-squares algebra</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">4: Least-squares regression</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">5: Normal regression</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter6.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">6: Large-sample asymptotics</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">7: OLS asymptotics</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter8.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">8: Restricted estimation</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter9.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">9: Hypothesis testing</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter10.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">10: Resampling methods</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter11.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">11: Multivariate regression</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter12.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">12: Instrumental variables</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter13.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">13: GMM</span></a>
   </div>
@@ -5058,31 +5117,31 @@ margin-left: 0;
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Walkthroughs</span></a>
+ <span class="menu-text">Proof deep dives</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">
           <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
  <span class="menu-text">Chapter 3</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
@@ -5090,22 +5149,22 @@ margin-left: 0;
       </ul>
   </li>
           <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
  <span class="menu-text">Chapter 5</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
+ <span class="menu-text">Gaussian laws of OLS coefficients and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
@@ -5113,22 +5172,22 @@ margin-left: 0;
       </ul>
   </li>
           <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false">
  <span class="menu-text">Chapter 7</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
@@ -5143,7 +5202,7 @@ margin-left: 0;
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+
     </div>
 <!-- main -->
 <main class="content column-page-right" id="quarto-document-content">
@@ -5162,17 +5221,17 @@ margin-left: 0;
 
 <div class="quarto-title-meta column-page-right">
 
-    
-  
-    
+
+
+
   </div>
-  
+
 
 
 </header>
 
 
-<p>This page is generated from the <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch12-inventory.md">canonical Chapter 12 inventory</a> and the compiled Lean environment. It contains 19 textbook result groups and 8 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.</p>
+<p>This page is generated from the <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch12-inventory.md">canonical Chapter 12 inventory</a> and the compiled Lean environment. It contains 19 textbook result groups and 21 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.</p>
 <div class="results-toolbar" role="group" aria-label="Result display controls">
 <button type="button" data-results-action="expand">
 Expand all results
@@ -5187,6 +5246,11 @@ Collapse all results
 <span>Theorem 12.1</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+Under Assumption 12.1, the 2SLS estimator is consistent: <span class="math inline">\hat\beta_{\mathrm{2SLS}} \xrightarrow{p} \beta</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslsbetaorzero-tendstoinmeasure-beta-of-textbook12-1-joint-iid-second">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSBetaOrZero_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second</code>
@@ -5235,6 +5299,11 @@ Direct statement dependencies (2)
 <span>Theorem 12.2</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+Under Assumption 12.2, <span class="math inline">\sqrt n(\hat\beta_{\mathrm{2SLS}}-\beta) \xrightarrow{d} N(0,V_\beta)</span>, where <span class="math inline">V_\beta=Q^{-1}Q_{XZ}Q_{ZZ}^{-1}\Omega Q_{ZZ}^{-1}Q_{ZX}Q^{-1}</span> and <span class="math inline">Q=Q_{XZ}Q_{ZZ}^{-1}Q_{ZX}</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslsbetaorzero-tendstoindistribution-formula-of-textbook12-2-observed-iid-fourth">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSBetaOrZero_tendstoInDistribution_formula_of_textbook12_2_observed_iid_fourth</code>
@@ -5316,6 +5385,11 @@ Direct statement dependencies (9)
 <span>Theorem 12.3</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+Under Assumption 12.2, the robust and homoskedastic covariance estimators are consistent: <span class="math inline">\hat V_\beta\xrightarrow{p}V_\beta</span> and <span class="math inline">\hat V_\beta^{0}\xrightarrow{p}V_\beta^{0}</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslscovariances-tendstoinmeasure-formula-of-textbook12-2-observed-iid-fourth">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSCovariances_tendstoInMeasure_formula_of_textbook12_2_observed_iid_fourth</code>
@@ -5415,6 +5489,11 @@ Direct statement dependencies (12)
 <span>Theorem 12.4</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+If <span class="math inline">\theta=h(\beta)</span> satisfies Assumption 7.3, then <span class="math inline">\hat\theta_{\mathrm{2SLS}}=h(\hat\beta_{\mathrm{2SLS}})\xrightarrow{p}\theta</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslsfunctionestimatororzero-tendstoinmeasure-of-textbook12-1-joint-iid-second-73">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_textbook12_1_joint_iid_second_73</code>
@@ -5472,6 +5551,11 @@ Direct statement dependencies (3)
 <span>Theorem 12.5</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+Under Assumptions 12.2 and 7.3, <span class="math inline">\sqrt n(\hat\theta_{\mathrm{2SLS}}-\theta)\xrightarrow{d}N(0,V_\theta)</span>, and the plug-in estimator satisfies <span class="math inline">\hat V_\theta\xrightarrow{p}V_\theta</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslsfunction-theorem12-5-of-textbook12-2-observed-iid-73-derivativeplugin">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSFunction_theorem12_5_of_textbook12_2_observed_iid_73_derivativePlugIn</code>
@@ -5593,6 +5677,11 @@ Direct statement dependencies (14)
 <span>Theorem 12.6</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+Under the null and Assumptions 12.2 and 7.3, the Wald statistic satisfies <span class="math inline">W(\theta)\xrightarrow{d}\chi_q^2</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslsfunctionwald-theorem12-6-of-textbook12-2-observed-iid-73-derivativeplugin">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn</code>
@@ -5678,12 +5767,95 @@ Direct statement dependencies (7)
 </details>
 <details class="result-group" id="theorem-12-7">
 <summary>
-<span>Theorem 12.7</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.7</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Corrected Kinal statement: under the stated central-Wishart, Gaussian-direction, independence, and rank conditions, <span class="math inline">\mathbb E\lVert\hat\beta_{\mathrm{2SLS},2}\rVert^r\lt \infty \Longleftrightarrow r\lt \ell_2-k_2+1</span>. Hansen’s printed joint-normal hypothesis alone is insufficient.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-kinalsupport-twoslskinal-theorem12-7-of-centralwishart-normalizedgaussianvector-of-rank-ae">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.KinalSupport.twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussianVector_of_rank_ae</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Strongest vector-valued central-Wishart Kinal threshold.
+</p>
+<p>
+Only one normalized-direction coordinate must have positive variance. The remaining zero-variance coordinates are constants and hence have every finite moment. The residualized fitted-endogenous rank event is derived from the central-Wishart law; the remaining rank events and instrument-count inequality are the deterministic premises used by the proof.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k₁ : Type u_2} {k₂ : Type u_3} {l₂ : Type u_4} [inst : Fintype n] [inst_1 : DecidableEq n]
+  [inst_2 : Fintype k₁] [inst_3 : DecidableEq k₁] [inst_4 : Fintype k₂] [inst_5 : DecidableEq k₂] [inst_6 : Fintype l₂]
+  [inst_7 : DecidableEq l₂] {Ω : Type u_5} [inst_8 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  {X₁ : Ω → Matrix n k₁ Real} {Y₂ : Ω → Matrix n k₂ Real} {Z₂ : Ω → Matrix n l₂ Real} {Y₁ : Ω → n → Real}
+  {β₂ : k₂ → Real} {Sigma : Matrix k₂ k₂ Real} {directionVar : k₂ → NNReal},
+  instLENat.le (Fintype.card k₂) (Fintype.card l₂) →
+    Filter.Eventually
+        (fun ω =&gt;
+          IsUnit
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul ((X₁ ω).fromCols (Z₂ ω)).transpose
+                ((X₁ ω).fromCols (Z₂ ω))).det)
+        (MeasureTheory.ae μ) →
+      Filter.Eventually
+          (fun ω =&gt;
+            IsUnit
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  ((HansenEconometrics.KinalSupport.twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)).fromCols
+                      (HansenEconometrics.KinalSupport.twoSLSFittedEndogenousRegressorsStar (X₁ ω) (Y₂ ω)
+                        (Z₂ ω))).transpose
+                  ((HansenEconometrics.KinalSupport.twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)).fromCols
+                    (HansenEconometrics.KinalSupport.twoSLSFittedEndogenousRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)))).det)
+          (MeasureTheory.ae μ) →
+        Filter.Eventually
+            (fun ω =&gt;
+              IsUnit
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (HansenEconometrics.KinalSupport.twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)).transpose
+                    (HansenEconometrics.KinalSupport.twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))).det)
+            (MeasureTheory.ae μ) →
+          (Exists fun j =&gt; NNReal.instPartialOrder.lt 0 (directionVar j)) →
+            HansenEconometrics.KinalSupport.TwoSLSKinalNormalizedCoefficientGaussianVectorInputs μ X₁ Y₂ Z₂ Y₁ β₂ Sigma
+                directionVar →
+              ∀ (r : NNReal),
+                Iff
+                  (MeasureTheory.MemLp
+                    (fun ω =&gt; HansenEconometrics.twoSLSEndogenousBetaOrZero (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
+                    (ENNReal.ofNNReal r) μ)
+                  (Real.instLT.lt r.toReal
+                    (instHAdd.hAdd (instHSub.hSub (Fintype.card l₂).cast (Fintype.card k₂).cast) 1))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (4)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.KinalSupport.TwoSLSKinalNormalizedCoefficientGaussianVectorInputs</code>
+</li>
+<li>
+<code>HansenEconometrics.KinalSupport.twoSLSFittedEndogenousRegressorsStar</code>
+</li>
+<li>
+<code>HansenEconometrics.KinalSupport.twoSLSFittedIncludedRegressorsStar</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSEndogenousBetaOrZero</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Kinal.lean#L8964">HansenEconometrics/Chapter12InstrumentalVariables/Kinal.lean:8964</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-8">
@@ -5691,6 +5863,11 @@ The canonical crosswalk does not name a compiled Lean endpoint. See the chapter 
 <span>Theorem 12.8</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+Under Assumption 12.2, the pairs bootstrap reproduces the coefficient law and the robust studentized law: <span class="math inline">\sqrt n(\hat\beta^{*}_{\mathrm{2SLS}}-\hat\beta_{\mathrm{2SLS}})\xrightarrow{d^{*}}N(0,V_\beta)</span> and <span class="math inline">T^{*}\xrightarrow{d^{*}}N(0,1)</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-twoslsbootstraptheorem12-8-distribution-of-observed-textbook-fourth">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth</code>
@@ -5785,72 +5962,776 @@ Direct statement dependencies (12)
 </details>
 <details class="result-group" id="theorem-12-9">
 <summary>
-<span>Theorem 12.9</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.9</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Corrected generated-regressor result: <span class="math inline">\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,V)</span>, <span class="math inline">\hat V_{\mathrm{HC0}}\xrightarrow{p}V</span>, and the tested-block Wald statistic converges to <span class="math inline">\chi_q^2</span> with calibrated asymptotic size.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-generatedregressorobservediidconditions-theorem12-9-corrected-normal-covariance-wald-size">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.GeneratedRegressorObservedIidConditions.theorem12_9_corrected_normal_covariance_wald_size</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+<strong>Corrected Hansen Theorem 12.9, full endpoint.</strong>
+</p>
+<p>
+The literal observed-iid fourth moments derive the generated-design empirical third/fourth weight bounds and hence feasible HC0 consistency. The minimal extension supplies only tested-block covariance nondegeneracy before assembling coefficient normality, the chi-square Wald limit, and calibrated asymptotic size.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {l : Type u_3} {k₁ : Type u_4} [inst : Fintype l] [inst_1 : Fintype k₁] [inst_2 : DecidableEq k₁] {Ω : Type u_6}
+  [inst_3 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [inst_4 : MeasureTheory.IsProbabilityMeasure μ] {r : Nat}
+  [inst_5 : Fact (instLTNat.lt 0 r)] {Z : Nat → Ω → l → Real} {v Y : Nat → Ω → Real}
+  {Ahat : Nat → Ω → Matrix l (Sum k₁ (Fin r)) Real} {A : Matrix l (Sum k₁ (Fin r)) Real} {β : Sum k₁ (Fin r) → Real},
+  HansenEconometrics.GeneratedRegressorObservedIidHC0Conditions μ Z v Y Ahat A β →
+    ∀ {crit : Real} {alpha : ENNReal},
+      Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared r) (Set.Ioi crit)) alpha →
+        And
+          (MeasureTheory.TendstoInDistribution
+            (fun m ω =&gt;
+              instHSMul.hSMul m.cast.sqrt
+                (instHSub.hSub
+                  (HansenEconometrics.generatedRegressorBetaStar (HansenEconometrics.stackRegressors Z m ω) (Ahat m ω)
+                    (HansenEconometrics.stackOutcomes Y m ω))
+                  β))
+            Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+            (ProbabilityTheory.multivariateGaussian 0
+              (HansenEconometrics.generatedRegressorAsymptoticVariance A (HansenEconometrics.popGram μ Z)
+                (HansenEconometrics.scoreSecondMomMat μ Z v))))
+          (And
+            (MeasureTheory.TendstoInMeasure μ
+              (fun m ω =&gt;
+                HansenEconometrics.generatedRegressorVHatStar (HansenEconometrics.stackRegressors Z m ω) (Ahat m ω)
+                  (HansenEconometrics.stackOutcomes Y m ω))
+              Filter.atTop fun x =&gt;
+              HansenEconometrics.generatedRegressorAsymptoticVariance A (HansenEconometrics.popGram μ Z)
+                (HansenEconometrics.scoreSecondMomMat μ Z v))
+            (And
+              (MeasureTheory.TendstoInDistribution
+                (fun m ω =&gt;
+                  HansenEconometrics.generatedRegressorBlockWaldStatOrZero
+                    (HansenEconometrics.generatedRegressorBetaStar (HansenEconometrics.stackRegressors Z m ω) (Ahat m ω)
+                      (HansenEconometrics.stackOutcomes Y m ω))
+                    (HansenEconometrics.generatedRegressorVHatStar (HansenEconometrics.stackRegressors Z m ω) (Ahat m ω)
+                      (HansenEconometrics.stackOutcomes Y m ω))
+                    m.cast.sqrt)
+                Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared r))
+              (Filter.Tendsto
+                (fun m =&gt;
+                  MeasureTheory.Measure.instFunLike.coe μ
+                    (setOf fun ω =&gt;
+                      Real.instLT.lt crit
+                        (HansenEconometrics.generatedRegressorBlockWaldStatOrZero
+                          (HansenEconometrics.generatedRegressorBetaStar (HansenEconometrics.stackRegressors Z m ω)
+                            (Ahat m ω) (HansenEconometrics.stackOutcomes Y m ω))
+                          (HansenEconometrics.generatedRegressorVHatStar (HansenEconometrics.stackRegressors Z m ω)
+                            (Ahat m ω) (HansenEconometrics.stackOutcomes Y m ω))
+                          m.cast.sqrt)))
+                Filter.atTop (nhds alpha))))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (11)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.GeneratedRegressorObservedIidHC0Conditions</code>
+</li>
+<li>
+<code>HansenEconometrics.chiSquared</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorAsymptoticVariance</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorBetaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorBlockWaldStatOrZero</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorVHatStar</code>
+</li>
+<li>
+<code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code>
+</li>
+<li>
+<code>HansenEconometrics.popGram</code>
+</li>
+<li>
+<code>HansenEconometrics.scoreSecondMomMat</code>
+</li>
+<li>
+<code>HansenEconometrics.stackOutcomes</code>
+</li>
+<li>
+<code>HansenEconometrics.stackRegressors</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L24298">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:24298</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-10">
 <summary>
-<span>Theorem 12.10</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.10</span><span class="result-count">3 endpoints</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Under the corrected fixed-design Gaussian conditions, the known-variance pivot is <span class="math inline">N(0,1)</span>, the residual-variance pivot is <span class="math inline">t_{n-k}</span>, and <span class="math inline">W^0/q\sim F_{q,n-k}</span>.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-generatedregressorbeta2knownsigmapivotorzero-haslaw-standardnormal">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.generatedRegressorBeta2KnownSigmaPivotOrZero_hasLaw_standardNormal</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Corrected scalar-pivot face of Hansen Theorem 12.10: with the population variance in the denominator, the totalized generated-block coefficient pivot is exactly standard normal on a full-rank realized design.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k₁ : Type u_4} {k₂ : Type u_5} [inst : Fintype n] [inst_1 : Fintype k₁] [inst_2 : Fintype k₂]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k₁] [inst_5 : DecidableEq k₂] {Ω : Type u_6}
+  [inst_6 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (W₁ : Matrix n k₁ Real) (W₂hat : Matrix n k₂ Real)
+  (β₁ : k₁ → Real) {σ2 : Real} (j : k₂),
+  Real.instLT.lt 0 σ2 →
+    ∀ (v : Ω → EuclideanSpace Real n)
+      [Invertible
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (W₁.fromCols W₂hat).transpose (W₁.fromCols W₂hat))],
+      ProbabilityTheory.HasLaw v (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+        ProbabilityTheory.HasLaw
+          (fun ω =&gt;
+            HansenEconometrics.generatedRegressorBeta2KnownSigmaPivotOrZero W₁ W₂hat
+              (instHAdd.hAdd (W₁.mulVec β₁) (v ω).ofLp) σ2 j)
+          (ProbabilityTheory.gaussianReal 0 1) μ</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (1)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.generatedRegressorBeta2KnownSigmaPivotOrZero</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L18939">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:18939</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-generatedregressorbeta2tstatorzero-haslaw-classicalstudentt-card-sub">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.generatedRegressorBeta2TStatOrZero_hasLaw_classicalStudentT_card_sub</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Corrected conventional-pivot face of Hansen Theorem 12.10: replacing the population variance by the OLS residual variance gives Student-t, not the standard-normal law printed in the theorem.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k₁ : Type u_4} {k₂ : Type u_5} [inst : Fintype n] [inst_1 : Fintype k₁] [inst_2 : Fintype k₂]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k₁] [inst_5 : DecidableEq k₂] {Ω : Type u_6}
+  [inst_6 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (W₁ : Matrix n k₁ Real) (W₂hat : Matrix n k₂ Real)
+  (β₁ : k₁ → Real) {σ2 : Real} (j : k₂),
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt (instHAdd.hAdd (Fintype.card k₁) (Fintype.card k₂)) (Fintype.card n) →
+      ∀ (v : Ω → EuclideanSpace Real n)
+        [Invertible
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (W₁.fromCols W₂hat).transpose (W₁.fromCols W₂hat))],
+        ProbabilityTheory.HasLaw v (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+          ProbabilityTheory.HasLaw
+            (fun ω =&gt;
+              HansenEconometrics.generatedRegressorBeta2TStatOrZero W₁ W₂hat (instHAdd.hAdd (W₁.mulVec β₁) (v ω).ofLp)
+                j)
+            (HansenEconometrics.classicalStudentT
+              (instHSub.hSub (instHSub.hSub (Fintype.card n) (Fintype.card k₁)) (Fintype.card k₂)))
+            μ</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (2)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.classicalStudentT</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorBeta2TStatOrZero</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L18958">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:18958</a>
+</p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-generatedregressorhomoskedasticfstatorzero-haslaw-classicalfdist">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.generatedRegressorHomoskedasticFStatOrZero_hasLaw_classicalFDist</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Hansen Theorem 12.10 exact homoskedastic F law for the canonical covariance-based statistic.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k₁ : Type u_4} [inst : Fintype n] [inst_1 : Fintype k₁] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k₁] {Ω : Type u_6} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} {r : Nat}
+  (W₁ : Matrix n k₁ Real) (W₂hat : Matrix n (Fin r) Real) (β₁ : k₁ → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt 0 r →
+      instLTNat.lt (Fintype.card (Sum k₁ (Fin r))) (Fintype.card n) →
+        ∀ (v : Ω → EuclideanSpace Real n)
+          [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul W₁.transpose W₁)]
+          [Invertible
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (W₁.fromCols W₂hat).transpose (W₁.fromCols W₂hat))],
+          ProbabilityTheory.HasLaw v (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+            ProbabilityTheory.HasLaw
+              (fun ω =&gt;
+                HansenEconometrics.generatedRegressorHomoskedasticFStatOrZero W₁ W₂hat
+                  (instHAdd.hAdd (W₁.mulVec β₁) (v ω).ofLp))
+              (HansenEconometrics.classicalFDist r (instHSub.hSub (Fintype.card n) (Fintype.card (Sum k₁ (Fin r))))) μ</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (2)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.classicalFDist</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorHomoskedasticFStatOrZero</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L19385">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:19385</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-11">
 <summary>
-<span>Theorem 12.11</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.11</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Under the corrected generated-regressor regularity conditions, <span class="math inline">\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,V)</span> and the structural-residual covariance estimator in (12.57) satisfies <span class="math inline">\hat V\xrightarrow{p}V</span>.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-generatedregressorls-theorem12-11-of-corrected-regularities">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.generatedRegressorLS_theorem12_11_of_corrected_regularities</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Corrected raw-model endpoint for Hansen Theorem 12.11.
+</p>
+<p>
+The conclusion is exactly the generated-regressor coefficient CLT with Hansen’s covariance (12.56) and consistency of the structural-residual HC0 estimator (12.57). The two extra regularity assumptions needed to repair the printed theorem are isolated in <code>GeneratedRegressorLSObservedIidRegularityConditions</code>.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq l] {Ω : Type u_6} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] {Z : Nat → Ω → l → Real} {X u : Nat → Ω → k → Real}
+  {v Y : Nat → Ω → Real} {A : Matrix l k Real} {β : k → Real},
+  HansenEconometrics.GeneratedRegressorLSObservedIidRegularityConditions μ Z X u v Y A β →
+    And
+      (MeasureTheory.TendstoInDistribution
+        (fun m ω =&gt;
+          instHSMul.hSMul m.cast.sqrt
+            (instHSub.hSub
+              (HansenEconometrics.generatedRegressorBetaStar (HansenEconometrics.stackRegressors Z m ω)
+                (HansenEconometrics.generatedRegressorLSFirstStageCoefStar (HansenEconometrics.stackRegressors Z m ω)
+                  (HansenEconometrics.stackRegressors X m ω))
+                (HansenEconometrics.stackOutcomes Y m ω))
+              β))
+        Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+        (ProbabilityTheory.multivariateGaussian 0
+          (HansenEconometrics.generatedRegressorAsymptoticVariance A
+            (HansenEconometrics.twoSLSCombinedQZZ
+              (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+            (HansenEconometrics.scoreCovMat μ Z (HansenEconometrics.expectationErrorStructuralError X Y β)))))
+      (MeasureTheory.TendstoInMeasure μ
+        (fun m ω =&gt;
+          HansenEconometrics.generatedRegressorLSVHatStar (HansenEconometrics.stackRegressors Z m ω)
+            (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))
+        Filter.atTop fun x =&gt;
+        HansenEconometrics.generatedRegressorAsymptoticVariance A
+          (HansenEconometrics.twoSLSCombinedQZZ
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.scoreCovMat μ Z (HansenEconometrics.expectationErrorStructuralError X Y β)))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (12)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.GeneratedRegressorLSObservedIidRegularityConditions</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorStructuralError</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorAsymptoticVariance</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorBetaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorLSFirstStageCoefStar</code>
+</li>
+<li>
+<code>HansenEconometrics.generatedRegressorLSVHatStar</code>
+</li>
+<li>
+<code>HansenEconometrics.popGram</code>
+</li>
+<li>
+<code>HansenEconometrics.scoreCovMat</code>
+</li>
+<li>
+<code>HansenEconometrics.stackOutcomes</code>
+</li>
+<li>
+<code>HansenEconometrics.stackRegressors</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSCombinedQZZ</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSCombinedRegressors</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L8795">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:8795</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-12">
 <summary>
-<span>Theorem 12.12</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.12</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Under the corrected expectation-error model, the joint estimator satisfies <span class="math inline">\sqrt n((\hat\beta,\hat\alpha)-(\beta,\alpha))\xrightarrow{d}N(0,V)</span>, and the three-block estimator satisfies <span class="math inline">\hat V\xrightarrow{p}V</span>.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-expectationerrorhansenobservediidconditions-expectationerror-theorem12-12-multivariategaussian-and-canonicalvhat-of-observed-iid">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.ExpectationErrorHansenObservedIidConditions.expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat_of_observed_iid</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+<strong>Corrected Hansen Theorem 12.12, complete observed-iid endpoint.</strong>
+</p>
+<p>
+The joint estimator has Hansen’s displayed Gaussian limit and the literal three-block estimator following Theorem 12.12 is consistent for the same covariance matrix.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq l] {Ω : Type u_6} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] {Z : Nat → Ω → l → Real} {X u : Nat → Ω → k → Real}
+  {νe Y : Nat → Ω → Real} {A : Matrix l k Real} {β α : k → Real},
+  HansenEconometrics.ExpectationErrorHansenObservedIidConditions μ Z X u νe Y A β α →
+    And
+      (MeasureTheory.TendstoInDistribution
+        (fun m ω =&gt;
+          instHSMul.hSMul m.cast.sqrt
+            (instHSub.hSub
+              (HansenEconometrics.expectationErrorBetaAlphaStar (HansenEconometrics.stackRegressors Z m ω)
+                (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))
+              (Sum.elim β α)))
+        Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+        (ProbabilityTheory.multivariateGaussian 0
+          (HansenEconometrics.expectationErrorAsymptoticVariance A (HansenEconometrics.popGram μ Z)
+            (HansenEconometrics.popGram μ u)
+            (HansenEconometrics.scoreCovMat μ Z (HansenEconometrics.expectationErrorStructuralError X Y β))
+            (HansenEconometrics.expectationErrorOmegaUZeNu μ u Z
+              (HansenEconometrics.expectationErrorStructuralError X Y β) νe)
+            (HansenEconometrics.scoreCovMat μ u νe))))
+      (MeasureTheory.TendstoInMeasure μ
+        (fun m ω =&gt;
+          HansenEconometrics.expectationErrorVHatStar (HansenEconometrics.stackRegressors Z m ω)
+            (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))
+        Filter.atTop fun x =&gt;
+        HansenEconometrics.expectationErrorAsymptoticVariance A (HansenEconometrics.popGram μ Z)
+          (HansenEconometrics.popGram μ u)
+          (HansenEconometrics.scoreCovMat μ Z (HansenEconometrics.expectationErrorStructuralError X Y β))
+          (HansenEconometrics.expectationErrorOmegaUZeNu μ u Z
+            (HansenEconometrics.expectationErrorStructuralError X Y β) νe)
+          (HansenEconometrics.scoreCovMat μ u νe))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (10)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.ExpectationErrorHansenObservedIidConditions</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorAsymptoticVariance</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorBetaAlphaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorOmegaUZeNu</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorStructuralError</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorVHatStar</code>
+</li>
+<li>
+<code>HansenEconometrics.popGram</code>
+</li>
+<li>
+<code>HansenEconometrics.scoreCovMat</code>
+</li>
+<li>
+<code>HansenEconometrics.stackOutcomes</code>
+</li>
+<li>
+<code>HansenEconometrics.stackRegressors</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L28351">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:28351</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-13">
 <summary>
-<span>Theorem 12.13</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.13</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+For the corrected control-function model, <span class="math inline">\sqrt n(\hat\alpha-\alpha)\xrightarrow{d}N(0,V_{22}+V_{\gamma\gamma}-V_{\gamma2}-V_{\gamma2}^{\prime})</span>, and the correctly normalized robust covariance estimator is consistent.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-controlfunctionhansenobservediidconditions-controlfunction-theorem12-13-multivariategaussian-and-canonicalvhat-of-observed-iid">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.ControlFunctionHansenObservedIidConditions.controlFunction_theorem12_13_multivariateGaussian_and_canonicalVHat_of_observed_iid</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+<strong>Corrected Hansen Theorem 12.13, complete observed-iid endpoint.</strong>
+</p>
+<p>
+The actual control-function endogeneity estimator has Hansen’s displayed Gaussian limit, and the correctly normalized robust covariance estimator is consistent for the same alpha covariance. This corrects the <code>1/n</code> prefactors printed on the raw-matrix <code>Vhat22</code> and <code>Vhatgamma2</code> sandwiches in (12.62). All finite-sample rank failures are discharged in probability from the observed-iid assumptions.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {l : Type u_3} {k₁ : Type u_4} {k₂ : Type u_5} [inst : Fintype l] [inst_1 : Fintype k₁] [inst_2 : Fintype k₂]
+  [inst_3 : DecidableEq l] [inst_4 : DecidableEq k₁] [inst_5 : DecidableEq k₂] {Ω : Type u_6}
+  [inst_6 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [inst_7 : MeasureTheory.IsProbabilityMeasure μ]
+  {X₁ : Nat → Ω → k₁ → Real} {X₂ u₂ : Nat → Ω → k₂ → Real} {Z : Nat → Ω → l → Real} {Y e νe : Nat → Ω → Real}
+  {A₁ : Matrix l k₁ Real} {Γ : Matrix l k₂ Real} {β : Sum k₁ k₂ → Real} {α : k₂ → Real},
+  HansenEconometrics.ControlFunctionHansenObservedIidConditions μ X₁ X₂ u₂ Z Y e νe A₁ Γ β α →
+    And
+      (MeasureTheory.TendstoInDistribution
+        (fun m ω =&gt;
+          instHSMul.hSMul m.cast.sqrt
+            (instHSub.hSub
+              (HansenEconometrics.controlFunctionAlphaHatStar (HansenEconometrics.stackRegressors X₁ m ω)
+                (HansenEconometrics.stackRegressors X₂ m ω) (HansenEconometrics.stackRegressors Z m ω)
+                (HansenEconometrics.stackOutcomes Y m ω))
+              α))
+        Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+        (ProbabilityTheory.multivariateGaussian 0
+          (HansenEconometrics.controlFunctionAlphaAsymptoticVariance
+            (HansenEconometrics.controlFunctionFirstStageLoading A₁ Γ) (HansenEconometrics.popGram μ Z)
+            (HansenEconometrics.popGram μ u₂) (HansenEconometrics.scoreCovMat μ Z e)
+            (HansenEconometrics.expectationErrorOmegaUZeNu μ u₂ Z e νe) (HansenEconometrics.scoreCovMat μ u₂ νe))))
+      (MeasureTheory.TendstoInMeasure μ
+        (fun m ω =&gt;
+          HansenEconometrics.controlFunctionAlphaVHatStar (HansenEconometrics.stackRegressors X₁ m ω)
+            (HansenEconometrics.stackRegressors X₂ m ω) (HansenEconometrics.stackRegressors Z m ω)
+            (HansenEconometrics.stackOutcomes Y m ω))
+        Filter.atTop fun x =&gt;
+        HansenEconometrics.controlFunctionAlphaAsymptoticVariance
+          (HansenEconometrics.controlFunctionFirstStageLoading A₁ Γ) (HansenEconometrics.popGram μ Z)
+          (HansenEconometrics.popGram μ u₂) (HansenEconometrics.scoreCovMat μ Z e)
+          (HansenEconometrics.expectationErrorOmegaUZeNu μ u₂ Z e νe) (HansenEconometrics.scoreCovMat μ u₂ νe))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (10)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.ControlFunctionHansenObservedIidConditions</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionAlphaAsymptoticVariance</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionAlphaHatStar</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionAlphaVHatStar</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionFirstStageLoading</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorOmegaUZeNu</code>
+</li>
+<li>
+<code>HansenEconometrics.popGram</code>
+</li>
+<li>
+<code>HansenEconometrics.scoreCovMat</code>
+</li>
+<li>
+<code>HansenEconometrics.stackOutcomes</code>
+</li>
+<li>
+<code>HansenEconometrics.stackRegressors</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L31309">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:31309</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-14">
 <summary>
-<span>Theorem 12.14</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.14</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Under the exogeneity null <span class="math inline">H_0:\alpha=0</span>, the robust control-function Wald statistic satisfies <span class="math inline">W\xrightarrow{d}\chi_{k_2}^2</span>, so its calibrated upper-tail test has asymptotic size <span class="math inline">\alpha_0</span>.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-controlfunctionhansenobservediidconditions-controlfunctionendogeneitywald-theorem12-14-of-observed-iid-lowertail">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.ControlFunctionHansenObservedIidConditions.controlFunctionEndogeneityWald_theorem12_14_of_observed_iid_lowerTail</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+<strong>Corrected Hansen Theorem 12.14, complete observed-iid endpoint.</strong>
+</p>
+<p>
+Under Hansen’s primitive exogeneity null, the robust control-function Wald statistic converges to <code>chiSquared r</code>; a lower-tail calibrated critical value therefore gives the stated asymptotic rejection probability. The displayed alpha covariance is assumed positive definite because Hansen’s remaining conditions allow degenerate errors.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {l : Type u_3} {k₁ : Type u_4} [inst : Fintype l] [inst_1 : Fintype k₁] [inst_2 : DecidableEq l]
+  [inst_3 : DecidableEq k₁] {Ω : Type u_6} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] {r : Nat} [inst_6 : Fact (instLTNat.lt 0 r)]
+  {X₁ : Nat → Ω → k₁ → Real} {X₂ u₂ : Nat → Ω → Fin r → Real} {Z : Nat → Ω → l → Real} {Y e νe : Nat → Ω → Real}
+  {A₁ : Matrix l k₁ Real} {Γ : Matrix l (Fin r) Real} {β : Sum k₁ (Fin r) → Real} {α : Fin r → Real},
+  HansenEconometrics.ControlFunctionHansenObservedIidConditions μ X₁ X₂ u₂ Z Y e νe A₁ Γ β α →
+    HansenEconometrics.controlFunctionPrimitiveEndogeneityNull μ X₂ e →
+      (HansenEconometrics.controlFunctionAlphaAsymptoticVariance
+            (HansenEconometrics.controlFunctionFirstStageLoading A₁ Γ) (HansenEconometrics.popGram μ Z)
+            (HansenEconometrics.popGram μ u₂) (HansenEconometrics.scoreCovMat μ Z e)
+            (HansenEconometrics.expectationErrorOmegaUZeNu μ u₂ Z e νe)
+            (HansenEconometrics.scoreCovMat μ u₂ νe)).PosDef →
+        ∀ {crit : Real} {alphaTail : ENNReal},
+          ENNReal.instPartialOrder.le alphaTail 1 →
+            Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared r) (Set.Iic crit))
+                (instHSub.hSub 1 alphaTail) →
+              And
+                (MeasureTheory.TendstoInDistribution
+                  (fun m ω =&gt;
+                    HansenEconometrics.controlFunctionEndogeneityWaldStatOrZero
+                      (HansenEconometrics.stackRegressors X₁ m ω) (HansenEconometrics.stackRegressors X₂ m ω)
+                      (HansenEconometrics.stackRegressors Z m ω) (HansenEconometrics.stackOutcomes Y m ω) m.cast.sqrt)
+                  Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared r))
+                (Filter.Tendsto
+                  (fun m =&gt;
+                    MeasureTheory.Measure.instFunLike.coe μ
+                      (setOf fun ω =&gt;
+                        Real.instLT.lt crit
+                          (HansenEconometrics.controlFunctionEndogeneityWaldStatOrZero
+                            (HansenEconometrics.stackRegressors X₁ m ω) (HansenEconometrics.stackRegressors X₂ m ω)
+                            (HansenEconometrics.stackRegressors Z m ω) (HansenEconometrics.stackOutcomes Y m ω)
+                            m.cast.sqrt)))
+                  Filter.atTop (nhds alphaTail))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (12)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.ControlFunctionHansenObservedIidConditions</code>
+</li>
+<li>
+<code>HansenEconometrics.chiSquared</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionAlphaAsymptoticVariance</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionEndogeneityWaldStatOrZero</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionFirstStageLoading</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionPrimitiveEndogeneityNull</code>
+</li>
+<li>
+<code>HansenEconometrics.expectationErrorOmegaUZeNu</code>
+</li>
+<li>
+<code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code>
+</li>
+<li>
+<code>HansenEconometrics.popGram</code>
+</li>
+<li>
+<code>HansenEconometrics.scoreCovMat</code>
+</li>
+<li>
+<code>HansenEconometrics.stackOutcomes</code>
+</li>
+<li>
+<code>HansenEconometrics.stackRegressors</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L31451">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:31451</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-15">
 <summary>
-<span>Theorem 12.15</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.15</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Under the corrected conditional-Gaussian and full-rank conditions, the control-function statistic has the exact law <span class="math inline">F\sim F_{k_2,n-k}</span>.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-controlfunctionendogeneityhomoskedasticfstatorzero-haslaw-classicalfdist">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Hansen Theorem 12.15 exact F law for the canonical covariance-based control-function statistic.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {l : Type u_3} {k₁ : Type u_4} [inst : Fintype n] [inst_1 : Fintype l] [inst_2 : Fintype k₁]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq l] [inst_5 : DecidableEq k₁] {Ω : Type u_6}
+  [inst_6 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} {r : Nat} (X₁ : Matrix n k₁ Real)
+  (X₂ : Matrix n (Fin r) Real) (Z : Matrix n l Real) (β : Sum k₁ (Fin r) → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt 0 r →
+      instLTNat.lt (Fintype.card (Sum (Sum k₁ (Fin r)) (Fin r))) (Fintype.card n) →
+        ∀ (ε : Ω → EuclideanSpace Real n)
+          [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (X₁.fromCols X₂).transpose (X₁.fromCols X₂))]
+          [Invertible
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                ((X₁.fromCols X₂).fromCols (HansenEconometrics.controlFunctionResidualStar Z X₂)).transpose
+                ((X₁.fromCols X₂).fromCols (HansenEconometrics.controlFunctionResidualStar Z X₂)))],
+          ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+            ProbabilityTheory.HasLaw
+              (fun ω =&gt;
+                HansenEconometrics.controlFunctionEndogeneityHomoskedasticFStatOrZero X₁ X₂ Z
+                  (instHAdd.hAdd ((X₁.fromCols X₂).mulVec β) (ε ω).ofLp))
+              (HansenEconometrics.classicalFDist r
+                (instHSub.hSub (Fintype.card n) (Fintype.card (Sum (Sum k₁ (Fin r)) (Fin r)))))
+              μ</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (3)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.classicalFDist</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionEndogeneityHomoskedasticFStatOrZero</code>
+</li>
+<li>
+<code>HansenEconometrics.controlFunctionResidualStar</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean#L19595">HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean:19595</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-16">
@@ -5858,6 +6739,11 @@ The canonical crosswalk does not name a compiled Lean endpoint. See the chapter 
 <span>Theorem 12.16</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
+<div class="textbook-statement">
+<p>
+Under Assumption 12.2 and conditional homoskedasticity, the Sargan statistic satisfies <span class="math inline">J\xrightarrow{d}\chi_{\ell-k}^2</span>, and its calibrated upper-tail test has asymptotic size <span class="math inline">\alpha</span>.
+</p>
+</div>
 <details class="lean-declaration" id="decl-hanseneconometrics-theorem12-16-observed">
 <summary>
 <span class="declaration-kind">theorem</span> <code>HansenEconometrics.Theorem12_16.observed</code>
@@ -5944,32 +6830,431 @@ Direct statement dependencies (9)
 </details>
 <details class="result-group" id="theorem-12-17">
 <summary>
-<span>Theorem 12.17</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.17</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Corrected subset-overidentification result: <span class="math inline">N=C^{*}</span> on the full-rank sample events, <span class="math inline">N-C\xrightarrow{p}0</span>, and <span class="math inline">N,C\xrightarrow{d}\chi_{\ell_b}^2</span>. The maintained instrument block must also be relevant.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-theorem12-17-corrected">
+<summary>
+<span class="declaration-kind">def</span> <code>HansenEconometrics.Theorem12_17.corrected</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Corrected observed-row endpoint for Hansen Theorem 12.17.
+</p>
+<p>
+The printed theorem’s full-instrument relevance condition does not imply relevance of the maintained instruments. This endpoint therefore adds exactly injectivity of <code>E[Z_a X’]</code>; the projection bridge derives the remaining maintained observed-iid, moment, orthogonality, <code>QZZ</code>, and <code>Omega</code> fields.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {la : Type u_4} {lb : Type u_5} [inst : Fintype k] [inst_1 : DecidableEq k] [inst_2 : Fintype la]
+  [inst_3 : DecidableEq la] [inst_4 : Fintype lb] [inst_5 : DecidableEq lb] {Ω : Type u_6} [inst_6 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} [inst_7 : MeasureTheory.IsProbabilityMeasure μ] {Za : Nat → Ω → la → Real}
+  {Zb : Nat → Ω → lb → Real} {X : Nat → Ω → k → Real} {e Y : Nat → Ω → Real} {df : Nat}
+  [inst_8 : Fact (instLTNat.lt 0 df)] {β : k → Real},
+  instLTNat.lt (Fintype.card k) (Fintype.card la) →
+    Eq df (Fintype.card lb) →
+      HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ
+          (fun i ω =&gt; Sum.elim (Za i ω) (Zb i ω)) X e Y β →
+        Function.Injective
+            (HansenEconometrics.twoSLSCombinedQZX
+                (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Za X))).mulVec →
+          ∀ (hZa0 : Measurable (Za 0)) [MeasureTheory.SigmaFinite (μ.trim ⋯)]
+            (hZfull0 : Measurable fun ω =&gt; Sum.elim (Za 0 ω) (Zb 0 ω)) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+            HansenEconometrics.HomoskedasticErrorVariance μ (fun i ω =&gt; Sum.elim (Za i ω) (Zb i ω)) e →
+              ∀ {crit : Real} {alpha : ENNReal},
+                Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared df) (Set.Ioi crit)) alpha →
+                  And
+                    (Filter.Tendsto
+                      (fun m =&gt;
+                        MeasureTheory.Measure.instFunLike.coe μ
+                          (setOf fun ω =&gt;
+                            Ne
+                              (HansenEconometrics.twoSLSSubsetNeweyStatOrZero
+                                (HansenEconometrics.stackRegressors Za m ω) (HansenEconometrics.stackRegressors Zb m ω)
+                                (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))
+                              (HansenEconometrics.twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+                                (HansenEconometrics.stackRegressors Za m ω) (HansenEconometrics.stackRegressors Zb m ω)
+                                (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))))
+                      Filter.atTop (nhds 0))
+                    (And
+                      (MeasureTheory.TendstoInDistribution
+                        (fun m ω =&gt;
+                          HansenEconometrics.twoSLSSubsetNeweyStatOrZero (HansenEconometrics.stackRegressors Za m ω)
+                            (HansenEconometrics.stackRegressors Zb m ω) (HansenEconometrics.stackRegressors X m ω)
+                            (HansenEconometrics.stackOutcomes Y m ω))
+                        Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared df))
+                      (And
+                        (MeasureTheory.TendstoInDistribution
+                          (fun m ω =&gt;
+                            HansenEconometrics.twoSLSSubsetSarganDiffStatOrZero
+                              (HansenEconometrics.stackRegressors Za m ω) (HansenEconometrics.stackRegressors Zb m ω)
+                              (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))
+                          Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared df))
+                        (And
+                          (MeasureTheory.TendstoInMeasure μ
+                            (fun m ω =&gt;
+                              instHSub.hSub
+                                (HansenEconometrics.twoSLSSubsetNeweyStatOrZero
+                                  (HansenEconometrics.stackRegressors Za m ω)
+                                  (HansenEconometrics.stackRegressors Zb m ω) (HansenEconometrics.stackRegressors X m ω)
+                                  (HansenEconometrics.stackOutcomes Y m ω))
+                                (HansenEconometrics.twoSLSSubsetSarganDiffStatOrZero
+                                  (HansenEconometrics.stackRegressors Za m ω)
+                                  (HansenEconometrics.stackRegressors Zb m ω) (HansenEconometrics.stackRegressors X m ω)
+                                  (HansenEconometrics.stackOutcomes Y m ω)))
+                            Filter.atTop fun x =&gt; 0)
+                          (And
+                            (Filter.Tendsto
+                              (fun m =&gt;
+                                MeasureTheory.Measure.instFunLike.coe μ
+                                  (setOf fun ω =&gt;
+                                    Real.instLT.lt crit
+                                      (HansenEconometrics.twoSLSSubsetNeweyStatOrZero
+                                        (HansenEconometrics.stackRegressors Za m ω)
+                                        (HansenEconometrics.stackRegressors Zb m ω)
+                                        (HansenEconometrics.stackRegressors X m ω)
+                                        (HansenEconometrics.stackOutcomes Y m ω))))
+                              Filter.atTop (nhds alpha))
+                            (Filter.Tendsto
+                              (fun m =&gt;
+                                MeasureTheory.Measure.instFunLike.coe μ
+                                  (setOf fun ω =&gt;
+                                    Real.instLT.lt crit
+                                      (HansenEconometrics.twoSLSSubsetSarganDiffStatOrZero
+                                        (HansenEconometrics.stackRegressors Za m ω)
+                                        (HansenEconometrics.stackRegressors Zb m ω)
+                                        (HansenEconometrics.stackRegressors X m ω)
+                                        (HansenEconometrics.stackOutcomes Y m ω))))
+                              Filter.atTop (nhds alpha))))))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (14)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.HomoskedasticErrorVariance</code>
+</li>
+<li>
+<code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code>
+</li>
+<li>
+<code>HansenEconometrics.chiSquared</code>
+</li>
+<li>
+<code>HansenEconometrics.conditioningSpace</code>
+</li>
+<li>
+<code>HansenEconometrics.conditioningSpace_le</code>
+</li>
+<li>
+<code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code>
+</li>
+<li>
+<code>HansenEconometrics.popGram</code>
+</li>
+<li>
+<code>HansenEconometrics.stackOutcomes</code>
+</li>
+<li>
+<code>HansenEconometrics.stackRegressors</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSCombinedQZX</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSCombinedRegressors</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSSubsetNeweyStatOrZero</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSSubsetSarganDiffCommonSigmaStatOrZero</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSSubsetSarganDiffStatOrZero</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean#L19795">HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean:19795</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-18">
 <summary>
-<span>Theorem 12.18</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.18</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Under the corrected weak-instrument triangular-array conditions, <span class="math inline">\hat\beta_{\mathrm{OLS}}-\beta\xrightarrow{p}\Sigma_{22}^{-1}\Sigma_{2e}</span>, while <span class="math inline">\hat\beta_{\mathrm{2SLS}}-\beta</span> and <span class="math inline">\hat\beta_{\mathrm{LIML}}-\beta</span> have Hansen’s non-Gaussian random-matrix limits.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-weakiv-theorem12-18-triangular-estimators-of-raw-moments">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.weakIV_theorem12_18_triangular_estimators_of_raw_moments</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Hansen Theorem 12.18 directly from raw iid moments and the concrete smallest generalized-Rayleigh root. No selector convergence, estimator convergence, or Rayleigh minimizer is assumed. The remaining premises are the population rank conditions needed by the totalized inverse maps.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {l : Type u_2} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq l] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] {Z : Nat → Ω → l → Real} {u : Nat → Ω → Sum Unit k → Real}
+  {C : Matrix l k Real} {beta : k → Real},
+  HansenEconometrics.WeakIVRawJointMomentConditions μ Z u →
+    IsUnit (HansenEconometrics.popGram μ Z).det →
+      (HansenEconometrics.popGram μ u).PosDef →
+        Eq
+            (MeasureTheory.Measure.instFunLike.coe
+              (ProbabilityTheory.multivariateGaussian 0
+                (HansenEconometrics.covMat μ (HansenEconometrics.weakIVRawReducedFormScoreRow Z u 0)))
+              (setOf fun z =&gt;
+                Not
+                  (IsUnit
+                    (HansenEconometrics.weakIV2SLSLimitBread (HansenEconometrics.popGram μ Z) C
+                        (HansenEconometrics.weakIVRawGaussianFirstStage
+                          (HansenEconometrics.weakIVRawGaussianMatrix z))).det)))
+            0 →
+          Eq
+              (MeasureTheory.Measure.instFunLike.coe
+                (ProbabilityTheory.multivariateGaussian 0
+                  (HansenEconometrics.covMat μ (HansenEconometrics.weakIVRawReducedFormScoreRow Z u 0)))
+                (setOf fun z =&gt;
+                  Not
+                    (IsUnit
+                      (HansenEconometrics.weakIVLIMLLimitBread (HansenEconometrics.popGram μ Z) C
+                          (HansenEconometrics.weakIVRawGaussianFirstStage
+                            (HansenEconometrics.weakIVRawGaussianMatrix z))
+                          (HansenEconometrics.weakIVRawLIMLSmallestRoot μ Z u C beta z)
+                          (HansenEconometrics.weakIVRawSigma22 (HansenEconometrics.popGram μ u))).det)))
+              0 →
+            And
+              (MeasureTheory.TendstoInMeasure μ
+                (fun m omega =&gt; instHSub.hSub (HansenEconometrics.weakIVLocalOLSBetaStar Z u C beta m omega) beta)
+                Filter.atTop fun x =&gt;
+                HansenEconometrics.weakIVOLSBias (HansenEconometrics.weakIVRawSigma22 (HansenEconometrics.popGram μ u))
+                  (HansenEconometrics.weakIVRawSigma2e (HansenEconometrics.popGram μ u) beta))
+              (And
+                (MeasureTheory.TendstoInDistribution
+                  (fun m omega =&gt; instHSub.hSub (HansenEconometrics.weakIVLocal2SLSBetaStar Z u C beta m omega) beta)
+                  Filter.atTop
+                  (fun z =&gt;
+                    HansenEconometrics.weakIV2SLSBias (HansenEconometrics.popGram μ Z) C
+                      (HansenEconometrics.weakIVRawGaussianFirstStage (HansenEconometrics.weakIVRawGaussianMatrix z))
+                      (HansenEconometrics.weakIVRawGaussianStructuralScore
+                        (HansenEconometrics.weakIVRawGaussianMatrix z) beta))
+                  (fun x =&gt; μ)
+                  (ProbabilityTheory.multivariateGaussian 0
+                    (HansenEconometrics.covMat μ (HansenEconometrics.weakIVRawReducedFormScoreRow Z u 0))))
+                (And
+                  (MeasureTheory.TendstoInDistribution
+                    (fun m omega =&gt;
+                      instHSub.hSub
+                        (HansenEconometrics.weakIVLocalLIMLBetaStar Z u C beta
+                          (HansenEconometrics.weakIVLocalLIMLSmallestRoot Z u C beta) m omega)
+                        beta)
+                    Filter.atTop
+                    (fun z =&gt;
+                      HansenEconometrics.weakIVLIMLBias (HansenEconometrics.popGram μ Z) C
+                        (HansenEconometrics.weakIVRawGaussianFirstStage (HansenEconometrics.weakIVRawGaussianMatrix z))
+                        (HansenEconometrics.weakIVRawGaussianStructuralScore
+                          (HansenEconometrics.weakIVRawGaussianMatrix z) beta)
+                        (HansenEconometrics.weakIVRawLIMLSmallestRoot μ Z u C beta z)
+                        (HansenEconometrics.weakIVRawSigma22 (HansenEconometrics.popGram μ u))
+                        (HansenEconometrics.weakIVRawSigma2e (HansenEconometrics.popGram μ u) beta))
+                    (fun x =&gt; μ)
+                    (ProbabilityTheory.multivariateGaussian 0
+                      (HansenEconometrics.covMat μ (HansenEconometrics.weakIVRawReducedFormScoreRow Z u 0))))
+                  (∀ (z : EuclideanSpace Real (Prod l (Sum Unit k))),
+                    have p := HansenEconometrics.weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z;
+                    HansenEconometrics.LIMLRayleighMinimizer p.fst p.snd
+                      (HansenEconometrics.weakIVRawLIMLSmallestRoot μ Z u C beta z))))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (21)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.LIMLRayleighMinimizer</code>
+</li>
+<li>
+<code>HansenEconometrics.WeakIVRawJointMomentConditions</code>
+</li>
+<li>
+<code>HansenEconometrics.covMat</code>
+</li>
+<li>
+<code>HansenEconometrics.popGram</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIV2SLSBias</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIV2SLSLimitBread</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVLIMLBias</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVLIMLLimitBread</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVLocal2SLSBetaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVLocalLIMLBetaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVLocalLIMLSmallestRoot</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVLocalOLSBetaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVOLSBias</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawGaussianFirstStage</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawGaussianMatrix</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawGaussianStructuralScore</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawLIMLGeneralizedEigenvalueLimitPair</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawLIMLSmallestRoot</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawReducedFormScoreRow</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawSigma22</code>
+</li>
+<li>
+<code>HansenEconometrics.weakIVRawSigma2e</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/WeakInstruments.lean#L17194">HansenEconometrics/Chapter12InstrumentalVariables/WeakInstruments.lean:17194</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 <details class="result-group" id="theorem-12-19">
 <summary>
-<span>Theorem 12.19</span><span class="result-count">0 endpoints</span>
+<span>Theorem 12.19</span><span class="result-count">1 endpoint</span>
 </summary>
 <div class="result-body">
-<p class="result-gap">
-The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.
+<div class="textbook-statement">
+<p>
+Under the corrected many-instrument model with <span class="math inline">\ell_n/n\to\alpha</span>, <span class="math inline">\hat\beta_{\mathrm{OLS}}\xrightarrow{p}\beta+(H+\Sigma_{22})^{-1}\Sigma_{2e}</span>, <span class="math inline">\hat\beta_{\mathrm{2SLS}}\xrightarrow{p}\beta+(H+\alpha\Sigma_{22})^{-1}\alpha\Sigma_{2e}</span>, and <span class="math inline">\hat\beta_{\mathrm{LIML}}\xrightarrow{p}\beta</span>.
 </p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-manyinstruments-estimators-theorem12-19-of-hansenrawmodel-smallestroot">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Corrected Hansen-facing Theorem 12.19 endpoint. The full OLS assembly, projected quadratic concentration (12.81), and concrete LIML selector are derived from the primitive <code>[u₁,u₂]</code> conditional model.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] {ι : Nat → Type u_2} [inst_2 : (m : Nat) → Fintype (ι m)]
+  [inst_3 : (m : Nat) → DecidableEq (ι m)] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] [inst_6 : StandardBorelSpace Ω]
+  {Z : (m : Nat) → Ω → Matrix (Fin m) (ι m) Real} {X : (m : Nat) → Ω → Matrix (Fin m) k Real}
+  {Y : (m : Nat) → Ω → Fin m → Real} {Gamma : (m : Nat) → Matrix (ι m) k Real} {u1 : (m : Nat) → Ω → Fin m → Real}
+  {u2 : (m : Nat) → Ω → Matrix (Fin m) k Real} {β : k → Real} {H : Matrix k k Real}
+  {Sigma : Matrix (Sum Unit k) (Sum Unit k) Real} {alpha B : Real},
+  HansenEconometrics.ManyInstrumentsPrimitiveErrorRawModelConditions μ Z X Y Gamma u1 u2 β H Sigma alpha B →
+    And
+      (MeasureTheory.TendstoInMeasure μ (fun m ω =&gt; HansenEconometrics.olsBetaStar (X m ω) (Y m ω)) Filter.atTop
+        fun x =&gt;
+        instHAdd.hAdd β
+          (HansenEconometrics.manyInstrumentsOLSBias H (HansenEconometrics.manyInstrumentsSigma22 Sigma)
+            (HansenEconometrics.manyInstrumentsHansenSigma2e β Sigma)))
+      (And
+        (MeasureTheory.TendstoInMeasure μ (fun m ω =&gt; HansenEconometrics.twoSLSBetaStar (Z m ω) (X m ω) (Y m ω))
+          Filter.atTop fun x =&gt;
+          instHAdd.hAdd β
+            (HansenEconometrics.manyInstrumentsTwoSLSBias H (HansenEconometrics.manyInstrumentsSigma22 Sigma)
+              (HansenEconometrics.manyInstrumentsHansenSigma2e β Sigma) alpha))
+        (MeasureTheory.TendstoInMeasure μ
+          (fun m ω =&gt;
+            HansenEconometrics.limlBetaStar (Z m ω) (X m ω) (Y m ω)
+              (HansenEconometrics.manyInstrumentsLIMLSmallestRoot Z X Y m ω))
+          Filter.atTop fun x =&gt; β))</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (9)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.ManyInstrumentsPrimitiveErrorRawModelConditions</code>
+</li>
+<li>
+<code>HansenEconometrics.limlBetaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.manyInstrumentsHansenSigma2e</code>
+</li>
+<li>
+<code>HansenEconometrics.manyInstrumentsLIMLSmallestRoot</code>
+</li>
+<li>
+<code>HansenEconometrics.manyInstrumentsOLSBias</code>
+</li>
+<li>
+<code>HansenEconometrics.manyInstrumentsSigma22</code>
+</li>
+<li>
+<code>HansenEconometrics.manyInstrumentsTwoSLSBias</code>
+</li>
+<li>
+<code>HansenEconometrics.olsBetaStar</code>
+</li>
+<li>
+<code>HansenEconometrics.twoSLSBetaStar</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/ManyInstruments.lean#L17741">HansenEconometrics/Chapter12InstrumentalVariables/ManyInstruments.lean:17741</a>
+</p>
+</div>
+</details>
 </div>
 </details>
 </div>
@@ -6024,7 +7309,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       toggleBodyColorMode(bsSheetEl);
     }
   }
-  toggleBodyColorPrimary();  
+  toggleBodyColorPrimary();
   const icon = "";
   const anchorJS = new window.AnchorJS();
   anchorJS.options = {
@@ -6034,7 +7319,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   anchorJS.add('.anchored');
   const isCodeAnnotation = (el) => {
     for (const clz of el.classList) {
-      if (clz.startsWith('code-annotation-')) {                     
+      if (clz.startsWith('code-annotation-')) {
         return true;
       }
     }
@@ -6054,11 +7339,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       button.setAttribute("data-bs-toggle", "tooltip");
       button.setAttribute("data-bs-placement", "left");
       button.setAttribute("data-bs-title", "Copied!");
-      tooltip = new bootstrap.Tooltip(button, 
-        { trigger: "manual", 
+      tooltip = new bootstrap.Tooltip(button,
+        { trigger: "manual",
           customClass: "code-copy-button-tooltip",
           offset: [0, -8]});
-      tooltip.show();    
+      tooltip.show();
     }
     setTimeout(function() {
       if (tooltip) {
@@ -6136,7 +7421,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     if (onUntriggerFn) {
       config.onUntrigger = onUntriggerFn;
     }
-    window.tippy(el, config); 
+    window.tippy(el, config);
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
   for (var i=0; i<noterefs.length; i++) {
@@ -6212,7 +7497,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     tippyHover(xref, undefined, function(instance) {
       instance.disable();
       let url = xref.getAttribute('href');
-      let hash = undefined; 
+      let hash = undefined;
       if (url.startsWith('#')) {
         hash = url;
       } else {
@@ -6240,7 +7525,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             if (note !== null) {
               const html = processXRef(id, note);
               instance.setContent(html);
-            } 
+            }
           }).finally(() => {
             instance.enable();
             instance.show();
@@ -6264,7 +7549,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             const html = processXRef(null, note);
             instance.setContent(html);
-          } 
+          }
         }).finally(() => {
           instance.enable();
           instance.show();
@@ -6304,7 +7589,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             height = bottom - top;
           }
           if (top !== null && height !== null && parent !== null) {
-            // cook up a div (if necessary) and position it 
+            // cook up a div (if necessary) and position it
             let div = window.document.getElementById("code-annotation-line-highlight");
             if (div === null) {
               div = window.document.createElement("div");

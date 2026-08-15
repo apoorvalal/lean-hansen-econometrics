@@ -377,6 +377,23 @@ varying-dimension theorem above is the asymptotic vanishing result.
   multivariate-normal rows and positive-definite covariance; the mean/covariance independence,
   centered Wishart law, inverse-Wishart reduction, and scale algebra are proof infrastructure.
 
+## Reader-facing TeX statements
+
+| Result prefix | Reader-facing TeX statement |
+| --- | --- |
+| Theorem 11.1 | Under Assumption 7.2, system least squares satisfies $\sqrt n(\hat\beta_{\mathrm{SLS}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{SLS}})$. |
+| Theorem 11.2 | For a smooth map $h$, $\sqrt n(h(\hat\beta_{\mathrm{SLS}})-h(\beta))\xrightarrow{d}N(0,H'V_{\mathrm{SLS}}H)$. |
+| Theorem 11.3 | The robust and homoskedastic system covariance estimators are consistent: $\hat V_{\mathrm{SLS}}\xrightarrow{p}V_{\mathrm{SLS}}$ and $\hat V^0_{\mathrm{SLS}}\xrightarrow{p}V^0_{\mathrm{SLS}}$. |
+| Theorem 11.4 | Under conditional homoskedasticity, feasible SUR satisfies $\sqrt n(\hat\beta_{\mathrm{SUR}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{SUR}})$. |
+| Theorem 11.5 | SUR is asymptotically at least as efficient as system least squares: $V_{\mathrm{SLS}}-V_{\mathrm{SUR}}\succeq0$. |
+| Theorem 11.6 | Corrected target: the normalized feasible-SUR covariance converges to $V_\beta^*=(\mathbb E[X_i'\Sigma^{-1}X_i])^{-1}$, not to the OLS variance $V_\beta$ in general. |
+| Theorem 11.7 | The reduced-rank Gaussian estimator solves $(\hat\Gamma,\hat B,\hat\Sigma)\in\operatorname*{arg\,max}_{\Gamma,B,\Sigma}\ell(\Gamma,B,\Sigma)$ and is recovered from the ordered residualized generalized eigenvectors. |
+| Theorem 11.8 | The $j$th principal component solves $\max_{\lVert h\rVert=1,\,h\perp h_1,\ldots,h_{j-1}}\operatorname{Var}(h'Y)=\lambda_j$, and the score covariance is diagonal. |
+| Theorem 11.9 | Under score normalization, the least-squares factor estimator is the leading PCA solution, $\hat F=YH_mD_m^{-1/2}$, with the corresponding joint least-squares minimum. |
+| Theorem 11.10 | If $Y_i\sim N(\mu,\Sigma)$ independently, then $\hat\Sigma\sim W_m(n-1,\Sigma/(n-1))$. |
+| Theorem 11.11 | If $W\sim W_m(n,\Sigma)$, then $(\alpha'W^{-1}\alpha)^{-1}\sim\chi^2_{n-m+1}/(\alpha'\Sigma^{-1}\alpha)$. |
+| Theorem 11.12 | Hotelling's statistic has the scaled law $T^2\sim\frac{m(n-1)}{n-m}F_{m,n-m}$. |
+
 ## Lean-Only Support Results
 
 Only public, reusable bridges are listed here. Same-file private proof scaffolding is intentionally

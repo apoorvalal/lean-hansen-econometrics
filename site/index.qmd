@@ -25,7 +25,7 @@ The [Lean crash course](crash-course.qmd) packages a self-contained, source-and-
 ::: {.g-col-12 .g-col-md-6}
 ### Browse important results
 
-The [important-results explorer](results/index.qmd) contains 250 textbook result groups. Each group has foldable plain-language documentation, formal statements, source links, and direct dependencies.
+The [important-results explorer](results/index.qmd) contains 258 textbook result groups. Each group starts with a reader-facing textbook statement and has foldable plain-language documentation, formal statements, source links, and direct dependencies. Chapters 7--13 require an explicit TeX statement for every result group.
 :::
 
 ::: {.g-col-12 .g-col-md-6}

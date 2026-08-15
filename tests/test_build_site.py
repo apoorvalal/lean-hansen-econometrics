@@ -13,8 +13,12 @@ from build_site import (  # noqa: E402
     compact_group,
     graph_payload,
     inline_markdown,
+    apply_reader_statements,
     parse_crosswalk_table,
+    parse_reader_statement_table,
     render_result_group,
+    split_table_row,
+    validate_statement_coverage,
 )
 
 
@@ -43,6 +47,14 @@ def record(
 
 
 class DeclarationIndexTests(unittest.TestCase):
+    def test_table_splitter_preserves_pipes_in_literal_content(self) -> None:
+        cells = split_table_row(
+            r"| Theorem | $\Pr(|T| > c)$ and `|xi|` | "
+            r"<code>{x | x > 0}</code> and $$\{z | z > 0\}$$ |"
+        )
+        self.assertEqual(len(cells), 3)
+        self.assertEqual(cells[0], "Theorem")
+
     def test_resolves_descriptive_link_by_source_line(self) -> None:
         target = record("HansenEconometrics.gmmResult", line=42)
         index = DeclarationIndex([target])
@@ -79,6 +91,33 @@ class DeclarationIndexTests(unittest.TestCase):
         self.assertEqual(groups[0].linked_count, 8)
         self.assertEqual(len(groups[0].declarations), 6)
         self.assertIn("HansenEconometrics.result7", {item["name"] for item in groups[0].declarations})
+
+    def test_reader_statement_prefix_preserves_endpoint_crosswalk(self) -> None:
+        target = record("HansenEconometrics.result")
+        groups = [
+            compact_group(
+                ResultGroup(
+                    label="Theorem 10.9 indexed support",
+                    statement="Implementation-specific detail.",
+                    declarations=[target],
+                )
+            )
+        ]
+        table = (
+            "| Result prefix | Reader-facing TeX statement |\n"
+            "| --- | --- |\n"
+            r"| Theorem 10.9 | $V_n^* \xrightarrow{p^*} V$. |" "\n"
+        )
+        statements = parse_reader_statement_table(table)
+        merged = apply_reader_statements(groups, statements)
+        self.assertTrue(merged[0].statement.startswith(r"$V_n^* \xrightarrow{p^*} V$"))
+        self.assertEqual(merged[0].declarations, [target])
+
+    def test_later_chapter_statement_coverage_requires_tex(self) -> None:
+        with self.assertRaisesRegex(ValueError, "without TeX"):
+            validate_statement_coverage(
+                {12: [ResultGroup(label="Theorem 12.1", statement="Consistency.")]}
+            )
 
 
 class RenderingTests(unittest.TestCase):

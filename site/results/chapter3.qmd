@@ -3,7 +3,7 @@ title: "Chapter 3: The Algebra of Least Squares"
 description: "Foldable textbook-to-Lean result crosswalk for Chapter 3."
 ---
 
-This page is generated from the [canonical Chapter 3 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch3-inventory.md) and the compiled Lean environment. It contains 26 textbook result groups and 43 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+This page is generated from the [canonical Chapter 3 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch3-inventory.md) and the compiled Lean environment. It contains 27 textbook result groups and 47 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
 
 <div class="results-toolbar" role="group" aria-label="Result display controls">
 <button type="button" data-results-action="expand">Expand all results</button>
@@ -359,7 +359,7 @@ entry of the hat matrix. </p></div>
 <details class="result-group" id="theorem-3-7-leave-one-out-regression">
 <summary><span>Theorem 3.7 leave-one-out regression</span><span class="result-count">6 of 9 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$\hat{\beta}<em>{(-i)}=\hat{\beta}-(X'X)^{-1}X_i\tilde e_i$ and $\tilde e_i=(1-h</em>{ii})^{-1}\hat e_i$</p></div>
+<div class="textbook-statement"><p>$\hat{\beta}_{(-i)}=\hat{\beta}-(X'X)^{-1}X_i\tilde e_i$ and $\tilde e_i=(1-h_{ii})^{-1}\hat e_i$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-leaveoneoutbeta-eq-olsbeta-sub-invgram-mulvec">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.leaveOneOutBeta_eq_olsBeta_sub_invGram_mulVec</code></summary>
 <div class="declaration-body">
@@ -461,10 +461,82 @@ Gram matrix. </p></div>
 </div>
 </details>
 
+<details class="result-group" id="section-3-21-influential-observations">
+<summary><span>Section 3.21 influential observations</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta}-\hat{\beta}_{(-i)}=(X'X)^{-1}X_i\tilde e_i$, $\hat Y_i-\tilde Y_i=h_{ii}\tilde e_i$, and $\max_i|\hat Y_i-\tilde Y_i|=\max_i|h_{ii}\tilde e_i|$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-sub-leaveoneoutbeta-eq-invgram-mulvec">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_sub_leaveOneOutBeta_eq_invGram_mulVec</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.48): the change in coefficient estimates after dropping
+observation <code>i</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (i : n) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_4 : Invertible (HansenEconometrics.leaveOneOutGram X i)],
+  Eq (instHSub.hSub (HansenEconometrics.olsBeta X y) (HansenEconometrics.leaveOneOutBeta X y i))
+    (instHSMul.hSMul (HansenEconometrics.leaveOneOutResidual X y i)
+      ((inst_3.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)).mulVec (X i)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.leaveOneOutBeta</code></li><li><code>HansenEconometrics.leaveOneOutGram</code></li><li><code>HansenEconometrics.leaveOneOutResidual</code></li><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L375">HansenEconometrics/Chapter3Projections.lean:375</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-fitted-sub-leaveoneoutprediction-eq-leverage-mul-residual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fitted_sub_leaveOneOutPrediction_eq_leverage_mul_residual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.21: the full-sample fitted value minus the leave-one-out
+predicted value is <code>hᵢᵢ ẽᵢ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (i : n) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_4 : Invertible (HansenEconometrics.leaveOneOutGram X i)],
+  Eq (instHSub.hSub (HansenEconometrics.fitted X y i) (HansenEconometrics.leaveOneOutPrediction X y i))
+    (instHMul.hMul (HansenEconometrics.leverageValue X i) (HansenEconometrics.leaveOneOutResidual X y i))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.fitted</code></li><li><code>HansenEconometrics.leaveOneOutGram</code></li><li><code>HansenEconometrics.leaveOneOutPrediction</code></li><li><code>HansenEconometrics.leaveOneOutResidual</code></li><li><code>HansenEconometrics.leverageValue</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L388">HansenEconometrics/Chapter3Projections.lean:388</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-predictioninfluence-eq-abs-leverage-mul-leaveoneoutresidual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.predictionInfluence_eq_abs_leverage_mul_leaveOneOutResidual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.21: the prediction-change diagnostic is
+<code>|hᵢᵢ ẽᵢ|</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (i : n) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_4 : Invertible (HansenEconometrics.leaveOneOutGram X i)],
+  Eq (HansenEconometrics.predictionInfluence X y i)
+    (abs (instHMul.hMul (HansenEconometrics.leverageValue X i) (HansenEconometrics.leaveOneOutResidual X y i)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.leaveOneOutGram</code></li><li><code>HansenEconometrics.leaveOneOutResidual</code></li><li><code>HansenEconometrics.leverageValue</code></li><li><code>HansenEconometrics.predictionInfluence</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L417">HansenEconometrics/Chapter3Projections.lean:417</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-maxpredictioninfluence-eq-maxleveragepredictionerrorinfluence">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.maxPredictionInfluence_eq_maxLeveragePredictionErrorInfluence</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.21: the maximum prediction-change diagnostic equals
+<code>max_i |hᵢᵢ ẽᵢ|</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  (hloo : (i : n) → Invertible (HansenEconometrics.leaveOneOutGram X i)) [inst_4 : Nonempty n],
+  Eq (HansenEconometrics.maxPredictionInfluence X y hloo)
+    (HansenEconometrics.maxLeveragePredictionErrorInfluence X y hloo)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.leaveOneOutGram</code></li><li><code>HansenEconometrics.maxLeveragePredictionErrorInfluence</code></li><li><code>HansenEconometrics.maxPredictionInfluence</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L444">HansenEconometrics/Chapter3Projections.lean:444</a></p>
+</div>
+</details>
+</div>
+</details>
+
 <details class="result-group" id="theorem-3-3-4-hat-matrix-eigenvalues">
 <summary><span>Theorem 3.3.4 hat-matrix eigenvalues</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$\lambda_i(P) \in {0,1}$, with $k$ eigenvalues equal to $1$</p></div>
+<div class="textbook-statement"><p>$\lambda_i(P) \in \{0,1\}$, with $k$ eigenvalues equal to $1$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-hatmatrix-eigenvalues-zero-or-one">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hatMatrix_eigenvalues_zero_or_one</code></summary>
 <div class="declaration-body">
@@ -557,7 +629,7 @@ Gram matrix. </p></div>
 <details class="result-group" id="section-3-12-annihilator-eigenvalues-and-rank">
 <summary><span>Section 3.12 annihilator eigenvalues and rank</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$\lambda_i(M) \in {0,1}$, $\operatorname{rank}(M)=n-k$</p></div>
+<div class="textbook-statement"><p>$\lambda_i(M) \in \{0,1\}$, $\operatorname{rank}(M)=n-k$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-annihilatormatrix-eigenvalues-zero-or-one">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.annihilatorMatrix_eigenvalues_zero_or_one</code></summary>
 <div class="declaration-body">
@@ -842,7 +914,7 @@ Gram matrix. </p></div>
 <details class="result-group" id="theorem-3-5-residual-equivalence">
 <summary><span>Theorem 3.5 residual equivalence</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$\hat{e}<em>{\text{full}} = M</em>{M_1 X_2} M_1 Y$</p></div>
+<div class="textbook-statement"><p>$\hat{e}_{\text{full}} = M_{M_1 X_2} M_1 Y$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-fwl-residual-eq-full-residual">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fwl_residual_eq_full_residual</code></summary>
 <div class="declaration-body">

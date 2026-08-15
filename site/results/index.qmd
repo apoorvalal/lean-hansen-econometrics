@@ -4,21 +4,21 @@ title: "Important results"
 
 The chapter inventories define the important textbook results. These generated pages place the inventory summary first and keep each Lean endpoint, formal statement, and direct statement-dependency list foldable.
 
-The current generated view contains 250 textbook result groups and 780 selected Lean endpoints.
+The current generated view contains 258 textbook result groups and 824 selected Lean endpoints.
 
-| Chapter | Result groups | Selected endpoints | Groups without a canonical link |
-| --- | ---: | ---: | ---: |
-| [Chapter 2: Conditional Expectation and Projection](chapter2.qmd) | 11 | 23 | 0 |
-| [Chapter 3: The Algebra of Least Squares](chapter3.qmd) | 26 | 43 | 0 |
-| [Chapter 4: Least Squares Regression](chapter4.qmd) | 21 | 38 | 0 |
-| [Chapter 5: Normal Regression](chapter5.qmd) | 14 | 26 | 0 |
-| [Chapter 6: A Review of Large Sample Asymptotics](chapter6.qmd) | 16 | 58 | 0 |
-| [Chapter 7: Asymptotic Theory for Least Squares](chapter7.qmd) | 19 | 75 | 1 |
-| [Chapter 8: Restricted Estimation](chapter8.qmd) | 18 | 94 | 0 |
-| [Chapter 9: Hypothesis Testing](chapter9.qmd) | 10 | 23 | 0 |
-| [Chapter 10: Resampling Methods](chapter10.qmd) | 66 | 326 | 0 |
-| [Chapter 11: Multivariate Regression](chapter11.qmd) | 12 | 14 | 1 |
-| [Chapter 12: Instrumental Variables](chapter12.qmd) | 19 | 8 | 11 |
-| [Chapter 13: Generalized Method of Moments](chapter13.qmd) | 18 | 52 | 0 |
+| Chapter | Result groups | Textbook statements | Selected endpoints | Groups without a canonical link |
+| --- | ---: | ---: | ---: | ---: |
+| [Chapter 2: Conditional Expectation and Projection](chapter2.qmd) | 11 | 11/11 | 23 | 0 |
+| [Chapter 3: The Algebra of Least Squares](chapter3.qmd) | 27 | 27/27 | 47 | 0 |
+| [Chapter 4: Least Squares Regression](chapter4.qmd) | 21 | 21/21 | 38 | 0 |
+| [Chapter 5: Normal Regression](chapter5.qmd) | 16 | 16/16 | 32 | 0 |
+| [Chapter 6: A Review of Large Sample Asymptotics](chapter6.qmd) | 18 | 18/18 | 66 | 0 |
+| [Chapter 7: Asymptotic Theory for Least Squares](chapter7.qmd) | 19 | 19/19 | 75 | 1 |
+| [Chapter 8: Restricted Estimation](chapter8.qmd) | 18 | 18/18 | 94 | 0 |
+| [Chapter 9: Hypothesis Testing](chapter9.qmd) | 11 | 11/11 | 24 | 0 |
+| [Chapter 10: Resampling Methods](chapter10.qmd) | 68 | 68/68 | 338 | 0 |
+| [Chapter 11: Multivariate Regression](chapter11.qmd) | 12 | 12/12 | 14 | 1 |
+| [Chapter 12: Instrumental Variables](chapter12.qmd) | 19 | 19/19 | 21 | 0 |
+| [Chapter 13: Generalized Method of Moments](chapter13.qmd) | 18 | 18/18 | 52 | 0 |
 
 Use the [dependency graph](../dependencies.qmd) to see how the linked results depend on one another and on supporting project declarations.

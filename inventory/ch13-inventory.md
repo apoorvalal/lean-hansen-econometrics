@@ -182,6 +182,29 @@ Conventions:
 | Theorem 13.17 | In `Y=Z1'beta1+Y2'beta2+Y3'beta3+e`, compare instruments `(Z1,Z2,Y2)` with `(Z1,Z2)` to test only `Y2`. Under the stated rank conditions, `C` converges to `chiSquared(k2)` and the upper-tail test has asymptotic size `alpha`. | conditions: [GMMSubsetEndogeneityObservedRowsConditions](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); statistic: [gmmSubsetEndogeneityTwoStepStatOrZero](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); observed-row limit: [gmmSubsetEndogeneityTwoStepStatOrZero_tendstoInDistribution_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean); size: [gmmSubsetEndogeneityTwoStepTest_rejectionProb_tendsto_alpha_observedRows](../HansenEconometrics/Chapter13GMM/SpecificationTests.lean) |
 | Proposition 13.1 | A nonlinear GMM estimator has the sandwich Gaussian limit; efficient weighting gives covariance $(Q'\Omega^{-1}Q)^{-1}$. | general: [nonlinearGMMBeta_tendstoInDistribution](../HansenEconometrics/Chapter13GMM/Nonlinear.lean); efficient: [nonlinearGMMBeta_tendstoInDistribution_efficient](../HansenEconometrics/Chapter13GMM/Nonlinear.lean) |
 
+## Reader-facing TeX statements
+
+| Result prefix | Reader-facing TeX statement |
+| --- | --- |
+| Theorem 13.1 | With positive weight $W$, $\hat\beta_{\mathrm{GMM}}=(X'ZWZ'X)^{-1}X'ZWZ'Y$ minimizes $J(\beta)=(Z'(Y-X\beta))'W(Z'(Y-X\beta))$. |
+| Theorem 13.2 | If $W=(Z'Z)^{-1}$, then $\hat\beta_{\mathrm{GMM}}=\hat\beta_{\mathrm{2SLS}}$; if $k=\ell$, then $\hat\beta_{\mathrm{GMM}}=\hat\beta_{\mathrm{IV}}$. |
+| Theorem 13.3 | If $\hat W\xrightarrow{p}W\succ0$, then $\sqrt n(\hat\beta_{\mathrm{GMM}}-\beta)\xrightarrow{d}N(0,V_\beta)$ with $V_\beta=(Q'WQ)^{-1}(Q'W\Omega WQ)(Q'WQ)^{-1}$. |
+| Theorem 13.4 | With efficient weight $W=\Omega^{-1}$, $\sqrt n(\hat\beta_{\mathrm{GMM}}-\beta)\xrightarrow{d}N(0,(Q'\Omega^{-1}Q)^{-1})$. |
+| Theorem 13.5 | For every $W\succ0$, $V_\beta(W)-(Q'\Omega^{-1}Q)^{-1}\succeq0$; efficient GMM has weakly smaller asymptotic covariance. |
+| Theorem 13.6 | If $\mathbb E[e^2\mid Z]=\sigma^2$, then $\Omega=\sigma^2Q_{ZZ}$ and the 2SLS weight $Q_{ZZ}^{-1}$ is efficient. |
+| Theorem 13.7 | If $\Omega\succ0$, both two-step weights satisfy $\hat W_{\mathrm{unc}},\hat W_{\mathrm{cen}}\xrightarrow{p}\Omega^{-1}$ and give the efficient Gaussian limit. |
+| Theorem 13.8 | Under the null, the GMM Wald statistic satisfies $W(\theta)\xrightarrow{d}\chi_q^2$, so its calibrated upper-tail test has asymptotic size $\alpha$. |
+| Theorem 13.9 | The linearly constrained estimator satisfies $\sqrt n(\hat\beta_{\mathrm{CGMM}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{CGMM}})$ with covariance (13.18). |
+| Theorem 13.10 | Efficient constrained GMM satisfies $\sqrt n(\hat\beta_{\mathrm{ECGMM}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{ECGMM}})$ with covariance (13.20). |
+| Theorem 13.11 | For smooth restrictions $r(\beta)=0$, nonlinear constrained GMM has the Chapter 8 Gaussian limit, with efficient covariance when $W=\Omega^{-1}$. |
+| Theorem 13.12 | Under the null, the efficient criterion distance satisfies $D=J(\tilde\beta)-J(\hat\beta)\xrightarrow{d}\chi_q^2$, and its calibrated test has asymptotic size $\alpha$. |
+| Theorem 13.13 | With a common weight, $D\ge0$; for linear restrictions and the efficient common weight, $D=W$. |
+| Theorem 13.14 | The efficient two-step overidentification statistic satisfies $J(\hat\beta)\xrightarrow{d}\chi^2_{\ell-k}$, and its calibrated test has asymptotic size $\alpha$. |
+| Theorem 13.15 | For $Z=(Z_a,Z_b)$, the subset statistic $C=\hat J-\tilde J\xrightarrow{d}\chi^2_{\ell_b}$ under full rank of $\mathbb E[Z_aX']$. |
+| Theorem 13.16 | In $Y=Z_1'\beta_1+Y_2'\beta_2+e$, the endogeneity statistic comparing instruments $(Z_1,Z_2,Y_2)$ and $(Z_1,Z_2)$ satisfies $C\xrightarrow{d}\chi^2_{k_2}$. |
+| Theorem 13.17 | In $Y=Z_1'\beta_1+Y_2'\beta_2+Y_3'\beta_3+e$, the subset test for $Y_2$ satisfies $C\xrightarrow{d}\chi^2_{k_2}$. |
+| Proposition 13.1 | A nonlinear GMM estimator satisfies $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,V)$ with sandwich covariance; efficient weighting gives $V=(Q'\Omega^{-1}Q)^{-1}$. |
+
 ## Notes
 
 - **Coverage boundary**: this is a theorem-surface map. It covers all 17 numbered theorems and

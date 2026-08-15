@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors – Hansen Econometrics in Lean</title>
+<title>Gaussian laws of OLS coefficients and residuals – Hansen Econometrics in Lean</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -4985,7 +4985,7 @@ margin-left: 0;
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Proof deep dives</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Gaussian laws of OLS coefficients and residuals</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -5118,7 +5118,7 @@ margin-left: 0;
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Walkthroughs</span></a>
+ <span class="menu-text">Proof deep dives</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -5159,7 +5159,7 @@ margin-left: 0;
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
+ <span class="menu-text">Gaussian laws of OLS coefficients and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -5224,9 +5224,9 @@ margin-left: 0;
 <!-- main -->
 <main class="content column-body" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Proof deep dives</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Gaussian laws of OLS coefficients and residuals</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</h1>
+<h1 class="title">Gaussian laws of OLS coefficients and residuals</h1>
 </div>
 
 
@@ -5243,10 +5243,11 @@ margin-left: 0;
 </header>
 
 
+<p><a href="../../results/chapter5.html#theorem-5-4-conditional-law-of-the-ols-coefficient-vector" class="btn btn-outline-primary" role="button">Open the coefficient result card</a> <a href="../../results/chapter5.html#theorem-5-6-conditional-law-of-the-ols-residual-vector" class="btn btn-outline-primary" role="button">Open the residual result card</a></p>
 <section id="textbook-statement" class="level2">
 <h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
 <blockquote class="blockquote">
-<p>Paraphrased textbook statement (Hansen Theorem 5.5 / 5.6): in the homoskedastic normal regression model where <span class="math inline">e \sim N(0, \sigma^2 I_n)</span>, the OLS estimator</p>
+<p>Paraphrased textbook statement (Hansen Theorems 5.4 and 5.6): in the homoskedastic normal regression model where <span class="math inline">e \sim N(0, \sigma^2 I_n)</span>, the OLS estimator</p>
 <p><span class="math display">
 \hat\beta = (X^\top X)^{-1} X^\top y
 </span></p>

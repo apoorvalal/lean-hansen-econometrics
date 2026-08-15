@@ -4706,6 +4706,65 @@ vertical-align: -.125em;
 }</script>
 
 
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var head = document.getElementsByTagName("head")[0];
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css";
+      head.appendChild(link);
+
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src  = "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js";
+      script.async = false;
+      script.addEventListener('load', function() {
+        var mathElements = document.getElementsByClassName("math");
+          var macros = [];
+          for (var i = 0; i < mathElements.length; i++) {
+            var texText = mathElements[i].firstChild;
+            if (mathElements[i].tagName == "SPAN") {
+              window.katex.render(texText.data, mathElements[i], {
+                displayMode: mathElements[i].classList.contains('display'),
+                throwOnError: false,
+                macros: macros,
+                fleqn: false
+              });
+            }
+          }
+      });
+      head.appendChild(script);
+    });
+  </script>
+
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
 <style type="text/css">:root {
 --hansen-ink: #263238;
 --hansen-muted: #607078;
@@ -4928,7 +4987,7 @@ margin-left: 0;
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
         <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../results/index.html">Important results</a></li><li class="breadcrumb-item"><a href="../results/chapter9.html">9: Hypothesis testing</a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
@@ -4942,115 +5001,115 @@ margin-left: 0;
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">Hansen Econometrics in Lean</a> 
+      <a href="../">Hansen Econometrics in Lean</a>
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
     </div>
       </div>
-    <div class="sidebar-menu-container"> 
+    <div class="sidebar-menu-container">
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../crash-course.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lean crash course</span></a>
   </div>
 </li>
         <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../dependencies.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Dependency graph</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
  <span class="menu-text">Important results</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">2: Conditional expectation</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">3: Least-squares algebra</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">4: Least-squares regression</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">5: Normal regression</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter6.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">6: Large-sample asymptotics</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">7: OLS asymptotics</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter8.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">8: Restricted estimation</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter9.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">9: Hypothesis testing</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter10.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">10: Resampling methods</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter11.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">11: Multivariate regression</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter12.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">12: Instrumental variables</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../results/chapter13.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">13: GMM</span></a>
   </div>
@@ -5058,31 +5117,31 @@ margin-left: 0;
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Walkthroughs</span></a>
+ <span class="menu-text">Proof deep dives</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">
           <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
  <span class="menu-text">Chapter 3</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
@@ -5090,22 +5149,22 @@ margin-left: 0;
       </ul>
   </li>
           <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
  <span class="menu-text">Chapter 5</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
+ <span class="menu-text">Gaussian laws of OLS coefficients and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
@@ -5113,22 +5172,22 @@ margin-left: 0;
       </ul>
   </li>
           <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
+      <div class="sidebar-item-container">
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false">
  <span class="menu-text">Chapter 7</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
+          </a>
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
+  <div class="sidebar-item-container">
   <a href="../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
@@ -5143,7 +5202,7 @@ margin-left: 0;
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+
     </div>
 <!-- main -->
 <main class="content column-page-right" id="quarto-document-content">
@@ -5162,17 +5221,17 @@ margin-left: 0;
 
 <div class="quarto-title-meta column-page-right">
 
-    
-  
-    
+
+
+
   </div>
-  
+
 
 
 </header>
 
 
-<p>This page is generated from the <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch9-inventory.md">canonical Chapter 9 inventory</a> and the compiled Lean environment. It contains 10 textbook result groups and 23 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.</p>
+<p>This page is generated from the <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch9-inventory.md">canonical Chapter 9 inventory</a> and the compiled Lean environment. It contains 11 textbook result groups and 24 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.</p>
 <div class="results-toolbar" role="group" aria-label="Result display controls">
 <button type="button" data-results-action="expand">
 Expand all results
@@ -5189,7 +5248,7 @@ Collapse all results
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3 and H₀ : θ = θ₀ ∈ ℝ, T(θ₀) →d N(0,1); the two-sided t-test “reject if absolute t exceeds c” has asymptotic size 2(1−Φ(c))
+Under <span class="math inline">H_0:\theta=\theta_0</span>, <span class="math inline">T(\theta_0)\xrightarrow{d}N(0,1)</span> and <span class="math inline">\Pr(\lvert T\rvert\gt c)\to2(1-\Phi(c))</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshc0linttest-rejectionprob-tendsto">
@@ -5487,7 +5546,7 @@ Direct statement dependencies (11)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, 7.4, and H₀ : θ = θ₀ ∈ ℝq, W →d χ²q; calibrated critical values give asymptotic size α
+Under the multivariate null, <span class="math inline">W\xrightarrow{d}\chi_q^2</span>; a calibrated upper-tail critical value gives asymptotic size <span class="math inline">\alpha</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearolswaldtest-rejectionprob-tendsto-alpha-of-chapter7">
@@ -5709,7 +5768,7 @@ Direct statement dependencies (7)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, homoskedasticity, and H₀ : θ = θ₀ ∈ ℝq, W⁰ →d χ²q; calibrated critical values give asymptotic size α
+Under homoskedasticity and the null, <span class="math inline">W^0\xrightarrow{d}\chi_q^2</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearolshomowaldtest-rejectionprob-tendsto-alpha-of-chapter7">
@@ -5949,7 +6008,7 @@ Direct statement dependencies (10)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, 7.4, and H₀, efficient minimum-distance statistic J* →d χ²q; calibrated critical values give asymptotic size α
+Under the null, the efficient minimum-distance statistic satisfies <span class="math inline">J^*\xrightarrow{d}\chi_q^2</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdjtest-rejectionprob-tendsto-alpha-of-chapter8">
@@ -6097,7 +6156,7 @@ Direct statement dependencies (7)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, homoskedasticity, and H₀, homoskedastic MD statistic J⁰ →d χ²q; calibrated critical values give asymptotic size α
+Under homoskedasticity and the null, the homoskedastic minimum-distance statistic satisfies <span class="math inline">J^0\xrightarrow{d}\chi_q^2</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsjtest-rejectionprob-tendsto-alpha-of-chapter8">
@@ -6256,7 +6315,7 @@ Direct statement dependencies (10)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-For tests of linear hypotheses H0 : R′β = θ0 ∈ ℝq, the F statistic equals F = W⁰/q and, under the homoskedastic null, F →d χ²q/q
+For <span class="math inline">H_0:R&#39;\beta=\theta_0</span>, <span class="math inline">F=W^0/q</span> and <span class="math inline">F\xrightarrow{d}\chi_q^2/q</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-linmap-olshomofstatorzero-tendstoindistribution-chisquareddivdegrees">
@@ -6468,7 +6527,7 @@ Direct statement dependencies (2)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-For general hypotheses the Hausman statistic has χ²q null limit; for linear hypotheses it is precisely the Wald statistic
+The Hausman statistic has the null limit <span class="math inline">H\xrightarrow{d}\chi_q^2</span>; for linear restrictions, <span class="math inline">H=W</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearhausmantest-rejectionprob-tendsto-alpha-of-chapter8">
@@ -6651,6 +6710,58 @@ Direct statement dependencies (7)
 </details>
 </div>
 </details>
+<details class="result-group" id="theorem-9-8">
+<summary>
+<span>Theorem 9.8</span><span class="result-count">1 endpoint</span>
+</summary>
+<div class="result-body">
+<div class="textbook-statement">
+<p>
+Under a fixed alternative, <span class="math inline">\lvert T\rvert\xrightarrow{p}\infty</span>, so every fixed-threshold two-sided t test is consistent.
+</p>
+</div>
+<details class="lean-declaration" id="decl-hanseneconometrics-ttest-consistent-of-abs-tstat-tendstoinprobabilityattop">
+<summary>
+<span class="declaration-kind">theorem</span> <code>HansenEconometrics.tTest_consistent_of_abs_tstat_tendstoInProbabilityAtTop</code>
+</summary>
+<div class="declaration-body">
+<div class="declaration-doc">
+<p>
+Reusable consistency bridge for two-sided t tests.
+</p>
+<p>
+Once the absolute t statistic diverges to <code>+∞</code> in probability under a fixed alternative, every fixed two-sided rejection threshold is crossed with probability tending to one. The model-specific proof of <code>|Tₙ| →p +∞</code> remains a separate premise.
+</p>
+</div>
+<details class="formal-statement">
+<summary>
+Formal statement
+</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsProbabilityMeasure μ]
+  {T : Nat → Ω → Real} {crit : Real},
+  (∀ (n : Nat), MeasureTheory.NullMeasurableSet (setOf fun ω =&gt; Real.instLE.le (abs (T n ω)) crit) μ) →
+    (HansenEconometrics.TendstoInProbabilityAtTop μ fun n ω =&gt; abs (T n ω)) →
+      Filter.Tendsto
+        (fun n =&gt; MeasureTheory.Measure.instFunLike.coe μ (setOf fun ω =&gt; Real.instLT.lt crit (abs (T n ω))))
+        Filter.atTop (nhds 1)</code></pre>
+</details>
+<details class="dependency-list">
+<summary>
+Direct statement dependencies (1)
+</summary>
+<ul>
+<li>
+<code>HansenEconometrics.TendstoInProbabilityAtTop</code>
+</li>
+</ul>
+</details>
+<p class="declaration-meta">
+<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter9HypothesisTesting.lean#L1493">HansenEconometrics/Chapter9HypothesisTesting.lean:1493</a>
+</p>
+</div>
+</details>
+</div>
+</details>
 <details class="result-group" id="theorem-9-9">
 <summary>
 <span>Theorem 9.9</span><span class="result-count">1 endpoint</span>
@@ -6658,7 +6769,7 @@ Direct statement dependencies (7)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, and 7.4, for θ = r(β) ≠ θ0, <code>W →p ∞</code>; fixed-threshold Wald tests are consistent
+Under a fixed alternative <span class="math inline">\theta=r(\beta)\ne\theta_0</span>, <span class="math inline">W\xrightarrow{p}\infty</span>, so every fixed-threshold Wald test is consistent.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-waldtest-consistent-of-stat-tendstoinprobabilityattop">
@@ -6709,7 +6820,7 @@ Direct statement dependencies (1)
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = r0 + n−1/2h, the scalar t test has shifted-normal local power
+Under <span class="math inline">\theta_n=\theta_0+n^{-1/2}h</span>, the t statistic has a shifted-normal limit <span class="math inline">T_n\xrightarrow{d}N(h/\sigma_\theta,1)</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-ttest-localpower-tendsto-of-tstat-shiftednormal">
@@ -6783,7 +6894,7 @@ Formal statement
 <div class="result-body">
 <div class="textbook-statement">
 <p>
-Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = θ0 + n−1/2h, the Wald test has noncentral-χ² local power
+Under <span class="math inline">\theta_n=\theta_0+n^{-1/2}h</span>, the Wald statistic has a noncentral chi-square limit <span class="math inline">W_n\xrightarrow{d}\chi_q^2(\lambda)</span> with <span class="math inline">\lambda=h&#39;V_\theta^{-1}h</span>.
 </p>
 </div>
 <details class="lean-declaration" id="decl-hanseneconometrics-restrictionwaldstatorzero-tendstoindistribution-noncentralchisquared">
@@ -6963,7 +7074,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       toggleBodyColorMode(bsSheetEl);
     }
   }
-  toggleBodyColorPrimary();  
+  toggleBodyColorPrimary();
   const icon = "";
   const anchorJS = new window.AnchorJS();
   anchorJS.options = {
@@ -6973,7 +7084,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   anchorJS.add('.anchored');
   const isCodeAnnotation = (el) => {
     for (const clz of el.classList) {
-      if (clz.startsWith('code-annotation-')) {                     
+      if (clz.startsWith('code-annotation-')) {
         return true;
       }
     }
@@ -6993,11 +7104,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       button.setAttribute("data-bs-toggle", "tooltip");
       button.setAttribute("data-bs-placement", "left");
       button.setAttribute("data-bs-title", "Copied!");
-      tooltip = new bootstrap.Tooltip(button, 
-        { trigger: "manual", 
+      tooltip = new bootstrap.Tooltip(button,
+        { trigger: "manual",
           customClass: "code-copy-button-tooltip",
           offset: [0, -8]});
-      tooltip.show();    
+      tooltip.show();
     }
     setTimeout(function() {
       if (tooltip) {
@@ -7075,7 +7186,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     if (onUntriggerFn) {
       config.onUntrigger = onUntriggerFn;
     }
-    window.tippy(el, config); 
+    window.tippy(el, config);
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
   for (var i=0; i<noterefs.length; i++) {
@@ -7151,7 +7262,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     tippyHover(xref, undefined, function(instance) {
       instance.disable();
       let url = xref.getAttribute('href');
-      let hash = undefined; 
+      let hash = undefined;
       if (url.startsWith('#')) {
         hash = url;
       } else {
@@ -7179,7 +7290,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             if (note !== null) {
               const html = processXRef(id, note);
               instance.setContent(html);
-            } 
+            }
           }).finally(() => {
             instance.enable();
             instance.show();
@@ -7203,7 +7314,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             const html = processXRef(null, note);
             instance.setContent(html);
-          } 
+          }
         }).finally(() => {
           instance.enable();
           instance.show();
@@ -7243,7 +7354,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             height = bottom - top;
           }
           if (top !== null && height !== null && parent !== null) {
-            // cook up a div (if necessary) and position it 
+            // cook up a div (if necessary) and position it
             let div = window.document.getElementById("code-annotation-line-highlight");
             if (div === null) {
               div = window.document.createElement("div");

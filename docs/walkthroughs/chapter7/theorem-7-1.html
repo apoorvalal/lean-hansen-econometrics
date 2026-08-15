@@ -4985,7 +4985,7 @@ margin-left: 0;
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Theorem 7.1 — Consistency of OLS</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Proof deep dives</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Theorem 7.1 — Consistency of OLS</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -5118,7 +5118,7 @@ margin-left: 0;
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Walkthroughs</span></a>
+ <span class="menu-text">Proof deep dives</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -5159,7 +5159,7 @@ margin-left: 0;
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
+ <span class="menu-text">Gaussian laws of OLS coefficients and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -5224,7 +5224,7 @@ margin-left: 0;
 <!-- main -->
 <main class="content column-body" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Theorem 7.1 — Consistency of OLS</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Proof deep dives</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Theorem 7.1 — Consistency of OLS</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">Theorem 7.1 — Consistency of OLS</h1>
 </div>
@@ -5243,6 +5243,7 @@ margin-left: 0;
 </header>
 
 
+<p><a href="../../results/chapter7.html#theorem-7-1-consistency-of-least-squares" class="btn btn-outline-primary" role="button">Open the canonical result card</a></p>
 <section id="textbook-statement" class="level2">
 <h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
 <p>Suppose we observe an i.i.d. sample <span class="math inline">(X_i, e_i)</span> drawn from the population <span class="math inline">(X, e)</span> on a probability space <span class="math inline">(\Omega, \mu)</span>, and form the response <span class="math inline">y_i = X_i^\top \beta + e_i</span>. Stack the first <span class="math inline">n</span> observations into a regressor matrix <span class="math inline">X_{(n)}</span> and outcome vector <span class="math inline">y_{(n)}</span>. Under the moment assumptions that <span class="math inline">\mathbb{E}[X_i X_i^\top]</span> is invertible, <span class="math inline">\mathbb{E}\|X_i\|^2 &lt; \infty</span>, and <span class="math inline">\mathbb{E}\|X_i e_i\| &lt; \infty</span>, the OLS estimator from the stacked sample converges in probability to <span class="math inline">\beta</span>:</p>

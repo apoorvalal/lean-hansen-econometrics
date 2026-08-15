@@ -388,7 +388,7 @@ positive semidefinite. </p></div>
 <details class="result-group" id="hc1-covariance-estimator">
 <summary><span>HC1 covariance estimator</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>$\hat{V}<em>{HC1} = \frac{n}{n-k} \hat{V}</em>{HC0}$</p></div>
+<div class="textbook-statement"><p>$\hat{V}_{HC1} = \frac{n}{n-k} \hat{V}_{HC0}$</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshuberwhitehc1varianceestimator">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsHuberWhiteHC1VarianceEstimator</code></summary>
 <div class="declaration-body">

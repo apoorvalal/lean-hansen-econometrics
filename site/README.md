@@ -25,6 +25,12 @@ The generated pages have two sources of truth:
 The generator shows at most six endpoints for one result group. The inventory
 keeps the complete support surface and all qualifications.
 
+For Chapters 7--13, every result group must have a reader-facing TeX statement.
+An inventory can keep these statements in its main crosswalk or in a compact
+`Reader-facing TeX statements` table. A theorem-prefix row supplies the common
+textbook statement to its implementation-specific support cards. The site build
+fails if a later result has no statement or no TeX expression.
+
 ## Prerequisites
 
 - the repository's pinned Lean toolchain;

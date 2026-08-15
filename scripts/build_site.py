@@ -73,22 +73,58 @@ def declaration_id(name: str) -> str:
 
 
 def split_table_row(line: str) -> list[str]:
-    """Split a Markdown table row while preserving escaped pipes."""
+    """Split a Markdown table row while preserving literal content pipes."""
     cells: list[str] = []
     current: list[str] = []
     escaped = False
-    for char in line.strip():
+    in_backticks = False
+    math_delimiter: str | None = None
+    in_html_code = False
+    position = 0
+    stripped = line.strip()
+    while position < len(stripped):
+        if stripped.startswith("<code>", position):
+            in_html_code = True
+            current.extend("<code>")
+            position += len("<code>")
+            continue
+        if stripped.startswith("</code>", position):
+            in_html_code = False
+            current.extend("</code>")
+            position += len("</code>")
+            continue
+        char = stripped[position]
         if escaped:
             current.append(char)
             escaped = False
         elif char == "\\":
             current.append(char)
             escaped = True
-        elif char == "|":
+        elif char == "`" and math_delimiter is None and not in_html_code:
+            in_backticks = not in_backticks
+            current.append(char)
+        elif char == "$" and not in_backticks and not in_html_code:
+            if math_delimiter is None:
+                math_delimiter = "$$" if stripped.startswith("$$", position) else "$"
+                current.extend(math_delimiter)
+                position += len(math_delimiter) - 1
+            elif stripped.startswith(math_delimiter, position):
+                current.extend(math_delimiter)
+                position += len(math_delimiter) - 1
+                math_delimiter = None
+            else:
+                current.append(char)
+        elif (
+            char == "|"
+            and not in_backticks
+            and math_delimiter is None
+            and not in_html_code
+        ):
             cells.append("".join(current).strip())
             current = []
         else:
             current.append(char)
+        position += 1
     cells.append("".join(current).strip())
     if cells and not cells[0]:
         cells = cells[1:]
@@ -230,14 +266,17 @@ def parse_crosswalk_table(text: str, index: DeclarationIndex) -> list[ResultGrou
     if start is None:
         return []
     groups: list[ResultGroup] = []
-    for line in lines[start:]:
+    for line_number, line in enumerate(lines[start:], start=start + 1):
         if not line.startswith("|"):
             if groups:
                 break
             continue
         cells = split_table_row(line)
         if len(cells) < 2 or len(cells) != width:
-            continue
+            raise ValueError(
+                f"Malformed crosswalk row at line {line_number}: "
+                f"expected {width} cells, found {len(cells)}"
+            )
         label = cells[0].strip()
         if not label or set(label) <= {"-", ":", " "}:
             continue
@@ -250,6 +289,62 @@ def parse_crosswalk_table(text: str, index: DeclarationIndex) -> list[ResultGrou
                 declarations=declarations_from_cell(lean_cell, index),
             ))
         )
+    return groups
+
+
+def parse_reader_statement_table(text: str) -> list[tuple[str, str]]:
+    """Read optional reader-facing TeX statements from an inventory.
+
+    A row can name an exact result label or a shared prefix such as
+    ``Theorem 10.9``. Prefix rows let several implementation-specific result
+    cards share the textbook theorem statement without duplicating the Lean
+    endpoint crosswalk.
+    """
+    lines = text.splitlines()
+    start = None
+    for position, line in enumerate(lines):
+        if (
+            line.startswith("|")
+            and "Result prefix" in line
+            and "Reader-facing TeX statement" in line
+        ):
+            start = position + 2
+    if start is None:
+        return []
+    statements: list[tuple[str, str]] = []
+    for line in lines[start:]:
+        if not line.startswith("|"):
+            if statements:
+                break
+            continue
+        cells = split_table_row(line)
+        if len(cells) != 2:
+            continue
+        prefix, statement = (cell.strip() for cell in cells)
+        if prefix and statement:
+            statements.append((prefix, statement))
+    return statements
+
+
+def apply_reader_statements(
+    groups: list[ResultGroup],
+    statements: list[tuple[str, str]],
+) -> list[ResultGroup]:
+    for group in groups:
+        matches = [
+            (prefix, statement)
+            for prefix, statement in statements
+            if group.label == prefix
+            or group.label.startswith(prefix + " ")
+            or group.label.startswith(prefix + "/")
+        ]
+        if not matches:
+            continue
+        prefix, statement = max(matches, key=lambda item: len(item[0]))
+        if group.label == prefix:
+            group.statement = statement
+        else:
+            group.statement = f"{statement} {group.statement}"
     return groups
 
 
@@ -306,7 +401,28 @@ def parse_inventory(chapter: int, path: Path, index: DeclarationIndex) -> list[R
     text = path.read_text()
     if chapter == 2:
         return parse_chapter_two(text, index)
-    return parse_crosswalk_table(text, index)
+    groups = parse_crosswalk_table(text, index)
+    return apply_reader_statements(groups, parse_reader_statement_table(text))
+
+
+def validate_statement_coverage(
+    chapter_groups: dict[int, list[ResultGroup]],
+) -> None:
+    missing: list[str] = []
+    missing_tex: list[str] = []
+    for chapter, groups in chapter_groups.items():
+        for group in groups:
+            if not group.statement.strip():
+                missing.append(f"Chapter {chapter}: {group.label}")
+            elif chapter >= 7 and not MATH_RE.search(group.statement):
+                missing_tex.append(f"Chapter {chapter}: {group.label}")
+    problems = []
+    if missing:
+        problems.append("missing statements:\n- " + "\n- ".join(missing))
+    if missing_tex:
+        problems.append("later result statements without TeX:\n- " + "\n- ".join(missing_tex))
+    if problems:
+        raise ValueError("Reader-facing statement coverage failed: " + "\n".join(problems))
 
 
 def inline_markdown(text: str) -> str:
@@ -416,11 +532,12 @@ def render_results_index(chapter_groups: dict[int, list[ResultGroup]]) -> str:
     for chapter, groups in chapter_groups.items():
         endpoints = sum(len(group.declarations) for group in groups)
         gaps = sum(not group.declarations for group in groups)
+        statements = sum(bool(group.statement.strip()) for group in groups)
         total_groups += len(groups)
         total_endpoints += endpoints
         rows.append(
             f"| [Chapter {chapter}: {CHAPTER_TITLES[chapter]}](chapter{chapter}.qmd) "
-            f"| {len(groups)} | {endpoints} | {gaps} |"
+            f"| {len(groups)} | {statements}/{len(groups)} | {endpoints} | {gaps} |"
         )
     table = "\n".join(rows)
     return f"""---
@@ -431,8 +548,8 @@ The chapter inventories define the important textbook results. These generated p
 
 The current generated view contains {total_groups} textbook result groups and {total_endpoints} selected Lean endpoints.
 
-| Chapter | Result groups | Selected endpoints | Groups without a canonical link |
-| --- | ---: | ---: | ---: |
+| Chapter | Result groups | Textbook statements | Selected endpoints | Groups without a canonical link |
+| --- | ---: | ---: | ---: | ---: |
 {table}
 
 Use the [dependency graph](../dependencies.qmd) to see how the linked results depend on one another and on supporting project declarations.
@@ -537,8 +654,10 @@ def build(
     chapter_groups: dict[int, list[ResultGroup]] = {}
     for chapter in CHAPTER_TITLES:
         inventory_path = inventory_dir / f"ch{chapter}-inventory.md"
-        groups = parse_inventory(chapter, inventory_path, index)
-        chapter_groups[chapter] = groups
+        chapter_groups[chapter] = parse_inventory(chapter, inventory_path, index)
+    validate_statement_coverage(chapter_groups)
+    for chapter, groups in chapter_groups.items():
+        inventory_path = inventory_dir / f"ch{chapter}-inventory.md"
         page = render_chapter_page(
             chapter,
             groups,
@@ -565,7 +684,7 @@ def main() -> None:
         for group in chapter
     )
     print(
-        f"Generated {result_count} result groups with {endpoint_count} linked endpoints"
+        f"Generated {result_count} result groups with {endpoint_count} selected endpoints"
     )
 
 

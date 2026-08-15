@@ -325,27 +325,27 @@ internally inconsistent, or omits assumptions needed by its conclusion; the
 corrected theorem and any formal obstruction are recorded in the support
 inventory below. It does not by itself denote unfinished formalization work.
 
-| Textbook result | Lean theorem |
-| --- | --- |
-| Theorem 12.1 | `twoSLSBetaOrZero_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second` |
-| Theorem 12.2 | `twoSLSBetaOrZero_tendstoInDistribution_formula_of_textbook12_2_observed_iid_fourth` |
-| Theorem 12.3 | `twoSLSCovariances_tendstoInMeasure_formula_of_textbook12_2_observed_iid_fourth` |
-| Theorem 12.4 | `twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_textbook12_1_joint_iid_second_73` |
-| Theorem 12.5 | `twoSLSFunction_theorem12_5_of_textbook12_2_observed_iid_73_derivativePlugIn` |
-| Theorem 12.6 | `twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn` |
-| Theorem 12.7 |  |
-| Theorem 12.8 | `TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth` |
-| Theorem 12.9 |  |
-| Theorem 12.10 |  |
-| Theorem 12.11 |  |
-| Theorem 12.12 |  |
-| Theorem 12.13 |  |
-| Theorem 12.14 |  |
-| Theorem 12.15 |  |
-| Theorem 12.16 | `Theorem12_16.observed` |
-| Theorem 12.17 |  |
-| Theorem 12.18 |  |
-| Theorem 12.19 |  |
+| Textbook result | Textbook statement | Lean theorem |
+| --- | --- | --- |
+| Theorem 12.1 | Under Assumption 12.1, the 2SLS estimator is consistent: $\hat\beta_{\mathrm{2SLS}} \xrightarrow{p} \beta$. | `twoSLSBetaOrZero_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second` |
+| Theorem 12.2 | Under Assumption 12.2, $\sqrt n(\hat\beta_{\mathrm{2SLS}}-\beta) \xrightarrow{d} N(0,V_\beta)$, where $V_\beta=Q^{-1}Q_{XZ}Q_{ZZ}^{-1}\Omega Q_{ZZ}^{-1}Q_{ZX}Q^{-1}$ and $Q=Q_{XZ}Q_{ZZ}^{-1}Q_{ZX}$. | `twoSLSBetaOrZero_tendstoInDistribution_formula_of_textbook12_2_observed_iid_fourth` |
+| Theorem 12.3 | Under Assumption 12.2, the robust and homoskedastic covariance estimators are consistent: $\hat V_\beta\xrightarrow{p}V_\beta$ and $\hat V_\beta^{0}\xrightarrow{p}V_\beta^{0}$. | `twoSLSCovariances_tendstoInMeasure_formula_of_textbook12_2_observed_iid_fourth` |
+| Theorem 12.4 | If $\theta=h(\beta)$ satisfies Assumption 7.3, then $\hat\theta_{\mathrm{2SLS}}=h(\hat\beta_{\mathrm{2SLS}})\xrightarrow{p}\theta$. | `twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_textbook12_1_joint_iid_second_73` |
+| Theorem 12.5 | Under Assumptions 12.2 and 7.3, $\sqrt n(\hat\theta_{\mathrm{2SLS}}-\theta)\xrightarrow{d}N(0,V_\theta)$, and the plug-in estimator satisfies $\hat V_\theta\xrightarrow{p}V_\theta$. | `twoSLSFunction_theorem12_5_of_textbook12_2_observed_iid_73_derivativePlugIn` |
+| Theorem 12.6 | Under the null and Assumptions 12.2 and 7.3, the Wald statistic satisfies $W(\theta)\xrightarrow{d}\chi_q^2$. | `twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn` |
+| Theorem 12.7 | Corrected Kinal statement: under the stated central-Wishart, Gaussian-direction, independence, and rank conditions, $\mathbb E\lVert\hat\beta_{\mathrm{2SLS},2}\rVert^r<\infty \Longleftrightarrow r<\ell_2-k_2+1$. Hansen's printed joint-normal hypothesis alone is insufficient. | `twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussianVector_of_rank_ae` |
+| Theorem 12.8 | Under Assumption 12.2, the pairs bootstrap reproduces the coefficient law and the robust studentized law: $\sqrt n(\hat\beta^{*}_{\mathrm{2SLS}}-\hat\beta_{\mathrm{2SLS}})\xrightarrow{d^{*}}N(0,V_\beta)$ and $T^{*}\xrightarrow{d^{*}}N(0,1)$. | `TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth` |
+| Theorem 12.9 | Corrected generated-regressor result: $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,V)$, $\hat V_{\mathrm{HC0}}\xrightarrow{p}V$, and the tested-block Wald statistic converges to $\chi_q^2$ with calibrated asymptotic size. | `GeneratedRegressorObservedIidConditions.theorem12_9_corrected_normal_covariance_wald_size` |
+| Theorem 12.10 | Under the corrected fixed-design Gaussian conditions, the known-variance pivot is $N(0,1)$, the residual-variance pivot is $t_{n-k}$, and $W^0/q\sim F_{q,n-k}$. | `generatedRegressorBeta2KnownSigmaPivotOrZero_hasLaw_standardNormal`, `generatedRegressorBeta2TStatOrZero_hasLaw_classicalStudentT_card_sub`, `generatedRegressorHomoskedasticFStatOrZero_hasLaw_classicalFDist` |
+| Theorem 12.11 | Under the corrected generated-regressor regularity conditions, $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,V)$ and the structural-residual covariance estimator in (12.57) satisfies $\hat V\xrightarrow{p}V$. | `generatedRegressorLS_theorem12_11_of_corrected_regularities` |
+| Theorem 12.12 | Under the corrected expectation-error model, the joint estimator satisfies $\sqrt n((\hat\beta,\hat\alpha)-(\beta,\alpha))\xrightarrow{d}N(0,V)$, and the three-block estimator satisfies $\hat V\xrightarrow{p}V$. | `expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat_of_observed_iid` |
+| Theorem 12.13 | For the corrected control-function model, $\sqrt n(\hat\alpha-\alpha)\xrightarrow{d}N(0,V_{22}+V_{\gamma\gamma}-V_{\gamma2}-V_{\gamma2}^{\prime})$, and the correctly normalized robust covariance estimator is consistent. | `controlFunction_theorem12_13_multivariateGaussian_and_canonicalVHat_of_observed_iid` |
+| Theorem 12.14 | Under the exogeneity null $H_0:\alpha=0$, the robust control-function Wald statistic satisfies $W\xrightarrow{d}\chi_{k_2}^2$, so its calibrated upper-tail test has asymptotic size $\alpha_0$. | `controlFunctionEndogeneityWald_theorem12_14_of_observed_iid_lowerTail` |
+| Theorem 12.15 | Under the corrected conditional-Gaussian and full-rank conditions, the control-function statistic has the exact law $F\sim F_{k_2,n-k}$. | `controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist` |
+| Theorem 12.16 | Under Assumption 12.2 and conditional homoskedasticity, the Sargan statistic satisfies $J\xrightarrow{d}\chi_{\ell-k}^2$, and its calibrated upper-tail test has asymptotic size $\alpha$. | `Theorem12_16.observed` |
+| Theorem 12.17 | Corrected subset-overidentification result: $N=C^{*}$ on the full-rank sample events, $N-C\xrightarrow{p}0$, and $N,C\xrightarrow{d}\chi_{\ell_b}^2$. The maintained instrument block must also be relevant. | `Theorem12_17.corrected` |
+| Theorem 12.18 | Under the corrected weak-instrument triangular-array conditions, $\hat\beta_{\mathrm{OLS}}-\beta\xrightarrow{p}\Sigma_{22}^{-1}\Sigma_{2e}$, while $\hat\beta_{\mathrm{2SLS}}-\beta$ and $\hat\beta_{\mathrm{LIML}}-\beta$ have Hansen's non-Gaussian random-matrix limits. | `weakIV_theorem12_18_triangular_estimators_of_raw_moments` |
+| Theorem 12.19 | Under the corrected many-instrument model with $\ell_n/n\to\alpha$, $\hat\beta_{\mathrm{OLS}}\xrightarrow{p}\beta+(H+\Sigma_{22})^{-1}\Sigma_{2e}$, $\hat\beta_{\mathrm{2SLS}}\xrightarrow{p}\beta+(H+\alpha\Sigma_{22})^{-1}\alpha\Sigma_{2e}$, and $\hat\beta_{\mathrm{LIML}}\xrightarrow{p}\beta$. | `manyInstruments_estimators_theorem12_19_of_hansenRawModel_smallestRoot` |
 
 ## Lean-only support inventory
 

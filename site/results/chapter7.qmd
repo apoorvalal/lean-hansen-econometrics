@@ -130,7 +130,7 @@ surface. </p></div>
 <details class="result-group" id="assumption-7-2-score-clt-setup">
 <summary><span>Assumption 7.2 / score CLT setup</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Stronger moment assumptions for asymptotic normality</p></div>
+<div class="textbook-statement"><p>The score has sufficient moments for $\Omega=\mathbb E[e_i^2X_iX_i']\lt \infty$ and a central limit theorem.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-samplecltassumption72">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.SampleCLTAssumption72</code></summary>
 <div class="declaration-body">
@@ -154,7 +154,7 @@ surface. </p></div>
 <details class="result-group" id="theorem-7-2-score-clt-bridge">
 <summary><span>Theorem 7.2 score CLT bridge</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Assumption 7.2 implies <code>Ω &lt; ∞</code> and <code>(1 / √n)∑ Xᵢeᵢ ⇒ N(0, Ω)</code></p></div>
+<div class="textbook-statement"><p>Assumption 7.2 implies $\Omega\lt \infty$ and $n^{-1/2}\sum_{i=1}^n X_i e_i\xrightarrow{d}N(0,\Omega)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-samplecrossmoment-tendstoindistribution-gaussian-cov-all">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreProj_sampleCrossMoment_tendstoInDistribution_gaussian_cov_all</code></summary>
 <div class="declaration-body">
@@ -287,7 +287,7 @@ version of the scalar variance appearing in the one-dimensional CLT below. </p><
 <details class="result-group" id="theorem-7-3">
 <summary><span>Theorem 7.3</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Asymptotic Normality of Least Squares Estimator</p></div>
+<div class="textbook-statement"><p>Under Assumption 7.2, $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,Q_{XX}^{-1}\Omega Q_{XX}^{-1})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-olsbetastar-tendstoindistribution-gaussian-cov-all">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreProj_olsBetaStar_tendstoInDistribution_gaussian_cov_all</code></summary>
 <div class="declaration-body">
@@ -495,7 +495,7 @@ ordinary-OLS surface. </p></div>
 <details class="result-group" id="theorem-7-4">
 <summary><span>Theorem 7.4</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞.</p></div>
+<div class="textbook-statement"><p>Under Assumption 7.1, $\hat\sigma^2\xrightarrow{p}\sigma^2$ and $s^2\xrightarrow{p}\sigma^2$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olssigmasqhatstar-tendstoinmeasure-errorvariance">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsSigmaSqHatStar_tendstoInMeasure_errorVariance</code></summary>
 <div class="declaration-body">
@@ -605,7 +605,7 @@ probability to <code>σ² = E[e₀²]</code>. </p></div>
 <details class="result-group" id="theorem-7-5">
 <summary><span>Theorem 7.5</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.1, ˆV</p></div>
+<div class="textbook-statement"><p>Under Assumption 7.1, the homoskedastic covariance estimator is consistent: $\hat V_\beta^0\xrightarrow{p}V_\beta^0$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshomocovstar-tendstoinmeasure">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHomoCovStar_tendstoInMeasure</code></summary>
 <div class="declaration-body">
@@ -655,7 +655,7 @@ homoskedastic covariance estimator <code>V̂⁰_β = s² Q̂⁻¹</code> converg
 <details class="result-group" id="theorem-7-6">
 <summary><span>Theorem 7.6</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV</p></div>
+<div class="textbook-statement"><p>Under Assumption 7.2, $\hat\Omega\xrightarrow{p}\Omega$ and the HC0 covariance estimator satisfies $\hat V_\beta\xrightarrow{p}V_\beta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovstar-tendstoinmeasure-of-bddwts-components">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovStar_tendstoInMeasure_of_bddWts_components</code></summary>
 <div class="declaration-body">
@@ -759,7 +759,7 @@ moment package used by the compact HC0--HC3 covariance and inference endpoints. 
 <details class="result-group" id="theorem-7-7">
 <summary><span>Theorem 7.7</span><span class="result-count">6 of 7 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV</p></div>
+<div class="textbook-statement"><p>Under Assumption 7.2, the HC1, HC2, and HC3 middle matrices and covariance estimators converge to $\Omega$ and $V_\beta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc1star-tendstoinmeasure-of-bddwts-components">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovHC1Star_tendstoInMeasure_of_bddWts_components</code></summary>
 <div class="declaration-body">
@@ -901,7 +901,7 @@ remainder conditions. </p></div>
 <details class="result-group" id="theorem-7-8">
 <summary><span>Theorem 7.8</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.1, if r (β) is continuous at the true value of</p></div>
+<div class="textbook-statement"><p>If $r$ is continuous at $\beta$, then $r(\hat\beta)\xrightarrow{p}r(\beta)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsBetaStar</code></summary>
 <div class="declaration-body">
@@ -950,7 +950,7 @@ the full architecture. </p></div>
 <details class="result-group" id="theorem-7-9">
 <summary><span>Theorem 7.9</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Asymptotic Distribution of Functions of Parameters</p></div>
+<div class="textbook-statement"><p>If $r$ is differentiable at $\beta$ with derivative $R$, then $\sqrt n(r(\hat\beta)-r(\beta))\xrightarrow{d}N(0,R'V_\beta R)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearfunction-olsbetastar-delta-tendstoindistribution-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearFunction_olsBetaStar_delta_tendstoInDistribution_gaussian</code></summary>
 <div class="declaration-body">
@@ -1095,7 +1095,7 @@ the full architecture. </p></div>
 <details class="result-group" id="theorem-7-10">
 <summary><span>Theorem 7.10</span><span class="result-count">0 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ.</p></div>
+<div class="textbook-statement"><p>Under Assumptions 7.2 and 7.3, $\hat V_\theta\xrightarrow{p}V_\theta=R'V_\beta R$.</p></div>
 <p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
 </div>
 </details>
@@ -1103,7 +1103,7 @@ the full architecture. </p></div>
 <details class="result-group" id="theorem-7-11">
 <summary><span>Theorem 7.11</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, and 7.4, T (θ) − →</p></div>
+<div class="textbook-statement"><p>Under Assumptions 7.2--7.4, $T(\theta)=(\hat\theta-\theta)/\operatorname{se}(\hat\theta)\xrightarrow{d}N(0,1)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-studentizedlimit-tendstoindistribution">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.studentizedLimit_tendstoInDistribution</code></summary>
 <div class="declaration-body">
@@ -1210,7 +1210,7 @@ limit. </p></div>
 <details class="result-group" id="theorem-7-12">
 <summary><span>Theorem 7.12</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with</p></div>
+<div class="textbook-statement"><p>For $\hat C=[\hat\theta-c\,\operatorname{se}(\hat\theta),\hat\theta+c\,\operatorname{se}(\hat\theta)]$, $\Pr(\theta\in\hat C)\to\Pr(\lvert Z\rvert\le c)$ with $Z\sim N(0,1)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-symmetricci-coverage-of-abs-tstat-nonpos-tendsto-zero">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.symmetricCI_coverage_of_abs_tstat_nonpos_tendsto_zero</code></summary>
 <div class="declaration-body">
@@ -1332,7 +1332,7 @@ interval has standard-normal asymptotic coverage. </p></div>
 <details class="result-group" id="theorem-7-13">
 <summary><span>Theorem 7.13</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − →</p></div>
+<div class="textbook-statement"><p>Under Assumptions 7.2--7.4, the Wald statistic satisfies $W(\theta)\xrightarrow{d}\chi_r^2$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-haslaw-stdgaussian-normsq-chisquared">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hasLaw_stdGaussian_normSq_chiSquared</code></summary>
 <div class="declaration-body">
@@ -1396,7 +1396,7 @@ multivariate Gaussian with covariance <code>R S Rᵀ</code>. </p></div>
 <details class="result-group" id="theorem-7-14">
 <summary><span>Theorem 7.14</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, and E</p></div>
+<div class="textbook-statement"><p>Under homoskedasticity, the homoskedastic Wald statistic satisfies $W^0(\theta)\xrightarrow{d}\chi_r^2$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-homoskedasticerrorvariance">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.HomoskedasticErrorVariance</code></summary>
 <div class="declaration-body">
@@ -1582,7 +1582,7 @@ variance given <code>X₀</code>, then applies the covariance-identity bridge. <
 <details class="result-group" id="theorem-7-15">
 <summary><span>Theorem 7.15</span><span class="result-count">6 of 8 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, Ω &gt; 0, E ∥e∥16 &lt; ∞, E ∥X ∥16 &lt;</p></div>
+<div class="textbook-statement"><p>Under the stated high-moment conditions, $\Pr(T\le x)=\Phi(x)+n^{-1/2}p_1(x)\phi(x)+n^{-1}p_2(x)\phi(x)+o(n^{-1})$; the $n^{-1/2}$ term cancels for symmetric intervals.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-secondorderedgeworthexpansion-symmetric-interval-scaled-remainder-tendsto-zero">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SecondOrderEdgeworthExpansion.symmetric_interval_scaled_remainder_tendsto_zero</code></summary>
 <div class="declaration-body">
@@ -1703,7 +1703,7 @@ interface, with correction <code>p1(x) * density(x)</code>. </p></div>
 <details class="result-group" id="theorem-7-16">
 <summary><span>Theorem 7.16</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2 and E ∥X ∥r &lt; ∞, then</p></div>
+<div class="textbook-statement"><p>If $\mathbb E\lVert X\rVert^r\lt \infty$, then $\max_{1\le i\le n}\lvert\hat e_i-e_i\rvert=o_p(n^{-1/2+1/r})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scaledmaxresidualerrorstar-tendstoinmeasure-zero-of-scaled-product">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledMaxResidualErrorStar_tendstoInMeasure_zero_of_scaled_product</code></summary>
 <div class="declaration-body">
@@ -1870,7 +1870,7 @@ identical-distribution fields. </p></div>
 <details class="result-group" id="theorem-7-17">
 <summary><span>Theorem 7.17</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If Xi is i.i.d., Q X X &gt; 0, and E ∥X ∥r &lt; ∞ for some r ≥ 2, then</p></div>
+<div class="textbook-statement"><p>If $X_i$ is i.i.d., $Q_{XX}\succ0$, and $\mathbb E\lVert X\rVert^r\lt \infty$ for $r\ge2$, then $\max_{1\le i\le n}h_{ii}=o_p(n^{2/r-1})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scaledmaxleveragestar-tendstoinmeasure-zero-of-scaled-maxrownorm-sq">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledMaxLeverageStar_tendstoInMeasure_zero_of_scaled_maxRowNorm_sq</code></summary>
 <div class="declaration-body">

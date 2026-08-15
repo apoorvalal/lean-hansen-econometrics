@@ -14,7 +14,7 @@ This page is generated from the [canonical Chapter 8 inventory](https://github.c
 <details class="result-group" id="theorem-8-1" open>
 <summary><span>Theorem 8.1</span><span class="result-count">6 of 9 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The CLS estimator satisﬁes</p></div>
+<div class="textbook-statement"><p>For $R'\beta=c$, constrained least squares has $R'\tilde\beta_{\mathrm{CLS}}=c$ and $\tilde e=(I-P+XAX')e$; the residual maker is symmetric and idempotent with rank $n-k+q$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-linear-model">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_linear_model</code></summary>
 <div class="declaration-body">
@@ -128,7 +128,7 @@ This page is generated from the [canonical Chapter 8 inventory](https://github.c
 <details class="result-group" id="theorem-8-2">
 <summary><span>Theorem 8.2</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>In the linear regression model (8.14)-(8.15) under (8.1),</p></div>
+<div class="textbook-statement"><p>Under conditional mean zero, $\mathbb E[\tilde\beta_{\mathrm{CLS}}\mid X]=\beta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-cls-condexp-unbiased">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_condExp_unbiased</code></summary>
 <div class="declaration-body">
@@ -188,7 +188,7 @@ rewrites the estimator itself using <code>clsBeta_linear_model</code>. </p></div
 <details class="result-group" id="theorem-8-3">
 <summary><span>Theorem 8.3</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>In the homoskedastic linear regression model (8.14)-(8.15) with</p></div>
+<div class="textbook-statement"><p>Under $\mathbb E[e^2\mid X]=\sigma^2$, $\operatorname{Var}(\tilde\beta_{\mathrm{CLS}}\mid X)=V^0_{\tilde\beta}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-cls-conditionalvariance-homoskedastic">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_conditionalVariance_homoskedastic</code></summary>
 <div class="declaration-body">
@@ -259,7 +259,7 @@ rewrites the estimator itself using <code>clsBeta_linear_model</code>. </p></div
 <details class="result-group" id="theorem-8-4">
 <summary><span>Theorem 8.4</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>In the homoskedastic linear regression model (8.14)-(8.15) with</p></div>
+<div class="textbook-statement"><p>Under conditional homoskedasticity, $\mathbb E[s^2_{\mathrm{CLS}}\mid X]=\sigma^2$ and $\mathbb E[\hat V^0_{\tilde\beta}\mid X]=V^0_{\tilde\beta}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-cls-residualvariance-condexp-eq-sigmasq">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_residualVariance_condExp_eq_sigmaSq</code></summary>
 <div class="declaration-body">
@@ -324,7 +324,7 @@ moments. The explicit degrees-of-freedom nonzero assumption is needed because
 <details class="result-group" id="theorem-8-5">
 <summary><span>Theorem 8.5</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>In the normal linear regression model (8.14)-(8.15) with con-</p></div>
+<div class="textbook-statement"><p>In the constrained normal model, $\tilde\beta_{\mathrm{CLS}}\sim N(\beta,V^0_{\tilde\beta})$, $(n-k+q)s^2_{\mathrm{CLS}}/\sigma^2\sim\chi^2_{n-k+q}$, and $T\sim t_{n-k+q}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsnormalregressionfinitesamplelaws">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsNormalRegressionFiniteSampleLaws</code></summary>
 <div class="declaration-body">
@@ -484,7 +484,7 @@ studentizer, and independence inputs. </p></div>
 <details class="result-group" id="theorem-8-6">
 <summary><span>Theorem 8.6</span><span class="result-count">6 of 9 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Consistency</p></div>
+<div class="textbook-statement"><p>Under Assumptions 7.1, 8.1, and 8.2, $\tilde\beta_{\mathrm{MD}}\xrightarrow{p}\beta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoinmeasure-beta">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInMeasure_beta</code></summary>
 <div class="declaration-body">
@@ -618,7 +618,7 @@ minimum-distance consistency interface. </p></div>
 <details class="result-group" id="theorem-8-7">
 <summary><span>Theorem 8.7</span><span class="result-count">6 of 31 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Asymptotic Normality</p></div>
+<div class="textbook-statement"><p>Under Assumptions 7.2, 8.1, and 8.2, $\sqrt n(\tilde\beta_{\mathrm{MD}}-\beta)\xrightarrow{d}N(0,V_\beta(W))$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoindistribution-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInDistribution_gaussian</code></summary>
 <div class="declaration-body">
@@ -814,7 +814,7 @@ linearization step. </p></div>
 <details class="result-group" id="theorem-8-8">
 <summary><span>Theorem 8.8</span><span class="result-count">6 of 14 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Asymptotic Distribution of CLS Estimator</p></div>
+<div class="textbook-statement"><p>Under Assumptions 7.2 and 8.1, $\sqrt n(\tilde\beta_{\mathrm{CLS}}-\beta)\xrightarrow{d}N(0,V_{\mathrm{CLS}})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_tendstoInDistribution_gaussian</code></summary>
 <div class="declaration-body">
@@ -1009,7 +1009,7 @@ discharges the CLS-as-MD linearization through the random-weight MD theorem. </p
 <details class="result-group" id="section-8-7">
 <summary><span>Section 8.7</span><span class="result-count">6 of 13 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Variance Estimation and Standard Errors</p></div>
+<div class="textbook-statement"><p>If $\hat V\xrightarrow{p}V$, then $\sqrt{a'\hat Va}\xrightarrow{p}\sqrt{a'Va}$ and the corresponding studentized statistic has its stated limit.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-covariancestderrorscale-aemeasurable">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covarianceStdErrorScale_aemeasurable</code></summary>
 <div class="declaration-body">
@@ -1128,7 +1128,7 @@ convergence fields. </p></div>
 <details class="result-group" id="theorem-8-9">
 <summary><span>Theorem 8.9</span><span class="result-count">6 of 24 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Efﬁcient Minimum Distance Estimator</p></div>
+<div class="textbook-statement"><p>Efficient MD uses $W=V_\beta^{-1}$ and has $\sqrt n(\tilde\beta_{\mathrm{EMD}}-\beta)\xrightarrow{d}N(0,V_{\beta,\mathrm{EMD}})$, where $V_{\beta,\mathrm{EMD}}=V_\beta-V_\beta R(R'V_\beta R)^{-1}R'V_\beta\preceq V_\beta(W)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-sub-emd-factor">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdAsymptoticVariance_sub_emd_factor</code></summary>
 <div class="declaration-body">
@@ -1306,7 +1306,7 @@ discharged from unrestricted-estimator measurability. </p></div>
 <details class="result-group" id="section-8-9">
 <summary><span>Section 8.9</span><span class="result-count">6 of 9 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Exclusion Restriction Revisited</p></div>
+<div class="textbook-statement"><p>For the exclusion restriction $\beta_2=0$, the long, short/CLS, and efficient restricted estimators have the displayed asymptotic variances; under heteroskedasticity, $V_{\mathrm{EMD}}\preceq V_{\mathrm{long}}$ while $V_{\mathrm{short}}$ can be larger.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-scalarschurvariance-heteroskedasticexample">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarSchurVariance_heteroskedasticExample</code></summary>
 <div class="declaration-body">
@@ -1384,7 +1384,7 @@ the short-regression CLS variance exceeds the unrestricted long-regression varia
 <details class="result-group" id="section-8-10">
 <summary><span>Section 8.10</span><span class="result-count">6 of 20 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Variance and Standard Error Estimation</p></div>
+<div class="textbook-statement"><p>The plug-in covariance and standard error satisfy $\hat V_{\mathrm{EMD}}\xrightarrow{p}V_{\mathrm{EMD}}$ and $\widehat{\operatorname{se}}(a'\tilde\beta)=n^{-1/2}\sqrt{a'\hat V_{\mathrm{EMD}}a}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdcovarianceestimator-eq-hansen">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdCovarianceEstimator_eq_hansen</code></summary>
 <div class="declaration-body">
@@ -1479,7 +1479,7 @@ asymptotic standard-error scale. </p></div>
 <details class="result-group" id="section-8-11">
 <summary><span>Section 8.11</span><span class="result-count">6 of 8 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Hausman Equality</p></div>
+<div class="textbook-statement"><p>Under the restriction, $\operatorname{Avar}(\hat\beta-\tilde\beta_{\mathrm{EMD}})=V_\beta-V_{\beta,\mathrm{EMD}}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-emddifferenceasymptoticvariance-eq-gap">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdDifferenceAsymptoticVariance_eq_gap</code></summary>
 <div class="declaration-body">
@@ -1603,7 +1603,7 @@ minimum-distance estimator. </p></div>
 <details class="result-group" id="section-8-13">
 <summary><span>Section 8.13</span><span class="result-count">6 of 19 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Misspecification</p></div>
+<div class="textbook-statement"><p>Under misspecification, MD converges to its weighted pseudo-true projection; under $n^{-1/2}$ local alternatives, $\sqrt n(\tilde\beta_{\mathrm{MD}}-\beta_n)$ has the stated shifted Gaussian limit.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdmisspecified-tendstoindistribution-multivariategaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdMisspecified_tendstoInDistribution_multivariateGaussian</code></summary>
 <div class="declaration-body">
@@ -1730,7 +1730,7 @@ nonsingular. </p></div>
 <details class="result-group" id="theorem-8-10">
 <summary><span>Theorem 8.10</span><span class="result-count">6 of 54 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumptions 7.2, 8.2, and 8.3, for ˜β = ˜βmd and ˜β = ˜βcls</p></div>
+<div class="textbook-statement"><p>For smooth nonlinear restrictions $r(\beta)=c$, both nonlinear MD and nonlinear CLS satisfy $\sqrt n(\tilde\beta-\beta)\xrightarrow{d}N(0,V_{\mathrm{constrained}})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonlinearmdbeta-tendstoindistribution-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearMdBeta_tendstoInDistribution_gaussian</code></summary>
 <div class="declaration-body">
@@ -1872,7 +1872,7 @@ linearized representation to the asymptotic distribution. </p></div>
 <details class="result-group" id="section-8-15">
 <summary><span>Section 8.15</span><span class="result-count">6 of 10 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Inequality Restrictions</p></div>
+<div class="textbook-statement"><p>For the restriction $\beta\ge0$, the constraint is asymptotically inactive when $\beta\gt 0$; at the boundary, $\sqrt n\,\tilde\beta\xrightarrow{d}\max\{Z,0\}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeinterior-tendstoindistribution">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonnegativeInterior_tendstoInDistribution</code></summary>
 <div class="declaration-body">
@@ -1987,7 +1987,7 @@ the same distributional limit as the unrestricted statistic. </p></div>
 <details class="result-group" id="exercise-8-10">
 <summary><span>Exercise 8.10</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Verify (8.22), (8.23), and that MD with <code>W = QXX</code> equals CLS</p></div>
+<div class="textbook-statement"><p>Equations (8.22)--(8.23) give the MD multiplier and estimator; with $W=Q_{XX}$, $\tilde\beta_{\mathrm{MD}}=\tilde\beta_{\mathrm{CLS}}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-mdlagrangemultiplier">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.mdLagrangeMultiplier</code></summary>
 <div class="declaration-body">
@@ -2097,7 +2097,7 @@ minimum-distance specialization agrees with the finite-sample CLS estimator. </p
 <details class="result-group" id="exercises-8-14-8-15">
 <summary><span>Exercises 8.14-8.15</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Verify (8.26) as the efficient-weight MD variance and prove (8.27)</p></div>
+<div class="textbook-statement"><p>With $W=V_\beta^{-1}$, the MD covariance is $V_{\beta,\mathrm{EMD}}=V_\beta-V_\beta R(R'V_\beta R)^{-1}R'V_\beta\preceq V_\beta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-emdasymptoticvariance-eq-hansen-826">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdAsymptoticVariance_eq_hansen_826</code></summary>
 <div class="declaration-body">

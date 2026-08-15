@@ -3,7 +3,7 @@ title: "Chapter 10: Resampling Methods"
 description: "Foldable textbook-to-Lean result crosswalk for Chapter 10."
 ---
 
-This page is generated from the [canonical Chapter 10 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch10-inventory.md) and the compiled Lean environment. It contains 66 textbook result groups and 326 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+This page is generated from the [canonical Chapter 10 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch10-inventory.md) and the compiled Lean environment. It contains 68 textbook result groups and 338 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
 
 <div class="results-toolbar" role="group" aria-label="Result display controls">
 <button type="button" data-results-action="expand">Expand all results</button>
@@ -14,7 +14,7 @@ This page is generated from the [canonical Chapter 10 inventory](https://github.
 <details class="result-group" id="definition-10-1" open>
 <summary><span>Definition 10.1</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bootstrap convergence in probability: <code>P*[‖Z*_n − Z‖ &gt; ε] →p 0</code> for all ε &gt; 0</p></div>
+<div class="textbook-statement"><p>Bootstrap convergence in probability means $P^*(\lVert Z_n^*-Z\rVert\gt \varepsilon)\xrightarrow{p}0$ for every $\varepsilon\gt 0$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinbootstrapprobability">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.TendstoInBootstrapProbability</code></summary>
 <div class="declaration-body">
@@ -44,7 +44,7 @@ probability. </p></div>
 <details class="result-group" id="equation-10-1">
 <summary><span>Equation 10.1</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Tukey's jackknife covariance estimator formed from leave-one-out estimates and their jackknife mean</p></div>
+<div class="textbook-statement"><p>Tukey's jackknife covariance is $\hat V_J=\frac{n-1}{n}\sum_{i=1}^n(\hat\theta_{(-i)}-\bar\theta_J)(\hat\theta_{(-i)}-\bar\theta_J)'$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-jackknifemean">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.jackknifeMean</code></summary>
 <div class="declaration-body">
@@ -73,7 +73,7 @@ probability. </p></div>
 <details class="result-group" id="equation-10-2">
 <summary><span>Equation 10.2</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>For the sample mean, the leave-one-out mean can be written in terms of the full-sample mean and the omitted observation; averaging the leave-one-out means recovers the full-sample mean, and each leave-one-out deviation is <code>(Ybar - Y_i)/(n-1)</code></p></div>
+<div class="textbook-statement"><p>For the sample mean, $\bar Y_{(-i)}-\bar Y=(\bar Y-Y_i)/(n-1)$ and $n^{-1}\sum_i\bar Y_{(-i)}=\bar Y$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-jackknifeleaveoneoutmean">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.jackknifeLeaveOneOutMean</code></summary>
 <div class="declaration-body">
@@ -155,7 +155,7 @@ from the full-sample mean by <code>(Ybar - Yᵢ)/(n-1)</code>. </p></div>
 <details class="result-group" id="equation-10-3">
 <summary><span>Equation 10.3</span><span class="result-count">1 endpoint</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The sample-mean jackknife covariance estimator reduces exactly to the conventional covariance estimator for the variance of the mean</p></div>
+<div class="textbook-statement"><p>For the sample mean, the jackknife covariance equals the usual estimated variance: $\hat V_J(\bar Y)=s_Y^2/n$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-jackknifecovariance-leaveoneoutmean-eq-samplemeancovariance">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.jackknifeCovariance_leaveOneOutMean_eq_sampleMeanCovariance</code></summary>
 <div class="declaration-body">
@@ -182,7 +182,7 @@ equals the conventional covariance estimator for the variance of the mean. </p><
 <details class="result-group" id="equation-10-4">
 <summary><span>Equation 10.4</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Leave-one-out OLS coefficients and residuals can be written through the full-sample coefficient, inverse Gram matrix, leverage, and residual</p></div>
+<div class="textbook-statement"><p>Leave-one-out OLS obeys $\hat\beta_{(-i)}=\hat\beta-(X'X)^{-1}X_i\hat e_i/(1-h_{ii})$ and $\hat e_{i,(-i)}=\hat e_i/(1-h_{ii})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-leaveoneoutindex">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.LeaveOneOutIndex</code></summary>
 <div class="declaration-body">
@@ -271,7 +271,7 @@ observation <code>i</code>. </p></div>
 <details class="result-group" id="equation-10-5">
 <summary><span>Equation 10.5</span><span class="result-count">6 of 7 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The OLS leave-one-out jackknife covariance equals the HC3 covariance estimator minus the finite-sample mean-adjustment outer product</p></div>
+<div class="textbook-statement"><p>The OLS jackknife covariance is the HC3 covariance minus its finite-sample mean-adjustment outer product: $\hat V_J=\hat V_{\mathrm{HC3}}-aa'$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-jackknifecovariance-leaveoneoutbeta-eq-hc3-sub-meanadjustment">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.jackknifeCovariance_leaveOneOutBeta_eq_HC3_sub_meanAdjustment</code></summary>
 <div class="declaration-body">
@@ -405,7 +405,7 @@ calculation. </p></div>
 <details class="result-group" id="section-10-5">
 <summary><span>Section 10.5</span><span class="result-count">6 of 9 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Delete-cluster jackknife coefficients and CR3-style cluster-robust covariance use cluster-deleted coefficients, adjusted cluster prediction errors, and cluster score outer products</p></div>
+<div class="textbook-statement"><p>The delete-cluster estimator uses $\hat\beta_{(-g)}$ and the CR3 adjusted cluster score $X_g'(I-H_{gg})^{-1}\hat e_g$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-clusterleaveoutbeta-eq-olsbeta-sub-invgram-mulvec-cr3residual">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clusterLeaveOutBeta_eq_olsBeta_sub_invGram_mulVec_cr3Residual</code></summary>
 <div class="declaration-body">
@@ -551,7 +551,7 @@ leave-cluster-out prediction errors. </p></div>
 <details class="result-group" id="equation-10-6">
 <summary><span>Equation 10.6</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The probability that a fixed observation appears at least once in an <code>n</code>-draw bootstrap sample is <code>1 - (1 - 1/n)^n</code>, with limit <code>1 - e^{-1}</code></p></div>
+<div class="textbook-statement"><p>A fixed observation appears in an $n$-draw bootstrap sample with probability $1-(1-1/n)^n\to1-e^{-1}$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-bootstrapobservationinclusionprobability">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.bootstrapObservationInclusionProbability</code></summary>
 <div class="declaration-body">
@@ -597,7 +597,7 @@ textbook statement. </p></div>
 <details class="result-group" id="equation-10-7">
 <summary><span>Equation 10.7</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The finite-replication bootstrap covariance estimator is the centered sample covariance across bootstrap draws with <code>1/(B-1)</code> scaling</p></div>
+<div class="textbook-statement"><p>With $B$ draws, $\hat V_B^*=\frac{1}{B-1}\sum_{b=1}^B(\hat\theta_b^*-\bar\theta^*)(\hat\theta_b^*-\bar\theta^*)'$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-finitereplicationmeanreal">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.finiteReplicationMeanReal</code></summary>
 <div class="declaration-body">
@@ -661,7 +661,7 @@ covariance estimator. </p></div>
 <details class="result-group" id="equation-10-8">
 <summary><span>Equation 10.8</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The percentile confidence interval uses lower and upper bootstrap quantile endpoints</p></div>
+<div class="textbook-statement"><p>The percentile interval is $C_{\mathrm{pct}}=[q_{\alpha/2}^*,q_{1-\alpha/2}^*]$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-percentilecievent">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.percentileCIEvent</code></summary>
 <div class="declaration-body">
@@ -821,7 +821,7 @@ wrapper applies. </p></div>
 <details class="result-group" id="equation-10-9">
 <summary><span>Equation 10.9</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The idealized bootstrap distribution is the conditional distribution function/CDF of the bootstrap statistic</p></div>
+<div class="textbook-statement"><p>The ideal bootstrap CDF is $F_n^*(x)=P^*(Z_n^*\le x)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-bootstrapvectorcdf">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.bootstrapVectorCDF</code></summary>
 <div class="declaration-body">
@@ -936,7 +936,7 @@ sample size, such as <code>Fin (n + 1) → Fin (n + 1)</code>. </p></div>
 <details class="result-group" id="equations-10-10-10-12">
 <summary><span>Equations 10.10/10.12</span><span class="result-count">6 of 22 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The mean of one bootstrap observation drawn uniformly from the empirical support equals the finite-sample mean</p></div>
+<div class="textbook-statement"><p>One empirical bootstrap draw satisfies $\mathbb E^*[Y_i^*]=\bar Y$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-iindepfun-uniformon-fun-eval">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iIndepFun_uniformOn_fun_eval</code></summary>
 <div class="declaration-body">
@@ -1039,7 +1039,7 @@ each draw is centered at the finite empirical mean. </p></div>
 <details class="result-group" id="equation-10-11">
 <summary><span>Equation 10.11</span><span class="result-count">6 of 7 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The covariance of one bootstrap observation drawn uniformly from the empirical support equals the empirical covariance matrix</p></div>
+<div class="textbook-statement"><p>One empirical bootstrap draw satisfies $\operatorname{Var}^*(Y_i^*)=n^{-1}\sum_{i=1}^n(Y_i-\bar Y)(Y_i-\bar Y)'$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-covmat-uniformon-univ-eq-card-inv-smul-sum-centered">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covMat_uniformOn_univ_eq_card_inv_smul_sum_centered</code></summary>
 <div class="declaration-body">
@@ -1204,7 +1204,7 @@ have the standard-normal characteristic-function limit. </p></div>
 <details class="result-group" id="equation-10-13">
 <summary><span>Equation 10.13</span><span class="result-count">6 of 10 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The conditional variance/covariance of the bootstrap sample mean is the empirical one-draw variance/covariance divided by the resample size, with scalar, trace, and Euclidean-norm raw-second-moment bounds</p></div>
+<div class="textbook-statement"><p>The bootstrap mean satisfies $\operatorname{Var}^*(\bar Y^*)=m^{-1}\operatorname{Var}^*(Y_i^*)$ for resample size $m$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-trace-covmat-resamplemean-eq-inv-card-mul">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.trace_covMat_resampleMean_eq_inv_card_mul</code></summary>
 <div class="declaration-body">
@@ -1339,7 +1339,7 @@ nonparametric-bootstrap mean is bounded by Hansen's
 <details class="result-group" id="theorem-10-1">
 <summary><span>Theorem 10.1</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If <code>Z_n →p Z</code>, then the non-bootstrap statistic also satisfies <code>Z_n →p* Z</code></p></div>
+<div class="textbook-statement"><p>If $Z_n\xrightarrow{p}Z$, then the nonresampled statistic also satisfies $Z_n\xrightarrow{p^*}Z$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-convergence-in-probability-of-convergence-in-probability">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability</code></summary>
 <div class="declaration-body">
@@ -1384,7 +1384,7 @@ and the bootstrap sample space may vary with <code>n</code>. </p></div>
 <details class="result-group" id="theorem-10-2">
 <summary><span>Theorem 10.2</span><span class="result-count">6 of 26 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bootstrap WLLN. If <code>Y_i</code> are independent and uniformly integrable, then <code>Ybar* − Ybar →p* 0</code> and <code>Ybar* →p* μ</code></p></div>
+<div class="textbook-statement"><p>If $Y_i$ are independent and uniformly integrable, then $\bar Y^*-\bar Y\xrightarrow{p^*}0$ and $\bar Y^*\xrightarrow{p^*}\mu$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-wlln-level-from-centered">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_wlln_level_from_centered</code></summary>
 <div class="declaration-body">
@@ -1556,7 +1556,7 @@ probability to zero. </p></div>
 <details class="result-group" id="theorem-10-3">
 <summary><span>Theorem 10.3</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bootstrap Continuous Mapping Theorem: if <code>Z*_n →p* c</code> and <code>g</code> is continuous at <code>c</code>, then <code>g(Z*_n) →p* g(c)</code></p></div>
+<div class="textbook-statement"><p>If $Z_n^*\xrightarrow{p^*}c$ and $g$ is continuous at $c$, then $g(Z_n^*)\xrightarrow{p^*}g(c)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-continuous-mapping-probability">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_continuous_mapping_probability</code></summary>
 <div class="declaration-body">
@@ -1603,7 +1603,7 @@ continuous at <code>c</code>, then <code>g(Zₙ*) -&gt;p* g(c)</code>. </p></div
 <details class="result-group" id="definition-10-2">
 <summary><span>Definition 10.2</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bootstrap convergence in distribution: conditional CDFs converge in probability at continuity points</p></div>
+<div class="textbook-statement"><p>Bootstrap convergence in distribution means $P^*(Z_n^*\le x)\xrightarrow{p}P(Z\le x)$ at every continuity point $x$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinbootstrapdistribution">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.TendstoInBootstrapDistribution</code></summary>
 <div class="declaration-body">
@@ -1657,7 +1657,7 @@ sample size, such as <code>Fin (n + 1) → Fin (n + 1)</code>. </p></div>
 <details class="result-group" id="theorem-10-4">
 <summary><span>Theorem 10.4</span><span class="result-count">6 of 49 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bootstrap CLT. If <code>Y_i</code> are i.i.d., <code>E ‖Y‖^2 &lt; ∞</code>, and <code>Σ = Var[Y] &gt; 0</code>, then the normalized bootstrap sample mean converges in bootstrap distribution to <code>N(0,Σ)</code></p></div>
+<div class="textbook-statement"><p>If $\mathbb E\lVert Y\rVert^2\lt \infty$ and $\Sigma=\operatorname{Var}(Y)\succ0$, then $\sqrt n(\bar Y^*-\bar Y)\xrightarrow{d^*}N(0,\Sigma)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-clt-gaussian-of-tendsto-cdf">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_clt_gaussian_of_tendsto_cdf</code></summary>
 <div class="declaration-body">
@@ -1836,7 +1836,7 @@ by the concrete Theorem 10.4 path. </p></div>
 <details class="result-group" id="theorem-10-5">
 <summary><span>Theorem 10.5</span><span class="result-count">6 of 25 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bootstrap Continuous Mapping Theorem</p></div>
+<div class="textbook-statement"><p>If $Z_n^*\xrightarrow{d^*}Z$ and $g$ is continuous on the support of $Z$, then $g(Z_n^*)\xrightarrow{d^*}g(Z)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-continuous-mapping-event-probability">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_continuous_mapping_event_probability</code></summary>
 <div class="declaration-body">
@@ -2083,7 +2083,7 @@ globally continuous. </p></div>
 <details class="result-group" id="theorem-10-6">
 <summary><span>Theorem 10.6</span><span class="result-count">6 of 20 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bootstrap Delta Method</p></div>
+<div class="textbook-statement"><p>If $a_n(Z_n^*-Z_n)\xrightarrow{d^*}Z$ and $g$ is differentiable, then $a_n(g(Z_n^*)-g(Z_n))\xrightarrow{d^*}G'Z$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-delta-method-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_delta_method_gaussian</code></summary>
 <div class="declaration-body">
@@ -2348,7 +2348,7 @@ compact-range pointwise remainder bound. </p></div>
 <details class="result-group" id="theorem-10-7">
 <summary><span>Theorem 10.7</span><span class="result-count">6 of 24 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under the assumptions of Theorem 6.10, the bootstrap smooth-function estimator has the same Gaussian asymptotic distribution as the sample estimator</p></div>
+<div class="textbook-statement"><p>In the smooth-function model, $p_n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$, the same limit as $p_n(\hat\theta-\theta)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-smooth-function-gaussian-of-linearization">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_smooth_function_gaussian_of_linearization</code></summary>
 <div class="declaration-body">
@@ -2590,7 +2590,7 @@ the Gaussian lower-orthant null-frontier premise is discharged automatically. </
 <details class="result-group" id="theorem-10-8">
 <summary><span>Theorem 10.8</span><span class="result-count">6 of 14 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under the assumptions of Theorem 10.7, the bootstrap smooth-function plug-in covariance <code>V*_θ = G*' V* G*</code> satisfies <code>V*_θ →p* V_θ</code></p></div>
+<div class="textbook-statement"><p>The smooth plug-in covariance satisfies $V_\theta^*=G^{*'}V^*G^*\xrightarrow{p^*}V_\theta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-smooth-variance-consistency">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_smooth_variance_consistency</code></summary>
 <div class="declaration-body">
@@ -2749,7 +2749,7 @@ probability before the smooth covariance CMT is applied. </p></div>
 <details class="result-group" id="theorem-10-8-ordinary-bootstrap-covariance-input">
 <summary><span>Theorem 10.8 ordinary-bootstrap covariance input</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The ordinary <code>Fin (n+1)</code> nonparametric-bootstrap covariance matrix can feed the smooth plug-in covariance estimator when the Jacobian source is deterministic or stochastic and continuous</p></div>
+<div class="textbook-statement"><p>The smooth plug-in covariance satisfies $V_\theta^*=G^{*'}V^*G^*\xrightarrow{p^*}V_\theta$. The ordinary <code>Fin (n+1)</code> nonparametric-bootstrap covariance matrix can feed the smooth plug-in covariance estimator when the Jacobian source is deterministic or stochastic and continuous</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-smoothvariance-detjacobian-finsucccovariance-iid">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_smoothVariance_detJacobian_finSuccCovariance_iid</code></summary>
 <div class="declaration-body">
@@ -2891,7 +2891,7 @@ continuous Jacobian plug-in and the textbook <code>iIndepFun</code> premise. </p
 <details class="result-group" id="theorem-10-8-10-11-ordinary-bootstrap-finite-replication-covariance-input">
 <summary><span>Theorem 10.8/10.11 ordinary-bootstrap finite-replication covariance input</span><span class="result-count">6 of 8 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The ordinary <code>Fin (n+1)</code> nonparametric-bootstrap covariance target can also feed the moment-form and Hansen-centered finite-replication covariance estimators, and then the smooth plug-in covariance estimator</p></div>
+<div class="textbook-statement"><p>The smooth plug-in covariance satisfies $V_\theta^*=G^{*'}V^*G^*\xrightarrow{p^*}V_\theta$. The ordinary <code>Fin (n+1)</code> nonparametric-bootstrap covariance target can also feed the moment-form and Hansen-centered finite-replication covariance estimators, and then the smooth plug-in covariance estimator</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-smoothvariance-detjacobian-finsuccfinitereplicationcovariance-l2-iid">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_smoothVariance_detJacobian_finSuccFiniteReplicationCovariance_l2_iid</code></summary>
 <div class="declaration-body">
@@ -3288,7 +3288,7 @@ moment-form covariance route with the textbook <code>iIndepFun</code> premise. <
 <details class="result-group" id="theorem-10-9">
 <summary><span>Theorem 10.9</span><span class="result-count">6 of 22 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If the normalized statistic and its bootstrap analogue have the same limit law and the bootstrap statistic is uniformly square integrable, then finite-replication bootstrap variance converges to the conditional bootstrap variance and the conditional bootstrap variance converges to the asymptotic variance</p></div>
+<div class="textbook-statement"><p>Under a common limit law and uniform square integrability, $\operatorname{Var}^*(Z_n^*)\xrightarrow{p}V$ and the finite-replication variance is consistent for $V$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-mean-tendsto-of-weak-distribution-of-uniformsquaretail">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_mean_tendsto_of_weak_distribution_of_uniformSquareTail</code></summary>
 <div class="declaration-body">
@@ -3458,7 +3458,7 @@ square-tail conditions rather than developing a separate product-tail API. </p><
 <details class="result-group" id="theorem-10-9-indexed-tail-integral-support">
 <summary><span>Theorem 10.9 indexed tail-integral support</span><span class="result-count">5 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Sample-size-dependent bootstrap spaces can use the same concrete first/second tail-integral and squared-tail-integral routes as the fixed bootstrap-space theorem</p></div>
+<div class="textbook-statement"><p>Under a common limit law and uniform square integrability, $\operatorname{Var}^*(Z_n^*)\xrightarrow{p}V$ and the finite-replication variance is consistent for $V$. Sample-size-dependent bootstrap spaces can use the same concrete first/second tail-integral and squared-tail-integral routes as the fixed bootstrap-space theorem</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-bootstrapmeanrealindexed-realclip-tails-of-tail-integrals">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.bootstrapMeanRealIndexed_realClip_tails_of_tail_integrals</code></summary>
 <div class="declaration-body">
@@ -3692,7 +3692,7 @@ premises needed for conditional bootstrap variance consistency. </p></div>
 <details class="result-group" id="theorem-10-9-indexed-uniform-square-tail-support">
 <summary><span>Theorem 10.9 indexed uniform-square-tail support</span><span class="result-count">6 of 10 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Sample-size-dependent bootstrap spaces satisfying the same uniform square-tail premise have conditional indexed mean, second-moment, variance, mean-vector, cross-moment, and covariance convergence</p></div>
+<div class="textbook-statement"><p>Under a common limit law and uniform square integrability, $\operatorname{Var}^*(Z_n^*)\xrightarrow{p}V$ and the finite-replication variance is consistent for $V$. Sample-size-dependent bootstrap spaces satisfying the same uniform square-tail premise have conditional indexed mean, second-moment, variance, mean-vector, cross-moment, and covariance convergence</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-bootstrap-mean-tendsto-of-weak-distribution-uniform-square-tail">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail</code></summary>
 <div class="declaration-body">
@@ -3885,7 +3885,7 @@ named uniform-square-tail condition package. </p></div>
 <details class="result-group" id="theorem-10-9-ordinary-nonparametric-scalar-variance-support">
 <summary><span>Theorem 10.9 ordinary nonparametric scalar variance support</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The normalized ordinary <code>Fin (n+1)</code> bootstrap mean has conditional variance converging to the population variance once the empirical one-draw variance converges; iid finite-second-moment assumptions discharge that empirical variance premise</p></div>
+<div class="textbook-statement"><p>Under a common limit law and uniform square integrability, $\operatorname{Var}^*(Z_n^*)\xrightarrow{p}V$ and the finite-replication variance is consistent for $V$. The normalized ordinary <code>Fin (n+1)</code> bootstrap mean has conditional variance converging to the population variance once the empirical one-draw variance converges; iid finite-second-moment assumptions discharge that empirical variance premise</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-variance-uniformon-finsucc-tendsto-of-mean-second-moments">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.variance_uniformOn_finSucc_tendsto_of_mean_second_moments</code></summary>
 <div class="declaration-body">
@@ -4031,7 +4031,7 @@ with the textbook <code>iIndepFun</code> premise. </p></div>
 <details class="result-group" id="theorem-10-9-10-11-ordinary-nonparametric-finite-replication-scalar-variance-support">
 <summary><span>Theorem 10.9/10.11 ordinary nonparametric finite-replication scalar variance support</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The normalized ordinary <code>Fin (n+1)</code> bootstrap variance can feed moment-form and Hansen-centered finite-replication scalar variance estimators</p></div>
+<div class="textbook-statement"><p>Under a common limit law and uniform square integrability, $\operatorname{Var}^*(Z_n^*)\xrightarrow{p}V$ and the finite-replication variance is consistent for $V$. The normalized ordinary <code>Fin (n+1)</code> bootstrap variance can feed moment-form and Hansen-centered finite-replication scalar variance estimators</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-finitereplicationvariance-finsucc-l2-iid">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_finiteReplicationVariance_finSucc_l2_iid</code></summary>
 <div class="declaration-body">
@@ -4395,7 +4395,7 @@ formula. </p></div>
 <details class="result-group" id="theorem-10-10">
 <summary><span>Theorem 10.10</span><span class="result-count">6 of 24 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>In the smooth-function model of Theorem 10.7, bounded higher derivatives imply <code>Z*_n = p_n(θhat* − θhat)</code> is uniformly square integrable and the untrimmed bootstrap variance estimator is consistent as in Theorem 10.9</p></div>
+<div class="textbook-statement"><p>Bounded higher derivatives give uniform square integrability of $Z_n^*=p_n(\hat\theta^*-\hat\theta)$, so the untrimmed bootstrap variance satisfies $\hat V_{\theta}^{\mathrm{boot}}\xrightarrow{p}V_\theta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-smooth-bootstrap-variance-consistency-of-gaussian-fourthmoment">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_smooth_bootstrap_variance_consistency_of_gaussian_fourthMoment</code></summary>
 <div class="declaration-body">
@@ -4771,7 +4771,7 @@ statistic itself, so the model-specific Taylor/Rosenthal step remains explicit. 
 <details class="result-group" id="theorem-10-11">
 <summary><span>Theorem 10.11</span><span class="result-count">6 of 40 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>As <code>B → ∞</code>, the finite-replication trimmed bootstrap variance converges in bootstrap probability to the conditional variance of the trimmed bootstrap statistic</p></div>
+<div class="textbook-statement"><p>For fixed $n$, the finite-replication trimmed covariance satisfies $\hat V_{B,n}^{*,\tau}\xrightarrow{p^*}\operatorname{Var}^*(Z_n^{*,\tau})$ as $B\to\infty$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-finitereplicationvariance-tendsto-of-l2-error-bounds">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_finiteReplicationVariance_tendsto_of_l2_error_bounds</code></summary>
 <div class="declaration-body">
@@ -5033,7 +5033,7 @@ the bootstrap WLLN for bounded trimmed replications. </p></div>
 <details class="result-group" id="theorem-10-11-indexed-scalar-variance-support">
 <summary><span>Theorem 10.11 indexed scalar variance support</span><span class="result-count">6 of 10 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Sample-size-dependent bootstrap spaces can feed the same scalar finite-replication simulation-error transfers</p></div>
+<div class="textbook-statement"><p>For fixed $n$, the finite-replication trimmed covariance satisfies $\hat V_{B,n}^{*,\tau}\xrightarrow{p^*}\operatorname{Var}^*(Z_n^{*,\tau})$ as $B\to\infty$. Sample-size-dependent bootstrap spaces can feed the same scalar finite-replication simulation-error transfers</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-finitereplicationvariancecenteredreal-tendsto-of-bootstrap-zero-mean-moments">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_zero_mean_moments</code></summary>
 <div class="declaration-body">
@@ -5216,7 +5216,7 @@ from bootstrap weak convergence and a named uniform-square-tail condition. </p><
 <details class="result-group" id="theorem-10-11-indexed-covariance-support">
 <summary><span>Theorem 10.11 indexed covariance support</span><span class="result-count">6 of 25 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Sample-size-dependent bootstrap spaces can feed the same conditional covariance and finite-replication covariance transfers</p></div>
+<div class="textbook-statement"><p>For fixed $n$, the finite-replication trimmed covariance satisfies $\hat V_{B,n}^{*,\tau}\xrightarrow{p^*}\operatorname{Var}^*(Z_n^{*,\tau})$ as $B\to\infty$. Sample-size-dependent bootstrap spaces can feed the same conditional covariance and finite-replication covariance transfers</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-finitereplicationcovariancecenteredmat-tendsto-of-trimmed-l2-simulation-error">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error</code></summary>
 <div class="declaration-body">
@@ -5425,7 +5425,7 @@ from conditional bootstrap covariance consistency. </p></div>
 <details class="result-group" id="theorem-10-12">
 <summary><span>Theorem 10.12</span><span class="result-count">6 of 20 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under the assumptions of Theorem 10.7, the trimmed conditional bootstrap variance <code>V̂^boot,τ_θ = Var*(Z**_n)</code> converges to the asymptotic variance <code>V_θ</code></p></div>
+<div class="textbook-statement"><p>As $n\to\infty$, the trimmed conditional covariance satisfies $\operatorname{Var}^*(Z_n^{*,\tau})\xrightarrow{p}V_\theta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-trimmedbootstrapvariance-tendsto-of-moments">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_trimmedBootstrapVariance_tendsto_of_moments</code></summary>
 <div class="declaration-body">
@@ -5602,7 +5602,7 @@ square-integrability for every coordinate. </p></div>
 <details class="result-group" id="theorem-10-11-smooth-covariance-coordinate-fourth-moment-support">
 <summary><span>Theorem 10.11 smooth covariance coordinate-fourth-moment support</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Smooth exact-linearization coordinate and coordinate-sum fourth-moment covariance consistency now feeds Hansen's finite-replication covariance estimators with direct simulation-error or coordinatewise <code>L²</code> simulation-error premises</p></div>
+<div class="textbook-statement"><p>For fixed $n$, the finite-replication trimmed covariance satisfies $\hat V_{B,n}^{*,\tau}\xrightarrow{p^*}\operatorname{Var}^*(Z_n^{*,\tau})$ as $B\to\infty$. Smooth exact-linearization coordinate and coordinate-sum fourth-moment covariance consistency now feeds Hansen's finite-replication covariance estimators with direct simulation-error or coordinatewise <code>L²</code> simulation-error premises</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-finitereplicationcovariancemat-tendsto-of-smooth-fourthmoment">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment</code></summary>
 <div class="declaration-body">
@@ -6019,7 +6019,7 @@ coordinate-fourth-moment finite-replication covariance bridge. </p></div>
 <details class="result-group" id="theorem-10-11-indexed-smooth-covariance-coordinate-fourth-moment-support">
 <summary><span>Theorem 10.11 indexed smooth covariance coordinate-fourth-moment support</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Sample-size-dependent smooth exact-linearization coordinate and coordinate-sum fourth-moment covariance consistency now feeds Hansen's indexed finite-replication covariance estimators with direct simulation-error or coordinatewise <code>L²</code> simulation-error premises</p></div>
+<div class="textbook-statement"><p>For fixed $n$, the finite-replication trimmed covariance satisfies $\hat V_{B,n}^{*,\tau}\xrightarrow{p^*}\operatorname{Var}^*(Z_n^{*,\tau})$ as $B\to\infty$. Sample-size-dependent smooth exact-linearization coordinate and coordinate-sum fourth-moment covariance consistency now feeds Hansen's indexed finite-replication covariance estimators with direct simulation-error or coordinatewise <code>L²</code> simulation-error premises</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-finitereplicationcovariancemat-tendsto-of-smooth-fourthmoment">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment</code></summary>
 <div class="declaration-body">
@@ -6436,7 +6436,7 @@ coordinate-fourth-moment finite-replication covariance bridge. </p></div>
 <details class="result-group" id="theorem-10-11-smooth-covariance-fourth-moment-gaussian-limit-wrappers">
 <summary><span>Theorem 10.11 smooth covariance fourth-moment Gaussian-limit wrappers</span><span class="result-count">6 of 8 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Smooth coordinate-fourth-moment finite-replication covariance routes no longer require callers to pass automatic Gaussian-limit coordinate <code>MemLp</code> premises</p></div>
+<div class="textbook-statement"><p>For fixed $n$, the finite-replication trimmed covariance satisfies $\hat V_{B,n}^{*,\tau}\xrightarrow{p^*}\operatorname{Var}^*(Z_n^{*,\tau})$ as $B\to\infty$. Smooth coordinate-fourth-moment finite-replication covariance routes no longer require callers to pass automatic Gaussian-limit coordinate <code>MemLp</code> premises</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-finitereplicationcovariancemat-smooth-fourthmoment-gaussianlimit">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_finiteReplicationCovarianceMat_smooth_fourthMoment_gaussianLimit</code></summary>
 <div class="declaration-body">
@@ -7030,7 +7030,7 @@ premises discharged automatically. </p></div>
 <details class="result-group" id="theorem-10-12-smooth-gaussian-limit-wrappers">
 <summary><span>Theorem 10.12 smooth Gaussian-limit wrappers</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Smooth exact-linearization trimmed covariance routes no longer require callers to pass automatic Gaussian-limit coordinate <code>MemLp</code> side conditions</p></div>
+<div class="textbook-statement"><p>As $n\to\infty$, the trimmed conditional covariance satisfies $\operatorname{Var}^*(Z_n^{*,\tau})\xrightarrow{p}V_\theta$. Smooth exact-linearization trimmed covariance routes no longer require callers to pass automatic Gaussian-limit coordinate <code>MemLp</code> side conditions</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-smooth-trimmedvariance-linearization-normfourth-gaussianlimit">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_smooth_trimmedVariance_linearization_normFourth_gaussianLimit</code></summary>
 <div class="declaration-body">
@@ -7233,7 +7233,7 @@ and Gaussian-limit coordinate <code>MemLp 2</code> premises discharged. </p></di
 <details class="result-group" id="equation-10-14">
 <summary><span>Equation 10.14</span><span class="result-count">6 of 33 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Exact third-through-sixth conditional moments of the normalized bootstrap sample mean in terms of sample cumulants</p></div>
+<div class="textbook-statement"><p>The third through sixth conditional moments of $\sqrt n(\bar Y^*-\bar Y)$ are exact polynomials in the empirical cumulants.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-integral-cube-normalized-empiricalbootstrapresamplemean-uniformon-fun-sub-eq">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.integral_cube_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq</code></summary>
 <div class="declaration-body">
@@ -7398,7 +7398,7 @@ surface. </p></div>
 <details class="result-group" id="equation-10-14-shifted-ordinary-bootstrap-wrappers">
 <summary><span>Equation 10.14 shifted ordinary-bootstrap wrappers</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The same exact third-through-sixth conditional moment formulas specialized to the sample-size-indexed ordinary resampling space <code>Fin (n+1) -&gt; Fin (n+1)</code></p></div>
+<div class="textbook-statement"><p>The third through sixth conditional moments of $\sqrt n(\bar Y^*-\bar Y)$ are exact polynomials in the empirical cumulants. The same exact third-through-sixth conditional moment formulas specialized to the sample-size-indexed ordinary resampling space <code>Fin (n+1) -&gt; Fin (n+1)</code></p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-integral-cube-normalized-finsucc-resamplemean-sub-empiricalmean-eq-formula">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.integral_cube_normalized_finSucc_resampleMean_sub_empiricalMean_eq_formula</code></summary>
 <div class="declaration-body">
@@ -7493,7 +7493,7 @@ the ordinary empirical resampling space. </p></div>
 <details class="result-group" id="equations-10-15-10-16">
 <summary><span>Equations 10.15/10.16</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The normalized statistic and bootstrap analogue have the same limiting law, which is the convergence premise for bootstrap variance consistency</p></div>
+<div class="textbook-statement"><p>The sample and bootstrap statistics share the limit $Z_n\xrightarrow{d}Z$ and $Z_n^*\xrightarrow{d^*}Z$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-tendstoinbootstrapweakdistribution">
 <summary><span class="declaration-kind">def</span> <code>HansenEconometrics.TendstoInBootstrapWeakDistribution</code></summary>
 <div class="declaration-body">
@@ -7628,7 +7628,7 @@ that conditional variance to the limiting variance functional. </p></div>
 <details class="result-group" id="equation-10-17">
 <summary><span>Equation 10.17</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The fourth conditional moment of the normalized bootstrap sample mean is <code>O_p(1)</code>, giving uniform square integrability</p></div>
+<div class="textbook-statement"><p>The normalized bootstrap mean has bounded fourth conditional moment: $\mathbb E^*[(Z_n^*)^4]=O_p(1)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-bootstrapuniformsquaretail-of-fourthmoment-tendstoinmeasure">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure</code></summary>
 <div class="declaration-body">
@@ -7845,7 +7845,7 @@ bootstrap variance is consistent. </p></div>
 <details class="result-group" id="equations-10-18-10-19">
 <summary><span>Equations 10.18/10.19</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The percentile interval assumes the sample estimator and bootstrap estimator have the same scaled limiting law</p></div>
+<div class="textbook-statement"><p>The percentile method assumes $a_n(\hat\theta-\theta)\xrightarrow{d}\xi$ and $a_n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}\xi$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-percentilecoveragevector-tendstoindistribution-of-components">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.percentileCoverageVector_tendstoInDistribution_of_components</code></summary>
 <div class="declaration-body">
@@ -7952,7 +7952,7 @@ CDF masses <code>α / 2</code> and <code>1 - α / 2</code>. </p></div>
 <details class="result-group" id="equation-10-20">
 <summary><span>Equation 10.20</span><span class="result-count">3 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The bootstrap quantile endpoint satisfies <code>a_n(q*_α − θhat) →p q_α</code></p></div>
+<div class="textbook-statement"><p>The bootstrap quantile endpoint satisfies $a_n(q_\alpha^*-\hat\theta)\xrightarrow{p}q_\alpha$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-percentileendpoint-scaled-sub-tendstoinmeasure">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_percentileEndpoint_scaled_sub_tendstoInMeasure</code></summary>
 <div class="declaration-body">
@@ -8051,7 +8051,7 @@ limiting CDF. </p></div>
 <details class="result-group" id="theorem-10-13">
 <summary><span>Theorem 10.13</span><span class="result-count">6 of 24 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If <code>a_n(θhat−θ) →d ξ</code> and <code>a_n(θhat*−θhat) →d* ξ</code>, with continuous symmetric limit law, then the percentile interval has asymptotic coverage <code>1−α</code></p></div>
+<div class="textbook-statement"><p>If the sample and bootstrap centered statistics share a continuous symmetric limit, then $\Pr(\theta\in C_{\mathrm{pct}})\to1-\alpha$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-percentileci-coverage-tendsto-of-joint-quantile-limit">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit</code></summary>
 <div class="declaration-body">
@@ -8322,7 +8322,7 @@ limit statistic as the interval <code>[-qU, -qL]</code>. </p></div>
 <details class="result-group" id="theorem-10-13-finite-ols-percentile-wrappers">
 <summary><span>Theorem 10.13 finite OLS percentile wrappers</span><span class="result-count">6 of 12 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Concrete finite ordinary-bootstrap OLS linear-restriction numerators can feed the percentile endpoint route once the sample-side OLS limit and scalar law calibration are supplied</p></div>
+<div class="textbook-statement"><p>If the sample and bootstrap centered statistics share a continuous symmetric limit, then $\Pr(\theta\in C_{\mathrm{pct}})\to1-\alpha$. Concrete finite ordinary-bootstrap OLS linear-restriction numerators can feed the percentile endpoint route once the sample-side OLS limit and scalar law calibration are supplied</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-percentileci-coverage-indexed-finsucc-olsbetaorzero-gapenvelope-bounds-brackets">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_brackets</code></summary>
 <div class="declaration-body">
@@ -9132,7 +9132,7 @@ the percentile endpoints. </p></div>
 <details class="result-group" id="equations-10-21-10-27">
 <summary><span>Equations 10.21-10.27</span><span class="result-count">6 of 10 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Bias-corrected percentile interval: transformed pivotal model, bootstrap median-bias estimate, normal-scale bias correction, adjusted quantile level, BC endpoint interval, bootstrap CDF identity, and limiting <code>z₀</code> identification</p></div>
+<div class="textbook-statement"><p>The bias-corrected interval uses $z_0=\Phi^{-1}(P^*(\hat\theta^*\le\hat\theta))$ and adjusted levels $\Phi(2z_0+z_\alpha)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-biascorrectedidealcievent-probability-eq-one-sub-alpha">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.biasCorrectedIdealCIEvent_probability_eq_one_sub_alpha</code></summary>
 <div class="declaration-body">
@@ -9234,7 +9234,7 @@ function.  For the BC interval this quantile function is <code>Phi^{-1}</code>. 
 <details class="result-group" id="equations-10-28-10-29">
 <summary><span>Equations 10.28/10.29</span><span class="result-count">6 of 13 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>BCa percentile interval: accelerated transformed pivotal model and corresponding bootstrap CDF identity</p></div>
+<div class="textbook-statement"><p>The BCa interval adds acceleration $a$ and uses adjusted level $\Phi(z_0+(z_0+z_\alpha)/(1-a(z_0+z_\alpha)))$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-bcaidealcievent-probability-eq-one-sub-alpha">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.bcaIdealCIEvent_probability_eq_one_sub_alpha</code></summary>
 <div class="declaration-body">
@@ -9341,7 +9341,7 @@ the accelerated adjusted endpoint levels. </p></div>
 <details class="result-group" id="equations-10-30-10-31">
 <summary><span>Equations 10.30/10.31</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The sample and bootstrap t-ratios have the same limiting distribution, which supplies the percentile-<code>t</code> endpoint convergence premises</p></div>
+<div class="textbook-statement"><p>The sample and bootstrap t ratios share the limit $T_n\xrightarrow{d}\xi$ and $T_n^*\xrightarrow{d^*}\xi$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-percentiletcoveragevector-tendstoindistribution-of-components">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.percentileTCoverageVector_tendstoInDistribution_of_components</code></summary>
 <div class="declaration-body">
@@ -9572,7 +9572,7 @@ of the bootstrap t-ratio statistic.</p>
 <details class="result-group" id="theorem-10-14">
 <summary><span>Theorem 10.14</span><span class="result-count">6 of 32 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>If the sample and bootstrap t-ratios share the same continuous limiting distribution, then the percentile-<code>t</code> interval has asymptotic coverage <code>1−α</code></p></div>
+<div class="textbook-statement"><p>If the sample and bootstrap t ratios share a continuous limit, then $\Pr(\theta\in C_{\mathrm{pt}})\to1-\alpha$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-percentiletci-coverage-tendsto-of-joint-quantile-limit">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit</code></summary>
 <div class="declaration-body">
@@ -9976,7 +9976,7 @@ HC1 OLS scalar restriction. </p></div>
 <details class="result-group" id="theorem-10-14-auxiliary-limit-quantile-routes">
 <summary><span>Theorem 10.14 auxiliary-limit quantile routes</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Auxiliary bootstrap t-ratio limits can feed the percentile-<code>t</code> lower-quantile route by <code>HasLaw</code>, with strict-CDF or local-limit-CDF endpoint bracketing</p></div>
+<div class="textbook-statement"><p>If the sample and bootstrap t ratios share a continuous limit, then $\Pr(\theta\in C_{\mathrm{pt}})\to1-\alpha$. Auxiliary bootstrap t-ratio limits can feed the percentile-<code>t</code> lower-quantile route by <code>HasLaw</code>, with strict-CDF or local-limit-CDF endpoint bracketing</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-percentiletci-coverage-bootstrapdistribution-law-quantile-prob">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob</code></summary>
 <div class="declaration-body">
@@ -10239,7 +10239,7 @@ generalized-inverse endpoints.</p>
 <details class="result-group" id="theorem-10-14-hc2-hc3-ols-wrappers">
 <summary><span>Theorem 10.14 HC2/HC3 OLS wrappers</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Ordinary HC2/HC3 scalar OLS restrictions can use the same percentile-<code>t</code> route once the bootstrap t-statistic premise is supplied</p></div>
+<div class="textbook-statement"><p>If the sample and bootstrap t ratios share a continuous limit, then $\Pr(\theta\in C_{\mathrm{pt}})\to1-\alpha$. Ordinary HC2/HC3 scalar OLS restrictions can use the same percentile-<code>t</code> route once the bootstrap t-statistic premise is supplied</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-olshc2-percentiletci-coverage-tendsto-one-sub-alpha-of-bootstrap-regression-tstat">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat</code></summary>
 <div class="declaration-body">
@@ -10556,7 +10556,7 @@ ordinary HC3 OLS scalar restriction. </p></div>
 <details class="result-group" id="theorem-10-14-ols-local-cdf-wrappers">
 <summary><span>Theorem 10.14 OLS local-CDF wrappers</span><span class="result-count">6 of 8 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Ordinary HC0-HC3 scalar OLS restrictions can use the regression-facing percentile-<code>t</code> route with local standard-normal CDF endpoint bracketing instead of global strict CDF monotonicity</p></div>
+<div class="textbook-statement"><p>If the sample and bootstrap t ratios share a continuous limit, then $\Pr(\theta\in C_{\mathrm{pt}})\to1-\alpha$. Ordinary HC0-HC3 scalar OLS restrictions can use the regression-facing percentile-<code>t</code> route with local standard-normal CDF endpoint bracketing instead of global strict CDF monotonicity</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-olshc0-percentiletci-coverage-tendsto-one-sub-alpha-of-bootstrap-regression-tstat-brackets">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat_brackets</code></summary>
 <div class="declaration-body">
@@ -11167,7 +11167,7 @@ bracketing. </p></div>
 <details class="result-group" id="theorem-10-15">
 <summary><span>Theorem 10.15</span><span class="result-count">6 of 12 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under the assumptions of Theorem 9.11, the percentile-<code>t</code> interval has higher-order coverage <code>P[θ ∈ C_pt] = 1 - α + O(n^{-1})</code></p></div>
+<div class="textbook-statement"><p>Under the stated Edgeworth conditions, $\Pr(\theta\in C_{\mathrm{pt}})=1-\alpha+O(n^{-1})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-percentilet-secondorder-interval-expansion">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_percentileT_secondOrder_interval_expansion</code></summary>
 <div class="declaration-body">
@@ -11382,10 +11382,262 @@ normalization. </p></div>
 </div>
 </details>
 
+<details class="result-group" id="theorem-10-16">
+<summary><span>Theorem 10.16</span><span class="result-count">6 of 23 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>The bootstrap critical value satisfies $q_{1-\alpha}^*\xrightarrow{p}q_{1-\alpha}$ and $\Pr(\lvert T\rvert\gt q_{1-\alpha}^*\mid H_0)\to\alpha$.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-abs-test-rejectionprob-tendsto-of-joint-critical-value-limit">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 10.16, bootstrap critical-value rejection-probability bridge.</p>
+<p>If the test statistic and bootstrap critical value jointly converge to
+<code>(ξ, q)</code>, and the rejection boundary has zero limit mass, then the rejection
+probability converges to <code>P[q &lt; |ξ|]</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ωlim : Type u_3} {mΩ : MeasurableSpace Ω} {mΩlim : MeasurableSpace Ωlim} {μ : MeasureTheory.Measure Ω}
+  {ν : MeasureTheory.Measure Ωlim} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] {T crit : Nat → Ω → Real} {ξ : Ωlim → Real} {critLim : Real},
+  MeasureTheory.TendstoInDistribution (HansenEconometrics.bootstrapAbsTestVector T crit) Filter.atTop
+      (HansenEconometrics.bootstrapAbsTestLimitVector ξ critLim) (fun x =&gt; μ) ν →
+    Eq
+        (MeasureTheory.Measure.instFunLike.coe
+          (MeasureTheory.Measure.map (HansenEconometrics.bootstrapAbsTestLimitVector ξ critLim) ν)
+          (frontier HansenEconometrics.bootstrapAbsRejectionSet))
+        0 →
+      Filter.Tendsto
+        (fun n =&gt;
+          MeasureTheory.Measure.instFunLike.coe μ
+            (setOf fun ω =&gt; HansenEconometrics.bootstrapAbsTestReject (T n ω) (crit n ω)))
+        Filter.atTop
+        (nhds
+          (MeasureTheory.Measure.instFunLike.coe
+            (MeasureTheory.Measure.map (HansenEconometrics.bootstrapAbsTestLimitVector ξ critLim) ν)
+            HansenEconometrics.bootstrapAbsRejectionSet))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.bootstrapAbsRejectionSet</code></li><li><code>HansenEconometrics.bootstrapAbsTestLimitVector</code></li><li><code>HansenEconometrics.bootstrapAbsTestReject</code></li><li><code>HansenEconometrics.bootstrapAbsTestVector</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/Tests.lean#L239">HansenEconometrics/Chapter10Bootstrap/Tests.lean:239</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-abs-test-resamplemean-of-iindep-tail-posdef-brackets">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Indexed ordinary nonparametric-bootstrap two-sided critical-value test from
+the concrete normalized scalar <code>Fin (n+1)</code> resample-mean CLT.</p>
+<p>The bootstrap critical value is the lower generalized inverse of the
+conditional CDF of <code>|sqrt(n+1) (Ybar*_n - Ybar_n)|</code> under the finite ordinary
+resampling law.  The sample-side statistic convergence and endpoint
+calibration are kept explicit, matching Hansen Theorem 10.16. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ωlim : Type u_3} {mΩ : MeasurableSpace Ω} {mΩlim : MeasurableSpace Ωlim} {μ : MeasureTheory.Measure Ω}
+  {ν : MeasureTheory.Measure Ωlim} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] {η ηAbs : MeasureTheory.Measure Real}
+  [MeasureTheory.IsProbabilityMeasure η] [MeasureTheory.NoAtoms η] [MeasureTheory.IsProbabilityMeasure ηAbs]
+  [MeasureTheory.NoAtoms ηAbs] (Y : Nat → Ω → Real),
+  MeasureTheory.MemLp (Y 0) 2 μ →
+    ProbabilityTheory.iIndepFun Y μ →
+      (∀ (i : Nat), ProbabilityTheory.IdentDistrib (Y i) (Y 0) μ μ) →
+        (HansenEconometrics.covMat μ fun ω x =&gt; Y 0 ω).PosDef →
+          ∀ {T : Nat → Ω → Real} {ξ : Ωlim → Real} {critLim α : Real},
+            MeasureTheory.TendstoInDistribution T Filter.atTop ξ (fun x =&gt; μ) ν →
+              Real.instLT.lt 0 α →
+                Real.instLT.lt α 1 →
+                  (∀ (ε : Real),
+                      Real.instLT.lt 0 ε →
+                        Real.instLT.lt ((ProbabilityTheory.cdf ηAbs).toFun (instHSub.hSub critLim ε))
+                          (instHSub.hSub 1 α)) →
+                    (∀ (ε : Real),
+                        Real.instLT.lt 0 ε →
+                          Real.instLT.lt (instHSub.hSub 1 α)
+                            ((ProbabilityTheory.cdf ηAbs).toFun (instHAdd.hAdd critLim ε))) →
+                      (∀ (x : Real), ContinuousAt (fun y =&gt; (ProbabilityTheory.cdf ηAbs).toFun y) x) →
+                        (∀ (n : Nat),
+                            AEMeasurable
+                              (HansenEconometrics.bootstrapScalarLowerQuantileIndexed
+                                (fun n x =&gt; ProbabilityTheory.uniformOn Set.univ)
+                                (fun n ω ωs =&gt;
+                                  abs
+                                    (instHMul.hMul (instHAdd.hAdd n.cast 1).sqrt
+                                      (instHSub.hSub
+                                        (HansenEconometrics.empiricalBootstrapResampleMean (fun i =&gt; Y i.val ω)
+                                          (fun ωs t =&gt; ωs t) ωs)
+                                        (HansenEconometrics.empiricalMean fun i =&gt; Y i.val ω))))
+                                (instHSub.hSub 1 α) n)
+                              μ) →
+                          ProbabilityTheory.HasLaw ξ η ν →
+                            ProbabilityTheory.HasLaw (fun z =&gt; abs (z.ofLp Unit.unit)) ηAbs
+                                (ProbabilityTheory.multivariateGaussian 0
+                                  (HansenEconometrics.covMat μ fun ω x =&gt; Y 0 ω)) →
+                              Real.instLE.le 0 critLim →
+                                Eq ((ProbabilityTheory.cdf η).toFun (Real.instNeg.neg critLim)) (instHDiv.hDiv α 2) →
+                                  Eq ((ProbabilityTheory.cdf η).toFun critLim) (instHSub.hSub 1 (instHDiv.hDiv α 2)) →
+                                    Filter.Tendsto
+                                      (fun n =&gt;
+                                        MeasureTheory.Measure.instFunLike.coe μ
+                                          (setOf fun ω =&gt;
+                                            HansenEconometrics.bootstrapAbsTestReject (T n ω)
+                                              (HansenEconometrics.bootstrapScalarLowerQuantileIndexed
+                                                (fun n x =&gt; ProbabilityTheory.uniformOn Set.univ)
+                                                (fun n ω ωs =&gt;
+                                                  abs
+                                                    (instHMul.hMul (instHAdd.hAdd n.cast 1).sqrt
+                                                      (instHSub.hSub
+                                                        (HansenEconometrics.empiricalBootstrapResampleMean
+                                                          (fun i =&gt; Y i.val ω) (fun ωs t =&gt; ωs t) ωs)
+                                                        (HansenEconometrics.empiricalMean fun i =&gt; Y i.val ω))))
+                                                (instHSub.hSub 1 α) n ω)))
+                                      Filter.atTop (nhds (ENNReal.ofReal α))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.bootstrapAbsTestReject</code></li><li><code>HansenEconometrics.bootstrapScalarLowerQuantileIndexed</code></li><li><code>HansenEconometrics.covMat</code></li><li><code>HansenEconometrics.empiricalBootstrapResampleMean</code></li><li><code>HansenEconometrics.empiricalMean</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/Tests.lean#L1505">HansenEconometrics/Chapter10Bootstrap/Tests.lean:1505</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-abs-test-rejectionprob-tendsto-alpha-of-bootstrap-regression-tstat">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Regression-facing two-sided bootstrap-test calibration from the Theorem
+10.18 t-statistic route.</p>
+<p>The bootstrap critical value is the lower generalized inverse of the
+conditional law of <code>|TthetaStar / seThetaStar|</code>.  The joint
+numerator/standard-error bootstrap weak limit and scale consistency give the
+absolute-standard-normal bootstrap CDF limit, and the existing Theorem 10.16
+quantile route then gives rejection probability <code>α</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ωs : Type u_2} {mΩ : MeasurableSpace Ω} {mΩs : MeasurableSpace Ωs} {μ : MeasureTheory.Measure Ω}
+  [inst : MeasureTheory.IsProbabilityMeasure μ] {Pstar : Nat → Ω → MeasureTheory.Measure Ωs}
+  {TthetaStar seThetaStar : Nat → Ω → Ωs → Real} {T : Nat → Ω → Real} {seθ critLim α : Real},
+  MeasureTheory.TendstoInDistribution T Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (ProbabilityTheory.gaussianReal 0 1) →
+    Real.instLT.lt 0 seθ →
+      (HansenEconometrics.TendstoInBootstrapWeakDistribution μ Pstar
+          (fun n ω ωs =&gt; { fst := TthetaStar n ω ωs, snd := seThetaStar n ω ωs }) (ProbabilityTheory.gaussianReal 0 1)
+          fun z =&gt; { fst := instHMul.hMul seθ z, snd := seθ }) →
+        (∀ (n : Nat) (ω : Ω), MeasureTheory.IsProbabilityMeasure (Pstar n ω)) →
+          (∀ (n : Nat) (ω : Ω), Measurable (TthetaStar n ω)) →
+            (∀ (n : Nat) (ω : Ω), Measurable (seThetaStar n ω)) →
+              (HansenEconometrics.TendstoInBootstrapProbability μ Pstar seThetaStar fun x =&gt; seθ) →
+                Real.instLT.lt 0 α →
+                  Real.instLT.lt α 1 →
+                    (∀ (ε : Real),
+                        Real.instLT.lt 0 ε →
+                          Real.instLT.lt
+                            ((ProbabilityTheory.cdf
+                                  (MeasureTheory.Measure.map (fun z =&gt; abs z)
+                                    (ProbabilityTheory.gaussianReal 0 1))).toFun
+                              (instHSub.hSub critLim ε))
+                            (instHSub.hSub 1 α)) →
+                      (∀ (ε : Real),
+                          Real.instLT.lt 0 ε →
+                            Real.instLT.lt (instHSub.hSub 1 α)
+                              ((ProbabilityTheory.cdf
+                                    (MeasureTheory.Measure.map (fun z =&gt; abs z)
+                                      (ProbabilityTheory.gaussianReal 0 1))).toFun
+                                (instHAdd.hAdd critLim ε))) →
+                        (∀ (n : Nat),
+                            AEMeasurable
+                              (HansenEconometrics.bootstrapScalarLowerQuantile Pstar
+                                (fun n ω ωs =&gt; abs (instHDiv.hDiv (TthetaStar n ω ωs) (seThetaStar n ω ωs)))
+                                (instHSub.hSub 1 α) n)
+                              μ) →
+                          Real.instLE.le 0 critLim →
+                            Eq
+                                ((ProbabilityTheory.cdf (ProbabilityTheory.gaussianReal 0 1)).toFun
+                                  (Real.instNeg.neg critLim))
+                                (instHDiv.hDiv α 2) →
+                              Eq ((ProbabilityTheory.cdf (ProbabilityTheory.gaussianReal 0 1)).toFun critLim)
+                                  (instHSub.hSub 1 (instHDiv.hDiv α 2)) →
+                                Filter.Tendsto
+                                  (fun n =&gt;
+                                    MeasureTheory.Measure.instFunLike.coe μ
+                                      (setOf fun ω =&gt;
+                                        HansenEconometrics.bootstrapAbsTestReject (T n ω)
+                                          (HansenEconometrics.bootstrapScalarLowerQuantile Pstar
+                                            (fun n ω ωs =&gt; abs (instHDiv.hDiv (TthetaStar n ω ωs) (seThetaStar n ω ωs)))
+                                            (instHSub.hSub 1 α) n ω)))
+                                  Filter.atTop (nhds (ENNReal.ofReal α))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.TendstoInBootstrapProbability</code></li><li><code>HansenEconometrics.TendstoInBootstrapWeakDistribution</code></li><li><code>HansenEconometrics.bootstrapAbsTestReject</code></li><li><code>HansenEconometrics.bootstrapScalarLowerQuantile</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/Tests.lean#L1771">HansenEconometrics/Chapter10Bootstrap/Tests.lean:1771</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-abs-test-rejectionprob-tendsto-alpha-of-components-law-cdf-endpoints">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Componentwise endpoint-CDF two-sided bootstrap-test calibration with
+limiting size <code>α</code>.</p>
+<p>This is the Theorem 10.16 rejection bridge stated directly from statistic
+convergence and bootstrap critical-value convergence in probability. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ωlim : Type u_3} {mΩ : MeasurableSpace Ω} {mΩlim : MeasurableSpace Ωlim} {μ : MeasureTheory.Measure Ω}
+  {ν : MeasureTheory.Measure Ωlim} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] {η : MeasureTheory.Measure Real}
+  [MeasureTheory.IsProbabilityMeasure η] [MeasureTheory.NoAtoms η] {T crit : Nat → Ω → Real} {ξ : Ωlim → Real}
+  {critLim α : Real},
+  MeasureTheory.TendstoInDistribution T Filter.atTop ξ (fun x =&gt; μ) ν →
+    (MeasureTheory.TendstoInMeasure μ crit Filter.atTop fun x =&gt; critLim) →
+      (∀ (n : Nat), AEMeasurable (crit n) μ) →
+        ProbabilityTheory.HasLaw ξ η ν →
+          Real.instLE.le 0 critLim →
+            Eq ((ProbabilityTheory.cdf η).toFun (Real.instNeg.neg critLim)) (instHDiv.hDiv α 2) →
+              Eq ((ProbabilityTheory.cdf η).toFun critLim) (instHSub.hSub 1 (instHDiv.hDiv α 2)) →
+                Filter.Tendsto
+                  (fun n =&gt;
+                    MeasureTheory.Measure.instFunLike.coe μ
+                      (setOf fun ω =&gt; HansenEconometrics.bootstrapAbsTestReject (T n ω) (crit n ω)))
+                  Filter.atTop (nhds (ENNReal.ofReal α))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.bootstrapAbsTestReject</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/Tests.lean#L446">HansenEconometrics/Chapter10Bootstrap/Tests.lean:446</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-bootstrapabstest-scalar-rejection-eq-law">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.bootstrapAbsTest_scalar_rejection_eq_law</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The scalar two-sided rejection event can be read from the law of the
+limit statistic. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ωlim : Type u_3} {mΩlim : MeasurableSpace Ωlim} {ν : MeasureTheory.Measure Ωlim} {ξ : Ωlim → Real}
+  {η : MeasureTheory.Measure Real},
+  ProbabilityTheory.HasLaw ξ η ν →
+    ∀ (critLim : Real),
+      Eq
+        (MeasureTheory.Measure.instFunLike.coe ν
+          (setOf fun ω =&gt; HansenEconometrics.bootstrapAbsTestReject (ξ ω) critLim))
+        (MeasureTheory.Measure.instFunLike.coe η (setOf fun x =&gt; HansenEconometrics.bootstrapAbsTestReject x critLim))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.bootstrapAbsTestReject</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/Tests.lean#L169">HansenEconometrics/Chapter10Bootstrap/Tests.lean:169</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-quantile-of-cdf-brackets">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_quantile_of_cdf_brackets</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Quantile convergence from pointwise CDF convergence at strict bracketing
+points.</p>
+<p>If the random CDFs <code>Gseq n</code> converge in probability to <code>G</code> at every fixed
+point, the target <code>q</code> is strictly bracketed by the limiting CDF around level
+<code>p</code>, and <code>qseq</code> is a lower-quantile selection for each random CDF, then
+<code>qseq -&gt;p q</code>.  This is the reusable quantile-convergence constructor behind
+the percentile, percentile-<code>t</code>, and bootstrap critical-value endpoints in
+Hansen Theorems 10.13, 10.14, and 10.16. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Gseq : Nat → Ω → Real → Real} {G : Real → Real}
+  {p q : Real} {qseq : Nat → Ω → Real},
+  HansenEconometrics.CDFQuantileBracket Gseq p qseq →
+    (∀ (ε : Real), Real.instLT.lt 0 ε → Real.instLT.lt (G (instHSub.hSub q ε)) p) →
+      (∀ (ε : Real), Real.instLT.lt 0 ε → Real.instLT.lt p (G (instHAdd.hAdd q ε))) →
+        (∀ (x : Real), MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; Gseq n ω x) Filter.atTop fun x_1 =&gt; G x) →
+          MeasureTheory.TendstoInMeasure μ qseq Filter.atTop fun x =&gt; q</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.CDFQuantileBracket</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/Quantiles.lean#L138">HansenEconometrics/Chapter10Bootstrap/Quantiles.lean:138</a></p>
+</div>
+</details>
+</div>
+</details>
+
 <details class="result-group" id="theorem-10-16-auxiliary-limit-critical-value-routes">
 <summary><span>Theorem 10.16 auxiliary-limit critical-value routes</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Auxiliary absolute-statistic limits can feed the bootstrap critical-value lower-quantile route by <code>HasLaw</code>, with strict-CDF or local-limit-CDF endpoint bracketing</p></div>
+<div class="textbook-statement"><p>The bootstrap critical value satisfies $q_{1-\alpha}^*\xrightarrow{p}q_{1-\alpha}$ and $\Pr(\lvert T\rvert\gt q_{1-\alpha}^*\mid H_0)\to\alpha$. Auxiliary absolute-statistic limits can feed the bootstrap critical-value lower-quantile route by <code>HasLaw</code>, with strict-CDF or local-limit-CDF endpoint bracketing</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-abs-test-rejectionprob-law-quantile-prob">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob</code></summary>
 <div class="declaration-body">
@@ -11592,7 +11844,7 @@ critical-value endpoint.</p>
 <details class="result-group" id="theorem-10-16-hc2-hc3-ols-wrappers">
 <summary><span>Theorem 10.16 HC2/HC3 OLS wrappers</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Ordinary HC2/HC3 scalar OLS t-statistics can use the same two-sided bootstrap-test route once the absolute bootstrap t-statistic premise is supplied</p></div>
+<div class="textbook-statement"><p>The bootstrap critical value satisfies $q_{1-\alpha}^*\xrightarrow{p}q_{1-\alpha}$ and $\Pr(\lvert T\rvert\gt q_{1-\alpha}^*\mid H_0)\to\alpha$. Ordinary HC2/HC3 scalar OLS t-statistics can use the same two-sided bootstrap-test route once the absolute bootstrap t-statistic premise is supplied</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-olshc2-abs-test-rejectionprob-tendsto-alpha-of-bootstrap-regression-tstat">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat</code></summary>
 <div class="declaration-body">
@@ -11885,7 +12137,7 @@ HC3 OLS scalar t-statistic. </p></div>
 <details class="result-group" id="theorem-10-17">
 <summary><span>Theorem 10.17</span><span class="result-count">6 of 12 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under the assumptions of Theorem 9.11, the bootstrap two-sided test has higher-order size refinement using the bootstrap percentile-<code>t</code> critical value</p></div>
+<div class="textbook-statement"><p>The bootstrap two-sided test has the higher-order refinement $q_{1-\alpha}^*=z_{1-\alpha}+o_p(n^{-1})$ and size error $O(n^{-1})$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-abs-test-secondorder-rejection-expansion">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_abs_test_secondOrder_rejection_expansion</code></summary>
 <div class="declaration-body">
@@ -12102,7 +12354,7 @@ value changes the rejection probability by <code>o(n⁻¹)</code>. </p></div>
 <details class="result-group" id="theorem-10-18">
 <summary><span>Theorem 10.18</span><span class="result-count">6 of 28 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2, the bootstrap regression estimator has the same Gaussian limit as the sample estimator; under Assumption 7.3 the transformed statistic has covariance <code>V_θ = R' V_β R</code>; under Assumption 7.4 the bootstrap t-statistic is standard normal</p></div>
+<div class="textbook-statement"><p>For regression, $\sqrt n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$ and the studentized statistic satisfies $T^*\xrightarrow{d^*}N(0,1)$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-regression-theta-gaussian">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_regression_theta_gaussian</code></summary>
 <div class="declaration-body">
@@ -12296,7 +12548,7 @@ is automatic. </p></div>
 <details class="result-group" id="theorem-10-18-robust-feasible-hc-gaussian-wrappers">
 <summary><span>Theorem 10.18 robust feasible HC Gaussian wrappers</span><span class="result-count">6 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Robust feasible HC conditions discharge positive semidefiniteness of the heteroskedastic coefficient covariance in the regression Gaussian route</p></div>
+<div class="textbook-statement"><p>For regression, $\sqrt n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$ and the studentized statistic satisfies $T^*\xrightarrow{d^*}N(0,1)$. Robust feasible HC conditions discharge positive semidefiniteness of the heteroskedastic coefficient covariance in the regression Gaussian route</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-regression-theta-gaussian-of-robustfeasiblehcmomentconditions">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_regression_theta_gaussian_of_robustFeasibleHCMomentConditions</code></summary>
 <div class="declaration-body">
@@ -12534,7 +12786,7 @@ indexed coefficient-level bootstrap CLT remains explicit. </p></div>
 <details class="result-group" id="theorem-10-18-robust-feasible-hc-finite-score-base-wrappers">
 <summary><span>Theorem 10.18 robust feasible HC finite score/base wrappers</span><span class="result-count">2 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Robust feasible HC conditions discharge the condition-package conversion for the concrete <code>Fin (n+1)</code> ordinary-bootstrap score and linearized coefficient CLTs</p></div>
+<div class="textbook-statement"><p>For regression, $\sqrt n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$ and the studentized statistic satisfies $T^*\xrightarrow{d^*}N(0,1)$. Robust feasible HC conditions discharge the condition-package conversion for the concrete <code>Fin (n+1)</code> ordinary-bootstrap score and linearized coefficient CLTs</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-bootstrap-score-gaussian-finsucc-resamplemean-of-robustfeasiblehcmomentconditions">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_bootstrap_score_gaussian_finSucc_resampleMean_of_robustFeasibleHCMomentConditions</code></summary>
 <div class="declaration-body">
@@ -12581,7 +12833,7 @@ regression coefficient CLT. </p></div>
 <details class="result-group" id="theorem-10-18-robust-feasible-hc-finite-ordinary-bootstrap-wrappers">
 <summary><span>Theorem 10.18 robust feasible HC finite ordinary-bootstrap wrappers</span><span class="result-count">6 of 7 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Robust feasible HC conditions feed the concrete <code>Fin (n+1)</code> ordinary-bootstrap score route by projecting to the Chapter 10 score CLT package</p></div>
+<div class="textbook-statement"><p>For regression, $\sqrt n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$ and the studentized statistic satisfies $T^*\xrightarrow{d^*}N(0,1)$. Robust feasible HC conditions feed the concrete <code>Fin (n+1)</code> ordinary-bootstrap score route by projecting to the Chapter 10 score CLT package</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-bootstrap-regression-theta-gaussian-distribution-finsucc-linearizedscore-of-robustfeasiblehcmomentconditions">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_linearizedScore_of_robustFeasibleHCMomentConditions</code></summary>
 <div class="declaration-body">
@@ -12877,7 +13129,7 @@ the finite ordinary-bootstrap linearized score route. </p></div>
 <details class="result-group" id="theorem-10-18-scalar-finite-ols-definition-10-2-wrappers">
 <summary><span>Theorem 10.18 scalar finite OLS Definition 10.2 wrappers</span><span class="result-count">6 of 8 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>The concrete one-row ordinary-bootstrap OLS numerator has CDF convergence faces matching the transformed-statistic route</p></div>
+<div class="textbook-statement"><p>For regression, $\sqrt n(\hat\theta^*-\hat\theta)\xrightarrow{d^*}N(0,V_\theta)$ and the studentized statistic satisfies $T^*\xrightarrow{d^*}N(0,1)$. The concrete one-row ordinary-bootstrap OLS numerator has CDF convergence faces matching the transformed-statistic route</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-indexed-bootstrap-regression-linearrestriction-gaussian-distribution-finsucc-olsbetaorzero-of-gapenvelope-tight">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_indexed_bootstrap_regression_linearRestriction_gaussian_distribution_finSucc_olsBetaOrZero_of_gapEnvelope_tight</code></summary>
 <div class="declaration-body">
@@ -13285,7 +13537,7 @@ one-row ordinary-bootstrap OLS gap-envelope transfer. </p></div>
 <details class="result-group" id="theorem-10-19">
 <summary><span>Theorem 10.19</span><span class="result-count">6 of 20 linked endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Under Assumption 7.2 and 7.3, the trimmed bootstrap variance estimator for the transformed regression statistic converges to <code>V_θ</code></p></div>
+<div class="textbook-statement"><p>The trimmed bootstrap covariance for the transformed regression statistic satisfies $\hat V_{\theta}^{\mathrm{boot},\tau}\xrightarrow{p^*}V_\theta$.</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-regression-trimmedvariance-tendsto-of-linearization-normfourth">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_regression_trimmedVariance_tendsto_of_linearization_normFourth</code></summary>
 <div class="declaration-body">
@@ -13718,7 +13970,7 @@ sample-size-dependent bootstrap spaces. </p></div>
 <details class="result-group" id="theorem-10-19-robust-feasible-hc-trimmed-covariance-wrappers">
 <summary><span>Theorem 10.19 robust feasible HC trimmed covariance wrappers</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Robust feasible HC conditions discharge positive semidefiniteness of the heteroskedastic coefficient covariance in the norm-fourth and second-moment trimmed covariance routes</p></div>
+<div class="textbook-statement"><p>The trimmed bootstrap covariance for the transformed regression statistic satisfies $\hat V_{\theta}^{\mathrm{boot},\tau}\xrightarrow{p^*}V_\theta$. Robust feasible HC conditions discharge positive semidefiniteness of the heteroskedastic coefficient covariance in the norm-fourth and second-moment trimmed covariance routes</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-bootstrap-regression-trimmedvariance-normfourth-gaussianlimit-of-robustfeasiblehcmomentconditions">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_bootstrap_regression_trimmedVariance_normFourth_gaussianLimit_of_robustFeasibleHCMomentConditions</code></summary>
 <div class="declaration-body">
@@ -13976,7 +14228,7 @@ second-moment/diverging-threshold trimmed covariance route. </p></div>
 <details class="result-group" id="theorem-10-19-robust-feasible-hc-finite-replication-trimmed-covariance-wrappers">
 <summary><span>Theorem 10.19 robust feasible HC finite-replication trimmed covariance wrappers</span><span class="result-count">4 endpoints</span></summary>
 <div class="result-body">
-<div class="textbook-statement"><p>Robust feasible HC conditions also discharge positive semidefiniteness for the finite-replication Gaussian-limit <code>L²</code> routes</p></div>
+<div class="textbook-statement"><p>The trimmed bootstrap covariance for the transformed regression statistic satisfies $\hat V_{\theta}^{\mathrm{boot},\tau}\xrightarrow{p^*}V_\theta$. Robust feasible HC conditions also discharge positive semidefiniteness for the finite-replication Gaussian-limit <code>L²</code> routes</p></div>
 <details class="lean-declaration" id="decl-hanseneconometrics-chapter10-regression-finitereplicationtrimmedvariance-normfourth-gaussianlimit-l2-of-robustfeasiblehcmomentconditions">
 <summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_regression_finiteReplicationTrimmedVariance_normFourth_gaussianLimit_l2_of_robustFeasibleHCMomentConditions</code></summary>
 <div class="declaration-body">
@@ -14349,6 +14601,126 @@ Theorem 10.19 second-moment/diverging-threshold route. </p></div>
 </details>
 <details class="dependency-list"><summary>Direct statement dependencies (7)</summary><ul><li><code>HansenEconometrics.RobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.TendstoInBootstrapWeakDistributionIndexed</code></li><li><code>HansenEconometrics.finiteReplicationCovarianceCenteredMat</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li><li><code>HansenEconometrics.smoothFunctionVarianceFunctional</code></li><li><code>HansenEconometrics.trimmedBootstrapCovarianceMatIndexed</code></li></ul></details>
 <p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/FiniteReplication.lean#L13470">HansenEconometrics/Chapter10Bootstrap/FiniteReplication.lean:13470</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-10-20">
+<summary><span>Theorem 10.20</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $u_i$ are independent and uniformly integrable, then for every $r\gt 1$, $n^{-r}\sum_{i=1}^n\lvert u_i\rvert^r\xrightarrow{p}0$.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-chapter10-marcinkiewicz-wlln-rpow-of-uniformintegrable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 10.20, Marcinkiewicz WLLN.</strong></p>
+<p>If <code>uᵢ</code> is uniformly integrable, then for every real <code>r &gt; 1</code>,
+<code>n^{-r} ∑ |uᵢ|^r -&gt;p 0</code>.  Hansen states the theorem with independence as a
+sufficient condition for the ordinary WLLN step; this formulation is slightly
+stronger because Mathlib's probability-theory uniform integrability already
+provides the <code>Oₚ(1)</code> absolute-mean factor, and Chapter 6's maximum theorem
+provides the <code>oₚ(1)</code> scaled-maximum factor. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {u : Nat → Ω → Real} {r : Real},
+  Real.instLT.lt 1 r →
+    MeasureTheory.UniformIntegrable u 1 μ →
+      MeasureTheory.TendstoInMeasure μ (HansenEconometrics.marcinkiewiczWLLNStatisticRpow u r) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.marcinkiewiczWLLNStatisticRpow</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/WLLN.lean#L572">HansenEconometrics/Chapter10Bootstrap/WLLN.lean:572</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-marcinkiewiczwllnstatisticrpow-succ-tendsto-zero-of-uniformintegrable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.marcinkiewiczWLLNStatisticRpow_succ_tendsto_zero_of_uniformIntegrable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Shifted real-exponent version of Hansen Theorem 10.20.</p>
+<p>Ordinary nonparametric bootstrap support uses <code>Fin (n+1)</code> to avoid the empty
+sample at <code>n = 0</code>; this is the corresponding shifted form of Hansen's stated
+real-exponent Marcinkiewicz WLLN. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {u : Nat → Ω → Real} {r : Real},
+  Real.instLT.lt 1 r →
+    MeasureTheory.UniformIntegrable u 1 μ →
+      MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt; HansenEconometrics.marcinkiewiczWLLNStatisticRpow u r (instHAdd.hAdd n 1) ω) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.marcinkiewiczWLLNStatisticRpow</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/WLLN.lean#L587">HansenEconometrics/Chapter10Bootstrap/WLLN.lean:587</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-chapter10-marcinkiewicz-wlln-natpower-of-uniformintegrable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 10.20, natural-power uniformly-integrable wrapper.</p>
+<p>For natural <code>p ≥ 2</code>, uniform integrability of the real sequence <code>uᵢ</code> implies
+<code>n^{-p} ∑ |uᵢ|^p -&gt;p 0</code>.  The textbook states the same argument for every real
+<code>r &gt; 1</code>; this wrapper records the integer-power surface needed by the Chapter
+10 bootstrap variance and Lindeberg proofs. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {u : Nat → Ω → Real} {p : Nat},
+  instLENat.le 2 p →
+    MeasureTheory.UniformIntegrable u 1 μ →
+      MeasureTheory.TendstoInMeasure μ (HansenEconometrics.marcinkiewiczWLLNStatisticNat u p) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.marcinkiewiczWLLNStatisticNat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/WLLN.lean#L418">HansenEconometrics/Chapter10Bootstrap/WLLN.lean:418</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-marcinkiewiczwllnstatisticnat-succ-tendsto-zero-of-uniformintegrable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.marcinkiewiczWLLNStatisticNat_succ_tendsto_zero_of_uniformIntegrable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Shifted <code>Fin (n+1)</code> version of Hansen Theorem 10.20.</p>
+<p>Ordinary nonparametric bootstrap support uses <code>Fin (n+1)</code> to avoid the empty
+sample at <code>n = 0</code>; this is the corresponding shifted Marcinkiewicz WLLN. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {u : Nat → Ω → Real} {p : Nat},
+  instLENat.le 2 p →
+    MeasureTheory.UniformIntegrable u 1 μ →
+      MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt; HansenEconometrics.marcinkiewiczWLLNStatisticNat u p (instHAdd.hAdd n 1) ω) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.marcinkiewiczWLLNStatisticNat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/WLLN.lean#L432">HansenEconometrics/Chapter10Bootstrap/WLLN.lean:432</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-marcinkiewiczwllnstatisticrpow-le-max-mul-sampleabsmean">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.marcinkiewiczWLLNStatisticRpow_le_max_mul_sampleAbsMean</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Deterministic inequality in Hansen's proof of Theorem 10.20 for real
+exponents <code>r &gt; 1</code>.</p>
+<p>This is the textbook display
+<code>n^{-r} ∑ |uᵢ|^r ≤ (n^{-1} max |uᵢ|)^{r-1} (n^{-1} ∑ |uᵢ|)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {u : Nat → Ω → Real} {r : Real} {n : Nat} {ω : Ω},
+  Real.instLT.lt 1 r →
+    Real.instLE.le (HansenEconometrics.marcinkiewiczWLLNStatisticRpow u r n ω)
+      (instHMul.hMul (instHPow.hPow (HansenEconometrics.scaledMaxNNNorm u n ω) (instHSub.hSub r 1))
+        (HansenEconometrics.sampleAbsMean u n ω))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.marcinkiewiczWLLNStatisticRpow</code></li><li><code>HansenEconometrics.sampleAbsMean</code></li><li><code>HansenEconometrics.scaledMaxNNNorm</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/WLLN.lean#L256">HansenEconometrics/Chapter10Bootstrap/WLLN.lean:256</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-marcinkiewiczwllnstatisticnat-le-max-mul-sampleabsmean">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.marcinkiewiczWLLNStatisticNat_le_max_mul_sampleAbsMean</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Deterministic inequality in Hansen's proof of Theorem 10.20.</p>
+<p>For natural powers <code>p ≥ 2</code>,
+<code>n^{-p} ∑ |uᵢ|^p</code> is bounded by
+<code>(n^{-1} max |uᵢ|)^{p-1} (n^{-1} ∑ |uᵢ|)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {u : Nat → Ω → Real} {p n : Nat} {ω : Ω},
+  instLENat.le 2 p →
+    Real.instLE.le (HansenEconometrics.marcinkiewiczWLLNStatisticNat u p n ω)
+      (instHMul.hMul (instHPow.hPow (HansenEconometrics.scaledMaxNNNorm u n ω) (instHSub.hSub p 1))
+        (HansenEconometrics.sampleAbsMean u n ω))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.marcinkiewiczWLLNStatisticNat</code></li><li><code>HansenEconometrics.sampleAbsMean</code></li><li><code>HansenEconometrics.scaledMaxNNNorm</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter10Bootstrap/WLLN.lean#L197">HansenEconometrics/Chapter10Bootstrap/WLLN.lean:197</a></p>
 </div>
 </details>
 </div>
