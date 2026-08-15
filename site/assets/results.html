@@ -1,0 +1,28 @@
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const resultGroups = () => [...document.querySelectorAll("details.result-group")];
+
+  for (const button of document.querySelectorAll("[data-results-action]")) {
+    button.addEventListener("click", () => {
+      const open = button.dataset.resultsAction === "expand";
+      for (const details of resultGroups()) {
+        details.open = open;
+      }
+    });
+  }
+
+  const openAnchorTarget = () => {
+    if (!location.hash) return;
+    const target = document.getElementById(location.hash.slice(1));
+    if (!target) return;
+    let parent = target;
+    while (parent) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+      parent = parent.parentElement;
+    }
+  };
+
+  openAnchorTarget();
+  window.addEventListener("hashchange", openAnchorTarget);
+});
+</script>

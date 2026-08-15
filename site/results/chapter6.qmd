@@ -1,0 +1,1461 @@
+---
+title: "Chapter 6: A Review of Large Sample Asymptotics"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 6."
+---
+
+This page is generated from the [canonical Chapter 6 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch6-inventory.md) and the compiled Lean environment. It contains 16 textbook result groups and 58 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="theorem-6-1-weak-law-of-large-numbers" open>
+<summary><span>Theorem 6.1 Weak Law of Large Numbers</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d. and $\mathbb{E}\lVert Y \rVert &lt; \infty$, then $\bar{Y} = \frac{1}{n} \sum_{i=1}^n Y_i \xrightarrow{p} \mathbb{E}[Y]$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-wlln">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_wlln</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Weak law of large numbers</strong> (Banach-valued, pairwise-independent form).</p>
+<p>If <code>X : ℕ → Ω → E</code> is a sequence of pairwise-independent, identically distributed,
+integrable <code>E</code>-valued random variables on a finite-measure space, then the sample
+mean <code>(1/n) ∑_{i&lt;n} X i</code> converges in probability to <code>𝔼[X 0]</code>.</p>
+<p>This is the direct composition of Mathlib's <code>strong_law_ae</code> with
+<code>tendstoInMeasure_of_tendsto_ae</code>. Provided here as a named lemma to match the
+econometrics literature's WLLN statement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {E : Type u_5} [inst : NormedAddCommGroup E]
+  [inst_1 : NormedSpace Real E] [CompleteSpace E] [inst_3 : MeasurableSpace E] [BorelSpace E]
+  [MeasureTheory.IsFiniteMeasure μ] (X : Nat → Ω → E),
+  MeasureTheory.Integrable (X 0) μ →
+    Pairwise (Function.onFun (fun x1 x2 =&gt; ProbabilityTheory.IndepFun x1 x2 μ) X) →
+      (∀ (i : Nat), ProbabilityTheory.IdentDistrib (X i) (X 0) μ μ) →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt; instHSMul.hSMul (Real.instInv.inv n.cast) ((Finset.range n).sum fun i =&gt; X i ω)) Filter.atTop
+          fun x =&gt; MeasureTheory.integral μ fun x =&gt; X 0 x</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2875">HansenEconometrics/AsymptoticUtils.lean:2875</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-2-transformed-wlln">
+<summary><span>Theorem 6.2 transformed WLLN</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d., $h : \mathbb{R}^k \to \mathbb{R}^q$, and $\mathbb{E}\lVert h(Y) \rVert &lt; \infty$, then $\hat{\mu} = \frac{1}{n} \sum_{i=1}^n h(Y_i) \xrightarrow{p} \mu = \mathbb{E}[h(Y)]$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-transformed-wlln">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_transformed_wlln</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.2, transformed WLLN.</strong></p>
+<p>If <code>X i</code> are pairwise-independent and identically distributed and <code>h (X 0)</code> is integrable,
+then the sample mean of the transformed variables <code>h (X i)</code> converges in probability to
+<code>𝔼[h (X 0)]</code>. This is the textbook transformed WLLN packaged as composition of the
+Banach-valued WLLN with measurable-map preservation of independence and identical distribution. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {E : Type u_5} {F : Type u_6}
+  [inst : MeasurableSpace E] [inst_1 : NormedAddCommGroup F] [inst_2 : NormedSpace Real F] [CompleteSpace F]
+  [inst_4 : MeasurableSpace F] [BorelSpace F] [MeasureTheory.IsFiniteMeasure μ] (X : Nat → Ω → E) (h : E → F),
+  Measurable h →
+    MeasureTheory.Integrable (fun ω =&gt; h (X 0 ω)) μ →
+      Pairwise (Function.onFun (fun x1 x2 =&gt; ProbabilityTheory.IndepFun x1 x2 μ) X) →
+        (∀ (i : Nat), ProbabilityTheory.IdentDistrib (X i) (X 0) μ μ) →
+          MeasureTheory.TendstoInMeasure μ
+            (fun n ω =&gt; instHSMul.hSMul (Real.instInv.inv n.cast) ((Finset.range n).sum fun i =&gt; h (X i ω)))
+            Filter.atTop fun x =&gt; MeasureTheory.integral μ fun x =&gt; (fun ω =&gt; h (X 0 ω)) x</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2913">HansenEconometrics/AsymptoticUtils.lean:2913</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="definition-6-3-consistency">
+<summary><span>Definition 6.3 consistency</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\theta}$ is consistent for $\theta$ if $\hat{\theta} \xrightarrow{p} \theta$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-consistent">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.Consistent</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Definition 6.3, consistency.</strong></p>
+<p>An estimator sequence is consistent for <code>θ</code> when it converges to the constant
+limit <code>θ</code> in measure. This is a chapter-facing name for the Mathlib
+<code>TendstoInMeasure</code> idiom used throughout the asymptotic files. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{Ω : Type u_1} →
+  {E : Type u_2} →
+    {mΩ : MeasurableSpace Ω} → [PseudoEMetricSpace E] → MeasureTheory.Measure Ω → (Nat → Ω → E) → E → Prop</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L33">HansenEconometrics/Chapter6Asymptotics.lean:33</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-3-multivariate-lindeberg-l-vy-clt">
+<summary><span>Theorem 6.3 multivariate Lindeberg-Lévy CLT</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^k$ are i.i.d. and $\mathbb{E}\lVert Y \rVert^2 &lt; \infty$, then $\sqrt{n}(\bar{Y} - \mu) \xrightarrow{d} N(0,V)$ where $\mu = \mathbb{E}[Y]$ and $V = \mathbb{E}[(Y-\mu)(Y-\mu)']$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidscalarclt-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidScalarCLT_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.3, scalar iid CLT wrapper.</strong></p>
+<p>For iid real random variables with finite second moment, the centered sample
+sum scaled by <code>1 / sqrt n</code> converges in distribution to the Gaussian with the
+matching variance. This is a chapter-facing name for Mathlib's scalar CLT. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {μ : MeasureTheory.Measure Ω}
+  [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] {Y : Nat → Ω → Real} {Z : Ω&#x27; → Real},
+  ProbabilityTheory.HasLaw Z (ProbabilityTheory.gaussianReal 0 (ProbabilityTheory.variance (Y 0) μ).toNNReal) ν →
+    MeasureTheory.MemLp (Y 0) 2 μ →
+      ProbabilityTheory.iIndepFun Y μ →
+        (∀ (i : Nat), ProbabilityTheory.IdentDistrib (Y i) (Y 0) μ μ) →
+          MeasureTheory.TendstoInDistribution
+            (fun n ω =&gt;
+              instHMul.hMul (Real.instInv.inv n.cast.sqrt)
+                (instHSub.hSub ((Finset.range n).sum fun i =&gt; Y i ω)
+                  (instHMul.hMul n.cast (MeasureTheory.integral μ fun x =&gt; Y 0 x))))
+            Filter.atTop Z (fun x =&gt; μ) ν</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L188">HansenEconometrics/Chapter6Asymptotics.lean:188</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidvectorclt-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidVectorCLT_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.3, finite-dimensional iid vector CLT.</strong></p>
+<p>For iid <code>k</code>-vectors with finite second moment, the centered sample sum scaled
+by <code>1 / sqrt n</code> converges in distribution to the centered multivariate Gaussian
+with covariance matrix <code>covMat μ (Y 0)</code>. The theorem is stated in
+<code>EuclideanSpace</code> form so it can be consumed directly by Cramer-Wold and Gaussian
+law infrastructure. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {Y : Nat → Ω → k → Real},
+  MeasureTheory.MemLp (Y 0) 2 μ →
+    ProbabilityTheory.iIndepFun Y μ →
+      (∀ (i : Nat), ProbabilityTheory.IdentDistrib (Y i) (Y 0) μ μ) →
+        MeasureTheory.TendstoInDistribution
+          (fun n ω =&gt;
+            {
+              ofLp :=
+                instHSMul.hSMul (Real.instInv.inv n.cast.sqrt)
+                  (instHSub.hSub ((Finset.range n).sum fun i =&gt; Y i ω)
+                    (instHSMul.hSMul n.cast (HansenEconometrics.meanVec μ (Y 0)))) })
+          Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.covMat μ (Y 0)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.covMat</code></li><li><code>HansenEconometrics.meanVec</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L253">HansenEconometrics/Chapter6Asymptotics.lean:253</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-4-multivariate-lindeberg-clt">
+<summary><span>Theorem 6.4 multivariate Lindeberg CLT</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Y_{ni}$ are independent with $\mathbb{E}[Y_{ni}] = 0$, variance matrices $V_{ni}$, $\nu_n^2 = \lambda_{\min}(V_n) &gt; 0$, and the Lindeberg condition $\nu_n^{-2} \sum_i \mathbb{E}[\lVert Y_{ni} \rVert^2 1{\lVert Y_{ni} \rVert^2 \ge \epsilon \nu_n^2}] \to 0$, then $V_n^{-1/2} \sum_i Y_{ni} \xrightarrow{d} N(0,I_k)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-multivariatelindebergclt-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.multivariateLindebergCLT_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.4, multivariate Lindeberg CLT endpoint.</strong></p>
+<p>Once scalar projection Lindeberg CLTs are available for a normalized triangular
+array statistic, Cramér-Wold gives the corresponding multivariate Gaussian
+limit. The textbook normalization <code>V_n^{-1/2} ∑ᵢ Y_{ni}</code> is represented by the
+user-supplied statistic <code>T</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_2} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {T : Nat → Ω → k → Real}
+  {S : Matrix k k Real},
+  HansenEconometrics.MultivariateLindebergCLTConditions μ T S →
+    MeasureTheory.TendstoInDistribution (fun n ω =&gt; { ofLp := T n ω }) Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+      (ProbabilityTheory.multivariateGaussian 0 S)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.MultivariateLindebergCLTConditions</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L887">HansenEconometrics/Chapter6Asymptotics.lean:887</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-multivariateindexedlindebergclt-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.multivariateIndexedLindebergCLT_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Indexed multivariate Lindeberg CLT endpoint.</p>
+<p>Once scalar projection Lindeberg CLTs are available for an indexed normalized
+array statistic, indexed Cramér-Wold gives the corresponding multivariate
+Gaussian limit. This is the source-space-varying analogue of
+<code>multivariateLindebergCLT_tendstoInDistribution</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} [inst : Fintype k] [inst_1 : DecidableEq k] {Ωrow : Nat → Type u_3}
+  [inst_2 : (n : Nat) → MeasurableSpace (Ωrow n)] {P : (n : Nat) → MeasureTheory.Measure (Ωrow n)}
+  [inst_3 : ∀ (n : Nat), MeasureTheory.IsProbabilityMeasure (P n)] {T : (n : Nat) → Ωrow n → k → Real}
+  {S : Matrix k k Real},
+  HansenEconometrics.MultivariateIndexedLindebergCLTConditions Ωrow P T S →
+    MeasureTheory.TendstoInDistribution (fun n ω =&gt; { ofLp := T n ω }) Filter.atTop (fun z =&gt; z) P
+      (ProbabilityTheory.multivariateGaussian 0 S)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.MultivariateIndexedLindebergCLTConditions</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L927">HansenEconometrics/Chapter6Asymptotics.lean:927</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sq-tail-indicator-le-even-moment-div-threshold">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sq_tail_indicator_le_even_moment_div_threshold</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Indicator form of <code>sq_le_even_moment_div_threshold</code>, matching the
+Lindeberg tail summand. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ (x c : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    Real.instLE.le ((setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) x)
+      (instHDiv.hDiv (instHPow.hPow (abs x) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) (instHPow.hPow c m))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L797">HansenEconometrics/Chapter6Asymptotics.lean:797</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-integral-sq-tail-le-integral-even-moment-div-threshold">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.integral_sq_tail_le_integral_even_moment_div_threshold</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Expected-tail form of the even-moment Lyapunov bound. This is the scalar
+estimate used to turn a higher even moment into a Lindeberg tail bound once the
+array normalization supplies the threshold <code>c</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} (μ : MeasureTheory.Measure Ω) (X : Ω → Real) (c : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    MeasureTheory.Integrable
+        (fun ω =&gt; (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X ω))
+        μ →
+      MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (abs (X ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) μ →
+        Real.instLE.le
+          (MeasureTheory.integral μ fun ω =&gt;
+            (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X ω))
+          (instHDiv.hDiv
+            (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (abs (X ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m)))
+            (instHPow.hPow c m))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L812">HansenEconometrics/Chapter6Asymptotics.lean:812</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sum-integral-sq-tail-le-sum-integral-even-moment-div-threshold">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sum_integral_sq_tail_le_sum_integral_even_moment_div_threshold</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Finite-row version of the expected Lyapunov tail bound, matching the
+finite sums in triangular-array Lindeberg conditions. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {ι : Type u_3} [inst : Fintype ι] (μ : MeasureTheory.Measure Ω)
+  (X : ι → Ω → Real) (c : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    (∀ (i : ι),
+        MeasureTheory.Integrable
+          (fun ω =&gt;
+            (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω))
+          μ) →
+      (∀ (i : ι),
+          MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) μ) →
+        Real.instLE.le
+          (Finset.univ.sum fun i =&gt;
+            MeasureTheory.integral μ fun ω =&gt;
+              (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω))
+          (Finset.univ.sum fun i =&gt;
+            instHDiv.hDiv
+              (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m)))
+              (instHPow.hPow c m))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L831">HansenEconometrics/Chapter6Asymptotics.lean:831</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-normalized-sum-integral-sq-tail-le-normalized-even-moment-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.normalized_sum_integral_sq_tail_le_normalized_even_moment_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Normalized finite-row Lyapunov tail bound. This is the direct algebraic
+shape of the scalar Lindeberg expression once the normalization is fixed. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {ι : Type u_3} [inst : Fintype ι] (μ : MeasureTheory.Measure Ω)
+  (X : ι → Ω → Real) (c scale : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    Real.instLE.le 0 scale →
+      (∀ (i : ι),
+          MeasureTheory.Integrable
+            (fun ω =&gt;
+              (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω))
+            μ) →
+        (∀ (i : ι),
+            MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) μ) →
+          Real.instLE.le
+            (instHMul.hMul scale
+              (Finset.univ.sum fun i =&gt;
+                MeasureTheory.integral μ fun ω =&gt;
+                  (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω)))
+            (instHMul.hMul scale
+              (Finset.univ.sum fun i =&gt;
+                instHDiv.hDiv
+                  (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m)))
+                  (instHPow.hPow c m)))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L845">HansenEconometrics/Chapter6Asymptotics.lean:845</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-5-heterogeneous-array-clt">
+<summary><span>Theorem 6.5 heterogeneous-array CLT</span><span class="result-count">6 of 7 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Y_{ni}$ are independent with $\mathbb{E}[Y_{ni}] = 0$, $n^{-1}\sum_i V_{ni} \to V &gt; 0$, and $\sup_{n,i} \mathbb{E}\lVert Y_{ni} \rVert^{2+\delta} &lt; \infty$ for some $\delta &gt; 0$, then $\sqrt{n}\,\bar{Y} \xrightarrow{d} N(0,V)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-heterogeneousarrayclt-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.heterogeneousArrayCLT_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.5, heterogeneous-array CLT endpoint.</strong></p>
+<p>This is the multivariate Cramér-Wold assembly for the heterogeneous-array CLT:
+scalar projection CLTs for the normalized sample average imply convergence to
+the centered Gaussian with covariance <code>V</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_2} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {T : Nat → Ω → k → Real}
+  {V : Matrix k k Real},
+  HansenEconometrics.HeterogeneousArrayCLTConditions μ T V →
+    MeasureTheory.TendstoInDistribution (fun n ω =&gt; { ofLp := T n ω }) Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+      (ProbabilityTheory.multivariateGaussian 0 V)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.HeterogeneousArrayCLTConditions</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L954">HansenEconometrics/Chapter6Asymptotics.lean:954</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sq-le-even-moment-div-threshold">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sq_le_even_moment_div_threshold</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Even-moment Lyapunov tail bound for scalar triangular arrays.</p>
+<p>On the tail event <code>c ≤ x^2</code>, the squared summand is bounded by the
+<code>(2 + 2m)</code>-moment scaled by <code>c^m</code>. This is the deterministic scalar inequality
+behind an even-moment Lyapunov discharge of Hansen's Lindeberg condition. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ (x c : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    Real.instLE.le c (instHPow.hPow x 2) →
+      Real.instLE.le (instHPow.hPow x 2)
+        (instHDiv.hDiv (instHPow.hPow (abs x) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) (instHPow.hPow c m))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L776">HansenEconometrics/Chapter6Asymptotics.lean:776</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sq-tail-indicator-le-even-moment-div-threshold">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sq_tail_indicator_le_even_moment_div_threshold</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Indicator form of <code>sq_le_even_moment_div_threshold</code>, matching the
+Lindeberg tail summand. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ (x c : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    Real.instLE.le ((setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) x)
+      (instHDiv.hDiv (instHPow.hPow (abs x) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) (instHPow.hPow c m))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L797">HansenEconometrics/Chapter6Asymptotics.lean:797</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-integral-sq-tail-le-integral-even-moment-div-threshold">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.integral_sq_tail_le_integral_even_moment_div_threshold</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Expected-tail form of the even-moment Lyapunov bound. This is the scalar
+estimate used to turn a higher even moment into a Lindeberg tail bound once the
+array normalization supplies the threshold <code>c</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} (μ : MeasureTheory.Measure Ω) (X : Ω → Real) (c : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    MeasureTheory.Integrable
+        (fun ω =&gt; (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X ω))
+        μ →
+      MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (abs (X ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) μ →
+        Real.instLE.le
+          (MeasureTheory.integral μ fun ω =&gt;
+            (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X ω))
+          (instHDiv.hDiv
+            (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (abs (X ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m)))
+            (instHPow.hPow c m))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L812">HansenEconometrics/Chapter6Asymptotics.lean:812</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sum-integral-sq-tail-le-sum-integral-even-moment-div-threshold">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sum_integral_sq_tail_le_sum_integral_even_moment_div_threshold</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Finite-row version of the expected Lyapunov tail bound, matching the
+finite sums in triangular-array Lindeberg conditions. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {ι : Type u_3} [inst : Fintype ι] (μ : MeasureTheory.Measure Ω)
+  (X : ι → Ω → Real) (c : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    (∀ (i : ι),
+        MeasureTheory.Integrable
+          (fun ω =&gt;
+            (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω))
+          μ) →
+      (∀ (i : ι),
+          MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) μ) →
+        Real.instLE.le
+          (Finset.univ.sum fun i =&gt;
+            MeasureTheory.integral μ fun ω =&gt;
+              (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω))
+          (Finset.univ.sum fun i =&gt;
+            instHDiv.hDiv
+              (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m)))
+              (instHPow.hPow c m))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L831">HansenEconometrics/Chapter6Asymptotics.lean:831</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-normalized-sum-integral-sq-tail-le-normalized-even-moment-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.normalized_sum_integral_sq_tail_le_normalized_even_moment_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Normalized finite-row Lyapunov tail bound. This is the direct algebraic
+shape of the scalar Lindeberg expression once the normalization is fixed. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {ι : Type u_3} [inst : Fintype ι] (μ : MeasureTheory.Measure Ω)
+  (X : ι → Ω → Real) (c scale : Real) (m : Nat),
+  Real.instLT.lt 0 c →
+    Real.instLE.le 0 scale →
+      (∀ (i : ι),
+          MeasureTheory.Integrable
+            (fun ω =&gt;
+              (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω))
+            μ) →
+        (∀ (i : ι),
+            MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m))) μ) →
+          Real.instLE.le
+            (instHMul.hMul scale
+              (Finset.univ.sum fun i =&gt;
+                MeasureTheory.integral μ fun ω =&gt;
+                  (setOf fun y =&gt; Real.instLE.le c (instHPow.hPow y 2)).indicator (fun y =&gt; instHPow.hPow y 2) (X i ω)))
+            (instHMul.hMul scale
+              (Finset.univ.sum fun i =&gt;
+                instHDiv.hDiv
+                  (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (abs (X i ω)) (instHAdd.hAdd 2 (instHMul.hMul 2 m)))
+                  (instHPow.hPow c m)))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L845">HansenEconometrics/Chapter6Asymptotics.lean:845</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-6-continuous-mapping-theorem-in-probability">
+<summary><span>Theorem 6.6 Continuous Mapping Theorem in probability</span><span class="result-count">6 of 7 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Z_n \xrightarrow{p} c$ and $g$ is continuous at $c$, then $g(Z_n) \xrightarrow{p} g(c)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-pi">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_pi</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Coordinatewise ⇒ joint <code>TendstoInMeasure</code></strong> for Pi types over a <code>Fintype</code>:
+if every coordinate sequence converges in measure, so does the joint sequence. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} {β : Type u_4} [inst : Fintype β]
+  {X : β → Type u_5} [inst_1 : (b : β) → EDist (X b)] {f : Nat → α → (b : β) → X b} {g : α → (b : β) → X b},
+  (∀ (b : β), MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; f n ω b) Filter.atTop fun ω =&gt; g ω b) →
+    MeasureTheory.TendstoInMeasure μ f Filter.atTop g</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1312">HansenEconometrics/AsymptoticUtils.lean:1312</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-add">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_add</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Additive CMT for <code>TendstoInMeasure</code>.</strong> If <code>f n →ₚ finf</code> and <code>g n →ₚ ginf</code>
+in a pseudo-metrizable additive topological group, then
+<code>f n + g n →ₚ finf + ginf</code>. Mathlib lacks a named additive glue for
+<code>TendstoInMeasure</code>; we assemble it from the product CMT and continuity of <code>+</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ] {E : Type u_4}
+  [inst : PseudoEMetricSpace E] [TopologicalSpace.PseudoMetrizableSpace E] [inst_2 : Add E] [ContinuousAdd E]
+  {f g : Nat → α → E} {finf ginf : α → E},
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (f n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (g n) μ) →
+      MeasureTheory.TendstoInMeasure μ f Filter.atTop finf →
+        MeasureTheory.TendstoInMeasure μ g Filter.atTop ginf →
+          MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; instHAdd.hAdd (f n ω) (g n ω)) Filter.atTop fun ω =&gt;
+            instHAdd.hAdd (finf ω) (ginf ω)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1579">HansenEconometrics/AsymptoticUtils.lean:1579</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-prodmk">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_prodMk</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Joint <code>TendstoInMeasure</code> on a product.</strong> If <code>f n →ₚ finf</code> and <code>g n →ₚ ginf</code>, then
+<code>(f n, g n) →ₚ (finf, ginf)</code> in the product E-metric. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} {E : Type u_4} {F : Type u_5}
+  [inst : PseudoEMetricSpace E] [inst_1 : PseudoEMetricSpace F] {f : Nat → α → E} {finf : α → E} {g : Nat → α → F}
+  {ginf : α → F},
+  MeasureTheory.TendstoInMeasure μ f Filter.atTop finf →
+    MeasureTheory.TendstoInMeasure μ g Filter.atTop ginf →
+      MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; { fst := f n ω, snd := g n ω }) Filter.atTop fun ω =&gt;
+        { fst := finf ω, snd := ginf ω }</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1547">HansenEconometrics/AsymptoticUtils.lean:1547</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-mulvec">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_mulVec</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Matrix-vector multiplication CMT.</strong> If <code>A n →ₚ Ainf</code> (matrix in measure) and
+<code>v n →ₚ vinf</code> (vector in measure), then <code>A n *ᵥ v n →ₚ Ainf *ᵥ vinf</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ] {k : Type u_4}
+  [inst : Fintype k] {A : Nat → α → Matrix k k Real} {Ainf : α → Matrix k k Real} {v : Nat → α → k → Real}
+  {vinf : α → k → Real},
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (A n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (v n) μ) →
+      MeasureTheory.TendstoInMeasure μ A Filter.atTop Ainf →
+        MeasureTheory.TendstoInMeasure μ v Filter.atTop vinf →
+          MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; (A n ω).mulVec (v n ω)) Filter.atTop fun ω =&gt;
+            (Ainf ω).mulVec (vinf ω)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1654">HansenEconometrics/AsymptoticUtils.lean:1654</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-matrix-inv">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_matrix_inv</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>CMT for matrix inversion.</strong> If <code>A n →ₚ A'</code> in measure and <code>A' ω</code> is nonsingular
+for every <code>ω</code>, then <code>(A n)⁻¹ →ₚ (A')⁻¹</code> in measure.</p>
+<p>Pointwise a.s. convergence follows from Mathlib's <code>continuousAt_matrix_inv</code>, which
+gives continuity of matrix inversion at each nonsingular limit point. Measurability
+of the inverse sequence reuses <code>aestronglyMeasurable_matrix_inv</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} {k : Type u_4} [inst : Fintype k]
+  [inst_1 : DecidableEq k] [MeasureTheory.IsFiniteMeasure μ] {A : Nat → α → Matrix k k Real} {A&#x27; : α → Matrix k k Real},
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (A n) μ) →
+    MeasureTheory.TendstoInMeasure μ A Filter.atTop A&#x27; →
+      (∀ (ω : α), IsUnit (A&#x27; ω).det) →
+        MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; Matrix.inv.inv (A n ω)) Filter.atTop fun ω =&gt; Matrix.inv.inv (A&#x27; ω)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1520">HansenEconometrics/AsymptoticUtils.lean:1520</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-matrix-mul">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_matrix_mul</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Matrix multiplication CMT.</strong> If <code>A n →ₚ Ainf</code> and <code>B n →ₚ Binf</code> in
+measure, then <code>A n * B n →ₚ Ainf * Binf</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ] {k : Type u_4}
+  [inst : Fintype k] {A B : Nat → α → Matrix k k Real} {Ainf Binf : α → Matrix k k Real},
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (A n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (B n) μ) →
+      MeasureTheory.TendstoInMeasure μ A Filter.atTop Ainf →
+        MeasureTheory.TendstoInMeasure μ B Filter.atTop Binf →
+          MeasureTheory.TendstoInMeasure μ
+            (fun n ω =&gt; Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (A n ω) (B n ω)) Filter.atTop fun ω =&gt;
+            Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Ainf ω) (Binf ω)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1699">HansenEconometrics/AsymptoticUtils.lean:1699</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-7-continuous-mapping-theorem-in-distribution">
+<summary><span>Theorem 6.7 Continuous Mapping Theorem in distribution</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Z_n \xrightarrow{d} Z$ and $g$ is continuous $Z$-a.s., then $g(Z_n) \xrightarrow{d} g(Z)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-ae-continuous-comp">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInDistribution_ae_continuous_comp</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.7, a.s.-continuity CMT in distribution.</strong></p>
+<p>If <code>Xₙ ⇒ Z</code> and a measurable map <code>g</code> is continuous off a set with zero
+limit-law probability, then <code>g(Xₙ) ⇒ g(Z)</code>.  This is the textbook
+a.s.-continuity face of the continuous-mapping theorem; the null set is stated
+on the law of <code>Z</code>, i.e. <code>(ν.map Z) D = 0</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {Ω&#x27; : Type u_5} {E : Type u_6} {F : Type u_7} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;}
+  {P : Nat → MeasureTheory.Measure Ω} [inst : ∀ (n : Nat), MeasureTheory.IsProbabilityMeasure (P n)]
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_1 : MeasureTheory.IsProbabilityMeasure ν] [inst_2 : TopologicalSpace E]
+  [inst_3 : MeasurableSpace E] [inst_4 : OpensMeasurableSpace E] [HasOuterApproxClosed E] [inst_6 : TopologicalSpace F]
+  [inst_7 : MeasurableSpace F] [inst_8 : BorelSpace F] {X : Nat → Ω → E} {Z : Ω&#x27; → E} {g : E → F},
+  MeasureTheory.TendstoInDistribution X Filter.atTop Z P ν →
+    Measurable g →
+      ∀ {D : Set E},
+        Eq (MeasureTheory.Measure.instFunLike.coe (MeasureTheory.Measure.map Z ν) D) 0 →
+          (∀ (x : E), Not (Set.instMembership.mem D x) → ContinuousAt g x) →
+            MeasureTheory.TendstoInDistribution (fun n ω =&gt; g (X n ω)) Filter.atTop (fun ω =&gt; g (Z ω)) P ν</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L238">HansenEconometrics/AsymptoticUtils.lean:238</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-probabilitymeasure-tendsto-map-of-tendsto-of-ae-continuous">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.probabilityMeasure_tendsto_map_of_tendsto_of_ae_continuous</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Push-forward CMT for maps continuous outside a limit-null set.</strong></p>
+<p>If probability laws <code>νs</code> converge weakly to <code>ν</code>, and a measurable map <code>g</code> is
+continuous away from a <code>ν</code>-null set <code>D</code>, then the push-forward laws converge
+weakly.  This is the probability-measure core of Hansen's a.s.-continuity
+continuous-mapping theorem.</p>
+<p>The proof is the standard Portmanteau closed-set argument: for closed <code>C</code>, the
+closure of <code>g ⁻¹' C</code> is contained in <code>g ⁻¹' C ∪ D</code>; weak convergence controls
+the closed closure, and the null set removes the discontinuity contribution. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {ι : Type u_4} {E : Type u_5} {F : Type u_6} {L : Filter ι} [L.IsCountablyGenerated] [inst : TopologicalSpace E]
+  [inst_1 : MeasurableSpace E] [inst_2 : OpensMeasurableSpace E] [HasOuterApproxClosed E] [inst_4 : TopologicalSpace F]
+  [inst_5 : MeasurableSpace F] [inst_6 : BorelSpace F] {νs : ι → MeasureTheory.ProbabilityMeasure E}
+  {ν : MeasureTheory.ProbabilityMeasure E},
+  Filter.Tendsto νs L (nhds ν) →
+    ∀ {g : E → F} (hg : Measurable g) {D : Set E},
+      Eq (MeasureTheory.Measure.instFunLike.coe ν.toMeasure D) 0 →
+        (∀ (x : E), Not (Set.instMembership.mem D x) → ContinuousAt g x) →
+          Filter.Tendsto (fun i =&gt; (νs i).map ⋯) L (nhds (ν.map ⋯))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L178">HansenEconometrics/AsymptoticUtils.lean:178</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-continuous-comp">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInDistribution_continuous_comp</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.7, global continuous-mapping theorem in distribution.</strong></p>
+<p>If <code>Xₙ ⇒ Z</code> and <code>g</code> is globally continuous, then <code>g(Xₙ) ⇒ g(Z)</code>. This is the
+Mathlib-backed global-continuity face of Hansen's distributional CMT; see
+<code>tendstoInDistribution_ae_continuous_comp</code> for the textbook a.s.-continuity
+form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {Ω&#x27; : Type u_5} {E : Type u_6} {F : Type u_7} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;}
+  {P : Nat → MeasureTheory.Measure Ω} [inst : ∀ (n : Nat), MeasureTheory.IsProbabilityMeasure (P n)]
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_1 : MeasureTheory.IsProbabilityMeasure ν] [inst_2 : TopologicalSpace E]
+  [inst_3 : MeasurableSpace E] [inst_4 : OpensMeasurableSpace E] [inst_5 : TopologicalSpace F]
+  [inst_6 : MeasurableSpace F] [inst_7 : BorelSpace F] {X : Nat → Ω → E} {Z : Ω&#x27; → E} {g : E → F},
+  MeasureTheory.TendstoInDistribution X Filter.atTop Z P ν →
+    Continuous g → MeasureTheory.TendstoInDistribution (fun n ω =&gt; g (X n ω)) Filter.atTop (fun ω =&gt; g (Z ω)) P ν</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L157">HansenEconometrics/AsymptoticUtils.lean:157</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-8-delta-method">
+<summary><span>Theorem 6.8 Delta Method</span><span class="result-count">6 of 7 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $p_n(\hat{\mu} - \mu) \xrightarrow{d} \xi$ and $g$ is continuously differentiable near $\mu$, then $p_n(g(\hat{\mu}) - g(\mu)) \xrightarrow{d} G' \xi$ where $G = \partial g(\mu)'/\partial u$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-deltamethod-remainder-islittleo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.deltaMethod_remainder_isLittleO</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Deterministic Delta-method remainder from Mathlib's Fréchet derivative API.</p>
+<p>This is the analytic core of Hansen Theorem 6.8: after subtracting the linear
+approximation, the remainder is little-o of the input displacement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {E : Type u_3} {F : Type u_4} [inst : SeminormedAddCommGroup E] [inst_1 : NormedSpace Real E]
+  [inst_2 : SeminormedAddCommGroup F] [inst_3 : NormedSpace Real F] {g : E → F}
+  {G : ContinuousLinearMap (RingHom.id Real) E F} {θ : E},
+  HasFDerivAt g G θ →
+    Asymptotics.IsLittleO (nhds θ)
+      (fun x =&gt; instHSub.hSub (instHSub.hSub (g x) (g θ)) (ContinuousLinearMap.funLike.coe G (instHSub.hSub x θ)))
+      fun x =&gt; instHSub.hSub x θ</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L36">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:36</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-deltamethod-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.deltaMethod_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Delta-method Slutsky wrapper.</p>
+<p>If the linearized statistic <code>Tₙ</code> converges in distribution and the nonlinear
+statistic differs from <code>G Tₙ</code> by an <code>oₚ(1)</code> remainder, then the nonlinear
+statistic has the linear image of the limit.  The deterministic source of the
+remainder is <code>deltaMethod_remainder_isLittleO</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {E : Type u_3} {F : Type u_4} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;}
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst : SeminormedAddCommGroup E]
+  [inst_1 : NormedSpace Real E] [inst_2 : MeasurableSpace E] [inst_3 : BorelSpace E] [inst_4 : SeminormedAddCommGroup F]
+  [inst_5 : NormedSpace Real F] [SecondCountableTopology F] [inst_7 : MeasurableSpace F] [inst_8 : BorelSpace F]
+  [inst_9 : MeasureTheory.IsProbabilityMeasure μ] [inst_10 : MeasureTheory.IsProbabilityMeasure ν] {T : Nat → Ω → E}
+  {Z : Ω&#x27; → E} {R : Nat → Ω → F} {G : ContinuousLinearMap (RingHom.id Real) E F},
+  MeasureTheory.TendstoInDistribution T Filter.atTop Z (fun x =&gt; μ) ν →
+    (MeasureTheory.TendstoInMeasure μ R Filter.atTop fun x =&gt; 0) →
+      (∀ (n : Nat), AEMeasurable (R n) μ) →
+        MeasureTheory.TendstoInDistribution
+          (fun n ω =&gt; instHAdd.hAdd (ContinuousLinearMap.funLike.coe G (T n ω)) (R n ω)) Filter.atTop
+          (fun ω =&gt; ContinuousLinearMap.funLike.coe G (Z ω)) (fun x =&gt; μ) ν</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L491">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:491</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-coordinateinv-deltamethod-remainder-islittleo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.coordinateInv_deltaMethod_remainder_isLittleO</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Coordinate-reciprocal Delta-method remainder. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_5} [inst : Fintype k] (j : k) {β : k → Real},
+  Ne (β j) 0 →
+    Asymptotics.IsLittleO (nhds β)
+      (fun b =&gt;
+        instHSub.hSub (instHSub.hSub (Real.instInv.inv (b j)) (Real.instInv.inv (β j)))
+          (ContinuousLinearMap.funLike.coe
+            ((ContinuousLinearMap.toSpanSingleton Real
+                  (Real.instNeg.neg (Real.instInv.inv (instHPow.hPow (β j) 2)))).comp
+              (ContinuousLinearMap.proj j))
+            (instHSub.hSub b β)))
+      fun b =&gt; instHSub.hSub b β</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L227">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:227</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-coordinateratio-deltamethod-remainder-islittleo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.coordinateRatio_deltaMethod_remainder_isLittleO</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Coordinate-ratio Delta-method remainder. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_5} [inst : Fintype k] (j l : k) {β : k → Real},
+  Ne (β l) 0 →
+    Asymptotics.IsLittleO (nhds β)
+      (fun b =&gt;
+        instHSub.hSub
+          (instHSub.hSub (instHMul.hMul (b j) (Real.instInv.inv (b l))) (instHMul.hMul (β j) (Real.instInv.inv (β l))))
+          (ContinuousLinearMap.funLike.coe
+            (instHAdd.hAdd
+              (instHSMul.hSMul (β j)
+                ((ContinuousLinearMap.toSpanSingleton Real
+                      (Real.instNeg.neg (Real.instInv.inv (instHPow.hPow (β l) 2)))).comp
+                  (ContinuousLinearMap.proj l)))
+              (instHSMul.hSMul (Real.instInv.inv (β l)) (ContinuousLinearMap.proj j)))
+            (instHSub.hSub b β)))
+      fun b =&gt; instHSub.hSub b β</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L395">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:395</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-coordinatesquare-deltamethod-remainder-islittleo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.coordinateSquare_deltaMethod_remainder_isLittleO</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Coordinate-square Delta-method remainder.</p>
+<p>This is the transform-specific Fréchet remainder for the nonlinear coefficient
+map <code>β ↦ β_j²</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_5} [inst : Fintype k] (j : k) (β : k → Real),
+  Asymptotics.IsLittleO (nhds β)
+    (fun b =&gt;
+      instHSub.hSub (instHSub.hSub (instHPow.hPow (b j) 2) (instHPow.hPow (β j) 2))
+        (ContinuousLinearMap.funLike.coe (instHSMul.hSMul (instHMul.hMul 2 (β j)) (ContinuousLinearMap.proj j))
+          (instHSub.hSub b β)))
+    fun b =&gt; instHSub.hSub b β</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L129">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:129</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-coordinateproduct-deltamethod-remainder-islittleo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.coordinateProduct_deltaMethod_remainder_isLittleO</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Coordinate-product Delta-method remainder. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_5} [inst : Fintype k] (j l : k) (β : k → Real),
+  Asymptotics.IsLittleO (nhds β)
+    (fun b =&gt;
+      instHSub.hSub (instHSub.hSub (instHMul.hMul (b j) (b l)) (instHMul.hMul (β j) (β l)))
+        (ContinuousLinearMap.funLike.coe
+          (instHAdd.hAdd (instHSMul.hSMul (β j) (ContinuousLinearMap.proj l))
+            (instHSMul.hSMul (β l) (ContinuousLinearMap.proj j)))
+          (instHSub.hSub b β)))
+    fun b =&gt; instHSub.hSub b β</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L308">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:308</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-9-smooth-function-consistency">
+<summary><span>Theorem 6.9 smooth-function consistency</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^m$ are i.i.d., $h : \mathbb{R}^m \to \mathbb{R}^k$, $\mathbb{E}\lVert h(Y) \rVert &lt; \infty$, and $g : \mathbb{R}^k \to \mathbb{R}^q$ is continuous at $\mu$, then $\hat{\theta} \xrightarrow{p} \theta$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-smoothfunction-consistency">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.smoothFunction_consistency</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 6.9: smooth-function consistency from input consistency and
+continuity at the target. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {E : Type u_3} {F : Type u_4} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsFiniteMeasure μ] [inst : PseudoEMetricSpace E] [inst_1 : PseudoEMetricSpace F]
+  [TopologicalSpace.PseudoMetrizableSpace F] {θhat : Nat → Ω → E} {θ : E} {g : E → F},
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (θhat n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (fun ω =&gt; g (θhat n ω)) μ) →
+      (MeasureTheory.TendstoInMeasure μ θhat Filter.atTop fun x =&gt; θ) →
+        ContinuousAt g θ → MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; g (θhat n ω)) Filter.atTop fun x =&gt; g θ</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L516">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:516</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-continuousat-const-comp">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendstoInMeasure_continuousAt_const_comp</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Measurable-space compatibility form of the local continuous mapping theorem.</strong></p>
+<p>If <code>f n →ₚ x</code> and <code>h</code> is continuous at <code>x</code>, then <code>h (f n) →ₚ h x</code>, provided
+the input and composed sequences are a.e. strongly measurable.  The stronger
+metric-space theorem
+<code>tendstoInMeasure_continuousAt_const_comp_without_measurability</code> is preferred
+when those technical premises are not part of the mathematical statement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {E : Type u_2} {F : Type u_3} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α}
+  [MeasureTheory.IsFiniteMeasure μ] [inst : PseudoEMetricSpace E] [inst_1 : PseudoEMetricSpace F]
+  [TopologicalSpace.PseudoMetrizableSpace F] {f : Nat → α → E} {x : E} {h : E → F},
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (f n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (fun ω =&gt; h (f n ω)) μ) →
+      (MeasureTheory.TendstoInMeasure μ f Filter.atTop fun x_1 =&gt; x) →
+        ContinuousAt h x → MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; h (f n ω)) Filter.atTop fun x_1 =&gt; h x</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L135">HansenEconometrics/AsymptoticUtils.lean:135</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-10-smooth-function-asymptotic-normality">
+<summary><span>Theorem 6.10 smooth-function asymptotic normality</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Y_i \in \mathbb{R}^m$ are i.i.d., $\mathbb{E}\lVert h(Y) \rVert^2 &lt; \infty$, and $g$ is continuously differentiable near $\mu$, then $\sqrt{n}(\hat{\theta} - \theta) \xrightarrow{d} N(0,V_\theta)$ where $V_\theta = G' V G$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-smoothfunction-asymptoticnormality-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.smoothFunction_asymptoticNormality_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 6.10, Gaussian Delta-method wrapper.</p>
+<p>The input statistic converges to a centered multivariate Gaussian.  The nonlinear
+statistic is represented as its matrix-linear Delta-method image plus an
+<code>oₚ(1)</code> remainder.  The conclusion is stated directly with the named Gaussian
+law of the image, using <code>hasLaw_multivariateGaussian_zero_linearMap</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {k : Type u_5} {q : Type u_6} [inst : Fintype k]
+  [inst_1 : Fintype q] [inst_2 : DecidableEq k] [inst_3 : DecidableEq q] {S : Matrix k k Real} {R : Matrix q k Real}
+  {T : Nat → Ω → EuclideanSpace Real k} {Y : Nat → Ω → EuclideanSpace Real q}
+  [inst_4 : MeasureTheory.IsProbabilityMeasure μ],
+  S.PosSemidef →
+    MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+        (ProbabilityTheory.multivariateGaussian 0 S) →
+      (MeasureTheory.TendstoInMeasure μ
+          (instHSub.hSub Y fun n ω =&gt;
+            ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap R) (T n ω))
+          Filter.atTop fun x =&gt; 0) →
+        (∀ (n : Nat), AEMeasurable (Y n) μ) →
+          MeasureTheory.TendstoInDistribution Y Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+            (ProbabilityTheory.multivariateGaussian 0
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R S)
+                R.transpose))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/DeltaMethod.lean#L538">HansenEconometrics/AsymptoticUtils/DeltaMethod.lean:538</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-haslaw-multivariategaussian-zero-linearmap">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hasLaw_multivariateGaussian_zero_linearMap</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>A fixed matrix image of a centered multivariate Gaussian is a centered
+multivariate Gaussian with covariance <code>R S Rᵀ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_3} [inst : Fintype n] [inst_1 : DecidableEq n] {q : Type u_4} [inst_2 : Fintype q]
+  [inst_3 : DecidableEq q] {S : Matrix n n Real},
+  S.PosSemidef →
+    ∀ (R : Matrix q n Real),
+      ProbabilityTheory.HasLaw (fun z =&gt; { ofLp := R.mulVec z.ofLp })
+        (ProbabilityTheory.multivariateGaussian 0
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R S)
+            R.transpose))
+        (ProbabilityTheory.multivariateGaussian 0 S)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ProbabilityUtils.lean#L938">HansenEconometrics/ProbabilityUtils.lean:938</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-11-best-unbiased-estimation-of-the-mean">
+<summary><span>Theorem 6.11 best unbiased estimation of the mean</span><span class="result-count">6 of 10 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $\tilde{\mu}$ is unbiased for $\mu = \mathbb{E}[h(Y)]$ and $\mathbb{E}\lVert h(Y) \rVert^2 &lt; \infty$, then $\operatorname{Var}(\tilde{\mu}) \ge n^{-1} V$ where $V = \mathbb{E}[(h(Y)-\mu)(h(Y)-\mu)']$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidsamplemean-covmat-eq-inv-card-smul">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidSampleMean_covMat_eq_inv_card_smul</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.11, covariance-matrix sample-mean sharpness face.</strong></p>
+<p>For finite-dimensional square-integrable observations whose coordinates are
+pairwise independent across distinct observations and whose one-draw covariance
+matrix is common across observations, the covariance matrix of the sample mean
+is exactly <code>1 / n</code> times that one-draw covariance matrix. This is the
+matrix-valued version of the sample-mean sharpness identity around Hansen's
+best-unbiased-estimation theorem. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {ι : Type u_2} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {k : Type u_3}
+  [MeasureTheory.IsProbabilityMeasure μ] [inst : Fintype ι] [Nonempty ι] {Z : ι → Ω → k → Real} (j : ι),
+  (∀ (i : ι) (a : k), MeasureTheory.MemLp (fun ω =&gt; Z i ω a) 2 μ) →
+    (∀ (a b : k), Pairwise fun i l =&gt; ProbabilityTheory.IndepFun (fun ω =&gt; Z i ω a) (fun ω =&gt; Z l ω b) μ) →
+      (∀ (i : ι) (a b : k),
+          Eq (ProbabilityTheory.covariance (fun ω =&gt; Z i ω a) (fun ω =&gt; Z i ω b) μ)
+            (ProbabilityTheory.covariance (fun ω =&gt; Z j ω a) (fun ω =&gt; Z j ω b) μ)) →
+        Eq
+          (HansenEconometrics.covMat μ fun ω a =&gt;
+            instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (Finset.univ.sum fun i =&gt; Z i ω a))
+          (instHSMul.hSMul (Real.instInv.inv (Fintype.card ι).cast) (HansenEconometrics.covMat μ (Z j)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.covMat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L606">HansenEconometrics/Chapter6Asymptotics.lean:606</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidsamplemean-variance-eq-inv-card-mul">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidSampleMean_variance_eq_inv_card_mul</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.11, sample-mean sharpness face.</strong></p>
+<p>For pairwise independent identically distributed square-integrable scalar
+observations, the variance of the finite-sample average is <code>1 / n</code> times the
+variance of one draw. This formalizes the sharp sample-mean variance identity
+around Hansen's best-unbiased-estimation theorem; the full lower bound for
+arbitrary unbiased estimators is a separate efficiency statement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {ι : Type u_2} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsProbabilityMeasure μ] [inst : Fintype ι] [Nonempty ι] {Z : ι → Ω → Real} (j : ι),
+  (∀ (i : ι), MeasureTheory.MemLp (Z i) 2 μ) →
+    (Pairwise fun i j =&gt; ProbabilityTheory.IndepFun (Z i) (Z j) μ) →
+      (∀ (i : ι), ProbabilityTheory.IdentDistrib (Z i) (Z j) μ μ) →
+        Eq
+          (ProbabilityTheory.variance
+            (fun ω =&gt; instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (Finset.univ.sum fun i =&gt; Z i ω)) μ)
+          (instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (ProbabilityTheory.variance (Z j) μ))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L336">HansenEconometrics/Chapter6Asymptotics.lean:336</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidlinearunbiasedestimator-variance-ge-samplemean">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidLinearUnbiasedEstimator_variance_ge_sampleMean</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.11, scalar best-linear-unbiased face.</strong></p>
+<p>Among linear unbiased estimators <code>∑ᵢ wᵢ Zᵢ</code> with weights summing to one, the
+equal-weight sample mean has minimal variance under iid square-integrable scalar
+observations. This is a linear-estimator lower-bound face of Hansen's
+best-unbiased-estimation theorem; the arbitrary-estimator lower bound remains a
+separate efficiency statement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {ι : Type u_2} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsProbabilityMeasure μ] [inst : Fintype ι] [Nonempty ι] {Z : ι → Ω → Real} (j : ι) (w : ι → Real),
+  (∀ (i : ι), MeasureTheory.MemLp (Z i) 2 μ) →
+    (Pairwise fun i l =&gt; ProbabilityTheory.IndepFun (Z i) (Z l) μ) →
+      (∀ (i : ι), ProbabilityTheory.IdentDistrib (Z i) (Z j) μ μ) →
+        Eq (Finset.univ.sum fun i =&gt; w i) 1 →
+          Real.instLE.le (instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (ProbabilityTheory.variance (Z j) μ))
+            (ProbabilityTheory.variance (fun ω =&gt; Finset.univ.sum fun i =&gt; instHMul.hMul (w i) (Z i ω)) μ)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L389">HansenEconometrics/Chapter6Asymptotics.lean:389</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidlinearunbiasedestimator-covmat-sub-samplemean-possemidef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidLinearUnbiasedEstimator_covMat_sub_sampleMean_posSemidef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.11, vector best-linear-unbiased face.</strong></p>
+<p>For scalar weights summing to one, the covariance matrix of the weighted linear
+estimator <code>∑ᵢ wᵢ Zᵢ</code> dominates the covariance matrix of the equal-weight sample
+mean. The proof applies the scalar best-linear-unbiased theorem to every fixed
+linear projection and then repackages the result as a positive-semidefinite
+matrix inequality. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {ι : Type u_2} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {k : Type u_3} [inst : Fintype k]
+  [MeasureTheory.IsProbabilityMeasure μ] [inst_2 : Fintype ι] [Nonempty ι] {Z : ι → Ω → k → Real} (j : ι)
+  (w : ι → Real),
+  (∀ (i : ι), MeasureTheory.MemLp (Z i) 2 μ) →
+    (Pairwise fun i l =&gt; ProbabilityTheory.IndepFun (Z i) (Z l) μ) →
+      (∀ (i : ι), ProbabilityTheory.IdentDistrib (Z i) (Z j) μ μ) →
+        Eq (Finset.univ.sum fun i =&gt; w i) 1 →
+          (instHSub.hSub (HansenEconometrics.covMat μ fun ω a =&gt; Finset.univ.sum fun i =&gt; instHMul.hMul (w i) (Z i ω a))
+              (instHSMul.hSMul (Real.instInv.inv (Fintype.card ι).cast) (HansenEconometrics.covMat μ (Z j)))).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.covMat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L451">HansenEconometrics/Chapter6Asymptotics.lean:451</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidestimator-variance-ge-samplemean-of-mean-add-uncorrelated">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidEstimator_variance_ge_sampleMean_of_mean_add_uncorrelated</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.11, scalar orthogonal-residual efficiency face.</strong></p>
+<p>If a square-integrable scalar estimator decomposes into the sample mean plus a
+residual that is uncorrelated with the sample mean, then its variance dominates
+the sample-mean variance <code>n⁻¹ Var[Z_j]</code>. This composes the sharp sample-mean
+variance identity with the orthogonal-residual variance algebra; the remaining
+arbitrary-estimator task is to derive this orthogonality from a theorem-facing
+unbiasedness/completeness condition. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {ι : Type u_2} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsProbabilityMeasure μ] [inst : Fintype ι] [Nonempty ι] {Z : ι → Ω → Real} {T R : Ω → Real} (j : ι),
+  (∀ (i : ι), MeasureTheory.MemLp (Z i) 2 μ) →
+    (Pairwise fun i l =&gt; ProbabilityTheory.IndepFun (Z i) (Z l) μ) →
+      (∀ (i : ι), ProbabilityTheory.IdentDistrib (Z i) (Z j) μ μ) →
+        MeasureTheory.MemLp R 2 μ →
+          (∀ (ω : Ω),
+              Eq (T ω)
+                (instHAdd.hAdd (instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (Finset.univ.sum fun i =&gt; Z i ω))
+                  (R ω))) →
+            Eq
+                (ProbabilityTheory.covariance
+                  (fun ω =&gt; instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (Finset.univ.sum fun i =&gt; Z i ω)) R
+                  μ)
+                0 →
+              Real.instLE.le
+                (instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (ProbabilityTheory.variance (Z j) μ))
+                (ProbabilityTheory.variance T μ)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L694">HansenEconometrics/Chapter6Asymptotics.lean:694</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidestimator-covmat-sub-samplemean-possemidef-of-mean-add-uncorrelated">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.iidEstimator_covMat_sub_sampleMean_posSemidef_of_mean_add_uncorrelated</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.11, vector orthogonal-residual efficiency face.</strong></p>
+<p>If a finite-dimensional estimator decomposes into the vector sample mean plus a
+square-integrable residual whose every linear projection is uncorrelated with
+the corresponding sample-mean projection, then its covariance matrix dominates
+<code>n⁻¹ covMat(Z_j)</code> in positive-semidefinite order. This is the vector form of the
+orthogonal-residual route to Hansen's best-unbiased-estimation bound. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {ι : Type u_2} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {k : Type u_3} [inst : Fintype k]
+  [MeasureTheory.IsProbabilityMeasure μ] [inst_2 : Fintype ι] [Nonempty ι] {Z : ι → Ω → k → Real} {T R : Ω → k → Real}
+  (j : ι),
+  (∀ (i : ι), MeasureTheory.MemLp (Z i) 2 μ) →
+    (∀ (a b : k), Pairwise fun i l =&gt; ProbabilityTheory.IndepFun (fun ω =&gt; Z i ω a) (fun ω =&gt; Z l ω b) μ) →
+      (∀ (i : ι), ProbabilityTheory.IdentDistrib (Z i) (Z j) μ μ) →
+        MeasureTheory.MemLp R 2 μ →
+          (∀ (ω : Ω),
+              Eq (T ω)
+                (instHAdd.hAdd
+                  (fun a =&gt; instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (Finset.univ.sum fun i =&gt; Z i ω a))
+                  (R ω))) →
+            (∀ (a : k → Real),
+                Eq
+                  (ProbabilityTheory.covariance
+                    (fun ω =&gt;
+                      dotProduct
+                        (fun b =&gt;
+                          instHMul.hMul (Real.instInv.inv (Fintype.card ι).cast) (Finset.univ.sum fun i =&gt; Z i ω b))
+                        a)
+                    (fun ω =&gt; dotProduct (R ω) a) μ)
+                  0) →
+              (instHSub.hSub (HansenEconometrics.covMat μ T)
+                  (instHSMul.hSMul (Real.instInv.inv (Fintype.card ι).cast)
+                    (HansenEconometrics.covMat μ (Z j)))).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.covMat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter6Asymptotics.lean#L730">HansenEconometrics/Chapter6Asymptotics.lean:730</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-12-moment-bound-implies-stochastic-boundedness">
+<summary><span>Theorem 6.12 moment bound implies stochastic boundedness</span><span class="result-count">6 of 14 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $\mathbb{E}\lVert Z_n \rVert^\delta = O(a_n)$ for some $\delta &gt; 0$, then $Z_n = O_p(a_n^{1/\delta})$; if $\mathbb{E}\lVert Z_n \rVert^\delta = o(a_n)$, then $Z_n = o_p(a_n^{1/\delta})$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.BoundedInProbability.of_eventually_integral_norm_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>A uniform eventual first absolute-moment bound implies scalar <code>Oₚ(1)</code>.</p>
+<p>This is the Markov-inequality face of Hansen Theorem 6.12 for the case
+<code>aₙ = 1</code> and moment exponent one. Higher-moment statements reduce to this
+after applying the theorem to the nonnegative transformed sequence. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ]
+  {X : Nat → α → Real} {C : Real},
+  Real.instLE.le 0 C →
+    (∀ (n : Nat), MeasureTheory.Integrable (fun ω =&gt; Real.norm.norm (X n ω)) μ) →
+      Filter.Eventually (fun n =&gt; Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; Real.norm.norm (X n ω)) C)
+          Filter.atTop →
+        HansenEconometrics.BoundedInProbability μ X</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2217">HansenEconometrics/AsymptoticUtils.lean:2217</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-pow-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.BoundedInProbability.of_eventually_integral_norm_pow_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>An eventual higher natural-moment bound implies scalar <code>Oₚ(1)</code>.</p>
+<p>This is the natural-power Markov-inequality face of Hansen Theorem 6.12.
+The positive-real-exponent face is
+<code>BoundedInProbability.of_eventually_integral_norm_rpow_bound</code>; this wrapper
+keeps the common integer-moment cases convenient. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ]
+  {X : Nat → α → Real} {C : Real} {r : Nat},
+  Ne r 0 →
+    Real.instLE.le 0 C →
+      (∀ (n : Nat), MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) r) μ) →
+        Filter.Eventually
+            (fun n =&gt; Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) r) C)
+            Filter.atTop →
+          HansenEconometrics.BoundedInProbability μ X</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2294">HansenEconometrics/AsymptoticUtils.lean:2294</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoinmeasure-of-integral-norm-rpow-scaled-tendsto-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.TendstoInMeasure.of_integral_norm_rpow_scaled_tendsto_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Scaled positive-real moments tending to zero imply scaled <code>oₚ(1)</code>.</p>
+<p>This is the little-<code>oₚ</code> Markov-inequality face of Hansen Theorem 6.12: if
+<code>E|Xₙ|^p / aₙ^p → 0</code> for a positive deterministic scale <code>aₙ</code> and <code>p &gt; 0</code>, then
+<code>aₙ⁻¹ Xₙ →ₚ 0</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ]
+  {X : Nat → α → Real} {a : Nat → Real} {p : Real},
+  Real.instLT.lt 0 p →
+    Filter.Eventually (fun n =&gt; Real.instLT.lt 0 (a n)) Filter.atTop →
+      (∀ (n : Nat), MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) p) μ) →
+        Filter.Tendsto
+            (fun n =&gt;
+              instHDiv.hDiv (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) p)
+                (instHPow.hPow (a n) p))
+            Filter.atTop (nhds 0) →
+          MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; instHMul.hMul (Real.instInv.inv (a n)) (X n ω)) Filter.atTop
+            fun x =&gt; 0</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2503">HansenEconometrics/AsymptoticUtils.lean:2503</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-rpow-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.BoundedInProbability.of_eventually_integral_norm_rpow_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>An eventual positive-real moment bound implies scalar <code>Oₚ(1)</code>.</p>
+<p>This is the arbitrary positive-real-exponent Markov-inequality face of Hansen
+Theorem 6.12 for the unit scale: if <code>E|Xₙ|^p</code> is eventually bounded for some
+<code>p &gt; 0</code>, then <code>Xₙ = Oₚ(1)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ]
+  {X : Nat → α → Real} {C p : Real},
+  Real.instLT.lt 0 p →
+    Real.instLE.le 0 C →
+      (∀ (n : Nat), MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) p) μ) →
+        Filter.Eventually
+            (fun n =&gt; Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) p) C)
+            Filter.atTop →
+          HansenEconometrics.BoundedInProbability μ X</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2360">HansenEconometrics/AsymptoticUtils.lean:2360</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-scaled-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.BoundedInProbability.of_eventually_integral_norm_scaled_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Scaled first absolute-moment bounds imply scaled scalar <code>Oₚ(1)</code>.</p>
+<p>This is the <code>δ = 1</code> scaled face of Hansen Theorem 6.12: if the first absolute
+moment of <code>Xₙ</code> is eventually bounded by a positive deterministic scale <code>aₙ</code>,
+then <code>aₙ⁻¹ Xₙ</code> is bounded in probability. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ]
+  {X : Nat → α → Real} {a : Nat → Real} {C : Real},
+  Real.instLE.le 0 C →
+    Filter.Eventually (fun n =&gt; Real.instLT.lt 0 (a n)) Filter.atTop →
+      (∀ (n : Nat), MeasureTheory.Integrable (fun ω =&gt; Real.norm.norm (X n ω)) μ) →
+        Filter.Eventually
+            (fun n =&gt; Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; Real.norm.norm (X n ω)) (instHMul.hMul C (a n)))
+            Filter.atTop →
+          HansenEconometrics.BoundedInProbability μ fun n ω =&gt; instHMul.hMul (Real.instInv.inv (a n)) (X n ω)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2604">HansenEconometrics/AsymptoticUtils.lean:2604</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-boundedinprobability-of-eventually-integral-norm-pow-scaled-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.BoundedInProbability.of_eventually_integral_norm_pow_scaled_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Scaled natural-moment bounds imply scaled scalar <code>Oₚ(1)</code>.</p>
+<p>If <code>E|Xₙ|^m</code> is eventually bounded by <code>C aₙ^m</code> for a positive deterministic
+scale <code>aₙ</code>, then <code>aₙ⁻¹ Xₙ</code> is bounded in probability. This is the integer-power
+scaled version of Hansen Theorem 6.12; see
+<code>BoundedInProbability.of_eventually_integral_norm_rpow_scaled_bound</code> for the
+positive-real-exponent version. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ]
+  {X : Nat → α → Real} {a : Nat → Real} {C : Real} {r : Nat},
+  Ne r 0 →
+    Real.instLE.le 0 C →
+      Filter.Eventually (fun n =&gt; Real.instLT.lt 0 (a n)) Filter.atTop →
+        (∀ (n : Nat), MeasureTheory.Integrable (fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) r) μ) →
+          Filter.Eventually
+              (fun n =&gt;
+                Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (Real.norm.norm (X n ω)) r)
+                  (instHMul.hMul C (instHPow.hPow (a n) r)))
+              Filter.atTop →
+            HansenEconometrics.BoundedInProbability μ fun n ω =&gt; instHMul.hMul (Real.instInv.inv (a n)) (X n ω)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L2427">HansenEconometrics/AsymptoticUtils.lean:2427</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-13-bounded-first-moments-pass-to-the-limit">
+<summary><span>Theorem 6.13 bounded first moments pass to the limit</span><span class="result-count">6 of 7 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Z_n \xrightarrow{d} Z$ and $\mathbb{E}\lVert Z_n \rVert \le C$, then $\mathbb{E}\lVert Z \rVert \le C$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-elpnorm-one-limit-le-of-tendstoinmeasure-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.eLpNorm_one_limit_le_of_tendstoInMeasure_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.13, convergence-in-measure bounded-moment wrapper.</strong></p>
+<p>If a real sequence converges in measure and has eventually bounded <code>L¹</code>
+seminorm, the limit has the same <code>L¹</code> bound. This is the
+convergence-in-measure face of Hansen's bounded-first-moment passage to the
+limit; the textbook weak-convergence statement is stronger. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} {Z : Nat → α → Real} {Zlim : α → Real}
+  {C : ENNReal},
+  Filter.Eventually (fun n =&gt; ENNReal.instPartialOrder.le (MeasureTheory.eLpNorm (Z n) 1 μ) C) Filter.atTop →
+    MeasureTheory.TendstoInMeasure μ Z Filter.atTop Zlim →
+      (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (Z n) μ) →
+        ENNReal.instPartialOrder.le (MeasureTheory.eLpNorm Zlim 1 μ) C</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1265">HansenEconometrics/AsymptoticUtils.lean:1265</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integrable-norm-limit-of-eventually-integral-norm-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.TendstoInDistribution.integrable_norm_limit_of_eventually_integral_norm_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.13, limit-integrability weak-moment face.</strong></p>
+<p>If <code>Xₙ ⇒ Z</code> and the expected norms of <code>Xₙ</code> are eventually bounded by <code>C</code>, then
+the limit-law norm is integrable. The proof bounds all bounded continuous norm
+truncations and passes to the monotone limit at the <code>lintegral</code> level. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {Ω&#x27; : Type u_5} {E : Type u_6} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;}
+  {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] [inst_2 : SeminormedAddCommGroup E] [inst_3 : MeasurableSpace E]
+  [inst_4 : OpensMeasurableSpace E] [BorelSpace E] [HasOuterApproxClosed E] {X : Nat → Ω → E} {Z : Ω&#x27; → E},
+  MeasureTheory.TendstoInDistribution X Filter.atTop Z (fun x =&gt; μ) ν →
+    ∀ {C : Real},
+      Filter.Eventually
+          (fun n =&gt;
+            And (MeasureTheory.Integrable (fun ω =&gt; inst_2.norm (X n ω)) μ)
+              (Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; inst_2.norm (X n ω)) C))
+          Filter.atTop →
+        MeasureTheory.Integrable (fun ω =&gt; inst_2.norm (Z ω)) ν</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L475">HansenEconometrics/AsymptoticUtils.lean:475</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integral-norm-limit-le-of-eventually-integral-norm-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.TendstoInDistribution.integral_norm_limit_le_of_eventually_integral_norm_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.13, weak-convergence bounded first moments pass to the limit.</strong></p>
+<p>If <code>Xₙ ⇒ Z</code> and the expected norms of <code>Xₙ</code> are eventually bounded by <code>C</code>, then
+the limit-law expected norm is at most <code>C</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {Ω&#x27; : Type u_5} {E : Type u_6} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;}
+  {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] [inst_2 : SeminormedAddCommGroup E] [inst_3 : MeasurableSpace E]
+  [inst_4 : OpensMeasurableSpace E] [BorelSpace E] [HasOuterApproxClosed E] {X : Nat → Ω → E} {Z : Ω&#x27; → E},
+  MeasureTheory.TendstoInDistribution X Filter.atTop Z (fun x =&gt; μ) ν →
+    ∀ {C : Real},
+      Filter.Eventually
+          (fun n =&gt;
+            And (MeasureTheory.Integrable (fun ω =&gt; inst_2.norm (X n ω)) μ)
+              (Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; inst_2.norm (X n ω)) C))
+          Filter.atTop →
+        Real.instLE.le (MeasureTheory.integral ν fun ω =&gt; inst_2.norm (Z ω)) C</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L604">HansenEconometrics/AsymptoticUtils.lean:604</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integral-normtrunc-limit-le-of-eventually-integral-norm-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.TendstoInDistribution.integral_normTrunc_limit_le_of_eventually_integral_norm_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.13, norm-truncation weak-moment layer.</strong></p>
+<p>If <code>Xₙ ⇒ Z</code> and the expected norms of <code>Xₙ</code> are eventually bounded by <code>C</code>, then
+every bounded continuous norm truncation of the limit has expectation at most
+<code>C</code>. This is the reusable truncation step toward the textbook unbounded norm
+statement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {Ω&#x27; : Type u_5} {E : Type u_6} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;}
+  {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] [inst_2 : SeminormedAddCommGroup E] [inst_3 : MeasurableSpace E]
+  [inst_4 : OpensMeasurableSpace E] [BorelSpace E] [HasOuterApproxClosed E] {X : Nat → Ω → E} {Z : Ω&#x27; → E},
+  MeasureTheory.TendstoInDistribution X Filter.atTop Z (fun x =&gt; μ) ν →
+    ∀ {C R : Real} (hR : Real.instLE.le 0 R),
+      Filter.Eventually
+          (fun n =&gt;
+            And (MeasureTheory.Integrable (fun ω =&gt; inst_2.norm (X n ω)) μ)
+              (Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; inst_2.norm (X n ω)) C))
+          Filter.atTop →
+        Real.instLE.le
+          (MeasureTheory.integral ν fun ω =&gt;
+            BoundedContinuousFunction.instFunLike.coe (HansenEconometrics.normTruncBoundedContinuousFunction E R hR)
+              (Z ω))
+          C</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.normTruncBoundedContinuousFunction</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L442">HansenEconometrics/AsymptoticUtils.lean:442</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integral-boundedcontinuous-nonneg-limit-le-of-eventually-bound">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.TendstoInDistribution.integral_boundedContinuous_nonneg_limit_le_of_eventually_bound</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.13, bounded continuous weak-moment face.</strong></p>
+<p>If <code>Xₙ ⇒ Z</code> and the expectations of a nonnegative bounded continuous transform
+are eventually bounded by <code>C</code>, then the limit-law expectation of the same
+transform is bounded by <code>C</code>. This is the direct bounded-continuous Portmanteau
+face of bounded first moments passing to the weak limit. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {Ω&#x27; : Type u_5} {E : Type u_6} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;}
+  {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] [inst_2 : TopologicalSpace E] [inst_3 : MeasurableSpace E]
+  [inst_4 : OpensMeasurableSpace E] [HasOuterApproxClosed E] {X : Nat → Ω → E} {Z : Ω&#x27; → E},
+  MeasureTheory.TendstoInDistribution X Filter.atTop Z (fun x =&gt; μ) ν →
+    ∀ (f : BoundedContinuousFunction E Real),
+      BoundedContinuousFunction.instPartialOrder.le 0 f →
+        ∀ {C : Real},
+          Filter.Eventually
+              (fun n =&gt;
+                Real.instLE.le (MeasureTheory.integral μ fun ω =&gt; BoundedContinuousFunction.instFunLike.coe f (X n ω))
+                  C)
+              Filter.atTop →
+            Real.instLE.le (MeasureTheory.integral ν fun ω =&gt; BoundedContinuousFunction.instFunLike.coe f (Z ω)) C</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L369">HansenEconometrics/AsymptoticUtils.lean:369</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-normtruncboundedcontinuousfunction">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.normTruncBoundedContinuousFunction</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Bounded continuous truncation of the norm: <code>x ↦ min ‖x‖ R</code>.</p>
+<p>The nonnegative bound <code>hR</code> is included so the function has range in <code>[0, R]</code>.
+This is the truncation used for the weak-convergence-facing bounded-moment
+layer in Hansen Theorem 6.13. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">(E : Type u_4) → [inst : SeminormedAddCommGroup E] → (R : Real) → Real.instLE.le 0 R → BoundedContinuousFunction E Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L400">HansenEconometrics/AsymptoticUtils.lean:400</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-14-primitive-condition-for-uniform-integrability">
+<summary><span>Theorem 6.14 primitive condition for uniform integrability</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If for some $\delta &gt; 0$, $\mathbb{E}\lVert Z_n \rVert^{1+\delta} \le C &lt; \infty$, then $Z_n$ is uniformly integrable</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-uniformintegrable-one-of-elpnorm-bdd-gt-one">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.uniformIntegrable_one_of_eLpNorm_bdd_gt_one</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.14, uniform higher-moment UI wrapper.</strong></p>
+<p>If the sequence is uniformly bounded in <code>Lᵖ</code> for some finite exponent <code>p &gt; 1</code>,
+then it is uniformly integrable in <code>L¹</code>. This is the broader textbook
+sufficient condition behind the iid finite-first-moment face above. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {Z : Nat → Ω → Real} {p : ENNReal},
+  ENNReal.instPartialOrder.lt 1 p →
+    Ne p instTopENNReal.top →
+      (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (Z i) μ) →
+        (Exists fun B =&gt;
+            ∀ (i : Nat), ENNReal.instPartialOrder.le (MeasureTheory.eLpNorm (Z i) p μ) (ENNReal.ofNNReal B)) →
+          MeasureTheory.UniformIntegrable Z 1 μ</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L267">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:267</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-uniformintegrable-one-of-identdistrib-memlp">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.uniformIntegrable_one_of_identDistrib_memLp</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.14, identically distributed <code>L¹</code> UI wrapper.</strong></p>
+<p>An identically distributed real sequence with a finite first moment is uniformly
+integrable in <code>L¹</code>.  This is the primitive moment-to-UI bridge used to feed
+Hansen's maximum theorem when the power variables are iid. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  {Z : Nat → Ω → Real},
+  MeasureTheory.MemLp (Z 0) 1 μ →
+    (∀ (i : Nat), ProbabilityTheory.IdentDistrib (Z i) (Z 0) μ μ) → MeasureTheory.UniformIntegrable Z 1 μ</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils/MaxBounds.lean#L253">HansenEconometrics/AsymptoticUtils/MaxBounds.lean:253</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-6-15-convergence-of-moments-under-uniform-integrability">
+<summary><span>Theorem 6.15 convergence of moments under uniform integrability</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $Z_n \xrightarrow{d} Z$ and $Z_n$ is uniformly integrable, then $\mathbb{E}[Z_n] \to \mathbb{E}[Z]$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendstoindistribution-integral-tendsto-of-uniformintegrable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.TendstoInDistribution.integral_tendsto_of_uniformIntegrable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.15, weak-convergence UI moment wrapper.</strong></p>
+<p>If <code>Xₙ ⇒ Z</code> and the source sequence is uniformly integrable in <code>L¹</code>, then the
+real expectations converge.  The proof derives the explicit clipping-tail
+premise from Mathlib's <code>UniformIntegrable</code> tail characterization and the
+limit-law integrability supplied by the bounded-first-moment weak-convergence
+wrapper above. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} {Ω&#x27; : Type u_5} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {μ : MeasureTheory.Measure Ω}
+  [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] {X : Nat → Ω → Real} {Z : Ω&#x27; → Real},
+  MeasureTheory.TendstoInDistribution X Filter.atTop Z (fun x =&gt; μ) ν →
+    MeasureTheory.UniformIntegrable X 1 μ →
+      Filter.Tendsto (fun n =&gt; MeasureTheory.integral μ fun ω =&gt; X n ω) Filter.atTop
+        (nhds (MeasureTheory.integral ν fun ω =&gt; Z ω))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1130">HansenEconometrics/AsymptoticUtils.lean:1130</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tendsto-integral-of-tendstoinmeasure-uniformintegrable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tendsto_integral_of_tendstoInMeasure_uniformIntegrable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 6.15, convergence-in-measure UI moment wrapper.</strong></p>
+<p>If real random variables are uniformly integrable and converge in measure, then
+their expectations converge. This is the Vitali/convergence-in-measure face of
+Hansen's moment-convergence theorem; the textbook weak-convergence version has a
+stronger mode-of-convergence premise than this wrapper exposes. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {α : Type u_1} {m : MeasurableSpace α} {μ : MeasureTheory.Measure α} [MeasureTheory.IsFiniteMeasure μ]
+  {Z : Nat → α → Real} {Zlim : α → Real},
+  MeasureTheory.UniformIntegrable Z 1 μ →
+    MeasureTheory.TendstoInMeasure μ Z Filter.atTop Zlim →
+      Filter.Tendsto (fun n =&gt; MeasureTheory.integral μ fun ω =&gt; Z n ω) Filter.atTop
+        (nhds (MeasureTheory.integral μ fun ω =&gt; Zlim ω))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/AsymptoticUtils.lean#L1280">HansenEconometrics/AsymptoticUtils.lean:1280</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

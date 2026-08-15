@@ -295,14 +295,14 @@ in the Layer-1 assets so every runner stays consistent.
 
 **Codex recipe (no Workflow tool needed):**
 
-1. `uv run review/worklist.py resolve <files...>` → per-file `{file, chapter, excerpt_path,
+1. `uv run --no-project review/worklist.py resolve <files...>` → per-file `{file, chapter, excerpt_path,
    inventory_path, decls}` (padded excerpt *dir*, unpadded excerpt *file* — `worklist.py` handles it).
 2. For each `(file, dimension)` of the 4 dimensions: fill the placeholders in
    `review/prompts/reviewer.md` (including the matching `review/rubric.md` section) and run a reviewer
    agent → `{"findings": [...]}`.
 3. For each finding: run a verifier agent with `review/prompts/verifier.md` (defaults to *refuted*
    when uncertain); keep only `verdict: "confirmed"`.
-4. Validate: `echo '<findings-array>' | uv run review/worklist.py --validate-schema` (exit 0 = valid;
+4. Validate: `echo '<findings-array>' | uv run --no-project review/worklist.py --validate-schema` (exit 0 = valid;
    no `jq` needed). Then write to `review/reports/`.
 5. Optional: for `mechanical: true` findings, run `review/prompts/fixer.md` in an isolated checkout,
    apply the edit, and keep it only if `lake build` is green.

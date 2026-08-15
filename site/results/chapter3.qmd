@@ -1,0 +1,870 @@
+---
+title: "Chapter 3: The Algebra of Least Squares"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 3."
+---
+
+This page is generated from the [canonical Chapter 3 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch3-inventory.md) and the compiled Lean environment. It contains 26 textbook result groups and 43 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="theorem-3-1-objective-level-argmin-statement" open>
+<summary><span>Theorem 3.1 objective-level argmin statement</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta} = \arg\min_b (Y - X b)'(Y - X b)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-sumsquarederrors-olsbeta-le">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sumSquaredErrors_olsBeta_le</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.1 (existence half): <code>olsBeta X y</code> attains the minimum of the sum
+of squared errors. For any coefficient vector <code>b</code>, <code>SSE(olsBeta X y) ≤ SSE(b)</code>.</p>
+<p>Uniqueness — <code>b = olsBeta X y</code> whenever <code>SSE(b) = SSE(olsBeta X y)</code> — requires strict
+positive-definiteness of <code>Xᵀ * X</code> and is left to a follow-up. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (b : k → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Real.instLE.le (HansenEconometrics.sumSquaredErrors X y (HansenEconometrics.olsBeta X y))
+    (HansenEconometrics.sumSquaredErrors X y b)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.sumSquaredErrors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L149">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:149</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-isminon">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_isMinOn</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.1 (existence half), packaged as <code>IsMinOn</code>: <code>olsBeta X y</code> is a
+global minimizer of <code>sumSquaredErrors X y</code> over all of <code>k → ℝ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  IsMinOn (HansenEconometrics.sumSquaredErrors X y) Set.univ (HansenEconometrics.olsBeta X y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.sumSquaredErrors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L160">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:160</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-eq-of-minimizer">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_eq_of_minimizer</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.1 (uniqueness half): if <code>b</code> attains the minimum of the SSE, then
+<code>b = olsBeta X y</code>. Combined with <code>sumSquaredErrors_olsBeta_le</code> and <code>olsBeta_isMinOn</code>,
+this completes Hansen's Theorem 3.1: <code>olsBeta X y</code> is the unique minimizer of
+<code>sumSquaredErrors X y</code> over <code>k → ℝ</code> whenever <code>Xᵀ * X</code> is invertible. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (b : k → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.sumSquaredErrors X y b)
+      (HansenEconometrics.sumSquaredErrors X y (HansenEconometrics.olsBeta X y)) →
+    Eq b (HansenEconometrics.olsBeta X y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.sumSquaredErrors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L170">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:170</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="definition-3-1-sum-of-squared-errors">
+<summary><span>Definition 3.1 sum of squared errors</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$S(b) = (Y - X b)'(Y - X b)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-sumsquarederrors">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.sumSquaredErrors</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Definition 3.1: sum of squared errors, written in matrix notation. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} → {k : Type u_2} → [Fintype n] → [Fintype k] → Matrix n k Real → (n → Real) → (k → Real) → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L14">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:14</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-2-closed-form-ols-coefficient">
+<summary><span>Theorem 3.2 closed-form OLS coefficient</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta} = (X'X)^{-1} X' Y$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.2: closed-form OLS coefficient under invertibility of <code>Xᵀ X</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) → [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L18">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:18</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-2-normal-equations">
+<summary><span>Theorem 3.2 normal equations</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$X' \hat{e} = 0$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-normal-equations">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.normal_equations</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.2: normal equations in closed-form OLS notation. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (X.transpose.mulVec (HansenEconometrics.residual X y)) 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L53">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:53</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="equation-3-17-residuals-sum-to-zero-with-an-intercept">
+<summary><span>Equation (3.17) residuals sum to zero with an intercept</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\iota \in \operatorname{col}(X) \Longrightarrow \sum_i \hat{e}_i = 0$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-residual-sum-zero-of-one-mem-colspan">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.residual_sum_zero_of_one_mem_colspan</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.17): if the regressor matrix contains a constant column,
+residuals sum to zero. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] {c : k → Real},
+  Eq (X.mulVec c) 1 → Eq (Finset.univ.sum fun i =&gt; HansenEconometrics.residual X y i) 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L105">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:105</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-11-hat-matrix">
+<summary><span>Section 3.11 hat matrix</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$P = X (X'X)^{-1} X'$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-hatmatrix">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.hatMatrix</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.11: the OLS projection / hat matrix <code>P = X (Xᵀ X)⁻¹ Xᵀ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Matrix n n Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L16">HansenEconometrics/Chapter3Projections.lean:16</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-12-annihilator-matrix">
+<summary><span>Section 3.12 annihilator matrix</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$M = I - P$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-annihilatormatrix">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.annihilatorMatrix</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.12: the annihilator matrix <code>M = I - P</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            [DecidableEq n] →
+              [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Matrix n n Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L20">HansenEconometrics/Chapter3Projections.lean:20</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-3-1-hat-matrix-symmetry">
+<summary><span>Theorem 3.3.1 hat-matrix symmetry</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$P' = P$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-hatmatrix-transpose">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hatMatrix_transpose</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.3.1: the hat matrix is symmetric. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.hatMatrix X).transpose (HansenEconometrics.hatMatrix X)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.hatMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L25">HansenEconometrics/Chapter3Projections.lean:25</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-3-2-hat-matrix-idempotence">
+<summary><span>Theorem 3.3.2 hat-matrix idempotence</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$P^2 = P$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-hatmatrix-idempotent">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hatMatrix_idempotent</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.3.2: the hat matrix is idempotent. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq
+    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.hatMatrix X)
+      (HansenEconometrics.hatMatrix X))
+    (HansenEconometrics.hatMatrix X)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.hatMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L89">HansenEconometrics/Chapter3Projections.lean:89</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-3-3-trace-of-the-hat-matrix">
+<summary><span>Theorem 3.3.3 trace of the hat matrix</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{tr}(P) = k$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-hatmatrix-trace">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hatMatrix_trace</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.3.3: the trace of the hat matrix is the number of regressors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.hatMatrix X).trace (Fintype.card k).cast</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.hatMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L98">HansenEconometrics/Chapter3Projections.lean:98</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-6-leverage-values">
+<summary><span>Theorem 3.6 leverage values</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$h_{ii}=X_i'(X'X)^{-1}X_i$, $0\le h_{ii}\le 1$, $h_{ii}\ge 1/n$ with an intercept, and $\sum_i h_{ii}=k$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-leveragevalue">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.leverageValue</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.40): the <code>i</code>th leverage value is the <code>i</code>th diagonal
+entry of the hat matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → n → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L113">HansenEconometrics/Chapter3Projections.lean:113</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-leveragevalue-eq-row-invgram-row">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.leverageValue_eq_row_invGram_row</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.40): leverage as the row quadratic form
+<code>xᵢ'(X'X)⁻¹xᵢ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] (i : n),
+  Eq (HansenEconometrics.leverageValue X i)
+    (dotProduct (X i) ((inst_3.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)).mulVec (X i)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.leverageValue</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L119">HansenEconometrics/Chapter3Projections.lean:119</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-leveragevalue-nonneg">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.leverageValue_nonneg</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.6.1: leverage values are nonnegative. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] (i : n),
+  Real.instLE.le 0 (HansenEconometrics.leverageValue X i)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.leverageValue</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L127">HansenEconometrics/Chapter3Projections.lean:127</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-leveragevalue-le-one">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.leverageValue_le_one</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.6.1: leverage values are bounded above by one. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] (i : n),
+  Real.instLE.le (HansenEconometrics.leverageValue X i) 1</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.leverageValue</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L201">HansenEconometrics/Chapter3Projections.lean:201</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-inv-card-le-leveragevalue-of-intercept">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.inv_card_le_leverageValue_of_intercept</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.6.2: if <code>X</code> contains an intercept, every leverage value is at least
+<code>1 / n</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] {c : k → Real},
+  Eq (X.mulVec c) 1 →
+    ∀ (i : n), Real.instLE.le (Real.instInv.inv (Fintype.card n).cast) (HansenEconometrics.leverageValue X i)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.leverageValue</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L176">HansenEconometrics/Chapter3Projections.lean:176</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sum-leveragevalue-eq-card">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sum_leverageValue_eq_card</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.6.3: the leverage values sum to the number of regressors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (Finset.univ.sum fun i =&gt; HansenEconometrics.leverageValue X i) (Fintype.card k).cast</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.leverageValue</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L135">HansenEconometrics/Chapter3Projections.lean:135</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-7-leave-one-out-regression">
+<summary><span>Theorem 3.7 leave-one-out regression</span><span class="result-count">6 of 9 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta}<em>{(-i)}=\hat{\beta}-(X'X)^{-1}X_i\tilde e_i$ and $\tilde e_i=(1-h</em>{ii})^{-1}\hat e_i$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-leaveoneoutbeta-eq-olsbeta-sub-invgram-mulvec">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.leaveOneOutBeta_eq_olsBeta_sub_invGram_mulVec</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.7 / equation (3.43): leave-one-out coefficients can be
+computed from the full-sample coefficient and prediction error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (i : n) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_4 : Invertible (HansenEconometrics.leaveOneOutGram X i)],
+  Eq (HansenEconometrics.leaveOneOutBeta X y i)
+    (instHSub.hSub (HansenEconometrics.olsBeta X y)
+      (instHSMul.hSMul (HansenEconometrics.leaveOneOutResidual X y i)
+        ((inst_3.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)).mulVec (X i))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.leaveOneOutBeta</code></li><li><code>HansenEconometrics.leaveOneOutGram</code></li><li><code>HansenEconometrics.leaveOneOutResidual</code></li><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L308">HansenEconometrics/Chapter3Projections.lean:308</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-one-sub-leverage-mul-leaveoneoutresidual-eq-residual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.one_sub_leverage_mul_leaveOneOutResidual_eq_residual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.7 / equation (3.44), multiplication form:
+<code>(1 - hᵢᵢ) ẽᵢ = êᵢ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (i : n) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_4 : Invertible (HansenEconometrics.leaveOneOutGram X i)],
+  Eq
+    (instHMul.hMul (instHSub.hSub 1 (HansenEconometrics.leverageValue X i))
+      (HansenEconometrics.leaveOneOutResidual X y i))
+    (HansenEconometrics.residual X y i)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.leaveOneOutGram</code></li><li><code>HansenEconometrics.leaveOneOutResidual</code></li><li><code>HansenEconometrics.leverageValue</code></li><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L340">HansenEconometrics/Chapter3Projections.lean:340</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-leaveoneoutresidual-eq-inv-one-sub-leverage-mul-residual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.leaveOneOutResidual_eq_inv_one_sub_leverage_mul_residual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.7 / equation (3.44): leave-one-out prediction errors are
+full-sample residuals scaled by <code>(1 - hᵢᵢ)⁻¹</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (i : n) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_4 : Invertible (HansenEconometrics.leaveOneOutGram X i)],
+  Ne (instHSub.hSub 1 (HansenEconometrics.leverageValue X i)) 0 →
+    Eq (HansenEconometrics.leaveOneOutResidual X y i)
+      (instHMul.hMul (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.leverageValue X i)))
+        (HansenEconometrics.residual X y i))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.leaveOneOutGram</code></li><li><code>HansenEconometrics.leaveOneOutResidual</code></li><li><code>HansenEconometrics.leverageValue</code></li><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L364">HansenEconometrics/Chapter3Projections.lean:364</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-leaveoneoutbetadeleted-eq-leaveoneoutbeta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.leaveOneOutBetaDeleted_eq_leaveOneOutBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The literal row-deleted OLS coefficient agrees with the reduced-Gram
+leave-one-out coefficient used in Hansen Theorem 3.7. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) (i : n) [inst_3 : DecidableEq n] [inst_4 : Invertible (HansenEconometrics.leaveOneOutGram X i)],
+  Eq (HansenEconometrics.leaveOneOutBetaDeleted X y i) (HansenEconometrics.leaveOneOutBeta X y i)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.leaveOneOutBeta</code></li><li><code>HansenEconometrics.leaveOneOutBetaDeleted</code></li><li><code>HansenEconometrics.leaveOneOutGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L281">HansenEconometrics/Chapter3Projections.lean:281</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-leaveoneoutgram">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.leaveOneOutGram</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.42): the leave-one-out Gram matrix
+<code>X'X - Xᵢ Xᵢ'</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} → {k : Type u_2} → [Fintype n] → Matrix n k Real → n → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L216">HansenEconometrics/Chapter3Projections.lean:216</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-leaveoneoutbeta">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.leaveOneOutBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.42): leave-one-out coefficient written with the reduced
+Gram matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) → (i : n) → [Invertible (HansenEconometrics.leaveOneOutGram X i)] → k → Real</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.leaveOneOutGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L265">HansenEconometrics/Chapter3Projections.lean:265</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-3-4-hat-matrix-eigenvalues">
+<summary><span>Theorem 3.3.4 hat-matrix eigenvalues</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\lambda_i(P) \in {0,1}$, with $k$ eigenvalues equal to $1$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-hatmatrix-eigenvalues-zero-or-one">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hatMatrix_eigenvalues_zero_or_one</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.3.4: every eigenvalue of the hat matrix is <code>0</code> or <code>1</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : DecidableEq n] [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  (i : n), Or (Eq (⋯.eigenvalues i) 0) (Eq (⋯.eigenvalues i) 1)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.hatMatrix_isHermitian</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L512">HansenEconometrics/Chapter3Projections.lean:512</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-hatmatrix-card-eigenvalues-eq-one">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hatMatrix_card_eigenvalues_eq_one</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.3.4: exactly <code>k</code> hat-matrix eigenvalues are equal to <code>1</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : DecidableEq n] [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (Fintype.card (Subtype fun i =&gt; Eq (⋯.eigenvalues i) 1)) (Fintype.card k)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.hatMatrix_isHermitian</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L521">HansenEconometrics/Chapter3Projections.lean:521</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-3-5-rank-of-the-hat-matrix">
+<summary><span>Theorem 3.3.5 rank of the hat matrix</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{rank}(P) = k$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-rank-hatmatrix">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.rank_hatMatrix</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The rank of the hat matrix equals the number of regressors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.hatMatrix X).rank (Fintype.card k)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.hatMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L503">HansenEconometrics/Chapter3Projections.lean:503</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="equation-3-21-annihilator-kills-the-regressors">
+<summary><span>Equation (3.21) annihilator kills the regressors</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$M X = 0$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-annihilator-mul-x">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.annihilator_mul_X</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.21): the annihilator matrix kills the regressor matrix, <code>M X = 0</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : DecidableEq n] [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.annihilatorMatrix X) X) 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L75">HansenEconometrics/Chapter3Projections.lean:75</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="equation-3-22-trace-of-the-annihilator">
+<summary><span>Equation (3.22) trace of the annihilator</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{tr}(M) = n - k$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-annihilatormatrix-trace">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.annihilatorMatrix_trace</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.22): the trace of the annihilator matrix is <code>n - k</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : DecidableEq n] [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.annihilatorMatrix X).trace (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L468">HansenEconometrics/Chapter3Projections.lean:468</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-12-annihilator-eigenvalues-and-rank">
+<summary><span>Section 3.12 annihilator eigenvalues and rank</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\lambda_i(M) \in {0,1}$, $\operatorname{rank}(M)=n-k$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-annihilatormatrix-eigenvalues-zero-or-one">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.annihilatorMatrix_eigenvalues_zero_or_one</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.12: every eigenvalue of the annihilator matrix is <code>0</code> or <code>1</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : DecidableEq n] [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  (i : n), Or (Eq (⋯.eigenvalues i) 0) (Eq (⋯.eigenvalues i) 1)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.annihilatorMatrix_isHermitian</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L531">HansenEconometrics/Chapter3Projections.lean:531</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-rank-annihilatormatrix">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.rank_annihilatorMatrix</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.12: the rank of the annihilator matrix is <code>n - k</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  [inst_3 : DecidableEq n] [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.annihilatorMatrix X).rank (instHSub.hSub (Fintype.card n) (Fintype.card k))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L497">HansenEconometrics/Chapter3Projections.lean:497</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="equation-3-23-residual-representation">
+<summary><span>Equation (3.23) residual representation</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{e} = M Y$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-residual-eq-annihilator-mul-y">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.residual_eq_annihilator_mul_y</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.23): residuals are the annihilator matrix applied to the data vector. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.residual X y) ((HansenEconometrics.annihilatorMatrix X).mulVec y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L577">HansenEconometrics/Chapter3Projections.lean:577</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-14-fitted-values-and-residuals-are-orthogonal">
+<summary><span>Section 3.14 fitted values and residuals are orthogonal</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{Y}' \hat{e} = 0$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-fitted-dot-residual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fitted_dot_residual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.14: fitted values and residuals are orthogonal. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (dotProduct (HansenEconometrics.fitted X y) (HansenEconometrics.residual X y)) 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.fitted</code></li><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L584">HansenEconometrics/Chapter3Projections.lean:584</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-14-pythagorean-decomposition">
+<summary><span>Section 3.14 Pythagorean decomposition</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$Y'Y = \hat{Y}'\hat{Y} + \hat{e}'\hat{e}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-fitted-residual-pythagorean">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fitted_residual_pythagorean</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.14: finite-sample Pythagorean decomposition for fitted values and residuals. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (dotProduct y y)
+    (instHAdd.hAdd (dotProduct (HansenEconometrics.fitted X y) (HansenEconometrics.fitted X y))
+      (dotProduct (HansenEconometrics.residual X y) (HansenEconometrics.residual X y)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.fitted</code></li><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L594">HansenEconometrics/Chapter3Projections.lean:594</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-14-centered-fitted-residual-orthogonality">
+<summary><span>Section 3.14 centered fitted/residual orthogonality</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$(\hat{Y}-\bar{Y}\iota)'\hat{e}=0$ when <code>X</code> contains an intercept</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-centered-fitted-dot-residual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.centered_fitted_dot_residual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.14: with an intercept, centered fitted values are orthogonal to residuals. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] {c : k → Real},
+  Eq (X.mulVec c) 1 →
+    Eq
+      (dotProduct (HansenEconometrics.centeredAtSampleMean y (HansenEconometrics.fitted X y))
+        (HansenEconometrics.residual X y))
+      0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.centeredAtSampleMean</code></li><li><code>HansenEconometrics.fitted</code></li><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L642">HansenEconometrics/Chapter3Projections.lean:642</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-14-analysis-of-variance-formula">
+<summary><span>Section 3.14 analysis-of-variance formula</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\sum_i(Y_i-\bar{Y})^2=\sum_i(\hat{Y}_i-\bar{Y})^2+\sum_i\hat{e}_i^2$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-centered-anova-decomposition">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.centered_anova_decomposition</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.14: centered analysis-of-variance decomposition for OLS with an intercept. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] {c : k → Real},
+  Eq (X.mulVec c) 1 →
+    Eq (HansenEconometrics.totalSumSquares y)
+      (instHAdd.hAdd (HansenEconometrics.explainedSumSquares X y) (HansenEconometrics.residualSumSquares X y))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.explainedSumSquares</code></li><li><code>HansenEconometrics.residualSumSquares</code></li><li><code>HansenEconometrics.totalSumSquares</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L668">HansenEconometrics/Chapter3Projections.lean:668</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-3-14-coefficient-of-determination">
+<summary><span>Section 3.14 coefficient of determination</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$R^2=\mathrm{ESS}/\mathrm{TSS}=1-\mathrm{RSS}/\mathrm{TSS}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-rsquared">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.rSquared</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.14: coefficient of determination. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) → [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L629">HansenEconometrics/Chapter3Projections.lean:629</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-rsquared-eq-one-sub-residualsumsquares-div-totalsumsquares">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.rSquared_eq_one_sub_residualSumSquares_div_totalSumSquares</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 3.14: <code>R²</code> can be written as one minus the residual share of TSS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (y : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] {c : k → Real},
+  Eq (X.mulVec c) 1 →
+    Ne (HansenEconometrics.totalSumSquares y) 0 →
+      Eq (HansenEconometrics.rSquared X y)
+        (instHSub.hSub 1
+          (instHDiv.hDiv (HansenEconometrics.residualSumSquares X y) (HansenEconometrics.totalSumSquares y)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.rSquared</code></li><li><code>HansenEconometrics.residualSumSquares</code></li><li><code>HansenEconometrics.totalSumSquares</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L679">HansenEconometrics/Chapter3Projections.lean:679</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-4-partitioned-coefficient-formulae">
+<summary><span>Theorem 3.4 partitioned coefficient formulae</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta}_1=(X_1' M_2 X_1)^{-1} X_1' M_2Y$, $\hat{\beta}_2=(X_2' M_1 X_2)^{-1} X_2' M_1Y$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-partitionedleftbetaformula">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.partitionedLeftBetaFormula</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.37): the left-block partitioned-regression formula. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k₁ : Type u_3} →
+    {k₂ : Type u_4} →
+      [inst : Fintype n] →
+        Matrix n k₁ Real →
+          (X₂ : Matrix n k₂ Real) →
+            (n → Real) →
+              [DecidableEq n] →
+                [Fintype k₁] →
+                  [DecidableEq k₁] →
+                    [inst_4 : Fintype k₂] →
+                      [inst_5 : DecidableEq k₂] →
+                        [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₂.transpose X₂)] → k₁ → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L83">HansenEconometrics/Chapter3FWL.lean:83</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-partitionedrightbetaformula">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.partitionedRightBetaFormula</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (3.38): the right-block partitioned-regression formula. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k₁ : Type u_3} →
+    {k₂ : Type u_4} →
+      [inst : Fintype n] →
+        (X₁ : Matrix n k₁ Real) →
+          Matrix n k₂ Real →
+            (n → Real) →
+              [DecidableEq n] →
+                [inst_2 : Fintype k₁] →
+                  [inst_3 : DecidableEq k₁] →
+                    [Fintype k₂] →
+                      [DecidableEq k₂] →
+                        [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₁.transpose X₁)] → k₂ → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L75">HansenEconometrics/Chapter3FWL.lean:75</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-fromcolsbeta-eq-partitionedbetaformulas">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fromColsBeta_eq_partitionedBetaFormulas</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.4: both partitioned-regression coefficients in formula form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k₁ : Type u_3} {k₂ : Type u_4} [inst : Fintype n] (X₁ : Matrix n k₁ Real) (X₂ : Matrix n k₂ Real)
+  (y : n → Real) [inst_1 : DecidableEq n] [inst_2 : Fintype k₁] [inst_3 : DecidableEq k₁] [inst_4 : Fintype k₂]
+  [inst_5 : DecidableEq k₂] [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₁.transpose X₁)]
+  [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₂.transpose X₂)]
+  [inst_8 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (X₁.fromCols X₂).transpose (X₁.fromCols X₂))]
+  [Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.residualizedRegressors X₁ X₂).transpose
+        (HansenEconometrics.residualizedRegressors X₁ X₂))]
+  [Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.residualizedRegressors X₂ X₁).transpose
+        (HansenEconometrics.residualizedRegressors X₂ X₁))],
+  And (Eq (HansenEconometrics.fromColsLeftBeta X₁ X₂ y) (HansenEconometrics.partitionedLeftBetaFormula X₁ X₂ y))
+    (Eq (HansenEconometrics.fromColsRightBeta X₁ X₂ y) (HansenEconometrics.partitionedRightBetaFormula X₁ X₂ y))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.fromColsLeftBeta</code></li><li><code>HansenEconometrics.fromColsRightBeta</code></li><li><code>HansenEconometrics.partitionedLeftBetaFormula</code></li><li><code>HansenEconometrics.partitionedRightBetaFormula</code></li><li><code>HansenEconometrics.residualizedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L328">HansenEconometrics/Chapter3FWL.lean:328</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-5-coefficient-equivalence">
+<summary><span>Theorem 3.5 coefficient equivalence</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta}_2 = (X_2' M_1 X_2)^{-1} X_2' M_1 Y$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-fromcolsrightbeta-eq-fwlbeta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fromColsRightBeta_eq_fwlBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.5, coefficient part: the second full-regression block equals FWL. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k₁ : Type u_3} {k₂ : Type u_4} [inst : Fintype n] (X₁ : Matrix n k₁ Real) (X₂ : Matrix n k₂ Real)
+  (y : n → Real) [inst_1 : DecidableEq n] [inst_2 : Fintype k₁] [inst_3 : DecidableEq k₁] [inst_4 : Fintype k₂]
+  [inst_5 : DecidableEq k₂] [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₁.transpose X₁)]
+  [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (X₁.fromCols X₂).transpose (X₁.fromCols X₂))]
+  [inst_8 :
+    Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.residualizedRegressors X₁ X₂).transpose
+        (HansenEconometrics.residualizedRegressors X₁ X₂))],
+  Eq (HansenEconometrics.fromColsRightBeta X₁ X₂ y) (HansenEconometrics.fwlBeta X₁ X₂ y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.fromColsRightBeta</code></li><li><code>HansenEconometrics.fwlBeta</code></li><li><code>HansenEconometrics.residualizedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L209">HansenEconometrics/Chapter3FWL.lean:209</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-3-5-residual-equivalence">
+<summary><span>Theorem 3.5 residual equivalence</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{e}<em>{\text{full}} = M</em>{M_1 X_2} M_1 Y$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-fwl-residual-eq-full-residual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fwl_residual_eq_full_residual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 3.5, residual part: FWL and full OLS produce the same residual. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k₁ : Type u_3} {k₂ : Type u_4} [inst : Fintype n] (X₁ : Matrix n k₁ Real) (X₂ : Matrix n k₂ Real)
+  (y : n → Real) [inst_1 : DecidableEq n] [inst_2 : Fintype k₁] [inst_3 : DecidableEq k₁] [inst_4 : Fintype k₂]
+  [inst_5 : DecidableEq k₂] [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₁.transpose X₁)]
+  [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (X₁.fromCols X₂).transpose (X₁.fromCols X₂))]
+  [inst_8 :
+    Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.residualizedRegressors X₁ X₂).transpose
+        (HansenEconometrics.residualizedRegressors X₁ X₂))],
+  Eq
+    (HansenEconometrics.residual (HansenEconometrics.residualizedRegressors X₁ X₂)
+      ((HansenEconometrics.annihilatorMatrix X₁).mulVec y))
+    (HansenEconometrics.residual (X₁.fromCols X₂) y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.residual</code></li><li><code>HansenEconometrics.residualizedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L341">HansenEconometrics/Chapter3FWL.lean:341</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

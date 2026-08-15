@@ -1,18 +1,21 @@
 project:
   type: website
   output-dir: ../docs
-  # Auto-stub generation is paused for fast iteration on walkthroughs.
-  # Re-enable by adding "auto/**/*.qmd" back, and uncomment the
-  # "Auto-generated reference" sidebar section below.
   render:
     - "index.qmd"
+    - "crash-course.qmd"
+    - "dependencies.qmd"
+    - "results/**/*.qmd"
     - "walkthroughs/**/*.qmd"
+  resources:
+    - "assets/lean-crash-course.html"
 
 website:
   title: "Hansen Econometrics in Lean"
   search:
     type: overlay
-  repo-url: https://github.com/paulgp/lean-hansen-econometrics
+  repo-url: https://github.com/apoorvalal/lean-hansen-econometrics
+  repo-subdir: site
   repo-actions: [source]
   sidebar:
     style: docked
@@ -20,6 +23,38 @@ website:
     contents:
       - href: index.qmd
         text: Home
+      - href: crash-course.qmd
+        text: Lean crash course
+      - href: dependencies.qmd
+        text: Dependency graph
+      - section: Important results
+        contents:
+          - href: results/index.qmd
+            text: Overview
+          - href: results/chapter2.qmd
+            text: "2: Conditional expectation"
+          - href: results/chapter3.qmd
+            text: "3: Least-squares algebra"
+          - href: results/chapter4.qmd
+            text: "4: Least-squares regression"
+          - href: results/chapter5.qmd
+            text: "5: Normal regression"
+          - href: results/chapter6.qmd
+            text: "6: Large-sample asymptotics"
+          - href: results/chapter7.qmd
+            text: "7: OLS asymptotics"
+          - href: results/chapter8.qmd
+            text: "8: Restricted estimation"
+          - href: results/chapter9.qmd
+            text: "9: Hypothesis testing"
+          - href: results/chapter10.qmd
+            text: "10: Resampling methods"
+          - href: results/chapter11.qmd
+            text: "11: Multivariate regression"
+          - href: results/chapter12.qmd
+            text: "12: Instrumental variables"
+          - href: results/chapter13.qmd
+            text: "13: GMM"
       - section: Walkthroughs
         contents:
           - section: Chapter 3
@@ -34,19 +69,18 @@ website:
             contents:
               - walkthroughs/chapter7/theorem-7-1.qmd
               - walkthroughs/chapter7/theorem-7-3.qmd
-      # Auto-generated reference paused — re-enable along with `render:` above.
-      # - section: Auto-generated reference
-      #   contents:
-      #     - href: auto/index.qmd
-      #       text: Overview
-      #     - auto: auto/*
 
 format:
   html:
     theme: cosmo
+    css: assets/site.css
     toc: true
     html-math-method: katex
     code-overflow: wrap
+    code-fold: true
+    code-summary: "Show code"
+    embed-resources: true
+    page-layout: full
+    include-after-body: assets/results.html
 
-# Custom metadata consumed by build_stubs.py
-github_repo: https://github.com/paulgp/lean-hansen-econometrics
+github_repo: https://github.com/apoorvalal/lean-hansen-econometrics

@@ -1,0 +1,956 @@
+---
+title: "Chapter 4: Least Squares Regression"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 4."
+---
+
+This page is generated from the [canonical Chapter 4 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch4-inventory.md) and the compiled Lean environment. It contains 21 textbook result groups and 38 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="equation-4-6-ols-decomposition" open>
+<summary><span>Equation (4.6) OLS decomposition</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta} = \beta + (X'X)^{-1} X' e$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-linear-decomposition">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_linear_decomposition</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (4.6): OLS equals the true coefficient plus the projected error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) e))
+    (instHAdd.hAdd β
+      ((inst_3.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)).mulVec (X.transpose.mulVec e)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L17">HansenEconometrics/Chapter4LeastSquaresRegression.lean:17</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="orthogonal-error-specialization">
+<summary><span>Orthogonal-error specialization</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$X' e = 0 \Longrightarrow \hat{\beta} = \beta$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-eq-of-regressors-orthogonal-error">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_eq_of_regressors_orthogonal_error</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>If the model error is orthogonal to the regressors, the closed-form OLS coefficient is <code>β</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (X.transpose.mulVec e) 0 → Eq (HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) e)) β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L30">HansenEconometrics/Chapter4LeastSquaresRegression.lean:30</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="fitted-values-in-the-linear-model">
+<summary><span>Fitted values in the linear model</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{Y} = X \beta + P e$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-fitted-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.fitted_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>In the finite-sample linear model, fitted values equal signal plus projected error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.fitted X (instHAdd.hAdd (X.mulVec β) e))
+    (instHAdd.hAdd (X.mulVec β) ((HansenEconometrics.hatMatrix X).mulVec e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.fitted</code></li><li><code>HansenEconometrics.hatMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L38">HansenEconometrics/Chapter4LeastSquaresRegression.lean:38</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="residuals-in-the-linear-model">
+<summary><span>Residuals in the linear model</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{e} = M e$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-residual-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.residual_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>In the finite-sample linear model, OLS residuals are the annihilator applied to the error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.residual X (instHAdd.hAdd (X.mulVec β) e)) ((HansenEconometrics.annihilatorMatrix X).mulVec e)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L47">HansenEconometrics/Chapter4LeastSquaresRegression.lean:47</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-4-1-conditional-unbiasedness">
+<summary><span>Theorem 4.1 conditional unbiasedness</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\mathbb{E}[\hat{\beta} \mid X] = \beta$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-ols-condexp-eq-beta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ols_condExp_eq_beta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Vector-valued conditional unbiasedness of OLS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (i : n), MeasureTheory.Integrable (fun ω =&gt; e ω i) μ) →
+    (∀ (i : n), (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; e ω i) 0) →
+      (MeasureTheory.ae μ).EventuallyEq
+        (MeasureTheory.condExp m μ fun ω =&gt; HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω))) fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2902">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2902</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-4-1-unconditional-unbiasedness">
+<summary><span>Theorem 4.1 unconditional unbiasedness</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\mathbb{E}[\hat{\beta}] = \beta$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-ols-integral-eq-beta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ols_integral_eq_beta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Vector-valued unconditional unbiasedness of OLS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (i : n), MeasureTheory.Integrable (fun ω =&gt; e ω i) μ) →
+    (∀ (i : n), (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; e ω i) 0) →
+      Eq (MeasureTheory.integral μ fun ω =&gt; HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω))) β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2947">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2947</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-4-2-conditional-covariance-formula">
+<summary><span>Theorem 4.2 conditional covariance formula</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{Var}(\hat{\beta} \mid X) = (X'X)^{-1} X' D X (X'X)^{-1}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsconditionalvariancematrix">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsConditionalVarianceMatrix</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 4.2 matrix core: conditional covariance formula for OLS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            Matrix n n Real →
+              [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L57">HansenEconometrics/Chapter4LeastSquaresRegression.lean:57</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-ols-condexp-centered-mul-eq-variance-matrix">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ols_condExp_centered_mul_eq_variance_matrix</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Matrix-valued conditional covariance bridge for OLS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (D : Matrix n n Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (i r : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω i) (e ω r)) μ) →
+    (∀ (i r : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω i) (e ω r)) fun x =&gt;
+          D i r) →
+      (MeasureTheory.ae μ).EventuallyEq
+        (MeasureTheory.condExp m μ fun ω j l =&gt;
+          instHMul.hMul (instHSub.hSub (HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω)) j) (β j))
+            (instHSub.hSub (HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω)) l) (β l)))
+        fun x =&gt; HansenEconometrics.olsConditionalVarianceMatrix X D</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L3206">HansenEconometrics/Chapter4LeastSquaresRegression.lean:3206</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-4-2-unconditional-covariance-identity">
+<summary><span>Theorem 4.2 unconditional covariance identity</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\mathbb{E}[(\hat{\beta} - \beta)(\hat{\beta} - \beta)'] = \mathbb{E}[\operatorname{Var}(\hat{\beta} \mid X)]$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-ols-integral-centered-mul-eq-variance-matrix">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ols_integral_centered_mul_eq_variance_matrix</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Matrix-valued unconditional covariance bridge for OLS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (D : Matrix n n Real) [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (i r : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω i) (e ω r)) μ) →
+    (∀ (i r : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω i) (e ω r)) fun x =&gt;
+          D i r) →
+      Eq
+        (MeasureTheory.integral μ fun ω j l =&gt;
+          instHMul.hMul (instHSub.hSub (HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω)) j) (β j))
+            (instHSub.hSub (HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω)) l) (β l)))
+        (HansenEconometrics.olsConditionalVarianceMatrix X D)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L3379">HansenEconometrics/Chapter4LeastSquaresRegression.lean:3379</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-4-2-homoskedastic-simplification">
+<summary><span>Theorem 4.2 homoskedastic simplification</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{Var}(\hat{\beta} \mid X) = \sigma^2 (X'X)^{-1}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsconditionalvariancematrix-homoskedastic">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsConditionalVarianceMatrix_homoskedastic</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 4.2 homoskedastic simplification: <code>D = σ² I</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (σ2 : Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsConditionalVarianceMatrix X (instHSMul.hSMul σ2 1))
+    (instHSMul.hSMul σ2 (inst_4.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L102">HansenEconometrics/Chapter4LeastSquaresRegression.lean:102</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="gauss-markov-lower-bound">
+<summary><span>Gauss-Markov lower bound</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{Var}(\tilde{\beta} \mid X) - \operatorname{Var}(\hat{\beta} \mid X) \succeq 0$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gaussmarkov-variance-gap-possemidef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gaussMarkov_variance_gap_posSemidef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Deterministic core of the Gauss-Markov theorem: the variance-gap matrix is positive
+semidefinite. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X A : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul A.transpose X) 1 →
+    (instHSub.hSub (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul A.transpose A)
+        (inst_3.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X))).PosSemidef</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1443">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1443</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="gls-coefficient">
+<summary><span>GLS coefficient</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta}_{GLS} = (X' \Omega^{-1} X)^{-1} X' \Omega^{-1} Y$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-glsbeta">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.glsBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Generalized least squares estimator with weight matrix <code>Ω⁻¹</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (Ω : Matrix n n Real) →
+              (n → Real) →
+                [inst_3 : DecidableEq n] →
+                  [inst_4 : Invertible Ω] →
+                    [Invertible
+                          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose (inst_4.invOf Ω)) X)] →
+                      k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L3444">HansenEconometrics/Chapter4LeastSquaresRegression.lean:3444</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="gls-decomposition">
+<summary><span>GLS decomposition</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta}_{GLS} = \beta + (X' \Omega^{-1} X)^{-1} X' \Omega^{-1} e$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-glsbeta-linear-decomposition">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.glsBeta_linear_decomposition</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>GLS equals the true coefficient plus the weighted projected error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (Ω : Matrix n n Real) (β : k → Real) (e : n → Real) [inst_3 : DecidableEq n] [inst_4 : Invertible Ω]
+  [inst_5 :
+    Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose (inst_4.invOf Ω)) X)],
+  Eq (HansenEconometrics.glsBeta X Ω (instHAdd.hAdd (X.mulVec β) e))
+    (instHAdd.hAdd β
+      ((inst_5.invOf
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose (inst_4.invOf Ω)) X)).mulVec
+        (X.transpose.mulVec ((inst_4.invOf Ω).mulVec e))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.glsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L3450">HansenEconometrics/Chapter4LeastSquaresRegression.lean:3450</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="generalized-gauss-markov-lower-bound">
+<summary><span>Generalized Gauss-Markov lower bound</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>weighted variance gap is positive semidefinite</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-generalizedgaussmarkov-variance-gap-possemidef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.generalizedGaussMarkov_variance_gap_posSemidef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Deterministic core of the generalized Gauss-Markov theorem: the weighted variance gap is
+positive semidefinite. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X A : Matrix n k Real)
+  (Ω : Matrix n n Real) [inst_3 : DecidableEq n] [inst_4 : Invertible Ω]
+  [inst_5 :
+    Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose (inst_4.invOf Ω)) X)],
+  Ω.PosSemidef →
+    Eq (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul A.transpose X) 1 →
+      (instHSub.hSub
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul A.transpose Ω) A)
+          (inst_5.invOf
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose (inst_4.invOf Ω)) X))).PosSemidef</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L3475">HansenEconometrics/Chapter4LeastSquaresRegression.lean:3475</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="white-hc0-covariance-estimator">
+<summary><span>White HC0 covariance estimator</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{V}_{HC0} = (X'X)^{-1} X' \operatorname{diag}(\hat{e}_i^2) X (X'X)^{-1}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshuberwhitevarianceestimator">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsHuberWhiteVarianceEstimator</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>White's HC0 heteroskedasticity-robust covariance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] →
+                [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L68">HansenEconometrics/Chapter4LeastSquaresRegression.lean:68</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="hc1-covariance-estimator">
+<summary><span>HC1 covariance estimator</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{V}<em>{HC1} = \frac{n}{n-k} \hat{V}</em>{HC0}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshuberwhitehc1varianceestimator">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsHuberWhiteHC1VarianceEstimator</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>HC1 degrees-of-freedom adjustment to the Huber-White covariance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] →
+                [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L73">HansenEconometrics/Chapter4LeastSquaresRegression.lean:73</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="method-of-moments-residual-variance">
+<summary><span>Method-of-moments residual variance `σ̂²`</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\sigma}^2 = n^{-1}\sum_i \hat e_i^2$ and, under diagonal heteroskedastic conditional second moments, $\mathbb{E}[\hat{\sigma}^2 \mid X] = n^{-1}\operatorname{tr}(MD)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olssigmasqhat">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsSigmaSqHat</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's method-of-moments residual variance estimator
+<code>σ̂² = n⁻¹∑ᵢ êᵢ²</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] → [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1356">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1356</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olssigmasqhat-linear-model-quadratic-form">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsSigmaSqHat_linear_model_quadratic_form</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Under the linear model, Hansen's <code>σ̂² = n⁻¹∑ᵢ êᵢ²</code> is the annihilator
+quadratic form scaled by <code>1 / n</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsSigmaSqHat X (instHAdd.hAdd (X.mulVec β) e))
+    (instHMul.hMul (Real.instInv.inv (Fintype.card n).cast)
+      (dotProduct e ((HansenEconometrics.annihilatorMatrix X).mulVec e)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.olsSigmaSqHat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1420">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1420</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-ols-condexp-sigmasqhat-eq-inv-card-trace-diagonal">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ols_condExp_sigmaSqHat_eq_inv_card_trace_diagonal</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (4.25): under diagonal heteroskedastic conditional second moments,
+<code>E[σ̂² | X] = n⁻¹ tr(MD)</code> where <code>M</code> is the annihilator matrix and <code>D</code> is the
+diagonal matrix of conditional error variances. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (σ2 : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (i j : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω i) (e ω j)) μ) →
+    (∀ (i j : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω i) (e ω j)) fun x =&gt;
+          Matrix.diagonal σ2 i j) →
+      (MeasureTheory.ae μ).EventuallyEq
+        (MeasureTheory.condExp m μ fun ω =&gt; HansenEconometrics.olsSigmaSqHat X (instHAdd.hAdd (X.mulVec β) (e ω)))
+        fun x =&gt;
+        instHMul.hMul (Real.instInv.inv (Fintype.card n).cast)
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.annihilatorMatrix X)
+              (Matrix.diagonal σ2)).trace</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.olsSigmaSqHat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2703">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2703</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="residual-variance-estimator-s">
+<summary><span>Residual variance estimator `s²`</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$s^2 = (n-k)^{-1}\sum_i \hat e_i^2$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsresidualvarianceestimator">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsResidualVarianceEstimator</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Finite-sample residual variance estimator in the homoskedastic linear regression model. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] → [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1362">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1362</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsresidualsumsquares">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsResidualSumSquares</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The OLS residual sum of squares <code>RSS = ê'ê</code>. This is the likelihood-scale quadratic form that
+appears in Hansen's Chapter 5 likelihood-ratio / F-test derivation. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] → [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1369">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1369</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsresidualvarianceestimator-linear-model-quadratic-form">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsResidualVarianceEstimator_linear_model_quadratic_form</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Under the linear model, the residual variance estimator is the annihilator quadratic form
+divided by <code>n-k</code>. This is the deterministic identity underlying the chi-square step. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsResidualVarianceEstimator X (instHAdd.hAdd (X.mulVec β) e))
+    (instHDiv.hDiv (dotProduct e ((HansenEconometrics.annihilatorMatrix X).mulVec e))
+      (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.olsResidualVarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1432">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1432</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="s-conditional-and-unconditional-unbiasedness">
+<summary><span>`s²` conditional and unconditional unbiasedness</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\mathbb{E}[s^2 \mid X] = \sigma^2$ and $\mathbb{E}[s^2] = \sigma^2$ under homoskedastic conditional second moments</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-ols-condexp-residualvarianceestimator-eq-sigmasq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ols_condExp_residualVarianceEstimator_eq_sigmaSq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (4.26): under a homoskedastic conditional second-moment assumption,
+<code>E[s² | X] = σ²</code>.  The hypothesis <code>hee_homo</code> is a second-moment condition on
+<code>E[eᵢeⱼ | m]</code>; with conditional mean zero it specializes to the usual conditional
+variance/covariance statement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (σ2 : Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (i j : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω i) (e ω j)) μ) →
+    (∀ (i j : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω i) (e ω j)) fun x =&gt;
+          instHMul.hMul σ2 (1 i j)) →
+      Ne (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast) 0 →
+        (MeasureTheory.ae μ).EventuallyEq
+          (MeasureTheory.condExp m μ fun ω =&gt;
+            HansenEconometrics.olsResidualVarianceEstimator X (instHAdd.hAdd (X.mulVec β) (e ω)))
+          fun x =&gt; σ2</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsResidualVarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2737">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2737</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-ols-integral-residualvarianceestimator-eq-sigmasq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.ols_integral_residualVarianceEstimator_eq_sigmaSq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Unconditional unbiasedness of <code>s²</code> obtained by integrating the conditional statement. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (σ2 : Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (i j : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω i) (e ω j)) μ) →
+    (∀ (i j : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω i) (e ω j)) fun x =&gt;
+          instHMul.hMul σ2 (1 i j)) →
+      Ne (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast) 0 →
+        MeasureTheory.Integrable
+            (fun ω =&gt; HansenEconometrics.olsResidualVarianceEstimator X (instHAdd.hAdd (X.mulVec β) (e ω))) μ →
+          Eq
+            (MeasureTheory.integral μ fun ω =&gt;
+              HansenEconometrics.olsResidualVarianceEstimator X (instHAdd.hAdd (X.mulVec β) (e ω)))
+            σ2</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsResidualVarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2787">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2787</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="hc2-covariance-estimator">
+<summary><span>HC2 covariance estimator</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat V_{HC2} = (X'X)^{-1} X'\operatorname{diag}((1-h_{ii})^{-1}\hat e_i^2)X(X'X)^{-1}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshuberwhitehc2varianceestimator">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsHuberWhiteHC2VarianceEstimator</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>HC2 covariance estimator: leverage-adjusted by <code>(1 - hᵢᵢ)⁻¹</code>.
+Lean totalizes <code>(1 - hᵢᵢ)⁻¹</code> to <code>0</code> at saturated observations
+(<code>hᵢᵢ = 1</code>); textbook agreement requires <code>hᵢᵢ &lt; 1</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] →
+                [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L130">HansenEconometrics/Chapter4LeastSquaresRegression.lean:130</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshuberwhitehc2varianceestimator-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHuberWhiteHC2VarianceEstimator_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>In the linear model, HC2 uses annihilator-transformed errors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsHuberWhiteHC2VarianceEstimator X (instHAdd.hAdd (X.mulVec β) e))
+    (HansenEconometrics.olsConditionalVarianceMatrix X
+      (Matrix.diagonal fun i =&gt;
+        instHMul.hMul (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i)))
+          (instHPow.hPow ((HansenEconometrics.annihilatorMatrix X).mulVec e i) 2)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.olsHuberWhiteHC2VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1242">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1242</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexp-olshuberwhitehc2varianceestimator-eq-homoskedastic">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExp_olsHuberWhiteHC2VarianceEstimator_eq_homoskedastic</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Matrix-valued conditional expectation of HC2 under homoskedastic second moments.</p>
+<p>The rowwise leverage adjustment exactly removes the homoskedastic residual shrinkage, so the
+conditional expectation is the usual homoskedastic covariance matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (σ2 : Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (r s : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) μ) →
+    (∀ (r s : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) fun x =&gt;
+          instHMul.hMul σ2 (1 r s)) →
+      (∀ (i : n), Ne (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i)) 0) →
+        (∀ (i : n),
+            MeasureTheory.Integrable
+              (fun ω =&gt;
+                instHMul.hMul (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i)))
+                  (instHPow.hPow ((HansenEconometrics.annihilatorMatrix X).mulVec (e ω) i) 2))
+              μ) →
+          (MeasureTheory.ae μ).EventuallyEq
+            (MeasureTheory.condExp m μ fun ω a b =&gt;
+              HansenEconometrics.olsHuberWhiteHC2VarianceEstimator X (instHAdd.hAdd (X.mulVec β) (e ω)) a b)
+            fun x a b =&gt; HansenEconometrics.olsConditionalVarianceMatrix X (instHSMul.hSMul σ2 1) a b</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.olsHuberWhiteHC2VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2538">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2538</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexp-olshuberwhitehc2varianceestimator-eq-diagonal">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExp_olsHuberWhiteHC2VarianceEstimator_eq_diagonal</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Matrix-valued conditional expectation of HC2 under diagonal heteroskedastic second moments. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (σ2 : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (r s : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) μ) →
+    (∀ (r s : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) fun x =&gt;
+          Matrix.diagonal σ2 r s) →
+      (∀ (i : n),
+          MeasureTheory.Integrable
+            (fun ω =&gt;
+              instHMul.hMul (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i)))
+                (instHPow.hPow ((HansenEconometrics.annihilatorMatrix X).mulVec (e ω) i) 2))
+            μ) →
+        (MeasureTheory.ae μ).EventuallyEq
+          (MeasureTheory.condExp m μ fun ω a b =&gt;
+            HansenEconometrics.olsHuberWhiteHC2VarianceEstimator X (instHAdd.hAdd (X.mulVec β) (e ω)) a b)
+          fun x a b =&gt;
+          HansenEconometrics.olsConditionalVarianceMatrix X
+            (Matrix.diagonal fun i =&gt;
+              instHMul.hMul (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i)))
+                (Finset.univ.sum fun r =&gt;
+                  instHMul.hMul
+                    (instHMul.hMul (HansenEconometrics.annihilatorMatrix X i r)
+                      (HansenEconometrics.annihilatorMatrix X i r))
+                    (σ2 r)))
+            a b</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.olsHuberWhiteHC2VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2603">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2603</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="hc3-covariance-estimator">
+<summary><span>HC3 covariance estimator</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat V_{HC3} = (X'X)^{-1} X'\operatorname{diag}((1-h_{ii})^{-2}\hat e_i^2)X(X'X)^{-1}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshuberwhitehc3varianceestimator">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsHuberWhiteHC3VarianceEstimator</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>HC3 covariance estimator: leverage-adjusted by <code>(1 - hᵢᵢ)⁻²</code>.
+Same totalization caveat as HC2 (zero at <code>hᵢᵢ = 1</code>). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] →
+                [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L138">HansenEconometrics/Chapter4LeastSquaresRegression.lean:138</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshuberwhitehc3varianceestimator-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHuberWhiteHC3VarianceEstimator_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>In the linear model, HC3 uses annihilator-transformed errors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsHuberWhiteHC3VarianceEstimator X (instHAdd.hAdd (X.mulVec β) e))
+    (HansenEconometrics.olsConditionalVarianceMatrix X
+      (Matrix.diagonal fun i =&gt;
+        instHMul.hMul (instHPow.hPow (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i))) 2)
+          (instHPow.hPow ((HansenEconometrics.annihilatorMatrix X).mulVec e i) 2)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.olsHuberWhiteHC3VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1252">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1252</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexp-olshuberwhitehc3varianceestimator-eq-homoskedastic-inflated">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExp_olsHuberWhiteHC3VarianceEstimator_eq_homoskedastic_inflated</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Matrix-valued conditional expectation of HC3 under homoskedastic second moments.</p>
+<p>Relative to HC2, HC3 retains one extra inverse-leverage factor in each diagonal entry. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (σ2 : Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (r s : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) μ) →
+    (∀ (r s : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) fun x =&gt;
+          instHMul.hMul σ2 (1 r s)) →
+      (∀ (i : n), Ne (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i)) 0) →
+        (∀ (i : n),
+            MeasureTheory.Integrable
+              (fun ω =&gt;
+                instHMul.hMul
+                  (instHPow.hPow (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i))) 2)
+                  (instHPow.hPow ((HansenEconometrics.annihilatorMatrix X).mulVec (e ω) i) 2))
+              μ) →
+          (MeasureTheory.ae μ).EventuallyEq
+            (MeasureTheory.condExp m μ fun ω a b =&gt;
+              HansenEconometrics.olsHuberWhiteHC3VarianceEstimator X (instHAdd.hAdd (X.mulVec β) (e ω)) a b)
+            fun x a b =&gt;
+            HansenEconometrics.olsConditionalVarianceMatrix X
+              (Matrix.diagonal fun i =&gt;
+                instHMul.hMul σ2 (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i))))
+              a b</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.olsHuberWhiteHC3VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2571">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2571</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexp-olshuberwhitehc3varianceestimator-eq-diagonal">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExp_olsHuberWhiteHC3VarianceEstimator_eq_diagonal</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Matrix-valued conditional expectation of HC3 under diagonal heteroskedastic second moments. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  (σ2 : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [MeasureTheory.IsProbabilityMeasure μ] (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  (∀ (r s : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) μ) →
+    (∀ (r s : n),
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω r) (e ω s)) fun x =&gt;
+          Matrix.diagonal σ2 r s) →
+      (∀ (i : n),
+          MeasureTheory.Integrable
+            (fun ω =&gt;
+              instHMul.hMul (instHPow.hPow (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i))) 2)
+                (instHPow.hPow ((HansenEconometrics.annihilatorMatrix X).mulVec (e ω) i) 2))
+            μ) →
+        (MeasureTheory.ae μ).EventuallyEq
+          (MeasureTheory.condExp m μ fun ω a b =&gt;
+            HansenEconometrics.olsHuberWhiteHC3VarianceEstimator X (instHAdd.hAdd (X.mulVec β) (e ω)) a b)
+          fun x a b =&gt;
+          HansenEconometrics.olsConditionalVarianceMatrix X
+            (Matrix.diagonal fun i =&gt;
+              instHMul.hMul (instHPow.hPow (Real.instInv.inv (instHSub.hSub 1 (HansenEconometrics.hatMatrix X i i))) 2)
+                (Finset.univ.sum fun r =&gt;
+                  instHMul.hMul
+                    (instHMul.hMul (HansenEconometrics.annihilatorMatrix X i r)
+                      (HansenEconometrics.annihilatorMatrix X i r))
+                    (σ2 r)))
+            a b</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.hatMatrix</code></li><li><code>HansenEconometrics.olsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.olsHuberWhiteHC3VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L2637">HansenEconometrics/Chapter4LeastSquaresRegression.lean:2637</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="clustered-covariance-estimator">
+<summary><span>Clustered covariance estimator</span><span class="result-count">6 of 36 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>cluster-level score sandwich, Hansen finite-sample adjustment, singleton-cluster simplifications, finite block decompositions, cluster covariance middle/sandwich formulas, and CR3-style leave-cluster-out estimator</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsclusteredcr3varianceestimator-possemidef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsClusteredCR3VarianceEstimator_posSemidef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The CR3-style clustered covariance estimator is positive semidefinite. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {G : Type u_3}
+  [inst_3 : Fintype G] [inst_4 : DecidableEq G] (X : Matrix n k Real) (y : n → Real) (cluster : n → G)
+  [inst_5 : DecidableEq n] [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  (hInv : (g : G) → Invertible (HansenEconometrics.clusterLeaveOutAdjustmentMatrix X cluster g)),
+  (HansenEconometrics.olsClusteredCR3VarianceEstimator X y cluster hInv).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ClusterIndex</code></li><li><code>HansenEconometrics.clusterLeaveOutAdjustmentMatrix</code></li><li><code>HansenEconometrics.olsClusteredCR3VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1159">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1159</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsclusteredvarianceestimatoradjusted-possemidef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsClusteredVarianceEstimatorAdjusted_posSemidef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The finite-sample adjusted clustered covariance estimator is positive
+semidefinite whenever the adjustment factor is nonnegative. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {G : Type u_3}
+  [inst_3 : Fintype G] [inst_4 : DecidableEq G] (X : Matrix n k Real) (y : n → Real) (cluster : n → G)
+  [inst_5 : DecidableEq n] [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Real.instLE.le 0 (HansenEconometrics.clusterFiniteSampleAdjustment n k G) →
+    (HansenEconometrics.olsClusteredVarianceEstimatorAdjusted X y cluster).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clusterFiniteSampleAdjustment</code></li><li><code>HansenEconometrics.olsClusteredVarianceEstimatorAdjusted</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L360">HansenEconometrics/Chapter4LeastSquaresRegression.lean:360</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsclusteredvarianceestimatoradjusted-possemidef-of-card">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsClusteredVarianceEstimatorAdjusted_posSemidef_of_card</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The finite-sample adjusted clustered covariance estimator is positive
+semidefinite on the standard cardinality range <code>k &lt; n</code> and <code>1 &lt; G</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {G : Type u_3}
+  [inst_3 : Fintype G] [inst_4 : DecidableEq G] (X : Matrix n k Real) (y : n → Real) (cluster : n → G)
+  [inst_5 : DecidableEq n] [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  instLTNat.lt (Fintype.card k) (Fintype.card n) →
+    instLTNat.lt 1 (Fintype.card G) → (HansenEconometrics.olsClusteredVarianceEstimatorAdjusted X y cluster).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsClusteredVarianceEstimatorAdjusted</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L371">HansenEconometrics/Chapter4LeastSquaresRegression.lean:371</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-linear-decomposition-clusterscores">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_linear_decomposition_clusterScores</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen clustered OLS decomposition:
+<code>β_hat - β = (X'X)^{-1} ∑_g X_g'e_g</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {G : Type u_3}
+  [inst_3 : Fintype G] [inst_4 : DecidableEq G] (X : Matrix n k Real) (β : k → Real) (e : n → Real) (cluster : n → G)
+  [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) e))
+    (instHAdd.hAdd β
+      ((inst_5.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)).mulVec
+        (Finset.univ.sum fun g =&gt; HansenEconometrics.clusterErrorScore X e cluster g)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clusterErrorScore</code></li><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L727">HansenEconometrics/Chapter4LeastSquaresRegression.lean:727</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clusterleaveoutbeta-eq-olsbeta-sub-invgram-mulvec-cr3residual">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clusterLeaveOutBeta_eq_olsBeta_sub_invGram_mulVec_cr3Residual</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (4.53), reduced-Gram form.</p>
+<p>The cluster-deleted coefficient equals the full-sample coefficient minus the
+cluster leverage correction based on the CR3-style prediction errors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {G : Type u_3}
+  [inst_3 : DecidableEq G] (X : Matrix n k Real) (y : n → Real) (cluster : n → G) (g : G) [inst_4 : DecidableEq n]
+  [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_6 : Invertible (HansenEconometrics.clusterLeaveOutAdjustmentMatrix X cluster g)]
+  [inst_7 : Invertible (HansenEconometrics.clusterLeaveOutGram X cluster g)],
+  Eq (HansenEconometrics.clusterLeaveOutBeta X y cluster g)
+    (instHSub.hSub (HansenEconometrics.olsBeta X y)
+      ((inst_5.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)).mulVec
+        ((HansenEconometrics.clusterDesign X cluster g).transpose.mulVec
+          (HansenEconometrics.clusterCR3Residual X y cluster g))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (7)</summary><ul><li><code>HansenEconometrics.ClusterIndex</code></li><li><code>HansenEconometrics.clusterCR3Residual</code></li><li><code>HansenEconometrics.clusterDesign</code></li><li><code>HansenEconometrics.clusterLeaveOutAdjustmentMatrix</code></li><li><code>HansenEconometrics.clusterLeaveOutBeta</code></li><li><code>HansenEconometrics.clusterLeaveOutGram</code></li><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L953">HansenEconometrics/Chapter4LeastSquaresRegression.lean:953</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsclusteredcr3varianceestimator-eq-clustercovariancemiddle-cr3outer">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsClusteredCR3VarianceEstimator_eq_clusterCovarianceMiddle_cr3Outer</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (4.54) with the CR3 residual block outer-product expression
+for the clustered middle matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {G : Type u_3}
+  [inst_3 : Fintype G] [inst_4 : DecidableEq G] (X : Matrix n k Real) (y : n → Real) (cluster : n → G)
+  [inst_5 : DecidableEq n] [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  (hInv : (g : G) → Invertible (HansenEconometrics.clusterLeaveOutAdjustmentMatrix X cluster g)),
+  Eq (HansenEconometrics.olsClusteredCR3VarianceEstimator X y cluster hInv)
+    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (inst_6.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X))
+        (HansenEconometrics.clusterCovarianceMiddle X cluster fun g =&gt;
+          Matrix.vecMulVec (HansenEconometrics.clusterCR3Residual X y cluster g)
+            (HansenEconometrics.clusterCR3Residual X y cluster g)))
+      (inst_6.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ClusterIndex</code></li><li><code>HansenEconometrics.clusterCR3Residual</code></li><li><code>HansenEconometrics.clusterCovarianceMiddle</code></li><li><code>HansenEconometrics.clusterLeaveOutAdjustmentMatrix</code></li><li><code>HansenEconometrics.olsClusteredCR3VarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1116">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1116</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

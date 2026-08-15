@@ -1,7 +1,7 @@
 # Worklist Procedure
 
 This document describes the human-readable procedure that `review/worklist.py` automates.
-Run `uv run review/worklist.py resolve <files...>` to execute this procedure programmatically.
+Run `uv run --no-project review/worklist.py resolve <files...>` to execute this procedure programmatically.
 
 ---
 
@@ -82,7 +82,7 @@ The extractor handles:
 ## Programmatic form
 
 ```bash
-uv run review/worklist.py resolve \
+uv run --no-project review/worklist.py resolve \
     HansenEconometrics/Chapter10Bootstrap/HigherOrder.lean \
     HansenEconometrics/ProbabilityUtils.lean
 ```
@@ -119,7 +119,7 @@ After generating findings, validate them against `review/finding-schema.json` by
 JSON array to `worklist.py --validate-schema`:
 
 ```bash
-cat review/reports/findings.json | uv run review/worklist.py --validate-schema
+cat review/reports/findings.json | uv run --no-project review/worklist.py --validate-schema
 ```
 
 Returns exit code 0 on success, 1 on schema violation (with a descriptive error on stderr),

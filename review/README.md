@@ -65,7 +65,7 @@ Run reviewers per `(file, dimension)` rather than per declaration — that keeps
 ### Step 1 — Resolve worklist metadata
 
 ```bash
-uv run review/worklist.py resolve \
+uv run --no-project review/worklist.py resolve \
     HansenEconometrics/Chapter10Bootstrap/HigherOrder.lean \
     HansenEconometrics/Chapter7Asymptotics.lean \
     > /tmp/worklist.json
@@ -89,7 +89,7 @@ The reviewer outputs a JSON object `{"findings": [...]}` whose array elements ea
 `review/finding-schema.json`. Each finding's `id` is `sha1("<file>:<line>:<decl>:<dimension>")`
 (hex digest of the UTF-8 string) — this id is what the dedup step keys on, so compute it
 consistently. Validate the array with
-`echo '<findings-array>' | uv run review/worklist.py --validate-schema`.
+`echo '<findings-array>' | uv run --no-project review/worklist.py --validate-schema`.
 
 ### Step 3 — Run verifier pass
 
@@ -108,7 +108,7 @@ Pipe the final findings array to `worklist.py --validate-schema` to confirm ever
 conforms to the schema:
 
 ```bash
-cat findings.json | uv run review/worklist.py --validate-schema
+cat findings.json | uv run --no-project review/worklist.py --validate-schema
 ```
 
 Exit code 0 = all valid. Exit code 1 = schema violation (see stderr). Exit code 2 =
@@ -164,6 +164,6 @@ Schema validation in pure Python.
 ### Codex compatibility
 
 The harness is designed to run in Codex and similar non-interactive agents. Codex should
-follow the step-by-step procedure in section (b) above, using `uv run review/worklist.py`
+follow the step-by-step procedure in section (b) above, using `uv run --no-project review/worklist.py`
 for metadata resolution and schema validation, and the prompt templates in `review/prompts/`
 for each agent pass.

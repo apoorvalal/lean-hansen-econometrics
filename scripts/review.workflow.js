@@ -14,7 +14,7 @@
 // done by the subagents via their own tools. The Workflow harness forbids
 // Date.now()/Math.random()/new Date() and any direct Node/filesystem API here,
 // so the worklist must be resolved by dispatching an agent that runs
-// `uv run review/worklist.py resolve <files...>`.
+// `uv run --no-project review/worklist.py resolve <files...>`.
 
 export const meta = {
   name: "Lean review harness",
@@ -115,7 +115,7 @@ const SEVERITY_RANK = { nit: 0, minor: 1, major: 2, blocker: 3 };
 // Phase 1 — Worklist
 //
 // The orchestrator cannot run uv itself, so dispatch ONE agent to run
-// `uv run review/worklist.py resolve <files...>` and return the parsed array.
+// `uv run --no-project review/worklist.py resolve <files...>` and return the parsed array.
 // ---------------------------------------------------------------------------
 
 phase("Worklist");
@@ -144,7 +144,7 @@ log(`Building worklist for ${targets.length} file(s).`);
 // that array verbatim into a single StructuredOutput call does not scale — it
 // stalls. Instead the script builds a minimal worklist (just the file path) and
 // each reviewer agent resolves its OWN file's metadata + decls by running
-// `uv run review/worklist.py resolve <file>`. The resolve cost is tiny per file
+// `uv run --no-project review/worklist.py resolve <file>`. The resolve cost is tiny per file
 // and rides along the existing per-(file,dimension) parallel fan-out, and each
 // reviewer reads the target file in full anyway.
 const worklist = targets.map((file) => ({ file }));
@@ -194,7 +194,7 @@ const pipelineResults = await pipeline(
         `Dimension:      ${dimension}`,
         "",
         "Resolve this file's metadata yourself: using your Bash tool, run",
-        `    uv run review/worklist.py resolve ${entry.file}`,
+        `    uv run --no-project review/worklist.py resolve ${entry.file}`,
         "from the repo root. It prints a one-element JSON array whose entry has",
         "fields {file, chapter, excerpt_path, inventory_path, decls}. Use",
         "excerpt_path and inventory_path (may be null for non-chapter files) as the",

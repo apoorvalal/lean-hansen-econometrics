@@ -1,0 +1,449 @@
+---
+title: "Chapter 12: Instrumental Variables"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 12."
+---
+
+This page is generated from the [canonical Chapter 12 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch12-inventory.md) and the compiled Lean environment. It contains 19 textbook result groups and 8 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="theorem-12-1" open>
+<summary><span>Theorem 12.1</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsbetaorzero-tendstoinmeasure-beta-of-textbook12-1-joint-iid-second">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSBetaOrZero_tendstoInMeasure_beta_of_textbook12_1_joint_iid_second</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Textbook-facing OrZero version of Hansen Theorem 12.1 from the literal
+observed-row iid finite-second-moment surface. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure μ] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → Ω → l → Real}
+  {X : Nat → Ω → k → Real} {e Y : Nat → Ω → Real} {β0 : k → Real},
+  HansenEconometrics.TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0 →
+    MeasureTheory.TendstoInMeasure μ
+      (fun t ω =&gt; HansenEconometrics.twoSLSBetaOrZero (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt; Y i.val ω)
+      Filter.atTop fun x =&gt; β0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidSecondMomentRankConditions</code></li><li><code>HansenEconometrics.twoSLSBetaOrZero</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Asymptotics.lean#L3085">HansenEconometrics/Chapter12InstrumentalVariables/Asymptotics.lean:3085</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-2">
+<summary><span>Theorem 12.2</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsbetaorzero-tendstoindistribution-formula-of-textbook12-2-observed-iid-fourth">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSBetaOrZero_tendstoInDistribution_formula_of_textbook12_2_observed_iid_fourth</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Textbook-facing OrZero endpoint for Hansen Theorem 12.2 from the literal
+observed-row finite-fourth-moment version of Assumption 12.2. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure μ] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → Ω → l → Real}
+  {X : Nat → Ω → k → Real} {e Y : Nat → Ω → Real} {β0 : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0 →
+    MeasureTheory.TendstoInDistribution
+      (fun t ω =&gt;
+        instHSMul.hSMul t.cast.sqrt
+          (instHSub.hSub
+            (HansenEconometrics.twoSLSBetaOrZero (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt; Y i.val ω) β0))
+      Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+      (ProbabilityTheory.multivariateGaussian 0
+        (HansenEconometrics.twoSLSAsymptoticVariance
+          (HansenEconometrics.twoSLSCombinedQXZ
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.twoSLSCombinedQZZ
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.scoreCovMat μ Z e)
+          (HansenEconometrics.twoSLSCombinedQZX
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.twoSLSAsymptoticVariance</code></li><li><code>HansenEconometrics.twoSLSBetaOrZero</code></li><li><code>HansenEconometrics.twoSLSCombinedQXZ</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedQZZ</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Asymptotics.lean#L6313">HansenEconometrics/Chapter12InstrumentalVariables/Asymptotics.lean:6313</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-3">
+<summary><span>Theorem 12.3</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslscovariances-tendstoinmeasure-formula-of-textbook12-2-observed-iid-fourth">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSCovariances_tendstoInMeasure_formula_of_textbook12_2_observed_iid_fourth</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 12.3 formula-facing endpoint from the literal observed-row
+finite-fourth-moment version of Assumption 12.2. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure μ] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → Ω → l → Real}
+  {X : Nat → Ω → k → Real} {e Y : Nat → Ω → Real} {β0 : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0 →
+    And
+      (MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt; HansenEconometrics.twoSLSVHatStar (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt; Y i.val ω)
+        Filter.atTop fun x =&gt;
+        HansenEconometrics.twoSLSAsymptoticVariance
+          (HansenEconometrics.twoSLSCombinedQXZ
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.twoSLSCombinedQZZ
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.scoreCovMat μ Z e)
+          (HansenEconometrics.twoSLSCombinedQZX
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X))))
+      (MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt;
+          HansenEconometrics.twoSLSHomoskedasticVHatStar (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt; Y i.val ω)
+        Filter.atTop fun x =&gt;
+        HansenEconometrics.twoSLSHomoskedasticAsymptoticVariance
+          (HansenEconometrics.twoSLSCombinedQXZ
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.twoSLSCombinedQZZ
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.twoSLSCombinedQZX
+            (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+          (HansenEconometrics.errorVariance μ e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (12)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.twoSLSAsymptoticVariance</code></li><li><code>HansenEconometrics.twoSLSCombinedQXZ</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedQZZ</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li><li><code>HansenEconometrics.twoSLSHomoskedasticAsymptoticVariance</code></li><li><code>HansenEconometrics.twoSLSHomoskedasticVHatStar</code></li><li><code>HansenEconometrics.twoSLSVHatStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Asymptotics.lean#L6695">HansenEconometrics/Chapter12InstrumentalVariables/Asymptotics.lean:6695</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-4">
+<summary><span>Theorem 12.4</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsfunctionestimatororzero-tendstoinmeasure-of-textbook12-1-joint-iid-second-73">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSFunctionEstimatorOrZero_tendstoInMeasure_of_textbook12_1_joint_iid_second_73</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 12.4 OrZero endpoint from the literal observed-row finite
+second-moment Assumption 12.1 package and Assumption 7.3 smoothness.</p>
+<p>This is the canonical textbook-facing endpoint and has no assumptions beyond
+the two Hansen packages. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} {q : Type u_4} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq l] {Ω : Type u_5} [inst_5 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} [inst_6 : MeasureTheory.IsProbabilityMeasure μ] {rfun : (k → Real) → q → Real}
+  {Z : Nat → Ω → l → Real} {X : Nat → Ω → k → Real} {e Y : Nat → Ω → Real} {β0 : k → Real} {R : Matrix k q Real},
+  HansenEconometrics.TwoSLSObservedIidSecondMomentRankConditions μ Z X e Y β0 →
+    ∀ (h73 : HansenEconometrics.SmoothFunctionCondition rfun β0 R),
+      MeasureTheory.TendstoInMeasure μ
+        (fun t ω =&gt;
+          HansenEconometrics.twoSLSFunctionEstimatorOrZero rfun (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt;
+            Y i.val ω)
+        Filter.atTop fun x =&gt; rfun β0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.SmoothFunctionCondition</code></li><li><code>HansenEconometrics.TwoSLSObservedIidSecondMomentRankConditions</code></li><li><code>HansenEconometrics.twoSLSFunctionEstimatorOrZero</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Functions.lean#L967">HansenEconometrics/Chapter12InstrumentalVariables/Functions.lean:967</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-5">
+<summary><span>Theorem 12.5</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsfunction-theorem12-5-of-textbook12-2-observed-iid-73-derivativeplugin">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSFunction_theorem12_5_of_textbook12_2_observed_iid_73_derivativePlugIn</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 12.5</strong>, literal observed-row iid Assumption 12.2 plus
+Assumption 7.3 with Hansen's plug-in derivative estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} {q : Type u_4} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq l] {Ω : Type u_5} [inst_5 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} [inst_6 : MeasureTheory.IsProbabilityMeasure μ] [inst_7 : DecidableEq q]
+  {rfun : (k → Real) → q → Real} {Z : Nat → Ω → l → Real} {X : Nat → Ω → k → Real} {e Y : Nat → Ω → Real}
+  {β0 : k → Real} {R : Matrix k q Real} {Rfun : (k → Real) → Matrix k q Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0 →
+    ∀ (h73 : HansenEconometrics.SmoothFunctionPlugInDerivativeConditions rfun β0 R Rfun),
+      And
+        (MeasureTheory.TendstoInDistribution
+          (fun t ω =&gt;
+            {
+              ofLp :=
+                instHSMul.hSMul t.cast.sqrt
+                  (instHSub.hSub
+                    (HansenEconometrics.twoSLSFunctionEstimatorOrZero rfun (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω)
+                      fun i =&gt; Y i.val ω)
+                    (rfun β0)) })
+          Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0
+            (HansenEconometrics.twoSLSFunctionVariance
+              (HansenEconometrics.twoSLSAsymptoticVariance
+                (HansenEconometrics.twoSLSCombinedQXZ
+                  (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                (HansenEconometrics.twoSLSCombinedQZZ
+                  (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                (HansenEconometrics.scoreCovMat μ Z e)
+                (HansenEconometrics.twoSLSCombinedQZX
+                  (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X))))
+              R)))
+        (MeasureTheory.TendstoInMeasure μ
+          (fun t ω =&gt;
+            HansenEconometrics.twoSLSFunctionVHat
+              (HansenEconometrics.twoSLSVHatStar (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt; Y i.val ω)
+              (Rfun (HansenEconometrics.twoSLSBetaOrZero (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt; Y i.val ω)))
+          Filter.atTop fun x =&gt;
+          HansenEconometrics.twoSLSFunctionVariance
+            (HansenEconometrics.twoSLSAsymptoticVariance
+              (HansenEconometrics.twoSLSCombinedQXZ
+                (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+              (HansenEconometrics.twoSLSCombinedQZZ
+                (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+              (HansenEconometrics.scoreCovMat μ Z e)
+              (HansenEconometrics.twoSLSCombinedQZX
+                (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X))))
+            R)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (14)</summary><ul><li><code>HansenEconometrics.SmoothFunctionPlugInDerivativeConditions</code></li><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.twoSLSAsymptoticVariance</code></li><li><code>HansenEconometrics.twoSLSBetaOrZero</code></li><li><code>HansenEconometrics.twoSLSCombinedQXZ</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedQZZ</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li><li><code>HansenEconometrics.twoSLSFunctionEstimatorOrZero</code></li><li><code>HansenEconometrics.twoSLSFunctionVHat</code></li><li><code>HansenEconometrics.twoSLSFunctionVariance</code></li><li><code>HansenEconometrics.twoSLSVHatStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Functions.lean#L2714">HansenEconometrics/Chapter12InstrumentalVariables/Functions.lean:2714</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-6">
+<summary><span>Theorem 12.6</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsfunctionwald-theorem12-6-of-textbook12-2-observed-iid-73-derivativeplugin">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 12.6</strong>, literal observed-row iid Assumption 12.2 plus
+Assumption 7.3 with Hansen's plug-in derivative estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq l] {Ω : Type u_5} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] {r : Nat} [inst_6 : Fact (instLTNat.lt 0 r)]
+  {rfun : (k → Real) → Fin r → Real} {θ0 : Fin r → Real} {Z : Nat → Ω → l → Real} {X : Nat → Ω → k → Real}
+  {e Y : Nat → Ω → Real} {β0 : k → Real} {R : Matrix k (Fin r) Real} {Rfun : (k → Real) → Matrix k (Fin r) Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β0 →
+    ∀ (h73 : HansenEconometrics.SmoothFunctionPlugInDerivativeConditions rfun β0 R Rfun),
+      Eq (rfun β0) θ0 →
+        ∀ {crit : Real} {alpha : ENNReal},
+          Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared r) (Set.Ioi crit)) alpha →
+            And
+              (MeasureTheory.TendstoInDistribution
+                (fun t ω =&gt;
+                  HansenEconometrics.twoSLSFunctionWaldStatOrZero rfun θ0
+                    (Rfun
+                      (HansenEconometrics.twoSLSBetaOrZero (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt;
+                        Y i.val ω))
+                    (HansenEconometrics.twoSLSVHatStar (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt; Y i.val ω)
+                    (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) (fun i =&gt; Y i.val ω) t.cast.sqrt)
+                Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared r))
+              (Filter.Tendsto
+                (fun t =&gt;
+                  MeasureTheory.Measure.instFunLike.coe μ
+                    (setOf fun ω =&gt;
+                      Real.instLT.lt crit
+                        (HansenEconometrics.twoSLSFunctionWaldStatOrZero rfun θ0
+                          (Rfun
+                            (HansenEconometrics.twoSLSBetaOrZero (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt;
+                              Y i.val ω))
+                          (HansenEconometrics.twoSLSVHatStar (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) fun i =&gt;
+                            Y i.val ω)
+                          (fun i =&gt; Z i.val ω) (fun i =&gt; X i.val ω) (fun i =&gt; Y i.val ω) t.cast.sqrt)))
+                Filter.atTop (nhds alpha))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (7)</summary><ul><li><code>HansenEconometrics.SmoothFunctionPlugInDerivativeConditions</code></li><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.twoSLSBetaOrZero</code></li><li><code>HansenEconometrics.twoSLSFunctionWaldStatOrZero</code></li><li><code>HansenEconometrics.twoSLSVHatStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Functions.lean#L5464">HansenEconometrics/Chapter12InstrumentalVariables/Functions.lean:5464</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-7">
+<summary><span>Theorem 12.7</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-8">
+<summary><span>Theorem 12.8</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsbootstraptheorem12-8-distribution-of-observed-textbook-fourth">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen-facing Theorem 12.8 distribution result from observed textbook
+Assumption 12.2 and a nonzero one-row restriction.</p>
+<p>Both the bootstrap coefficient limit and the studentized robust one-row limit
+are conclusions; coefficient linearization and robust covariance resampling
+are derived internally from the observed fourth-moment assumptions. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq l] [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] {Z : Nat → Ω → l → Real} {X : Nat → Ω → k → Real}
+  {e Y : Nat → Ω → Real} {R : Matrix Unit k Real} {β : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β →
+    (Exists fun j =&gt; Ne (R Unit.unit j) 0) →
+      And
+        (HansenEconometrics.TendstoInBootstrapDistributionIndexed μ
+          HansenEconometrics.twoSLSBootstrapUniformPstarFinSucc
+          (fun n ω ωs =&gt; HansenEconometrics.twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
+          (ProbabilityTheory.multivariateGaussian 0
+            (HansenEconometrics.twoSLSAsymptoticVariance
+              (HansenEconometrics.twoSLSCombinedQXZ
+                (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+              (HansenEconometrics.twoSLSCombinedQZZ
+                (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+              (HansenEconometrics.scoreCovMat μ Z e)
+              (HansenEconometrics.twoSLSCombinedQZX
+                (HansenEconometrics.popGram μ (HansenEconometrics.twoSLSCombinedRegressors Z X)))))
+          fun z =&gt; z.ofLp)
+        (HansenEconometrics.TendstoInBootstrapDistributionIndexed μ
+          HansenEconometrics.twoSLSBootstrapUniformPstarFinSucc
+          (fun n ω ωs x =&gt; HansenEconometrics.twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+          (ProbabilityTheory.gaussianReal 0 1) fun z x =&gt; z)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (12)</summary><ul><li><code>HansenEconometrics.TendstoInBootstrapDistributionIndexed</code></li><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.twoSLSAsymptoticVariance</code></li><li><code>HansenEconometrics.twoSLSBootstrapBetaGapFinSucc</code></li><li><code>HansenEconometrics.twoSLSBootstrapRobustLinearTStatFinSucc</code></li><li><code>HansenEconometrics.twoSLSBootstrapUniformPstarFinSucc</code></li><li><code>HansenEconometrics.twoSLSCombinedQXZ</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedQZZ</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Bootstrap.lean#L17170">HansenEconometrics/Chapter12InstrumentalVariables/Bootstrap.lean:17170</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-9">
+<summary><span>Theorem 12.9</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-10">
+<summary><span>Theorem 12.10</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-11">
+<summary><span>Theorem 12.11</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-12">
+<summary><span>Theorem 12.12</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-13">
+<summary><span>Theorem 12.13</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-14">
+<summary><span>Theorem 12.14</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-15">
+<summary><span>Theorem 12.15</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-16">
+<summary><span>Theorem 12.16</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+
+<details class="lean-declaration" id="decl-hanseneconometrics-theorem12-16-observed">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.Theorem12_16.observed</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 12.16 from the literal observed-row finite-fourth-moment
+Assumption 12.2 package and conditional homoskedasticity, with the scalar
+variance positivity derived from <code>Ω &gt; 0</code> rather than assumed separately. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k] [inst_2 : Fintype l]
+  [inst_3 : DecidableEq l] {Ω : Type u_6} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] {Z : Nat → Ω → l → Real} {X : Nat → Ω → k → Real}
+  {e Y : Nat → Ω → Real} {β : k → Real}
+  [inst_6 : Fact (instLTNat.lt 0 (instHSub.hSub (Fintype.card l) (Fintype.card k)))],
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions μ Z X e Y β →
+    ∀ (hZ0 : Measurable (Z 0)) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+      HansenEconometrics.HomoskedasticErrorVariance μ Z e →
+        ∀ {crit : Real} {alpha : ENNReal},
+          Eq
+              (MeasureTheory.Measure.instFunLike.coe
+                (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card l) (Fintype.card k))) (Set.Ioi crit))
+              alpha →
+            And
+              (MeasureTheory.TendstoInDistribution
+                (fun m ω =&gt;
+                  HansenEconometrics.twoSLSSarganStatOrZero (HansenEconometrics.stackRegressors Z m ω)
+                    (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))
+                Filter.atTop (fun x =&gt; x) (fun x =&gt; μ)
+                (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card l) (Fintype.card k))))
+              (Filter.Tendsto
+                (fun m =&gt;
+                  MeasureTheory.Measure.instFunLike.coe μ
+                    (setOf fun ω =&gt;
+                      Real.instLT.lt crit
+                        (HansenEconometrics.twoSLSSarganStatOrZero (HansenEconometrics.stackRegressors Z m ω)
+                          (HansenEconometrics.stackRegressors X m ω) (HansenEconometrics.stackOutcomes Y m ω))))
+                Filter.atTop (nhds alpha))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSSarganStatOrZero</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean#L8364">HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean:8364</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-17">
+<summary><span>Theorem 12.17</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-18">
+<summary><span>Theorem 12.18</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-12-19">
+<summary><span>Theorem 12.19</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+</div>

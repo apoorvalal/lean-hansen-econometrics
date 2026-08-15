@@ -1,0 +1,1971 @@
+---
+title: "Chapter 7: Asymptotic Theory for Least Squares"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 7."
+---
+
+This page is generated from the [canonical Chapter 7 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch7-inventory.md) and the compiled Lean environment. It contains 19 textbook result groups and 75 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="assumption-7-1-iid-sample-with-finite-second-moments-and-nonsingular-population-gram" open>
+<summary><span>Assumption 7.1 iid sample with finite second moments and nonsingular population Gram</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] &lt; \infty$, $\mathbb{E}\lVert X\rVert^2 &lt; \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-samplemomentassumption71">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.SampleMomentAssumption71</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Compatibility name for the moment-level proof bundle behind
+<code>LeastSquaresConsistencyConditions</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{Ω : Type u_1} →
+  {mΩ : MeasurableSpace Ω} →
+    {k : Type u_3} →
+      [Fintype k] →
+        [DecidableEq k] →
+          (μ : MeasureTheory.Measure Ω) →
+            [MeasureTheory.IsFiniteMeasure μ] → (Nat → Ω → k → Real) → (Nat → Ω → Real) → Prop</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L77">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:77</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-1-consistency-of-least-squares">
+<summary><span>Theorem 7.1 consistency of least squares</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar-stack-tendstoinmeasure-beta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBetaStar_stack_tendstoInMeasure_beta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Consistency of the totalized least-squares estimator.</strong>
+Under the moment-level assumptions above and the linear model <code>yᵢ = Xᵢ·β + eᵢ</code>,
+the total OLS estimator <code>β̂*ₙ := (Xᵀ X)⁺ Xᵀ y</code> (using <code>Matrix.nonsingInv</code>)
+converges in probability to <code>β</code>.</p>
+<p>Proof chain:
+* F2: <code>β̂*ₙ = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)</code> pointwise.
+* F3: <code>ĝₙ(y) = Q̂ₙ β + ĝₙ(e)</code> under the linear model.
+* F6: residual <code>β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0</code> (it vanishes on the invertibility
+  event, whose complement has measure → 0 by F4).
+* Task 11: <code>Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0</code>.
+* F5 (twice): residual + error term + β →ₚ 0 + 0 + β = β.
+* Pointwise algebra: the sum equals <code>β̂*ₙ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real),
+  HansenEconometrics.LeastSquaresConsistencyConditions μ X e →
+    (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+      MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt;
+          HansenEconometrics.olsBetaStar (HansenEconometrics.stackRegressors X n ω)
+            (HansenEconometrics.stackOutcomes y n ω))
+        Filter.atTop fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LeastSquaresConsistencyConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1128">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1128</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetaorzero-stack-tendstoinmeasure-beta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBetaOrZero_stack_tendstoInMeasure_beta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Theorem 7.1 ordinary-OLS-on-nonsingular-samples consistency.</strong></p>
+<p>The textbook-facing wrapper <code>olsBetaOrZero</code> equals ordinary <code>olsBeta</code> whenever
+the sample Gram is nonsingular and equals <code>olsBetaStar</code> unconditionally, so the
+totalized consistency theorem transfers directly. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real),
+  HansenEconometrics.LeastSquaresConsistencyConditions μ X e →
+    (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+      MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt;
+          HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+            (HansenEconometrics.stackOutcomes y n ω))
+        Filter.atTop fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LeastSquaresConsistencyConditions</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1389">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1389</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-stack-tendstoinmeasure-beta-of-invertible">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_stack_tendstoInMeasure_beta_of_invertible</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Theorem 7.1 for literal ordinary OLS under sample-Gram invertibility.</strong></p>
+<p>When every realized stacked sample Gram is invertible, the textbook <code>olsBeta</code>
+estimator is available pointwise and agrees with <code>olsBetaOrZero</code>, so the
+ordinary-wrapper consistency theorem transfers to the dependent ordinary-OLS
+surface. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real)
+  (hInv :
+    (n : Nat) →
+      (ω : Ω) →
+        Invertible
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.stackRegressors X n ω).transpose
+            (HansenEconometrics.stackRegressors X n ω))),
+  HansenEconometrics.LeastSquaresConsistencyConditions μ X e →
+    (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+      MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt;
+          HansenEconometrics.olsBeta (HansenEconometrics.stackRegressors X n ω)
+            (HansenEconometrics.stackOutcomes y n ω))
+        Filter.atTop fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LeastSquaresConsistencyConditions</code></li><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1407">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1407</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="assumption-7-2-score-clt-setup">
+<summary><span>Assumption 7.2 / score CLT setup</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Stronger moment assumptions for asymptotic normality</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-samplecltassumption72">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.SampleCLTAssumption72</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Compatibility name for the CLT proof bundle behind <code>ScoreCLTConditions</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{Ω : Type u_1} →
+  {mΩ : MeasurableSpace Ω} →
+    {k : Type u_4} →
+      [Fintype k] →
+        [DecidableEq k] →
+          (μ : MeasureTheory.Measure Ω) →
+            [MeasureTheory.IsProbabilityMeasure μ] → (Nat → Ω → k → Real) → (Nat → Ω → Real) → Prop</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L62">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:62</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-2-score-clt-bridge">
+<summary><span>Theorem 7.2 score CLT bridge</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Assumption 7.2 implies <code>Ω &lt; ∞</code> and <code>(1 / √n)∑ Xᵢeᵢ ⇒ N(0, Ω)</code></p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-samplecrossmoment-tendstoindistribution-gaussian-cov-all">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreProj_sampleCrossMoment_tendstoInDistribution_gaussian_cov_all</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.2, all scalar projections with <code>Ω</code>.</strong></p>
+<p>This packages the scalar projection family used by the vector-valued
+Cramér-Wold theorem below: for every fixed direction <code>a</code>, the scalar projection
+of <code>√n · ĝₙ(e)</code> has Gaussian limit with variance <code>a' Ω a</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {k : Type u_3} [inst : Fintype k]
+  [inst_1 : DecidableEq k] {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ]
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_3 : MeasureTheory.IsProbabilityMeasure ν] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleCLTAssumption72 μ X e →
+    ∀ {Z : (k → Real) → Ω&#x27; → Real},
+      (∀ (a : k → Real),
+          ProbabilityTheory.HasLaw (Z a)
+            (ProbabilityTheory.gaussianReal 0 (dotProduct a ((HansenEconometrics.scoreCovMat μ X e).mulVec a)).toNNReal)
+            ν) →
+        ∀ (a : k → Real),
+          MeasureTheory.TendstoInDistribution
+            (fun n ω =&gt;
+              dotProduct
+                (instHSMul.hSMul n.cast.sqrt
+                  (HansenEconometrics.sampleCrossMoment (HansenEconometrics.stackRegressors X n ω)
+                    (HansenEconometrics.stackErrors e n ω)))
+                a)
+            Filter.atTop (Z a) (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.SampleCLTAssumption72</code></li><li><code>HansenEconometrics.sampleCrossMoment</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L158">HansenEconometrics/Chapter7Asymptotics/Normality.lean:158</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scorevector-samplecrossmoment-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.2, vector score CLT in Chapter 7 function-vector notation.</strong></p>
+<p>This is the public Chapter 7 score CLT: <code>√n · ĝₙ(e)</code> converges to the
+multivariate Gaussian score vector. The limit random variable is the coordinate
+view of the Gaussian on <code>EuclideanSpace ℝ k</code>, matching the rest of the chapter's
+<code>k → ℝ</code> vector notation. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    MeasureTheory.TendstoInDistribution
+      (fun n ω =&gt;
+        instHSMul.hSMul n.cast.sqrt
+          (HansenEconometrics.sampleCrossMoment (HansenEconometrics.stackRegressors X n ω)
+            (HansenEconometrics.stackErrors e n ω)))
+      Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+      (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.sampleCrossMoment</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L235">HansenEconometrics/Chapter7Asymptotics/Normality.lean:235</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scorecovmat">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.scoreCovMat</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's score covariance matrix <code>Ω := Var(e₀X₀)</code>. Under the population
+orthogonality condition this agrees entrywise with <code>E[e₀² X₀ X₀']</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{Ω : Type u_1} →
+  {mΩ : MeasurableSpace Ω} →
+    {k : Type u_4} → MeasureTheory.Measure Ω → (Nat → Ω → k → Real) → (Nat → Ω → Real) → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L125">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:125</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scoresecondmoment-integrable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreSecondMoment_integrable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Theorem 7.2 finite second-moment face.</strong></p>
+<p>Every entry of the score second-moment matrix
+<code>E[(e₀X₀)_j (e₀X₀)_ℓ]</code> is finite. This is the Lean-facing version of the
+textbook statement that the asymptotic covariance matrix <code>Ω</code> has finite
+entries under Assumption 7.2. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleCLTAssumption72 μ X e →
+    ∀ (j l : k),
+      MeasureTheory.Integrable
+        (fun ω =&gt; instHMul.hMul (instHSMul.hSMul (e 0 ω) (X 0 ω) j) (instHSMul.hSMul (e 0 ω) (X 0 ω) l)) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.SampleCLTAssumption72</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L158">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:158</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scorecovmat-possemidef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreCovMat_posSemidef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's score covariance matrix <code>Ω</code> is positive semidefinite. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleCLTAssumption72 μ X e → (HansenEconometrics.scoreCovMat μ X e).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.SampleCLTAssumption72</code></li><li><code>HansenEconometrics.scoreCovMat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L202">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:202</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-variance-eq-quadraticscorecovariance">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreProj_variance_eq_quadraticScoreCovariance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Theorem 7.2 covariance-matrix face.</strong></p>
+<p>The variance of every scalar projection of the score vector is the quadratic
+form of Hansen's score covariance matrix <code>Ω</code>. This is the matrix-language
+version of the scalar variance appearing in the one-dimensional CLT below. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleCLTAssumption72 μ X e →
+    ∀ (a : k → Real),
+      Eq (ProbabilityTheory.variance (fun ω =&gt; dotProduct (instHSMul.hSMul (e 0 ω) (X 0 ω)) a) μ)
+        (dotProduct a ((HansenEconometrics.scoreCovMat μ X e).mulVec a))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.SampleCLTAssumption72</code></li><li><code>HansenEconometrics.scoreCovMat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L181">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:181</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-3">
+<summary><span>Theorem 7.3</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Asymptotic Normality of Least Squares Estimator</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-olsbetastar-tendstoindistribution-gaussian-cov-all">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreProj_olsBetaStar_tendstoInDistribution_gaussian_cov_all</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.3, all scalar projections for totalized OLS with <code>Ω</code>.</strong></p>
+<p>For every fixed direction <code>a</code>, the scaled totalized OLS error has Gaussian
+limit with asymptotic variance <code>((Q⁻¹)'a)' Ω ((Q⁻¹)'a)</code>. This is the complete
+projection-family form currently available before the vector/Cramér-Wold
+wrapper is formalized. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {k : Type u_3} [inst : Fintype k]
+  [inst_1 : DecidableEq k] {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ]
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_3 : MeasureTheory.IsProbabilityMeasure ν] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        ∀ {Z : (k → Real) → Ω&#x27; → Real},
+          (∀ (a : k → Real),
+              ProbabilityTheory.HasLaw (Z a)
+                (ProbabilityTheory.gaussianReal 0 (HansenEconometrics.olsProjectionAsymVar μ X e a).toNNReal) ν) →
+            ∀ (a : k → Real),
+              MeasureTheory.TendstoInDistribution
+                (fun n ω =&gt;
+                  dotProduct
+                    (instHSMul.hSMul n.cast.sqrt
+                      (instHSub.hSub
+                        (HansenEconometrics.olsBetaStar (HansenEconometrics.stackRegressors X n ω)
+                          (HansenEconometrics.stackOutcomes y n ω))
+                        β))
+                    a)
+                Filter.atTop (Z a) (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.olsProjectionAsymVar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3214">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3214</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-olsbetaorzero-tendstoindistribution-gaussian-cov-all">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreProj_olsBetaOrZero_tendstoInDistribution_gaussian_cov_all</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.3, all scalar projections for ordinary OLS on nonsingular samples.</strong></p>
+<p>This is the textbook-facing projection-family form for <code>olsBetaOrZero</code>: for
+every fixed direction <code>a</code>, ordinary OLS on the nonsingular sample-Gram event has
+the same scalar Gaussian limit as the totalized estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {k : Type u_3} [inst : Fintype k]
+  [inst_1 : DecidableEq k] {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ]
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_3 : MeasureTheory.IsProbabilityMeasure ν] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        ∀ {Z : (k → Real) → Ω&#x27; → Real},
+          (∀ (a : k → Real),
+              ProbabilityTheory.HasLaw (Z a)
+                (ProbabilityTheory.gaussianReal 0 (HansenEconometrics.olsProjectionAsymVar μ X e a).toNNReal) ν) →
+            ∀ (a : k → Real),
+              MeasureTheory.TendstoInDistribution
+                (fun n ω =&gt;
+                  dotProduct
+                    (instHSMul.hSMul n.cast.sqrt
+                      (instHSub.hSub
+                        (HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+                          (HansenEconometrics.stackOutcomes y n ω))
+                        β))
+                    a)
+                Filter.atTop (Z a) (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.olsProjectionAsymVar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3263">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3263</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar-vector-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBetaStar_vector_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.3, vector asymptotic normality for totalized OLS.</strong></p>
+<p>Under the Chapter 7.2 scalar-projection CLT assumptions, the scaled totalized
+OLS estimator converges to the population-inverse transform of the Gaussian
+score vector. This theorem discharges the vector score CLT using the
+Cramér-Wold score theorem above. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.TendstoInDistribution
+          (fun n ω =&gt;
+            instHSMul.hSMul n.cast.sqrt
+              (instHSub.hSub
+                (HansenEconometrics.olsBetaStar (HansenEconometrics.stackRegressors X n ω)
+                  (HansenEconometrics.stackOutcomes y n ω))
+                β))
+          Filter.atTop (fun z =&gt; (Matrix.inv.inv (HansenEconometrics.popGram μ X)).mulVec z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L384">HansenEconometrics/Chapter7Asymptotics/Normality.lean:384</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetaorzero-vector-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.3, ordinary-wrapper vector asymptotic normality.</strong></p>
+<p>The same non-conditional vector CLT for the textbook-facing <code>olsBetaOrZero</code>
+wrapper, using the pointwise equality with <code>olsBetaStar</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.TendstoInDistribution
+          (fun n ω =&gt;
+            instHSMul.hSMul n.cast.sqrt
+              (instHSub.hSub
+                (HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+                  (HansenEconometrics.stackOutcomes y n ω))
+                β))
+          Filter.atTop (fun z =&gt; (Matrix.inv.inv (HansenEconometrics.popGram μ X)).mulVec z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L601">HansenEconometrics/Chapter7Asymptotics/Normality.lean:601</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scoreproj-olsbeta-tendstoindistribution-gaussian-cov-all-of-invertible">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreProj_olsBeta_tendstoInDistribution_gaussian_cov_all_of_invertible</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.3, all scalar projections for literal ordinary OLS under
+sample-Gram invertibility.</strong> </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {k : Type u_3} [inst : Fintype k]
+  [inst_1 : DecidableEq k] {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ]
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_3 : MeasureTheory.IsProbabilityMeasure ν] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real)
+      (hInv :
+        (n : Nat) →
+          (ω : Ω) →
+            Invertible
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.stackRegressors X n ω).transpose
+                (HansenEconometrics.stackRegressors X n ω))),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        ∀ {Z : (k → Real) → Ω&#x27; → Real},
+          (∀ (a : k → Real),
+              ProbabilityTheory.HasLaw (Z a)
+                (ProbabilityTheory.gaussianReal 0 (HansenEconometrics.olsProjectionAsymVar μ X e a).toNNReal) ν) →
+            ∀ (a : k → Real),
+              MeasureTheory.TendstoInDistribution
+                (fun n ω =&gt;
+                  dotProduct
+                    (instHSMul.hSMul n.cast.sqrt
+                      (instHSub.hSub
+                        (HansenEconometrics.olsBeta (HansenEconometrics.stackRegressors X n ω)
+                          (HansenEconometrics.stackOutcomes y n ω))
+                        β))
+                    a)
+                Filter.atTop (Z a) (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.olsProjectionAsymVar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L3324">HansenEconometrics/Chapter7Asymptotics/Inference.lean:3324</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-vector-tendstoindistribution-multivariategaussian-of-invertible">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_vector_tendstoInDistribution_multivariateGaussian_of_invertible</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.3 for literal ordinary OLS under sample-Gram invertibility.</strong></p>
+<p>When every realized stacked sample Gram is invertible, the textbook <code>olsBeta</code>
+estimator is available pointwise and agrees with <code>olsBetaOrZero</code>, so the
+ordinary-wrapper vector asymptotic-normality theorem transfers to the dependent
+ordinary-OLS surface. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real)
+      (hInv :
+        (n : Nat) →
+          (ω : Ω) →
+            Invertible
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.stackRegressors X n ω).transpose
+                (HansenEconometrics.stackRegressors X n ω))),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.TendstoInDistribution
+          (fun n ω =&gt;
+            instHSMul.hSMul n.cast.sqrt
+              (instHSub.hSub
+                (HansenEconometrics.olsBeta (HansenEconometrics.stackRegressors X n ω)
+                  (HansenEconometrics.stackOutcomes y n ω))
+                β))
+          Filter.atTop (fun z =&gt; (Matrix.inv.inv (HansenEconometrics.popGram μ X)).mulVec z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L628">HansenEconometrics/Chapter7Asymptotics/Normality.lean:628</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-4">
+<summary><span>Theorem 7.4</span><span class="result-count">5 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olssigmasqhatstar-tendstoinmeasure-errorvariance">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsSigmaSqHatStar_tendstoInMeasure_errorVariance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Theorem 7.4 residual-variance consistency.</strong></p>
+<p>Under the squared-error WLLN assumptions and the linear model, the totalized
+OLS residual average <code>σ̂²ₙ</code> converges in probability to <code>σ² = E[e₀²]</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ErrorVarianceConsistencyConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt;
+            HansenEconometrics.olsSigmaSqHatStar (HansenEconometrics.stackRegressors X n ω)
+              (HansenEconometrics.stackOutcomes y n ω))
+          Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsSigmaSqHatStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1720">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1720</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olss2star-tendstoinmeasure-errorvariance">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsS2Star_tendstoInMeasure_errorVariance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Theorem 7.4 degrees-of-freedom variance consistency.</strong></p>
+<p>Under the squared-error WLLN assumptions and the linear model, the
+degrees-of-freedom adjusted totalized residual variance <code>s²ₙ</code> converges in
+probability to <code>σ² = E[e₀²]</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ErrorVarianceConsistencyConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt;
+            HansenEconometrics.olsS2Star (HansenEconometrics.stackRegressors X n ω)
+              (HansenEconometrics.stackOutcomes y n ω))
+          Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsS2Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1826">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1826</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olssigmasqhatstar-tendstoinmeasure-errorvariance-of-iidrobustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_iidRobustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>IID joint-observation residual-variance consistency for <code>σ̂²</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real),
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt;
+        HansenEconometrics.olsSigmaSqHatStar (HansenEconometrics.stackRegressors X n ω)
+          (HansenEconometrics.stackOutcomes y n ω))
+      Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsSigmaSqHatStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4634">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4634</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olss2star-tendstoinmeasure-errorvariance-of-iidrobustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsS2Star_tendstoInMeasure_errorVariance_of_iidRobustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>IID joint-observation residual-variance consistency for <code>s²</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real),
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt;
+        HansenEconometrics.olsS2Star (HansenEconometrics.stackRegressors X n ω)
+          (HansenEconometrics.stackOutcomes y n ω))
+      Filter.atTop fun x =&gt; HansenEconometrics.errorVariance μ e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.olsS2Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4648">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4648</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-samplevarianceassumption74">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.SampleVarianceAssumption74</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Compatibility name for the variance proof bundle behind
+<code>ErrorVarianceConsistencyConditions</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{Ω : Type u_1} →
+  {mΩ : MeasurableSpace Ω} →
+    {k : Type u_3} →
+      [Fintype k] →
+        [DecidableEq k] →
+          (μ : MeasureTheory.Measure Ω) →
+            [MeasureTheory.IsFiniteMeasure μ] → (Nat → Ω → k → Real) → (Nat → Ω → Real) → Prop</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L154">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:154</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-5">
+<summary><span>Theorem 7.5</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 7.1, ˆV</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshomocovstar-tendstoinmeasure">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHomoCovStar_tendstoInMeasure</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.5, totalized homoskedastic covariance consistency.</strong></p>
+<p>Under the variance-estimator assumptions and the linear model, the plug-in
+homoskedastic covariance estimator <code>V̂⁰_β = s² Q̂⁻¹</code> converges in probability to
+<code>V⁰_β = σ² Q⁻¹</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ErrorVarianceConsistencyConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt;
+            HansenEconometrics.olsHomoCovStar (HansenEconometrics.stackRegressors X n ω)
+              (HansenEconometrics.stackOutcomes y n ω))
+          Filter.atTop fun x =&gt; HansenEconometrics.homoAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1855">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1855</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshomocovstar-tendstoinmeasure-of-iidrobustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHomoCovStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>IID joint-observation homoskedastic covariance consistency. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real),
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt;
+        HansenEconometrics.olsHomoCovStar (HansenEconometrics.stackRegressors X n ω)
+          (HansenEconometrics.stackOutcomes y n ω))
+      Filter.atTop fun x =&gt; HansenEconometrics.homoAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4662">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4662</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-6">
+<summary><span>Theorem 7.6</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovstar-tendstoinmeasure-of-bddwts-components">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovStar_tendstoInMeasure_of_bddWts_components</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.6, feasible HC0 sandwich under component measurability.</strong></p>
+<p>This version derives the residual HC0 middle-matrix measurability premise from
+component measurability of the regressors and errors, leaving only the empirical
+third/fourth bounded-weight hypotheses as explicit stochastic remainder
+controls. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.SampleHC0Assumption76 μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (X i) μ) →
+          (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (e i) μ) →
+            (∀ (a b l : k),
+                HansenEconometrics.BoundedInProbability μ fun n ω =&gt;
+                  HansenEconometrics.sampleScoreCovCrossWeight (HansenEconometrics.stackRegressors X n ω)
+                    (HansenEconometrics.stackErrors e n ω) a b l) →
+              (∀ (a b l m : k),
+                  HansenEconometrics.BoundedInProbability μ fun n ω =&gt;
+                    HansenEconometrics.sampleScoreCovQuadraticWeight (HansenEconometrics.stackRegressors X n ω) a b l
+                      m) →
+                MeasureTheory.TendstoInMeasure μ
+                  (fun n ω =&gt;
+                    HansenEconometrics.olsHetCovStar (HansenEconometrics.stackRegressors X n ω)
+                      (HansenEconometrics.stackOutcomes y n ω))
+                  Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovStar</code></li><li><code>HansenEconometrics.sampleScoreCovCrossWeight</code></li><li><code>HansenEconometrics.sampleScoreCovQuadraticWeight</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3344">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3344</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovstar-tendstoinmeasure-of-feasiblehcremainderconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovStar_tendstoInMeasure_of_feasibleHCRemainderConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.6, feasible HC0 sandwich under packaged remainder conditions.</strong></p>
+<p>This is the chapter-facing packaged version of
+<code>olsHetCovStar_tendstoInMeasure_of_bddWts_components</code>: the linear model,
+component measurability, and bounded-weight residual-remainder controls are
+carried by <code>FeasibleHCRemainderConditions</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.SampleHC0Assumption76 μ X e →
+    ∀ (β : k → Real),
+      HansenEconometrics.FeasibleHCRemainderConditions μ X e y β →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt;
+            HansenEconometrics.olsHetCovStar (HansenEconometrics.stackRegressors X n ω)
+              (HansenEconometrics.stackOutcomes y n ω))
+          Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCRemainderConditions</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3378">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3378</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovstar-tendstoinmeasure-of-robustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.6, feasible HC0 sandwich under compact robust moments.</strong></p>
+<p>This endpoint uses the combined robust feasible-HC moment package, discharging
+both the robust covariance assumptions and the feasible HC0 remainder package. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real),
+  HansenEconometrics.RobustFeasibleHCMomentConditions μ X e y β →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt;
+        HansenEconometrics.olsHetCovStar (HansenEconometrics.stackRegressors X n ω)
+          (HansenEconometrics.stackOutcomes y n ω))
+      Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.RobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3397">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3397</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidrobustfeasiblehcmomentconditions-torobustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.IidRobustFeasibleHCMomentConditions.toRobustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The iid joint-observation package discharges the combined robust feasible-HC
+moment package used by the compact HC0--HC3 covariance and inference endpoints. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} {β : k → Real},
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    HansenEconometrics.RobustFeasibleHCMomentConditions μ X e y β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.RobustFeasibleHCMomentConditions</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L1050">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:1050</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-7">
+<summary><span>Theorem 7.7</span><span class="result-count">6 of 7 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc1star-tendstoinmeasure-of-bddwts-components">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovHC1Star_tendstoInMeasure_of_bddWts_components</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.7, HC1 sandwich under component measurability.</strong></p>
+<p>This is the HC1 analogue of
+<code>olsHetCovStar_tendstoInMeasure_of_bddWts_components</code>:
+component measurability supplies the feasible HC0 middle-matrix measurability
+needed by the HC1 assembly theorem. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.SampleHC0Assumption76 μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (X i) μ) →
+          (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (e i) μ) →
+            (∀ (a b l : k),
+                HansenEconometrics.BoundedInProbability μ fun n ω =&gt;
+                  HansenEconometrics.sampleScoreCovCrossWeight (HansenEconometrics.stackRegressors X n ω)
+                    (HansenEconometrics.stackErrors e n ω) a b l) →
+              (∀ (a b l m : k),
+                  HansenEconometrics.BoundedInProbability μ fun n ω =&gt;
+                    HansenEconometrics.sampleScoreCovQuadraticWeight (HansenEconometrics.stackRegressors X n ω) a b l
+                      m) →
+                MeasureTheory.TendstoInMeasure μ
+                  (fun n ω =&gt;
+                    HansenEconometrics.olsHetCovHC1Star (HansenEconometrics.stackRegressors X n ω)
+                      (HansenEconometrics.stackOutcomes y n ω))
+                  Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.BoundedInProbability</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC1Star</code></li><li><code>HansenEconometrics.sampleScoreCovCrossWeight</code></li><li><code>HansenEconometrics.sampleScoreCovQuadraticWeight</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3710">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3710</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc2star-tendstoinmeasure-of-feasiblehcleverageconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovHC2Star_tendstoInMeasure_of_feasibleHCLeverageConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.7, HC2 sandwich under packaged leverage conditions.</strong></p>
+<p>This is the packaged HC2 wrapper: the feasible HC0 remainder controls are
+bundled together with maximal leverage <code>oₚ(1)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.RobustCovarianceConsistencyConditions μ X e →
+    ∀ (β : k → Real),
+      HansenEconometrics.FeasibleHCLeverageConditions μ X e y β →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt;
+            HansenEconometrics.olsHetCovHC2Star (HansenEconometrics.stackRegressors X n ω)
+              (HansenEconometrics.stackOutcomes y n ω))
+          Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCLeverageConditions</code></li><li><code>HansenEconometrics.RobustCovarianceConsistencyConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC2Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4335">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4335</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc3star-tendstoinmeasure-of-feasiblehcleverageconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovHC3Star_tendstoInMeasure_of_feasibleHCLeverageConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.7, HC3 sandwich under packaged leverage conditions.</strong></p>
+<p>This is the packaged HC3 wrapper: the feasible HC0 remainder controls are
+bundled together with maximal leverage <code>oₚ(1)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.RobustCovarianceConsistencyConditions μ X e →
+    ∀ (β : k → Real),
+      HansenEconometrics.FeasibleHCLeverageConditions μ X e y β →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt;
+            HansenEconometrics.olsHetCovHC3Star (HansenEconometrics.stackRegressors X n ω)
+              (HansenEconometrics.stackOutcomes y n ω))
+          Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCLeverageConditions</code></li><li><code>HansenEconometrics.RobustCovarianceConsistencyConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC3Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L4368">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:4368</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc1star-tendstoinmeasure-of-feasiblehcremainderconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovHC1Star_tendstoInMeasure_of_feasibleHCRemainderConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.7, HC1 sandwich under packaged remainder conditions.</strong></p>
+<p>HC1 has the same probability limit as HC0 under the packaged feasible
+remainder conditions. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.SampleHC0Assumption76 μ X e →
+    ∀ (β : k → Real),
+      HansenEconometrics.FeasibleHCRemainderConditions μ X e y β →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt;
+            HansenEconometrics.olsHetCovHC1Star (HansenEconometrics.stackRegressors X n ω)
+              (HansenEconometrics.stackOutcomes y n ω))
+          Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.FeasibleHCRemainderConditions</code></li><li><code>HansenEconometrics.SampleHC0Assumption76</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC1Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3742">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3742</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshetcovhc1star-tendstoinmeasure-of-robustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHetCovHC1Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.7, HC1 sandwich under compact robust moments.</strong> </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real),
+  HansenEconometrics.RobustFeasibleHCMomentConditions μ X e y β →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt;
+        HansenEconometrics.olsHetCovHC1Star (HansenEconometrics.stackRegressors X n ω)
+          (HansenEconometrics.stackOutcomes y n ω))
+      Filter.atTop fun x =&gt; HansenEconometrics.heteroAsymCov μ X e</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.RobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.olsHetCovHC1Star</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3758">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3758</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-hc1finitesamplescale-tendsto-one">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hc1FiniteSampleScale_tendsto_one</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The HC1 finite-sample degrees-of-freedom multiplier <code>n / (n - k)</code> tends to <code>1</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ (k : Type u_5) [inst : Fintype k],
+  Filter.Tendsto (fun n =&gt; instHDiv.hDiv n.cast (instHSub.hSub n.cast (Fintype.card k).cast)) Filter.atTop (nhds 1)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L3624">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:3624</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-8">
+<summary><span>Theorem 7.8</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 7.1, if r (β) is continuous at the true value of</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsBetaStar</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Star primitive</strong>: totalized OLS coefficient that is defined on every design matrix.</p>
+<p>Uses <code>Matrix.nonsingInv</code> in place of the typeclass inverse <code>⅟(Xᵀ * X)</code>, so it is a genuine
+function with no typeclass precondition.  On <strong>singular</strong> designs <code>(Xᵀ * X)⁻¹ = 0</code> by
+definition, so <code>olsBetaStar X y = 0</code>; on <strong>nonsingular</strong> designs it agrees with <code>olsBeta</code>
+(see <code>olsBetaStar_eq_olsBeta</code>).</p>
+<p>Role in the project architecture:
+- <strong>Chapters 3–5</strong> use <code>olsBeta</code> (typeclass inverse) for finite-sample algebra.
+- <strong>Chapter 7+</strong> use <code>olsBetaStar</code> as the proof engine for asymptotic results, where
+  nonsingularity holds only a.s. and cannot be supplied as a global typeclass.
+- Textbook-facing statements that a reader would want to cite use <code>olsBetaOrZero</code>
+  (Chapter 7), which is provably equal to <code>olsBetaStar</code> (see <code>olsBetaOrZero_eq_olsBetaStar</code>). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} → {k : Type u_2} → [Fintype n] → [Fintype k] → [DecidableEq k] → Matrix n k Real → (n → Real) → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L34">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:34</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetaorzero">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsBetaOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>OrZero primitive</strong>: textbook-facing totalization of ordinary OLS.</p>
+<p>Branches explicitly on <code>IsUnit (Xᵀ * X).det</code>:
+- <strong>nonsingular</strong>: returns the ordinary <code>olsBeta X y</code> (typeclass inverse);
+- <strong>singular</strong>: returns <code>0</code>.</p>
+<p>This makes <code>olsBetaOrZero</code> suitable for textbook-facing statements that a reader would
+want to cite directly (e.g., consistency, asymptotic normality headlines), because the
+formula matches ordinary OLS on the high-probability nonsingularity event.</p>
+<p>For proofs, the equivalent <code>olsBetaStar</code> (a Star primitive using <code>Matrix.nonsingInv</code>) is
+typically more convenient; the bridge <code>olsBetaOrZero_eq_olsBetaStar</code> (private <code>@[simp]</code>)
+connects the two. See the <strong>Star / OrZero totalization convention</strong> in <code>AGENTS.md</code> for
+the full architecture. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} → {k : Type u_2} → [Fintype n] → [Fintype k] → [DecidableEq k] → Matrix n k Real → (n → Real) → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L75">HansenEconometrics/Chapter7Asymptotics/Basic.lean:75</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-9">
+<summary><span>Theorem 7.9</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Asymptotic Distribution of Functions of Parameters</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearfunction-olsbetastar-delta-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearFunction_olsBetaStar_delta_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.9, nonlinear Delta-method wrapper for totalized OLS.</strong></p>
+<p>This is the Chapter 7-facing nonlinear packaging now that the Chapter 6
+Delta-method/law-relabeling layer is available.  If <code>Yₙ</code> is the scaled nonlinear
+statistic and it differs from the derivative image of
+<code>√n(β̂*ₙ - β)</code> by <code>oₚ(1)</code>, then <code>Yₙ</code> has the named Gaussian law of that derivative
+image.  Concrete transforms <code>r(β̂ₙ)</code> discharge <code>hrem</code> from the usual
+Fréchet-derivative remainder. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} {q : Type u_4} [inst_3 : Fintype q] [inst_4 : DecidableEq q],
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real) (R : Matrix q k Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        ∀ {Y : Nat → Ω → EuclideanSpace Real q},
+          (∀ (n : Nat), AEMeasurable (Y n) μ) →
+            (MeasureTheory.TendstoInMeasure μ
+                (fun n ω =&gt;
+                  instHSub.hSub (Y n ω)
+                    (ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap R)
+                      {
+                        ofLp :=
+                          instHSMul.hSMul n.cast.sqrt
+                            (instHSub.hSub
+                              (HansenEconometrics.olsBetaStar (HansenEconometrics.stackRegressors X n ω)
+                                (HansenEconometrics.stackOutcomes y n ω))
+                              β) }))
+                Filter.atTop fun x =&gt; 0) →
+              ProbabilityTheory.HasLaw
+                  (fun z =&gt;
+                    ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap R)
+                      { ofLp := (Matrix.inv.inv (HansenEconometrics.popGram μ X)).mulVec z.ofLp })
+                  (ProbabilityTheory.multivariateGaussian 0
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R (HansenEconometrics.heteroAsymCov μ X e))
+                      R.transpose))
+                  (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e)) →
+                MeasureTheory.TendstoInDistribution Y Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+                  (ProbabilityTheory.multivariateGaussian 0
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R (HansenEconometrics.heteroAsymCov μ X e))
+                      R.transpose))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (8)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L684">HansenEconometrics/Chapter7Asymptotics/Normality.lean:684</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearfunction-olsbetaorzero-delta-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearFunction_olsBetaOrZero_delta_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.9, nonlinear Delta-method wrapper for ordinary OLS.</strong></p>
+<p>Ordinary-wrapper version of
+<code>nonlinearFunction_olsBetaStar_delta_tendstoInDistribution_gaussian</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} {q : Type u_4} [inst_3 : Fintype q] [inst_4 : DecidableEq q],
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real) (R : Matrix q k Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        ∀ {Y : Nat → Ω → EuclideanSpace Real q},
+          (∀ (n : Nat), AEMeasurable (Y n) μ) →
+            (MeasureTheory.TendstoInMeasure μ
+                (fun n ω =&gt;
+                  instHSub.hSub (Y n ω)
+                    (ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap R)
+                      {
+                        ofLp :=
+                          instHSMul.hSMul n.cast.sqrt
+                            (instHSub.hSub
+                              (HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+                                (HansenEconometrics.stackOutcomes y n ω))
+                              β) }))
+                Filter.atTop fun x =&gt; 0) →
+              ProbabilityTheory.HasLaw
+                  (fun z =&gt;
+                    ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap R)
+                      { ofLp := (Matrix.inv.inv (HansenEconometrics.popGram μ X)).mulVec z.ofLp })
+                  (ProbabilityTheory.multivariateGaussian 0
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R (HansenEconometrics.heteroAsymCov μ X e))
+                      R.transpose))
+                  (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.scoreCovMat μ X e)) →
+                MeasureTheory.TendstoInDistribution Y Filter.atTop (fun z =&gt; z) (fun x =&gt; μ)
+                  (ProbabilityTheory.multivariateGaussian 0
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R (HansenEconometrics.heteroAsymCov μ X e))
+                      R.transpose))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (8)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.heteroAsymCov</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L758">HansenEconometrics/Chapter7Asymptotics/Normality.lean:758</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetastar">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsBetaStar</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Star primitive</strong>: totalized OLS coefficient that is defined on every design matrix.</p>
+<p>Uses <code>Matrix.nonsingInv</code> in place of the typeclass inverse <code>⅟(Xᵀ * X)</code>, so it is a genuine
+function with no typeclass precondition.  On <strong>singular</strong> designs <code>(Xᵀ * X)⁻¹ = 0</code> by
+definition, so <code>olsBetaStar X y = 0</code>; on <strong>nonsingular</strong> designs it agrees with <code>olsBeta</code>
+(see <code>olsBetaStar_eq_olsBeta</code>).</p>
+<p>Role in the project architecture:
+- <strong>Chapters 3–5</strong> use <code>olsBeta</code> (typeclass inverse) for finite-sample algebra.
+- <strong>Chapter 7+</strong> use <code>olsBetaStar</code> as the proof engine for asymptotic results, where
+  nonsingularity holds only a.s. and cannot be supplied as a global typeclass.
+- Textbook-facing statements that a reader would want to cite use <code>olsBetaOrZero</code>
+  (Chapter 7), which is provably equal to <code>olsBetaStar</code> (see <code>olsBetaOrZero_eq_olsBetaStar</code>). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} → {k : Type u_2} → [Fintype n] → [Fintype k] → [DecidableEq k] → Matrix n k Real → (n → Real) → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L34">HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:34</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbetaorzero">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsBetaOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>OrZero primitive</strong>: textbook-facing totalization of ordinary OLS.</p>
+<p>Branches explicitly on <code>IsUnit (Xᵀ * X).det</code>:
+- <strong>nonsingular</strong>: returns the ordinary <code>olsBeta X y</code> (typeclass inverse);
+- <strong>singular</strong>: returns <code>0</code>.</p>
+<p>This makes <code>olsBetaOrZero</code> suitable for textbook-facing statements that a reader would
+want to cite directly (e.g., consistency, asymptotic normality headlines), because the
+formula matches ordinary OLS on the high-probability nonsingularity event.</p>
+<p>For proofs, the equivalent <code>olsBetaStar</code> (a Star primitive using <code>Matrix.nonsingInv</code>) is
+typically more convenient; the bridge <code>olsBetaOrZero_eq_olsBetaStar</code> (private <code>@[simp]</code>)
+connects the two. See the <strong>Star / OrZero totalization convention</strong> in <code>AGENTS.md</code> for
+the full architecture. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} → {k : Type u_2} → [Fintype n] → [Fintype k] → [DecidableEq k] → Matrix n k Real → (n → Real) → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L75">HansenEconometrics/Chapter7Asymptotics/Basic.lean:75</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-10">
+<summary><span>Theorem 7.10</span><span class="result-count">0 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ.</p></div>
+<p class="result-gap">The canonical crosswalk does not name a compiled Lean endpoint. See the chapter inventory for the current qualification.</p>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-11">
+<summary><span>Theorem 7.11</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, and 7.4, T (θ) − →</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-studentizedlimit-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.studentizedLimit_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Generic studentization bridge for scalar linear inference.</p>
+<p>If a numerator has a distributional limit and the standard error converges in
+probability to a positive constant, then the studentized statistic has the
+corresponding ratio limit. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {μ : MeasureTheory.Measure Ω}
+  [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] {num se : Nat → Ω → Real} {Z : Ω&#x27; → Real} {c : Real},
+  Real.instLT.lt 0 c →
+    MeasureTheory.TendstoInDistribution num Filter.atTop Z (fun x =&gt; μ) ν →
+      (MeasureTheory.TendstoInMeasure μ se Filter.atTop fun x =&gt; c) →
+        (∀ (n : Nat), AEMeasurable (se n) μ) →
+          MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHDiv.hDiv (num n ω) (se n ω)) Filter.atTop
+            (fun ω =&gt; instHDiv.hDiv (Z ω) c) (fun x =&gt; μ) ν</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L758">HansenEconometrics/Chapter7Asymptotics/Inference.lean:758</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearscalartstat-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearScalarTStat_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.11, generic nonlinear scalar t-statistic.</strong></p>
+<p>If the scaled scalar plug-in error has a distributional limit and the nonlinear
+standard error converges in probability to a positive constant, then the
+studentized nonlinear scalar statistic converges to the corresponding ratio
+limit. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {Ω&#x27; : Type u_2} {mΩ : MeasurableSpace Ω} {mΩ&#x27; : MeasurableSpace Ω&#x27;} {μ : MeasureTheory.Measure Ω}
+  [inst : MeasureTheory.IsProbabilityMeasure μ] {ν : MeasureTheory.Measure Ω&#x27;}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure ν] {θ : Real} {θhat se : Nat → Ω → Real} {root : Nat → Real}
+  {Z : Ω&#x27; → Real} {c : Real},
+  Real.instLT.lt 0 c →
+    MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHMul.hMul (root n) (instHSub.hSub (θhat n ω) θ)) Filter.atTop Z
+        (fun x =&gt; μ) ν →
+      (MeasureTheory.TendstoInMeasure μ se Filter.atTop fun x =&gt; c) →
+        (∀ (n : Nat), AEMeasurable (se n) μ) →
+          MeasureTheory.TendstoInDistribution
+            (fun n ω =&gt; HansenEconometrics.scalarFunctionTStat (θhat n ω) θ (se n ω) (root n)) Filter.atTop
+            (fun ω =&gt; instHDiv.hDiv (Z ω) c) (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarFunctionTStat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L781">HansenEconometrics/Chapter7Asymptotics/Inference.lean:781</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearrestrictionstderror">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.linearRestrictionStdError</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Standard error induced by a covariance estimator for a fixed one-row restriction. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_3} → [Fintype k] → Matrix Unit k Real → Matrix k k Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L104">HansenEconometrics/Chapter7Asymptotics/Inference.lean:104</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarfunctiontstat">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.scalarFunctionTStat</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Scalar t-statistic for a generic nonlinear scalar parameter transform. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Real → Real → Real → Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L119">HansenEconometrics/Chapter7Asymptotics/Inference.lean:119</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olslineartstatstar">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsLinearTStatStar</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Scalar t-statistic for totalized OLS and an arbitrary covariance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_3} →
+  [Fintype k] →
+    [DecidableEq k] →
+      {n : Type u_4} →
+        [Fintype n] → Matrix Unit k Real → Matrix k k Real → Matrix n k Real → (n → Real) → (k → Real) → Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L476">HansenEconometrics/Chapter7Asymptotics/Inference.lean:476</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olslineartstatorzero">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsLinearTStatOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Scalar t-statistic for ordinary-on-nonsingular OLS and an arbitrary covariance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_3} →
+  [Fintype k] →
+    [DecidableEq k] →
+      {n : Type u_4} →
+        [Fintype n] → Matrix Unit k Real → Matrix k k Real → Matrix n k Real → (n → Real) → (k → Real) → Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L485">HansenEconometrics/Chapter7Asymptotics/Inference.lean:485</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-12">
+<summary><span>Theorem 7.12</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-symmetricci-coverage-of-abs-tstat-nonpos-tendsto-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.symmetricCI_coverage_of_abs_tstat_nonpos_tendsto_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.12, probabilistic symmetric confidence-interval coverage bridge.</strong></p>
+<p>This version removes the pointwise eventual standard-error positivity shortcut:
+it is enough that the nonpositive-standard-error event has probability tending
+to zero. The interval event and the absolute-t-statistic event can then differ
+only on a negligible bad set. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  {θ crit : Real} {θhat se : Nat → Ω → Real} {root : Nat → Real},
+  Filter.Eventually (fun n =&gt; Real.instLT.lt 0 (root n)) Filter.atTop →
+    Filter.Tendsto (fun n =&gt; MeasureTheory.Measure.instFunLike.coe μ (setOf fun ω =&gt; Real.instLE.le (se n ω) 0))
+        Filter.atTop (nhds 0) →
+      MeasureTheory.TendstoInDistribution
+          (fun n ω =&gt; abs (instHDiv.hDiv (instHMul.hMul (root n) (instHSub.hSub (θhat n ω) θ)) (se n ω))) Filter.atTop
+          (fun x =&gt; abs x) (fun x =&gt; μ) (ProbabilityTheory.gaussianReal 0 1) →
+        Eq
+            (MeasureTheory.Measure.instFunLike.coe
+              (MeasureTheory.Measure.map (fun x =&gt; abs x) (ProbabilityTheory.gaussianReal 0 1))
+              (frontier (Set.Iic crit)))
+            0 →
+          Filter.Tendsto
+            (fun n =&gt;
+              MeasureTheory.Measure.instFunLike.coe μ
+                (setOf fun ω =&gt;
+                  Set.instMembership.mem
+                    (Set.Icc (instHSub.hSub (θhat n ω) (instHDiv.hDiv (instHMul.hMul crit (se n ω)) (root n)))
+                      (instHAdd.hAdd (θhat n ω) (instHDiv.hDiv (instHMul.hMul crit (se n ω)) (root n))))
+                    θ))
+            Filter.atTop
+            (nhds
+              (MeasureTheory.Measure.instFunLike.coe
+                (MeasureTheory.Measure.map (fun x =&gt; abs x) (ProbabilityTheory.gaussianReal 0 1)) (Set.Iic crit)))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L625">HansenEconometrics/Chapter7Asymptotics/Inference.lean:625</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-symmetricci-coverage-of-abs-tstat-standardnormal-se-tendsto-pos">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.symmetricCI_coverage_of_abs_tstat_standardNormal_se_tendsto_pos</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Standard-normal confidence-interval coverage from convergence in probability
+of the standard error to a positive constant. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  {θ crit c : Real} {θhat se : Nat → Ω → Real} {root : Nat → Real},
+  Filter.Eventually (fun n =&gt; Real.instLT.lt 0 (root n)) Filter.atTop →
+    Real.instLT.lt 0 c →
+      (MeasureTheory.TendstoInMeasure μ se Filter.atTop fun x =&gt; c) →
+        MeasureTheory.TendstoInDistribution
+            (fun n ω =&gt; abs (instHDiv.hDiv (instHMul.hMul (root n) (instHSub.hSub (θhat n ω) θ)) (se n ω))) Filter.atTop
+            (fun x =&gt; abs x) (fun x =&gt; μ) (ProbabilityTheory.gaussianReal 0 1) →
+          Filter.Tendsto
+            (fun n =&gt;
+              MeasureTheory.Measure.instFunLike.coe μ
+                (setOf fun ω =&gt;
+                  Set.instMembership.mem
+                    (Set.Icc (instHSub.hSub (θhat n ω) (instHDiv.hDiv (instHMul.hMul crit (se n ω)) (root n)))
+                      (instHAdd.hAdd (θhat n ω) (instHDiv.hDiv (instHMul.hMul crit (se n ω)) (root n))))
+                    θ))
+            Filter.atTop
+            (nhds
+              (MeasureTheory.Measure.instFunLike.coe
+                (MeasureTheory.Measure.map (fun x =&gt; abs x) (ProbabilityTheory.gaussianReal 0 1)) (Set.Iic crit)))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L716">HansenEconometrics/Chapter7Asymptotics/Inference.lean:716</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearscalarci-coverage-of-tstat-standardnormal-se-tendsto-pos">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearScalarCI_coverage_of_tstat_standardNormal_se_tendsto_pos</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.12, nonlinear scalar CI coverage from a signed t limit.</strong></p>
+<p>If a nonlinear scalar t-statistic has the standard-normal limit and its standard
+error converges to a positive constant, then the usual symmetric confidence
+interval has standard-normal asymptotic coverage. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  {θ crit c : Real} {θhat se : Nat → Ω → Real} {root : Nat → Real},
+  Filter.Eventually (fun n =&gt; Real.instLT.lt 0 (root n)) Filter.atTop →
+    Real.instLT.lt 0 c →
+      (MeasureTheory.TendstoInMeasure μ se Filter.atTop fun x =&gt; c) →
+        MeasureTheory.TendstoInDistribution
+            (fun n ω =&gt; HansenEconometrics.scalarFunctionTStat (θhat n ω) θ (se n ω) (root n)) Filter.atTop (fun x =&gt; x)
+            (fun x =&gt; μ) (ProbabilityTheory.gaussianReal 0 1) →
+          Filter.Tendsto
+            (fun n =&gt;
+              MeasureTheory.Measure.instFunLike.coe μ
+                (setOf fun ω =&gt; HansenEconometrics.scalarFunctionCIEvent (θhat n ω) θ (se n ω) (root n) crit))
+            Filter.atTop
+            (nhds
+              (MeasureTheory.Measure.instFunLike.coe
+                (MeasureTheory.Measure.map (fun x =&gt; abs x) (ProbabilityTheory.gaussianReal 0 1)) (Set.Iic crit)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.scalarFunctionCIEvent</code></li><li><code>HansenEconometrics.scalarFunctionTStat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L807">HansenEconometrics/Chapter7Asymptotics/Inference.lean:807</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olslinearcieventorzero">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsLinearCIEventOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Symmetric confidence-interval membership for a scalar ordinary-OLS restriction. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_3} →
+  [Fintype k] →
+    [DecidableEq k] →
+      {n : Type u_4} →
+        [Fintype n] →
+          Matrix Unit k Real → Matrix k k Real → Matrix n k Real → (n → Real) → (k → Real) → Real → Real → Prop</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L494">HansenEconometrics/Chapter7Asymptotics/Inference.lean:494</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-13">
+<summary><span>Theorem 7.13</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − →</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-haslaw-stdgaussian-normsq-chisquared">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hasLaw_stdGaussian_normSq_chiSquared</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The squared Euclidean norm of a <code>Fin n</code>-dimensional standard Gaussian vector has a
+<code>χ²(n)</code> law. This is the full-rank special case of
+<code>hasLaw_quadForm_symmIdem_chiSquared</code> with the identity quadratic form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Nat},
+  instLTNat.lt 0 n →
+    ∀ {Ω : Type u_1} [inst : MeasureTheory.MeasureSpace Ω] [MeasureTheory.IsProbabilityMeasure inst.volume]
+      {Z : Ω → EuclideanSpace Real (Fin n)},
+      ProbabilityTheory.HasLaw Z (ProbabilityTheory.stdGaussian (EuclideanSpace Real (Fin n))) inst.volume →
+        ProbabilityTheory.HasLaw (fun ω =&gt; dotProduct (Z ω).ofLp (Z ω).ofLp) (HansenEconometrics.chiSquared n)
+          inst.volume</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ChiSquared.lean#L908">HansenEconometrics/ChiSquared.lean:908</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-haslaw-gaussian-mahalanobis-chisquared">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hasLaw_gaussian_mahalanobis_chiSquared</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Random-variable form of <code>hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Nat},
+  instLTNat.lt 0 n →
+    ∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} {Z : Ω → EuclideanSpace Real (Fin n)}
+      {V : Matrix (Fin n) (Fin n) Real},
+      V.PosDef →
+        ProbabilityTheory.HasLaw Z (ProbabilityTheory.multivariateGaussian 0 V) μ →
+          ProbabilityTheory.HasLaw (fun ω =&gt; dotProduct (Z ω).ofLp ((Matrix.inv.inv V).mulVec (Z ω).ofLp))
+            (HansenEconometrics.chiSquared n) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ChiSquared.lean#L1071">HansenEconometrics/ChiSquared.lean:1071</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-haslaw-multivariategaussian-zero-linearmap">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hasLaw_multivariateGaussian_zero_linearMap</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>A fixed matrix image of a centered multivariate Gaussian is a centered
+multivariate Gaussian with covariance <code>R S Rᵀ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_3} [inst : Fintype n] [inst_1 : DecidableEq n] {q : Type u_4} [inst_2 : Fintype q]
+  [inst_3 : DecidableEq q] {S : Matrix n n Real},
+  S.PosSemidef →
+    ∀ (R : Matrix q n Real),
+      ProbabilityTheory.HasLaw (fun z =&gt; { ofLp := R.mulVec z.ofLp })
+        (ProbabilityTheory.multivariateGaussian 0
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R S)
+            R.transpose))
+        (ProbabilityTheory.multivariateGaussian 0 S)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ProbabilityUtils.lean#L938">HansenEconometrics/ProbabilityUtils.lean:938</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-14">
+<summary><span>Theorem 7.14</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, and E</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-homoskedasticerrorvariance">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.HomoskedasticErrorVariance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Variable-facing homoskedasticity assumption for Chapter 7.</p>
+<p>The squared structural error has constant conditional expectation given the
+regressor vector: <code>E[e₀² | X₀] = E[e₀²]</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{Ω : Type u_1} →
+  {mΩ : MeasurableSpace Ω} → {k : Type u_4} → MeasureTheory.Measure Ω → (Nat → Ω → k → Real) → (Nat → Ω → Real) → Prop</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L252">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:252</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scorecovmat-eq-errorvariance-smul-popgram-homo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scoreCovMat_eq_errorVariance_smul_popGram_homo</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Homoskedasticity implies Hansen's score-covariance identity <code>Ω = σ²Q</code>.</p>
+<p>This is the variable-facing bridge used to replace public assumptions of the
+already-finished covariance identity. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleCLTAssumption72 μ X e →
+    HansenEconometrics.SampleVarianceAssumption74 μ X e →
+      ∀ (hX0 : Measurable (X 0)) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+        HansenEconometrics.HomoskedasticErrorVariance μ X e →
+          Eq (HansenEconometrics.scoreCovMat μ X e)
+            (instHSMul.hSMul (HansenEconometrics.errorVariance μ e) (HansenEconometrics.popGram μ X))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (8)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.SampleCLTAssumption72</code></li><li><code>HansenEconometrics.SampleVarianceAssumption74</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.errorVariance</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L310">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:310</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshomolinwaldstatorzero-tendstoindistribution-chisquared-one-homo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_homo</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.14, scalar homoskedastic Wald statistic from homoskedasticity.</strong> </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    HansenEconometrics.ErrorVarianceConsistencyConditions μ X e →
+      ∀ (β : k → Real) (R : Matrix Unit k Real),
+        (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+          (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (X i) μ) →
+            (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (e i) μ) →
+              ∀ (hX0 : Measurable (X 0)) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+                HansenEconometrics.HomoskedasticErrorVariance μ X e →
+                  Real.instLT.lt 0
+                      (HansenEconometrics.linearRestrictionStdError R (HansenEconometrics.homoAsymCov μ X e)) →
+                    MeasureTheory.TendstoInDistribution
+                      (fun n ω =&gt;
+                        HansenEconometrics.olsLinearWaldStatOrZero R
+                          (HansenEconometrics.olsHomoCovStar (HansenEconometrics.stackRegressors X n ω)
+                            (HansenEconometrics.stackOutcomes y n ω))
+                          (HansenEconometrics.stackRegressors X n ω) (HansenEconometrics.stackOutcomes y n ω) β
+                          n.cast.sqrt)
+                      Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared 1)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (13)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.linearRestrictionStdError</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.olsLinearWaldStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1288">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1288</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linmap-olshomowaldstatorzero-tendstoindistribution-chisquared-homo">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_homo</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.14, multivariate homoskedastic Wald statistic from homoskedasticity.</strong></p>
+<p>This variable-facing wrapper derives <code>Ω = σ²Q</code> from constant conditional error
+variance given <code>X₀</code>, then applies the covariance-identity bridge. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} {r : Nat} [inst_3 : Fact (instLTNat.lt 0 r)],
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    HansenEconometrics.ErrorVarianceConsistencyConditions μ X e →
+      ∀ (β : k → Real) (R : Matrix (Fin r) k Real),
+        (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+          (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (X i) μ) →
+            (∀ (i : Nat), MeasureTheory.AEStronglyMeasurable (e i) μ) →
+              ∀ (hX0 : Measurable (X 0)) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+                HansenEconometrics.HomoskedasticErrorVariance μ X e →
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R (HansenEconometrics.homoAsymCov μ X e))
+                        R.transpose).PosDef →
+                    MeasureTheory.TendstoInDistribution
+                      (fun n ω =&gt;
+                        dotProduct
+                          (R.mulVec
+                            (instHSMul.hSMul n.cast.sqrt
+                              (instHSub.hSub
+                                (HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+                                  (HansenEconometrics.stackOutcomes y n ω))
+                                β)))
+                          ((Matrix.inv.inv
+                                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R
+                                    (HansenEconometrics.olsHomoCovStar (HansenEconometrics.stackRegressors X n ω)
+                                      (HansenEconometrics.stackOutcomes y n ω)))
+                                  R.transpose)).mulVec
+                            (R.mulVec
+                              (instHSMul.hSMul n.cast.sqrt
+                                (instHSub.hSub
+                                  (HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+                                    (HansenEconometrics.stackOutcomes y n ω))
+                                  β)))))
+                      Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared r)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (12)</summary><ul><li><code>HansenEconometrics.ErrorVarianceConsistencyConditions</code></li><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L2069">HansenEconometrics/Chapter7Asymptotics/Normality.lean:2069</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olshomolinwaldstatorzero-tendstoindistribution-chisquared-one-of-iidrobustfeasiblehc">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_iidRobustFeasibleHC</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>IID joint-observation scalar homoskedastic Wald statistic from homoskedasticity. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} (β : k → Real) (R : Matrix Unit k Real),
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    ∀ (hX0 : Measurable (X 0)) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+      HansenEconometrics.HomoskedasticErrorVariance μ X e →
+        Real.instLT.lt 0 (HansenEconometrics.linearRestrictionStdError R (HansenEconometrics.homoAsymCov μ X e)) →
+          MeasureTheory.TendstoInDistribution
+            (fun n ω =&gt;
+              HansenEconometrics.olsLinearWaldStatOrZero R
+                (HansenEconometrics.olsHomoCovStar (HansenEconometrics.stackRegressors X n ω)
+                  (HansenEconometrics.stackOutcomes y n ω))
+                (HansenEconometrics.stackRegressors X n ω) (HansenEconometrics.stackOutcomes y n ω) β n.cast.sqrt)
+            Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared 1)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (12)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.linearRestrictionStdError</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.olsLinearWaldStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1317">HansenEconometrics/Chapter7Asymptotics/Inference.lean:1317</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linmap-olshomowaldstatorzero-tendstoindistribution-chisquared-of-iidrobustfeasiblehc">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_of_iidRobustFeasibleHC</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>IID joint-observation multivariate homoskedastic Wald statistic from homoskedasticity. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} {r : Nat} [inst_3 : Fact (instLTNat.lt 0 r)] (β : k → Real) (R : Matrix (Fin r) k Real),
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    ∀ (hX0 : Measurable (X 0)) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+      HansenEconometrics.HomoskedasticErrorVariance μ X e →
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R (HansenEconometrics.homoAsymCov μ X e))
+              R.transpose).PosDef →
+          MeasureTheory.TendstoInDistribution
+            (fun n ω =&gt;
+              dotProduct
+                (R.mulVec
+                  (instHSMul.hSMul n.cast.sqrt
+                    (instHSub.hSub
+                      (HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+                        (HansenEconometrics.stackOutcomes y n ω))
+                      β)))
+                ((Matrix.inv.inv
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R
+                          (HansenEconometrics.olsHomoCovStar (HansenEconometrics.stackRegressors X n ω)
+                            (HansenEconometrics.stackOutcomes y n ω)))
+                        R.transpose)).mulVec
+                  (R.mulVec
+                    (instHSMul.hSMul n.cast.sqrt
+                      (instHSub.hSub
+                        (HansenEconometrics.olsBetaOrZero (HansenEconometrics.stackRegressors X n ω)
+                          (HansenEconometrics.stackOutcomes y n ω))
+                        β)))))
+            Filter.atTop (fun x =&gt; x) (fun x =&gt; μ) (HansenEconometrics.chiSquared r)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (11)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.homoAsymCov</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.olsBetaOrZero</code></li><li><code>HansenEconometrics.olsHomoCovStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L2100">HansenEconometrics/Chapter7Asymptotics/Normality.lean:2100</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-15">
+<summary><span>Theorem 7.15</span><span class="result-count">6 of 8 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 7.2, 7.3, Ω &gt; 0, E ∥e∥16 &lt; ∞, E ∥X ∥16 &lt;</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-secondorderedgeworthexpansion-symmetric-interval-scaled-remainder-tendsto-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SecondOrderEdgeworthExpansion.symmetric_interval_scaled_remainder_tendsto_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Symmetric two-sided Edgeworth expansion consequence.</p>
+<p>For a symmetric interval, the <code>n^{-1/2}</code> correction cancels when <code>p₁</code> is even
+and the density is even, while the odd <code>p₂</code> term contributes twice its positive
+cutoff value. This is the formal version of Hansen's explanation after
+Theorem 7.15 that two-sided intervals remove the first-order Edgeworth
+coverage error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  {T : Nat → Ω → Real} {baseCDF density p1 p2 : Real → Real},
+  HansenEconometrics.SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2 →
+    ∀ (c : Real),
+      Eq (p1 (Real.instNeg.neg c)) (p1 c) →
+        Eq (p2 (Real.instNeg.neg c)) (Real.instNeg.neg (p2 c)) →
+          Eq (density (Real.instNeg.neg c)) (density c) →
+            Filter.Tendsto
+              (fun n =&gt;
+                instHMul.hMul n.cast
+                  (instHSub.hSub
+                    (instHSub.hSub
+                      (instHSub.hSub (HansenEconometrics.statisticCDFReal μ T n c)
+                        (HansenEconometrics.statisticCDFReal μ T n (Real.instNeg.neg c)))
+                      (instHSub.hSub (baseCDF c) (baseCDF (Real.instNeg.neg c))))
+                    (instHMul.hMul (Real.instInv.inv n.cast) (instHMul.hMul 2 (instHMul.hMul (p2 c) (density c))))))
+              Filter.atTop (nhds 0)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.SecondOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.statisticCDFReal</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L394">HansenEconometrics/Chapter7Asymptotics/Inference.lean:394</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-edgeworthp1polynomial">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.edgeworthP1Polynomial</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The even quadratic polynomial shape appearing as <code>p₁</code> in Hansen's
+Theorem 7.15 Edgeworth expansion.  The concrete coefficients are cumulant
+functions of the regression moments; this definition records the textbook
+polynomial order and parity. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Real → Real → Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L251">HansenEconometrics/Chapter7Asymptotics/Inference.lean:251</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-edgeworthp2polynomial">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.edgeworthP2Polynomial</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The odd degree-five polynomial shape appearing as <code>p₂</code> in Hansen's
+Theorem 7.15 Edgeworth expansion. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Real → Real → Real → Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L258">HansenEconometrics/Chapter7Asymptotics/Inference.lean:258</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-firstorderedgeworthexpansion-scaled-remainder-tendsto-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.FirstOrderEdgeworthExpansion.scaled_remainder_tendsto_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>First-order Edgeworth expansion, written as a vanishing scaled remainder. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  {T : Nat → Ω → Real} {baseCDF correction : Real → Real},
+  HansenEconometrics.FirstOrderEdgeworthExpansion μ T baseCDF correction →
+    ∀ (x : Real),
+      Filter.Tendsto
+        (fun n =&gt;
+          instHMul.hMul n.cast.sqrt
+            (instHSub.hSub (instHSub.hSub (HansenEconometrics.statisticCDFReal μ T n x) (baseCDF x))
+              (instHMul.hMul (Real.instInv.inv n.cast.sqrt) (correction x))))
+        Filter.atTop (nhds 0)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.FirstOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.statisticCDFReal</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L157">HansenEconometrics/Chapter7Asymptotics/Inference.lean:157</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-secondorderedgeworthexpansion-tofirstorderedgeworthexpansion">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SecondOrderEdgeworthExpansion.toFirstOrderEdgeworthExpansion</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>A second-order Edgeworth expansion implies the first-order Edgeworth
+interface, with correction <code>p1(x) * density(x)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  {T : Nat → Ω → Real} {baseCDF density p1 p2 : Real → Real},
+  HansenEconometrics.SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2 →
+    HansenEconometrics.FirstOrderEdgeworthExpansion μ T baseCDF fun x =&gt; instHMul.hMul (p1 x) (density x)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.FirstOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.SecondOrderEdgeworthExpansion</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L326">HansenEconometrics/Chapter7Asymptotics/Inference.lean:326</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-secondorderedgeworthexpansion-pointwise-remainder-tendsto-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.SecondOrderEdgeworthExpansion.pointwise_remainder_tendsto_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The unscaled second-order Edgeworth approximation error vanishes at each cutoff. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : MeasureTheory.IsProbabilityMeasure μ]
+  {T : Nat → Ω → Real} {baseCDF density p1 p2 : Real → Real},
+  HansenEconometrics.SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2 →
+    ∀ (x : Real),
+      Filter.Tendsto
+        (fun n =&gt;
+          instHSub.hSub
+            (instHSub.hSub (instHSub.hSub (HansenEconometrics.statisticCDFReal μ T n x) (baseCDF x))
+              (instHMul.hMul (Real.instInv.inv n.cast.sqrt) (instHMul.hMul (p1 x) (density x))))
+            (instHMul.hMul (Real.instInv.inv n.cast) (instHMul.hMul (p2 x) (density x))))
+        Filter.atTop (nhds 0)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.SecondOrderEdgeworthExpansion</code></li><li><code>HansenEconometrics.statisticCDFReal</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L293">HansenEconometrics/Chapter7Asymptotics/Inference.lean:293</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-16">
+<summary><span>Theorem 7.16</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 7.2 and E ∥X ∥r &lt; ∞, then</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-scaledmaxresidualerrorstar-tendstoinmeasure-zero-of-scaled-product">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledMaxResidualErrorStar_tendstoInMeasure_zero_of_scaled_product</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.16, max residual rate packaging.</strong></p>
+<p>If a deterministic rate scaling sends the product of the maximal row norm and
+the totalized coefficient error to zero in probability, then the scaled maximum
+residual error is also <code>oₚ(1)</code>.  The remaining textbook-specific work is to
+combine this wrapper with the Chapter 6 maximum bound for the regressor row
+norm and the Chapter 7 OLS rate. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real} {e : Nat → Ω → Real}
+  (β : k → Real) (scale : Nat → Real),
+  (∀ (n : Nat), Real.instLE.le 0 (scale n)) →
+    (MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt;
+          instHMul.hMul (scale n)
+            (instHMul.hMul
+              (instHMul.hMul (Fintype.card k).cast
+                (HansenEconometrics.maxRowNorm (HansenEconometrics.stackRegressors X n ω)))
+              (Pi.normedRing.norm
+                (instHSub.hSub
+                  (HansenEconometrics.olsBetaStar (HansenEconometrics.stackRegressors X n ω)
+                    (instHAdd.hAdd ((HansenEconometrics.stackRegressors X n ω).mulVec β)
+                      (HansenEconometrics.stackErrors e n ω)))
+                  β))))
+        Filter.atTop fun x =&gt; 0) →
+      MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt;
+          instHMul.hMul (scale n)
+            (HansenEconometrics.maxResidualErrorStar (HansenEconometrics.stackRegressors X n ω) β
+              (HansenEconometrics.stackErrors e n ω)))
+        Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.maxRowNorm</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1512">HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1512</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sqrt-smul-olsbetastar-sub-boundedinprobabilitynorm">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sqrt_smul_olsBetaStar_sub_boundedInProbabilityNorm</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.16/7.3 bridge, totalized estimator.</strong></p>
+<p>The vector OLS CLT implies the scaled coefficient error
+<code>√n(β̂*ₙ - β)</code> is bounded in probability. This is the coefficient-error factor
+needed by the max-residual product-rate proof. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        HansenEconometrics.BoundedInProbabilityNorm μ fun n ω =&gt;
+          instHSMul.hSMul n.cast.sqrt
+            (instHSub.hSub
+              (HansenEconometrics.olsBetaStar (HansenEconometrics.stackRegressors X n ω)
+                (HansenEconometrics.stackOutcomes y n ω))
+              β)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.BoundedInProbabilityNorm</code></li><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L410">HansenEconometrics/Chapter7Asymptotics/Normality.lean:410</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-sqrt-scaledmaxrownorm-sq-tendstoinmeasure-zero-of-uniformintegrable-norm-sq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sqrt_scaledMaxRowNorm_sq_tendstoInMeasure_zero_of_uniformIntegrable_norm_sq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.16/7.17, root row-rate discharge.</strong></p>
+<p>Uniform integrability of squared row norms implies the root-form
+<code>sqrt(n⁻¹ max_i ‖X_i‖²) = oₚ(1)</code>, the row-norm factor used in the residual
+uniformity rate and the unscaled leverage consequence. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] {μ : MeasureTheory.Measure Ω}
+  {X : Nat → Ω → k → Real},
+  MeasureTheory.UniformIntegrable (fun i ω =&gt; instHPow.hPow (Pi.normedRing.norm (X i ω)) 2) 1 μ →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt;
+        (instHMul.hMul (Real.instInv.inv (Fintype.card (Fin n)).cast)
+            (instHPow.hPow (HansenEconometrics.maxRowNorm (HansenEconometrics.stackRegressors X n ω)) 2)).sqrt)
+      Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.maxRowNorm</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L774">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:774</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-maxresidualerrorstar-tendstoinmeasure-zero-of-uniformintegrable-rownorm-sq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.maxResidualErrorStar_tendstoInMeasure_zero_of_uniformIntegrable_rowNorm_sq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.16, residual uniformity rate.</strong></p>
+<p>Under the score CLT conditions, a correctly specified linear model, and uniform
+integrability of squared regressor row norms, the maximum totalized residual
+error is <code>oₚ(1)</code>.  The proof combines the Chapter 6 root row-norm rate with the
+OLS CLT's <code>√n(β̂*ₙ - β)=Oₚ(1)</code> factor and the deterministic residual bound. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.UniformIntegrable (fun i ω =&gt; instHPow.hPow (Pi.normedRing.norm (X i ω)) 2) 1 μ →
+          MeasureTheory.TendstoInMeasure μ
+            (fun n ω =&gt;
+              HansenEconometrics.maxResidualErrorStar (HansenEconometrics.stackRegressors X n ω) β
+                (HansenEconometrics.stackErrors e n ω))
+            Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L429">HansenEconometrics/Chapter7Asymptotics/Normality.lean:429</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-maxresidualerrorstar-tendstoinmeasure-zero-of-identdistrib-memlp-rownorm-sq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.maxResidualErrorStar_tendstoInMeasure_zero_of_identDistrib_memLp_rowNorm_sq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.16, iid finite-row-moment residual uniformity rate.</strong></p>
+<p>If the squared regressor row norms are identically distributed and the first row
+has finite second moment, then the Chapter 6 iid UI bridge discharges the row
+uniform-integrability assumption in the max-residual rate theorem. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real},
+  HansenEconometrics.ScoreCLTConditions μ X e →
+    ∀ (β : k → Real),
+      (∀ (i : Nat) (ω : Ω), Eq (y i ω) (instHAdd.hAdd (dotProduct (X i ω) β) (e i ω))) →
+        MeasureTheory.MemLp (fun ω =&gt; instHPow.hPow (Pi.normedRing.norm (X 0 ω)) 2) 1 μ →
+          (∀ (i : Nat),
+              ProbabilityTheory.IdentDistrib (fun ω =&gt; instHPow.hPow (Pi.normedRing.norm (X i ω)) 2)
+                (fun ω =&gt; instHPow.hPow (Pi.normedRing.norm (X 0 ω)) 2) μ μ) →
+            MeasureTheory.TendstoInMeasure μ
+              (fun n ω =&gt;
+                HansenEconometrics.maxResidualErrorStar (HansenEconometrics.stackRegressors X n ω) β
+                  (HansenEconometrics.stackErrors e n ω))
+              Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.ScoreCLTConditions</code></li><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L564">HansenEconometrics/Chapter7Asymptotics/Normality.lean:564</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-maxresidualerrorstar-tendstoinmeasure-zero-of-iidrobustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.maxResidualErrorStar_tendstoInMeasure_zero_of_iidRobustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.16, iid feasible-HC package endpoint.</strong></p>
+<p>The unified iid robust feasible-HC package directly discharges residual
+uniformity through its score-CLT, model, fourth-row-moment, and row-norm
+identical-distribution fields. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_3} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} {β : k → Real},
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt;
+        HansenEconometrics.maxResidualErrorStar (HansenEconometrics.stackRegressors X n ω) β
+          (HansenEconometrics.stackErrors e n ω))
+      Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.maxResidualErrorStar</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L585">HansenEconometrics/Chapter7Asymptotics/Normality.lean:585</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-7-17">
+<summary><span>Theorem 7.17</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If Xi is i.i.d., Q X X &gt; 0, and E ∥X ∥r &lt; ∞ for some r ≥ 2, then</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-scaledmaxleveragestar-tendstoinmeasure-zero-of-scaled-maxrownorm-sq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledMaxLeverageStar_tendstoInMeasure_zero_of_scaled_maxRowNorm_sq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.17, max-leverage rate packaging.</strong></p>
+<p>Once the Chapter 6 maximum-row-norm rate supplies
+<code>aₙ n⁻¹ max_i ‖X_i‖² = oₚ(1)</code>, sample-Gram consistency makes the inverse
+sample-Gram norm <code>Oₚ(1)</code>, so <code>aₙ max_i hᵢᵢ = oₚ(1)</code>. This is the theorem-shaped
+bridge from the already formalized maximum-bound layer to HC2/HC3's maximal
+leverage hypothesis. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleMomentAssumption71 μ X e →
+    ∀ (scale : Nat → Real),
+      (∀ (n : Nat), Real.instLE.le 0 (scale n)) →
+        (MeasureTheory.TendstoInMeasure μ
+            (fun n ω =&gt;
+              instHMul.hMul (scale n)
+                (instHMul.hMul (Real.instInv.inv (Fintype.card (Fin n)).cast)
+                  (instHPow.hPow (HansenEconometrics.maxRowNorm (HansenEconometrics.stackRegressors X n ω)) 2)))
+            Filter.atTop fun x =&gt; 0) →
+          MeasureTheory.TendstoInMeasure μ
+            (fun n ω =&gt;
+              instHMul.hMul (scale n) (HansenEconometrics.maxLeverageStar (HansenEconometrics.stackRegressors X n ω)))
+            Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.SampleMomentAssumption71</code></li><li><code>HansenEconometrics.maxLeverageStar</code></li><li><code>HansenEconometrics.maxRowNorm</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L831">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:831</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-maxleveragestar-tendstoinmeasure-zero-of-uniformintegrable-rownorm-sq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.maxLeverageStar_tendstoInMeasure_zero_of_uniformIntegrable_rowNorm_sq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.17, primitive max-leverage rate.</strong></p>
+<p>Uniform integrability of the squared row norms gives the unscaled
+<code>max_i hᵢᵢ = oₚ(1)</code> leverage rate through the Chapter 6 maximum theorem and the
+sample-Gram consistency package. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleMomentAssumption71 μ X e →
+    MeasureTheory.UniformIntegrable (fun i ω =&gt; instHPow.hPow (Pi.normedRing.norm (X i ω)) 2) 1 μ →
+      MeasureTheory.TendstoInMeasure μ
+        (fun n ω =&gt; HansenEconometrics.maxLeverageStar (HansenEconometrics.stackRegressors X n ω)) Filter.atTop fun x =&gt;
+        0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.SampleMomentAssumption71</code></li><li><code>HansenEconometrics.maxLeverageStar</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L927">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:927</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-maxleveragestar-tendstoinmeasure-zero-of-identdistrib-memlp-rownorm-sq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.maxLeverageStar_tendstoInMeasure_zero_of_identDistrib_memLp_rowNorm_sq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.17, iid finite-row-moment max-leverage rate.</strong></p>
+<p>If the squared regressor row norms are identically distributed and the first row
+has finite second moment, then the uniform-integrability hypothesis in the
+primitive max-leverage wrapper is discharged by the Chapter 6 iid UI bridge. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsFiniteMeasure μ] {X : Nat → Ω → k → Real}
+  {e : Nat → Ω → Real},
+  HansenEconometrics.SampleMomentAssumption71 μ X e →
+    MeasureTheory.MemLp (fun ω =&gt; instHPow.hPow (Pi.normedRing.norm (X 0 ω)) 2) 1 μ →
+      (∀ (i : Nat),
+          ProbabilityTheory.IdentDistrib (fun ω =&gt; instHPow.hPow (Pi.normedRing.norm (X i ω)) 2)
+            (fun ω =&gt; instHPow.hPow (Pi.normedRing.norm (X 0 ω)) 2) μ μ) →
+        MeasureTheory.TendstoInMeasure μ
+          (fun n ω =&gt; HansenEconometrics.maxLeverageStar (HansenEconometrics.stackRegressors X n ω)) Filter.atTop
+          fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.SampleMomentAssumption71</code></li><li><code>HansenEconometrics.maxLeverageStar</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L948">HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean:948</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-iidrobustfeasiblehcmomentconditions-maxleveragestar-tendstoinmeasure-zero-of-iidrobustfeasiblehcmomentconditions">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.IidRobustFeasibleHCMomentConditions.maxLeverageStar_tendstoInMeasure_zero_of_iidRobustFeasibleHCMomentConditions</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 7.17, iid feasible-HC package endpoint.</strong></p>
+<p>The unified iid robust feasible-HC package directly discharges the max-leverage
+rate through its fourth-row-moment field and the row-norm identical-distribution
+bridge above. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {mΩ : MeasurableSpace Ω} {k : Type u_4} [inst : Fintype k] [inst_1 : DecidableEq k]
+  {μ : MeasureTheory.Measure Ω} [inst_2 : MeasureTheory.IsProbabilityMeasure μ] {X : Nat → Ω → k → Real}
+  {e y : Nat → Ω → Real} {β : k → Real},
+  HansenEconometrics.IidRobustFeasibleHCMomentConditions μ X e y β →
+    MeasureTheory.TendstoInMeasure μ
+      (fun n ω =&gt; HansenEconometrics.maxLeverageStar (HansenEconometrics.stackRegressors X n ω)) Filter.atTop fun x =&gt; 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.IidRobustFeasibleHCMomentConditions</code></li><li><code>HansenEconometrics.maxLeverageStar</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L1069">HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean:1069</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

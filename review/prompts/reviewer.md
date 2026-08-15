@@ -121,7 +121,7 @@ Each finding must conform to `review/finding-schema.json` and include all requir
 If there are no findings for this dimension, output `{"findings": []}`.
 
 (Note: the individual objects inside `findings` are what `worklist.py --validate-schema` checks — pipe
-just the array to it: `... | uv run review/worklist.py --validate-schema`.)
+just the array to it: `... | uv run --no-project review/worklist.py --validate-schema`.)
 
 **Do not include speculative findings.** A finding with `confidence: "low"` is allowed only when
 you have real (not inferred) evidence but genuine uncertainty about rule applicability; explain

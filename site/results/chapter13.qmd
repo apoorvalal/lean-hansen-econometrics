@@ -1,0 +1,1671 @@
+---
+title: "Chapter 13: Generalized Method of Moments"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 13."
+---
+
+This page is generated from the [canonical Chapter 13 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch13-inventory.md) and the compiled Lean environment. It contains 18 textbook result groups and 52 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="theorem-13-1" open>
+<summary><span>Theorem 13.1</span><span class="result-count">5 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>For the overidentified IV model with weight <code>W</code>, <code>β̂_gmm = (X'Z W Z'X)⁻¹(X'Z W Z'Y)</code> (eq. 13.6) minimizes the GMM criterion <code>J(β) = (Z'(Y−Xβ))'W(Z'(Y−Xβ))</code></p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbeta">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (13.6): the base one-step linear GMM estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    {l : Type u_3} →
+      [inst : Fintype n] →
+        [inst_1 : Fintype k] →
+          [inst_2 : Fintype l] →
+            [inst_3 : DecidableEq k] →
+              (X : Matrix n k Real) →
+                (Z : Matrix n l Real) →
+                  (n → Real) → (W : Matrix l l Real) → [Invertible (HansenEconometrics.gmmGram X Z W)] → k → Real</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.gmmGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L101">HansenEconometrics/Chapter13GMM.lean:101</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmcriterion-gmmbeta-le">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmCriterion_gmmBeta_le</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.1 (existence).</strong> The one-step GMM estimator minimizes
+the GMM criterion. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l]
+  [inst_3 : DecidableEq k] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real) (W : Matrix l l Real)
+  (b : k → Real) [inst_4 : Invertible (HansenEconometrics.gmmGram X Z W)],
+  W.PosSemidef →
+    Real.instLE.le (HansenEconometrics.gmmCriterion X Z y W (HansenEconometrics.gmmBeta X Z y W))
+      (HansenEconometrics.gmmCriterion X Z y W b)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.gmmBeta</code></li><li><code>HansenEconometrics.gmmCriterion</code></li><li><code>HansenEconometrics.gmmGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L155">HansenEconometrics/Chapter13GMM.lean:155</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbeta-isminon">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBeta_isMinOn</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.1 (existence),</strong> packaged as <code>IsMinOn</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l]
+  [inst_3 : DecidableEq k] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real) (W : Matrix l l Real)
+  [inst_4 : Invertible (HansenEconometrics.gmmGram X Z W)],
+  W.PosSemidef → IsMinOn (HansenEconometrics.gmmCriterion X Z y W) Set.univ (HansenEconometrics.gmmBeta X Z y W)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.gmmBeta</code></li><li><code>HansenEconometrics.gmmCriterion</code></li><li><code>HansenEconometrics.gmmGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L163">HansenEconometrics/Chapter13GMM.lean:163</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbeta-eq-of-minimizer">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBeta_eq_of_minimizer</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.1 (uniqueness).</strong> A coefficient that attains the
+minimum equals the one-step GMM estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l]
+  [inst_3 : DecidableEq k] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real) (W : Matrix l l Real)
+  (b : k → Real) [inst_4 : Invertible (HansenEconometrics.gmmGram X Z W)],
+  W.PosSemidef →
+    Eq (HansenEconometrics.gmmCriterion X Z y W b)
+        (HansenEconometrics.gmmCriterion X Z y W (HansenEconometrics.gmmBeta X Z y W)) →
+      Eq b (HansenEconometrics.gmmBeta X Z y W)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.gmmBeta</code></li><li><code>HansenEconometrics.gmmCriterion</code></li><li><code>HansenEconometrics.gmmGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L171">HansenEconometrics/Chapter13GMM.lean:171</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmcriterion">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmCriterion</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's linear GMM criterion, without its positive scalar factor <code>n</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    {l : Type u_3} →
+      [Fintype n] →
+        [Fintype k] → [Fintype l] → Matrix n k Real → Matrix n l Real → (n → Real) → Matrix l l Real → (k → Real) → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L86">HansenEconometrics/Chapter13GMM.lean:86</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-2">
+<summary><span>Theorem 13.2</span><span class="result-count">4 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If <code>W = (Z'Z)⁻¹</code>, then <code>β̂_gmm = β̂_2sls</code>. If <code>k = ℓ</code>, then <code>β̂_gmm = β̂_iv</code>.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetastar-eq-twoslsbetastar">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaStar_eq_twoSLSBetaStar</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.2 (2SLS, Star form).</strong> GMM with weight
+<code>(Z'Z)⁻¹</code> equals 2SLS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq l] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real),
+  Eq
+    (HansenEconometrics.gmmBetaStar X Z y
+      (Matrix.inv.inv (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Z.transpose Z)))
+    (HansenEconometrics.twoSLSBetaStar Z X y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.gmmBetaStar</code></li><li><code>HansenEconometrics.twoSLSBetaStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L207">HansenEconometrics/Chapter13GMM.lean:207</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-eq-twoslsbetaorzero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_eq_twoSLSBetaOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.2 (2SLS, textbook-facing form).</strong> Totalized GMM with
+weight <code>(Z'Z)⁻¹</code> equals totalized 2SLS, including singular designs. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq l] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real),
+  Eq
+    (HansenEconometrics.gmmBetaOrZero X Z y
+      (Matrix.inv.inv (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Z.transpose Z)))
+    (HansenEconometrics.twoSLSBetaOrZero Z X y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.twoSLSBetaOrZero</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L219">HansenEconometrics/Chapter13GMM.lean:219</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-eq-twoslsbeta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_eq_twoSLSBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.2 (2SLS, nonsingular form).</strong> With the ordinary
+inverse weight, textbook-facing GMM equals the ordinary 2SLS estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq l] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real)
+  [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Z.transpose Z)]
+  [inst_6 : Invertible (HansenEconometrics.twoSLSMomentMatrix Z X)],
+  Eq
+    (HansenEconometrics.gmmBetaOrZero X Z y
+      (inst_5.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Z.transpose Z)))
+    (HansenEconometrics.twoSLSBeta Z X y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.twoSLSBeta</code></li><li><code>HansenEconometrics.twoSLSMomentMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L227">HansenEconometrics/Chapter13GMM.lean:227</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-eq-ivbeta-of-justidentified">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_eq_ivBeta_of_justIdentified</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.2 (just-identified form).</strong> If the moment map is
+square and nonsingular, GMM equals IV for every invertible weight. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X Z : Matrix n k Real)
+  (y : n → Real) (W : Matrix k k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Z.transpose X)] [Invertible W],
+  Eq (HansenEconometrics.gmmBetaOrZero X Z y W) (HansenEconometrics.ivBeta Z X y)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.ivBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L238">HansenEconometrics/Chapter13GMM.lean:238</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-3">
+<summary><span>Theorem 13.3</span><span class="result-count">5 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 12.2, if <code>Ŵ →ₚ W &gt; 0</code>, then <code>√n(β̂_gmm−β) →d N(0,Vβ)</code>, where <code>Vβ = (Q'WQ)⁻¹(Q'WΩWQ)(Q'WQ)⁻¹</code> (13.7).</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmasymptoticvariance">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmAsymptoticVariance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (13.7), the linear GMM sandwich covariance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_2} →
+  {l : Type u_3} →
+    [inst : Fintype k] →
+      [inst_1 : Fintype l] →
+        [inst_2 : DecidableEq k] →
+          (Q : Matrix l k Real) →
+            (W : Matrix l l Real) →
+              Matrix l l Real → [Invertible (HansenEconometrics.gmmPopulationGram Q W)] → Matrix k k Real</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.gmmPopulationGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L252">HansenEconometrics/Chapter13GMM.lean:252</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmasymptoticvariance-eq-formula">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmAsymptoticVariance_eq_formula</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (13.7) in its displayed symmetric-weight form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k] (Q : Matrix l k Real)
+  (W Omega : Matrix l l Real) [inst_3 : Invertible (HansenEconometrics.gmmPopulationGram Q W)],
+  W.PosSemidef →
+    Eq (HansenEconometrics.gmmAsymptoticVariance Q W Omega)
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (inst_3.invOf (HansenEconometrics.gmmPopulationGram Q W)) Q.transpose)
+                W)
+              Omega)
+            W)
+          Q)
+        (inst_3.invOf (HansenEconometrics.gmmPopulationGram Q W)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.gmmAsymptoticVariance</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L272">HansenEconometrics/Chapter13GMM.lean:272</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmlinearizedscore-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmLinearizedScore_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The random GMM influence matrix applied to the scaled instrument score has
+the sandwich Gaussian limit in Hansen equation (13.7). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Qhat : Nat → OmegaSpace → Matrix l k Real}
+  {What : Nat → OmegaSpace → Matrix l l Real} {Z : Nat → OmegaSpace → l → Real} {e : Nat → OmegaSpace → Real}
+  {Q : Matrix l k Real} {W : Matrix l l Real},
+  HansenEconometrics.GMMMomentCLTConditions mu Qhat What Z e Q W →
+    MeasureTheory.TendstoInDistribution
+      (fun n omega =&gt;
+        (HansenEconometrics.gmmLinearizationMatrixStar (Qhat n omega) (What n omega)).mulVec
+          (instHSMul.hSMul n.cast.sqrt
+            (HansenEconometrics.sampleCrossMoment (HansenEconometrics.stackRegressors Z n omega)
+              (HansenEconometrics.stackErrors e n omega))))
+      Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+      (ProbabilityTheory.multivariateGaussian 0
+        (HansenEconometrics.gmmAsymptoticVarianceStar Q W (HansenEconometrics.scoreCovMat mu Z e)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (7)</summary><ul><li><code>HansenEconometrics.GMMMomentCLTConditions</code></li><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmLinearizationMatrixStar</code></li><li><code>HansenEconometrics.sampleCrossMoment</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackErrors</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Asymptotics.lean#L444">HansenEconometrics/Chapter13GMM/Asymptotics.lean:444</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetastar-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaStar_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.3 (Star form).</strong> Under convergence of the sample
+derivative and weight matrix, the linear GMM estimator is asymptotically
+normal with the sandwich covariance in equation (13.8). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {What : Nat → OmegaSpace → Matrix l l Real}
+  {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real}
+  {Q : Matrix l k Real} {W : Matrix l l Real},
+  HansenEconometrics.GMMMomentCLTConditions mu
+      (fun n omega =&gt;
+        HansenEconometrics.sampleQZX (HansenEconometrics.stackRegressors Z n omega)
+          (HansenEconometrics.stackRegressors X n omega))
+      What Z e Q W →
+    ∀ (b : k → Real),
+      (∀ (i : Nat) (omega : OmegaSpace), Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+        (∀ (n : Nat),
+            AEMeasurable
+              (fun omega =&gt;
+                instHSMul.hSMul n.cast.sqrt
+                  (instHSub.hSub
+                    (HansenEconometrics.gmmBetaStar (HansenEconometrics.stackRegressors X n omega)
+                      (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+                      (What n omega))
+                    b))
+              mu) →
+          MeasureTheory.TendstoInDistribution
+            (fun n omega =&gt;
+              instHSMul.hSMul n.cast.sqrt
+                (instHSub.hSub
+                  (HansenEconometrics.gmmBetaStar (HansenEconometrics.stackRegressors X n omega)
+                    (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+                    (What n omega))
+                  b))
+            Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+            (ProbabilityTheory.multivariateGaussian 0
+              (HansenEconometrics.gmmAsymptoticVarianceStar Q W (HansenEconometrics.scoreCovMat mu Z e)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (7)</summary><ul><li><code>HansenEconometrics.GMMMomentCLTConditions</code></li><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmBetaStar</code></li><li><code>HansenEconometrics.sampleQZX</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Asymptotics.lean#L601">HansenEconometrics/Chapter13GMM/Asymptotics.lean:601</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-tendstoindistribution-of-assumption12-2">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_tendstoInDistribution_of_assumption12_2</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.3 under Assumption 12.2.</strong> A convergent
+positive-definite weight sequence gives the standard GMM sandwich limit. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {What : Nat → OmegaSpace → Matrix l l Real}
+  {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions mu Z X e →
+    ∀ (W : Matrix l l Real),
+      (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) mu) →
+        (MeasureTheory.TendstoInMeasure mu What Filter.atTop fun x =&gt; W) →
+          W.PosDef →
+            ∀ (b : k → Real),
+              (∀ (i : Nat) (omega : OmegaSpace),
+                  Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+                (∀ (n : Nat),
+                    AEMeasurable
+                      (fun omega =&gt;
+                        instHSMul.hSMul n.cast.sqrt
+                          (instHSub.hSub
+                            (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                              (HansenEconometrics.stackRegressors Z n omega)
+                              (HansenEconometrics.stackOutcomes Y n omega) (What n omega))
+                            b))
+                      mu) →
+                  MeasureTheory.TendstoInDistribution
+                    (fun n omega =&gt;
+                      instHSMul.hSMul n.cast.sqrt
+                        (instHSub.hSub
+                          (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                            (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+                            (What n omega))
+                          b))
+                    Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+                    (ProbabilityTheory.multivariateGaussian 0
+                      (HansenEconometrics.gmmAsymptoticVarianceStar
+                        (HansenEconometrics.twoSLSCombinedQZX
+                          (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                        W (HansenEconometrics.scoreCovMat mu Z e)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Asymptotics.lean#L690">HansenEconometrics/Chapter13GMM/Asymptotics.lean:690</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-4">
+<summary><span>Theorem 13.4</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Asymptotic Distribution of GMM with Efficient Weight Matrix</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmasymptoticvariancestar-efficient">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmAsymptoticVarianceStar_efficient</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.4 (Star covariance formula).</strong> With a
+positive-definite moment covariance and a full-rank derivative, efficient GMM
+has covariance <code>(Q'Omega⁻¹Q)⁻¹</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k] (Q : Matrix l k Real)
+  (Omega : Matrix l l Real) [inst_3 : DecidableEq l],
+  Omega.PosDef →
+    Function.Injective Q.mulVec →
+      Eq (HansenEconometrics.gmmAsymptoticVarianceStar Q (Matrix.inv.inv Omega) Omega)
+        (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q (Matrix.inv.inv Omega)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L308">HansenEconometrics/Chapter13GMM.lean:308</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-tendstoindistribution-efficient-of-assumption12-2">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_tendstoInDistribution_efficient_of_assumption12_2</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.4.</strong> If the GMM weight converges to the inverse score
+covariance, the coefficient limit has covariance <code>(Q'Omega⁻¹Q)⁻¹</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {What : Nat → OmegaSpace → Matrix l l Real}
+  {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions mu Z X e →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) mu) →
+      (MeasureTheory.TendstoInMeasure mu What Filter.atTop fun x =&gt;
+          Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)) →
+        ∀ (b : k → Real),
+          (∀ (i : Nat) (omega : OmegaSpace), Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+            (∀ (n : Nat),
+                AEMeasurable
+                  (fun omega =&gt;
+                    instHSMul.hSMul n.cast.sqrt
+                      (instHSub.hSub
+                        (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                          (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+                          (What n omega))
+                        b))
+                  mu) →
+              MeasureTheory.TendstoInDistribution
+                (fun n omega =&gt;
+                  instHSMul.hSMul n.cast.sqrt
+                    (instHSub.hSub
+                      (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                        (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+                        (What n omega))
+                      b))
+                Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+                (ProbabilityTheory.multivariateGaussian 0
+                  (Matrix.inv.inv
+                    (HansenEconometrics.gmmPopulationGram
+                      (HansenEconometrics.twoSLSCombinedQZX
+                        (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                      (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Asymptotics.lean#L728">HansenEconometrics/Chapter13GMM/Asymptotics.lean:728</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-5">
+<summary><span>Theorem 13.5</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 12.2, for any <code>W &gt; 0</code>, <code>Vβ(W) − (Q'Ω⁻¹Q)⁻¹ ≥ 0</code>; hence efficient GMM has weakly smaller asymptotic covariance. Hansen also states strict inequality for <code>W ≠ Ω⁻¹</code>, subject to the qualification below.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmasymptoticvariance-sub-efficient-possemidef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmAsymptoticVariance_sub_efficient_posSemidef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.5.</strong> The covariance of any identified linear GMM
+estimator dominates the efficient GMM covariance in Loewner order. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : DecidableEq k] (Q : Matrix l k Real)
+  (W Omega : Matrix l l Real) [inst_3 : DecidableEq l] [inst_4 : Invertible Omega]
+  [inst_5 : Invertible (HansenEconometrics.gmmPopulationGram Q (inst_4.invOf Omega))]
+  [inst_6 : Invertible (HansenEconometrics.gmmPopulationGram Q W)],
+  Omega.PosSemidef →
+    (instHSub.hSub (HansenEconometrics.gmmAsymptoticVariance Q W Omega)
+        (HansenEconometrics.gmmAsymptoticVariance Q (inst_4.invOf Omega) Omega)).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.gmmAsymptoticVariance</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM.lean#L340">HansenEconometrics/Chapter13GMM.lean:340</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-6">
+<summary><span>Theorem 13.6</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 12.2 and <code>E[e² ∣ Z] = σ²</code>, 2SLS is efficient GMM.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsweight-is-efficientgmm-of-assumption12-2-observedrows-homoskedastic">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSWeight_is_efficientGMM_of_assumption12_2_observedRows_homoskedastic</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.6, observed-row form.</strong> Literal observed-row
+Assumption 12.2 and conditional homoskedasticity imply that the population
+2SLS weight attains the efficient GMM covariance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] [Nonempty l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real} {b : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+    ∀ (hZ0 : Measurable (Z 0)) [MeasureTheory.SigmaFinite (mu.trim ⋯)],
+      HansenEconometrics.HomoskedasticErrorVariance mu Z e →
+        Eq
+          (HansenEconometrics.gmmAsymptoticVarianceStar
+            (HansenEconometrics.twoSLSCombinedQZX
+              (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+            (Matrix.inv.inv
+              (HansenEconometrics.twoSLSCombinedQZZ
+                (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X))))
+            (HansenEconometrics.scoreCovMat mu Z e))
+          (Matrix.inv.inv
+            (HansenEconometrics.gmmPopulationGram
+              (HansenEconometrics.twoSLSCombinedQZX
+                (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+              (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (11)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedQZZ</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L87">HansenEconometrics/Chapter13GMM/Efficiency.lean:87</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-twoslsweight-is-efficientgmm-of-assumption12-2-homoskedastic">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.twoSLSWeight_is_efficientGMM_of_assumption12_2_homoskedastic</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.6.</strong> Under Assumption 12.2 and conditional
+homoskedasticity, the population 2SLS weight attains the efficient GMM
+covariance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] [Nonempty l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions mu Z X e →
+    ∀ (hZ0 : Measurable (Z 0)) [MeasureTheory.SigmaFinite (mu.trim ⋯)],
+      HansenEconometrics.HomoskedasticErrorVariance mu Z e →
+        Eq
+          (HansenEconometrics.gmmAsymptoticVarianceStar
+            (HansenEconometrics.twoSLSCombinedQZX
+              (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+            (Matrix.inv.inv
+              (HansenEconometrics.twoSLSCombinedQZZ
+                (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X))))
+            (HansenEconometrics.scoreCovMat mu Z e))
+          (Matrix.inv.inv
+            (HansenEconometrics.gmmPopulationGram
+              (HansenEconometrics.twoSLSCombinedQZX
+                (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+              (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (11)</summary><ul><li><code>HansenEconometrics.HomoskedasticErrorVariance</code></li><li><code>HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.conditioningSpace</code></li><li><code>HansenEconometrics.conditioningSpace_le</code></li><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedQZZ</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L42">HansenEconometrics/Chapter13GMM/Efficiency.lean:42</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-7">
+<summary><span>Theorem 13.7</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 12.2 and <code>Ω &gt; 0</code>, the uncentered (13.8) and centered (13.9) two-step weights give the efficient Gaussian limit.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-uncenteredtwostep-tendstoindistribution-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.7, observed-row uncentered form.</strong> The two-step GMM
+estimator using equation (13.8) has the efficient Gaussian limit under the
+literal observed-row Assumption 12.2 package. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real} {b : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+    MeasureTheory.TendstoInDistribution
+      (fun n omega =&gt;
+        instHSMul.hSMul n.cast.sqrt
+          (instHSub.hSub
+            (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+              (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+              (HansenEconometrics.gmmUncenteredTwoStepWeightStar (HansenEconometrics.stackRegressors Z n omega)
+                (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackOutcomes Y n omega)))
+            b))
+      Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+      (ProbabilityTheory.multivariateGaussian 0
+        (Matrix.inv.inv
+          (HansenEconometrics.gmmPopulationGram
+            (HansenEconometrics.twoSLSCombinedQZX
+              (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+            (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (10)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepWeightStar</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L515">HansenEconometrics/Chapter13GMM/Efficiency.lean:515</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-centeredtwostep-tendstoindistribution-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_centeredTwoStep_tendstoInDistribution_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.7, observed-row centered form.</strong> The two-step GMM
+estimator using equation (13.9) has the efficient Gaussian limit under the
+literal observed-row Assumption 12.2 package. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real} {b : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+    MeasureTheory.TendstoInDistribution
+      (fun n omega =&gt;
+        instHSMul.hSMul n.cast.sqrt
+          (instHSub.hSub
+            (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+              (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+              (HansenEconometrics.gmmCenteredTwoStepWeightStar (HansenEconometrics.stackRegressors Z n omega)
+                (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackOutcomes Y n omega)))
+            b))
+      Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+      (ProbabilityTheory.multivariateGaussian 0
+        (Matrix.inv.inv
+          (HansenEconometrics.gmmPopulationGram
+            (HansenEconometrics.twoSLSCombinedQZX
+              (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+            (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (10)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmCenteredTwoStepWeightStar</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L595">HansenEconometrics/Chapter13GMM/Efficiency.lean:595</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-uncenteredtwostep-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_uncenteredTwoStep_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.7, uncentered form.</strong> The two-step GMM estimator based
+on equation (13.8) has the efficient Gaussian limit. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions mu Z X e →
+    ∀ (b : k → Real),
+      (∀ (i : Nat) (omega : OmegaSpace), Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+        MeasureTheory.TendstoInDistribution
+          (fun n omega =&gt;
+            instHSMul.hSMul n.cast.sqrt
+              (instHSub.hSub
+                (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                  (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+                  (HansenEconometrics.gmmUncenteredTwoStepWeightStar (HansenEconometrics.stackRegressors Z n omega)
+                    (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackOutcomes Y n omega)))
+                b))
+          Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+          (ProbabilityTheory.multivariateGaussian 0
+            (Matrix.inv.inv
+              (HansenEconometrics.gmmPopulationGram
+                (HansenEconometrics.twoSLSCombinedQZX
+                  (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (10)</summary><ul><li><code>HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepWeightStar</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L465">HansenEconometrics/Chapter13GMM/Efficiency.lean:465</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmbetaorzero-centeredtwostep-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmBetaOrZero_centeredTwoStep_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.7, centered form.</strong> The two-step GMM estimator based
+on equation (13.9) has the efficient Gaussian limit. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions mu Z X e →
+    ∀ (b : k → Real),
+      (∀ (i : Nat) (omega : OmegaSpace), Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+        MeasureTheory.TendstoInDistribution
+          (fun n omega =&gt;
+            instHSMul.hSMul n.cast.sqrt
+              (instHSub.hSub
+                (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                  (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega)
+                  (HansenEconometrics.gmmCenteredTwoStepWeightStar (HansenEconometrics.stackRegressors Z n omega)
+                    (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackOutcomes Y n omega)))
+                b))
+          Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+          (ProbabilityTheory.multivariateGaussian 0
+            (Matrix.inv.inv
+              (HansenEconometrics.gmmPopulationGram
+                (HansenEconometrics.twoSLSCombinedQZX
+                  (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (10)</summary><ul><li><code>HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmCenteredTwoStepWeightStar</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L542">HansenEconometrics/Chapter13GMM/Efficiency.lean:542</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepweightstar-tendstoinmeasure">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepWeightStar_tendstoInMeasure</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The uncentered two-step weight converges to the efficient weight under the
+Chapter 12 robust-middle consistency package. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions mu Z X e →
+    ∀ (b : k → Real),
+      (∀ (i : Nat) (omega : OmegaSpace), Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+        MeasureTheory.TendstoInMeasure mu
+          (fun n omega =&gt;
+            HansenEconometrics.gmmUncenteredTwoStepWeightStar (HansenEconometrics.stackRegressors Z n omega)
+              (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackOutcomes Y n omega))
+          Filter.atTop fun x =&gt; Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepWeightStar</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L244">HansenEconometrics/Chapter13GMM/Efficiency.lean:244</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmcenteredtwostepweightstar-tendstoinmeasure">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmCenteredTwoStepWeightStar_tendstoInMeasure</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's centered two-step weight converges to the efficient population
+weight. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions mu Z X e →
+    ∀ (b : k → Real),
+      (∀ (i : Nat) (omega : OmegaSpace), Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+        MeasureTheory.TendstoInMeasure mu
+          (fun n omega =&gt;
+            HansenEconometrics.gmmCenteredTwoStepWeightStar (HansenEconometrics.stackRegressors Z n omega)
+              (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackOutcomes Y n omega))
+          Filter.atTop fun x =&gt; Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.TwoSLSResidualJointIidMixedMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmCenteredTwoStepWeightStar</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Efficiency.lean#L431">HansenEconometrics/Chapter13GMM/Efficiency.lean:431</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-8">
+<summary><span>Theorem 13.8</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 12.2, Assumption 7.3, and the null, the GMM Wald statistic has a chi-square limit and asymptotic size <code>alpha</code>.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmwaldstatorzero-tendstoindistribution-of-assumption12-2">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmWaldStatOrZero_tendstoInDistribution_of_assumption12_2</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.8.</strong> Under Assumption 12.2, the Assumption 7.3
+restriction linearization, and the null, the GMM Wald statistic converges to
+<code>chiSquared r</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {r : Nat} [inst_6 : Fact (instLTNat.lt 0 r)]
+  {What : Nat → OmegaSpace → Matrix l l Real} {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real}
+  {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions mu Z X e →
+    ∀ (W : Matrix l l Real),
+      (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) mu) →
+        (MeasureTheory.TendstoInMeasure mu What Filter.atTop fun x =&gt; W) →
+          W.PosDef →
+            ∀ (b : k → Real),
+              (∀ (i : Nat) (omega : OmegaSpace),
+                  Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+                ∀ (rfun : (k → Real) → Fin r → Real) (theta0 : Fin r → Real) (Rderiv : Matrix k (Fin r) Real),
+                  Eq (rfun b) theta0 →
+                    (∀ (n : Nat),
+                        AEMeasurable
+                          (fun omega =&gt;
+                            instHSMul.hSMul n.cast.sqrt
+                              (instHSub.hSub
+                                (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                                  (HansenEconometrics.stackRegressors Z n omega)
+                                  (HansenEconometrics.stackOutcomes Y n omega) (What n omega))
+                                b))
+                          mu) →
+                      (∀ (n : Nat),
+                          AEMeasurable
+                            (fun omega =&gt;
+                              {
+                                ofLp :=
+                                  instHSMul.hSMul n.cast.sqrt
+                                    (instHSub.hSub
+                                      (rfun
+                                        (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                                          (HansenEconometrics.stackRegressors Z n omega)
+                                          (HansenEconometrics.stackOutcomes Y n omega) (What n omega)))
+                                      (rfun b)) })
+                            mu) →
+                        (MeasureTheory.TendstoInMeasure mu
+                            (fun n omega =&gt;
+                              instHSub.hSub
+                                {
+                                  ofLp :=
+                                    instHSMul.hSMul n.cast.sqrt
+                                      (instHSub.hSub
+                                        (rfun
+                                          (HansenEconometrics.gmmBetaOrZero
+                                            (HansenEconometrics.stackRegressors X n omega)
+                                            (HansenEconometrics.stackRegressors Z n omega)
+                                            (HansenEconometrics.stackOutcomes Y n omega) (What n omega)))
+                                        (rfun b)) }
+                                (ContinuousLinearMap.funLike.coe
+                                  (HansenEconometrics.matrixContinuousLinearMap Rderiv.transpose)
+                                  {
+                                    ofLp :=
+                                      instHSMul.hSMul n.cast.sqrt
+                                        (instHSub.hSub
+                                          (HansenEconometrics.gmmBetaOrZero
+                                            (HansenEconometrics.stackRegressors X n omega)
+                                            (HansenEconometrics.stackRegressors Z n omega)
+                                            (HansenEconometrics.stackOutcomes Y n omega) (What n omega))
+                                          b) }))
+                            Filter.atTop fun x =&gt; 0) →
+                          ∀ {VthetaHat : Nat → OmegaSpace → Matrix (Fin r) (Fin r) Real},
+                            (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (VthetaHat n) mu) →
+                              (MeasureTheory.TendstoInMeasure mu VthetaHat Filter.atTop fun x =&gt;
+                                  Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Rderiv.transpose
+                                      (HansenEconometrics.gmmAsymptoticVarianceStar
+                                        (HansenEconometrics.twoSLSCombinedQZX
+                                          (HansenEconometrics.popGram mu
+                                            (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                                        W (HansenEconometrics.scoreCovMat mu Z e)))
+                                    Rderiv) →
+                                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Rderiv.transpose
+                                        (HansenEconometrics.gmmAsymptoticVarianceStar
+                                          (HansenEconometrics.twoSLSCombinedQZX
+                                            (HansenEconometrics.popGram mu
+                                              (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                                          W (HansenEconometrics.scoreCovMat mu Z e)))
+                                      Rderiv).PosDef →
+                                  MeasureTheory.TendstoInDistribution
+                                    (fun n omega =&gt;
+                                      HansenEconometrics.gmmWaldStatOrZero
+                                        (instHSMul.hSMul n.cast.sqrt
+                                          (instHSub.hSub
+                                            (rfun
+                                              (HansenEconometrics.gmmBetaOrZero
+                                                (HansenEconometrics.stackRegressors X n omega)
+                                                (HansenEconometrics.stackRegressors Z n omega)
+                                                (HansenEconometrics.stackOutcomes Y n omega) (What n omega)))
+                                            theta0))
+                                        (VthetaHat n omega))
+                                    Filter.atTop (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared r)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (13)</summary><ul><li><code>HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmWaldStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L105">HansenEconometrics/Chapter13GMM/Inference.lean:105</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmwaldtest-rejectionprob-tendsto-alpha">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmWaldTest_rejectionProb_tendsto_alpha</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Size form of Hansen Theorem 13.8. A chi-square critical value with upper
+tail mass <code>alpha</code> gives asymptotic rejection probability <code>alpha</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {r : Nat} [inst_2 : Fact (instLTNat.lt 0 r)]
+  {Wald : Nat → OmegaSpace → Real} {crit : Real} {alpha : ENNReal},
+  Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared r) (Set.Ioi crit)) alpha →
+    MeasureTheory.TendstoInDistribution Wald Filter.atTop (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared r) →
+      Filter.Tendsto
+        (fun n =&gt; MeasureTheory.Measure.instFunLike.coe mu (setOf fun omega =&gt; Real.instLT.lt crit (Wald n omega)))
+        Filter.atTop (nhds alpha)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L221">HansenEconometrics/Chapter13GMM/Inference.lean:221</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-9">
+<summary><span>Theorem 13.9</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>The constrained GMM estimator has covariance (13.18) and a Gaussian limit.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmconstrainedasymptoticvariance-eq-hansen-1318">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmConstrainedAsymptoticVariance_eq_hansen_1318</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (13.18), expanded into its four textbook terms. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {l : Type u_3} {q : Type u_4} [inst : Fintype k] [inst_1 : Fintype l] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq q] (Q : Matrix l k Real) (W Omega : Matrix l l Real)
+  (R : Matrix k q Real),
+  Eq (HansenEconometrics.gmmPopulationGram Q W).transpose (HansenEconometrics.gmmPopulationGram Q W) →
+    Eq (HansenEconometrics.gmmConstrainedAsymptoticVariance Q W Omega R)
+      (instHAdd.hAdd
+        (instHSub.hSub
+          (instHSub.hSub (HansenEconometrics.gmmAsymptoticVarianceStar Q W Omega)
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W)) R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose
+                        (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W)))
+                      R)))
+                R.transpose)
+              (HansenEconometrics.gmmAsymptoticVarianceStar Q W Omega)))
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (HansenEconometrics.gmmAsymptoticVarianceStar Q W Omega) R)
+                (Matrix.inv.inv
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose
+                      (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W)))
+                    R)))
+              R.transpose)
+            (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W))))
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                        (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W)) R)
+                      (Matrix.inv.inv
+                        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose
+                            (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W)))
+                          R)))
+                    R.transpose)
+                  (HansenEconometrics.gmmAsymptoticVarianceStar Q W Omega))
+                R)
+              (Matrix.inv.inv
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose
+                    (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W)))
+                  R)))
+            R.transpose)
+          (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q W))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.gmmConstrainedAsymptoticVariance</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L260">HansenEconometrics/Chapter13GMM/Inference.lean:260</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmconstrainedbetastar-tendstoindistribution-of-assumption12-2">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmConstrainedBetaStar_tendstoInDistribution_of_assumption12_2</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.9.</strong> Under Assumption 12.2, a linear constrained
+GMM estimator has the minimum-distance Gaussian limit in equation (13.18). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} {q : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : Fintype q] [inst_5 : DecidableEq k] [inst_6 : DecidableEq l] [inst_7 : DecidableEq q]
+  {What : Nat → OmegaSpace → Matrix l l Real} {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real}
+  {e Y : Nat → OmegaSpace → Real},
+  HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions mu Z X e →
+    ∀ (W : Matrix l l Real),
+      (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) mu) →
+        (MeasureTheory.TendstoInMeasure mu What Filter.atTop fun x =&gt; W) →
+          W.PosDef →
+            ∀ (R : Matrix k q Real) (c : q → Real),
+              Function.Injective R.mulVec →
+                ∀ (b : k → Real),
+                  Eq (R.transpose.mulVec b) c →
+                    (∀ (i : Nat) (omega : OmegaSpace),
+                        Eq (Y i omega) (instHAdd.hAdd (dotProduct (X i omega) b) (e i omega))) →
+                      (∀ (n : Nat),
+                          AEMeasurable
+                            (fun omega =&gt;
+                              instHSMul.hSMul n.cast.sqrt
+                                (instHSub.hSub
+                                  (HansenEconometrics.gmmBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                                    (HansenEconometrics.stackRegressors Z n omega)
+                                    (HansenEconometrics.stackOutcomes Y n omega) (What n omega))
+                                  b))
+                            mu) →
+                        MeasureTheory.TendstoInDistribution
+                          (fun n omega =&gt;
+                            instHSMul.hSMul n.cast.sqrt
+                              (instHSub.hSub
+                                (HansenEconometrics.gmmConstrainedBetaStar
+                                  (HansenEconometrics.stackRegressors X n omega)
+                                  (HansenEconometrics.stackRegressors Z n omega)
+                                  (HansenEconometrics.stackOutcomes Y n omega) (What n omega) R c)
+                                b))
+                          Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+                          (ProbabilityTheory.multivariateGaussian 0
+                            (HansenEconometrics.gmmConstrainedAsymptoticVariance
+                              (HansenEconometrics.twoSLSCombinedQZX
+                                (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X)))
+                              W (HansenEconometrics.scoreCovMat mu Z e) R))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (10)</summary><ul><li><code>HansenEconometrics.TwoSLSGramScoreCLTPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmConstrainedAsymptoticVariance</code></li><li><code>HansenEconometrics.gmmConstrainedBetaStar</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L284">HansenEconometrics/Chapter13GMM/Inference.lean:284</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-10">
+<summary><span>Theorem 13.10</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Efficient constrained GMM has covariance (13.20) and the corresponding Gaussian limit.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmefficientconstrainedasymptoticvariance-eq-hansen-1320">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance_eq_hansen_1320</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (13.20), in its displayed covariance form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_2} {q : Type u_4} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq q] (R : Matrix k q Real)
+  (V : Matrix k k Real),
+  Eq (HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance R V)
+    (instHSub.hSub V
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul V R)
+            (Matrix.inv.inv
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R)))
+          R.transpose)
+        V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L374">HansenEconometrics/Chapter13GMM/Inference.lean:374</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmefficientconstrainedbetastar-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmEfficientConstrainedBetaStar_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.10.</strong> A consistent estimate of the unrestricted
+efficient-GMM covariance gives the efficient constrained Gaussian limit. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {q : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype q] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (root : Nat → Real)
+  (bhat : Nat → OmegaSpace → k → Real) (Vhat : Nat → OmegaSpace → Matrix k k Real) (V : Matrix k k Real)
+  (R : Matrix k q Real) (c : q → Real) (b : k → Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (Vhat n) mu) →
+    (MeasureTheory.TendstoInMeasure mu Vhat Filter.atTop fun x =&gt; V) →
+      V.PosDef →
+        Function.Injective R.mulVec →
+          Eq (R.transpose.mulVec b) c →
+            MeasureTheory.TendstoInDistribution
+                (fun n omega =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n omega) b)) Filter.atTop
+                (fun z =&gt; z.ofLp) (fun x =&gt; mu) (ProbabilityTheory.multivariateGaussian 0 V) →
+              MeasureTheory.TendstoInDistribution
+                (fun n omega =&gt;
+                  instHSMul.hSMul (root n)
+                    (instHSub.hSub
+                      (HansenEconometrics.gmmEfficientConstrainedBetaStar R c (Vhat n omega) (bhat n omega)) b))
+                Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+                (ProbabilityTheory.multivariateGaussian 0
+                  (HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance R V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance</code></li><li><code>HansenEconometrics.gmmEfficientConstrainedBetaStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L384">HansenEconometrics/Chapter13GMM/Inference.lean:384</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-11">
+<summary><span>Theorem 13.11</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Nonlinear constrained GMM has the Chapter 8 constrained-estimator Gaussian limit, with an efficient specialization.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmnonlinearconstrainedbeta-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmNonlinearConstrainedBeta_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.11.</strong> A nonlinear constrained GMM estimator has the
+same first-order minimum-distance limit once Assumption 8.3 supplies its
+linearization. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {q : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype q] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (root : Nat → Real)
+  (btilde : Nat → OmegaSpace → k → Real) (b : k → Real) (G : Matrix k k Real) (Rderiv : Matrix k q Real)
+  (T : Nat → OmegaSpace → k → Real) (V : Matrix k k Real),
+  V.PosSemidef →
+    MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+        (ProbabilityTheory.multivariateGaussian 0 V) →
+      HansenEconometrics.ConstrainedEstimatorLinearization mu root btilde b G Rderiv T →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.constrainedScaledError root btilde b) Filter.atTop
+          (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance G Rderiv V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L431">HansenEconometrics/Chapter13GMM/Inference.lean:431</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmnonlinearefficientconstrainedbeta-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmNonlinearEfficientConstrainedBeta_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Efficient specialization of Hansen Theorem 13.11, with covariance
+<code>V - V R (R' V R)⁻¹ R' V</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {q : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype q] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (root : Nat → Real)
+  (btilde : Nat → OmegaSpace → k → Real) (b : k → Real) (Rderiv : Matrix k q Real) (T : Nat → OmegaSpace → k → Real)
+  (V : Matrix k k Real),
+  V.PosDef →
+    Function.Injective Rderiv.mulVec →
+      MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+          (ProbabilityTheory.multivariateGaussian 0 V) →
+        HansenEconometrics.ConstrainedEstimatorLinearization mu root btilde b (Matrix.inv.inv V) Rderiv T →
+          MeasureTheory.TendstoInDistribution (HansenEconometrics.constrainedScaledError root btilde b) Filter.atTop
+            (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+            (ProbabilityTheory.multivariateGaussian 0
+              (HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance Rderiv V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.gmmEfficientConstrainedAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Inference.lean#L449">HansenEconometrics/Chapter13GMM/Inference.lean:449</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-12">
+<summary><span>Theorem 13.12</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 12.2 and 7.3 and the null, the restricted-minus-unrestricted efficient-GMM criterion converges to <code>chiSquared(q)</code> and its upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwosteplineardistancestatorzero-tendstoindistribution-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepLinearDistanceStatOrZero_tendstoInDistribution_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.12, exact linear-restriction observed-row form.</strong>
+Under Assumption 12.2 and the null <code>R' b = c</code>, the actual common-efficient-
+weight restricted-minus-unrestricted GMM criterion converges to chi-square
+with the number of restrictions as degrees of freedom. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} {q : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : Fintype q] [inst_5 : DecidableEq k] [inst_6 : DecidableEq l] [inst_7 : DecidableEq q]
+  [inst_8 : Fact (instLTNat.lt 0 (Fintype.card q))] {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real}
+  {e Y : Nat → OmegaSpace → Real} {b : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+    ∀ (R : Matrix k q Real) (c : q → Real),
+      Function.Injective R.mulVec →
+        Eq (R.transpose.mulVec b) c →
+          MeasureTheory.TendstoInDistribution
+            (fun n omega =&gt;
+              HansenEconometrics.gmmUncenteredTwoStepLinearDistanceStatOrZero
+                (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackRegressors Z n omega)
+                (HansenEconometrics.stackOutcomes Y n omega) R c)
+            Filter.atTop (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared (Fintype.card q))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepLinearDistanceStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L865">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:865</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwosteplineardistancetest-rejectionprob-tendsto-alpha-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepLinearDistanceTest_rejectionProb_tendsto_alpha_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Asymptotic-size conclusion for the exact linear-restriction form of
+Hansen Theorem 13.12. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} {q : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : Fintype q] [inst_5 : DecidableEq k] [inst_6 : DecidableEq l] [inst_7 : DecidableEq q]
+  [Fact (instLTNat.lt 0 (Fintype.card q))] {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real}
+  {e Y : Nat → OmegaSpace → Real} {b : k → Real} {crit : Real} {alpha : ENNReal},
+  Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared (Fintype.card q)) (Set.Ioi crit)) alpha →
+    HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+      ∀ (R : Matrix k q Real) (c : q → Real),
+        Function.Injective R.mulVec →
+          Eq (R.transpose.mulVec b) c →
+            Filter.Tendsto
+              (fun n =&gt;
+                MeasureTheory.Measure.instFunLike.coe mu
+                  (setOf fun omega =&gt;
+                    Real.instLT.lt crit
+                      (HansenEconometrics.gmmUncenteredTwoStepLinearDistanceStatOrZero
+                        (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackRegressors Z n omega)
+                        (HansenEconometrics.stackOutcomes Y n omega) R c)))
+              Filter.atTop (nhds alpha)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepLinearDistanceStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L917">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:917</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepdistancestatorzero-tendstoindistribution-observedrows-of-linearization">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepDistanceStatOrZero_tendstoInDistribution_observedRows_of_linearization</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Conditional nonlinear observed-row endpoint toward Hansen Theorem 13.12.</p>
+<p><code>h73</code> is Hansen Assumption 7.3, while <code>hlinear</code> is an additional optimizer
+regularity premise: it records the first-order expansion of the supplied
+nonlinear constrained GMM estimator and is not implied by Assumption 7.3
+alone. The exact linear-restriction endpoint below derives this expansion
+from the concrete constrained estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} {q : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : Fintype q] [inst_5 : DecidableEq k] [inst_6 : DecidableEq l] [inst_7 : DecidableEq q]
+  [inst_8 : Fact (instLTNat.lt 0 (Fintype.card q))] {Z : Nat → OmegaSpace → l → Real} {X : Nat → OmegaSpace → k → Real}
+  {e Y : Nat → OmegaSpace → Real} {b : k → Real},
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+    ∀ (rfun : (k → Real) → q → Real) (theta0 : q → Real) (Rderiv : Matrix k q Real)
+      (btilde : Nat → OmegaSpace → k → Real) (h73 : HansenEconometrics.SmoothFunctionCondition rfun b Rderiv),
+      Eq (rfun b) theta0 →
+        (∀ (n : Nat) (omega : OmegaSpace), Eq (rfun (btilde n omega)) theta0) →
+          (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (btilde n) mu) →
+            (have Q :=
+                HansenEconometrics.twoSLSCombinedQZX
+                  (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Z X));
+              have G := HansenEconometrics.gmmPopulationGram Q (Matrix.inv.inv (HansenEconometrics.scoreCovMat mu Z e));
+              HansenEconometrics.ConstrainedEstimatorLinearization mu (fun n =&gt; n.cast.sqrt) btilde b G Rderiv
+                fun n omega =&gt;
+                instHSMul.hSMul n.cast.sqrt
+                  (instHSub.hSub
+                    (HansenEconometrics.gmmUncenteredTwoStepBetaOrZero (HansenEconometrics.stackRegressors X n omega)
+                      (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega))
+                    b)) →
+              MeasureTheory.TendstoInDistribution
+                (fun n omega =&gt;
+                  HansenEconometrics.gmmUncenteredTwoStepDistanceStatOrZero
+                    (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackRegressors Z n omega)
+                    (HansenEconometrics.stackOutcomes Y n omega) (btilde n omega))
+                Filter.atTop (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared (Fintype.card q))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (14)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.SmoothFunctionCondition</code></li><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepBetaOrZero</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepDistanceStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.scoreCovMat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L660">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:660</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-13">
+<summary><span>Theorem 13.13</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>With a common weight, the distance statistic is nonnegative. With a linear restriction and efficient common weight, it equals the Wald statistic.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmdistancestat-nonneg-of-commonweight">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmDistanceStat_nonneg_of_commonWeight</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.13, first clause.</strong> With a common weight matrix, the
+constrained criterion cannot be below the unrestricted GMM minimum. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l] [Nonempty n]
+  [inst_4 : DecidableEq k] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real) (W : Matrix l l Real)
+  (btilde : k → Real) [Invertible (HansenEconometrics.gmmNormalizedGram X Z W)],
+  W.PosSemidef →
+    Real.instLE.le 0 (HansenEconometrics.gmmDistanceStat X Z y W btilde (HansenEconometrics.gmmBetaOrZero X Z y W))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmDistanceStat</code></li><li><code>HansenEconometrics.gmmNormalizedGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L288">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:288</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmdistancestat-eq-wald-of-linear-commonweight">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmDistanceStat_eq_wald_of_linear_commonWeight</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.13, second clause.</strong> With a common efficient weight
+and a linear restriction, the GMM distance statistic equals the Wald
+statistic exactly. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {l : Type u_3} {r : Nat} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype l]
+  [Nonempty n] [inst_4 : DecidableEq k] (X : Matrix n k Real) (Z : Matrix n l Real) (y : n → Real) (W : Matrix l l Real)
+  (R : Matrix k (Fin r) Real) (c : Fin r → Real),
+  W.PosSemidef →
+    (HansenEconometrics.gmmNormalizedGram X Z W).PosDef →
+      Function.Injective R.mulVec →
+        Eq
+          (HansenEconometrics.gmmDistanceStat X Z y W (HansenEconometrics.gmmConstrainedBetaStar X Z y W R c)
+            (HansenEconometrics.gmmBetaOrZero X Z y W))
+          (HansenEconometrics.restrictionWaldStatOrZero
+            (instHSMul.hSMul (Fintype.card n).cast.sqrt
+              (instHSub.hSub (R.transpose.mulVec (HansenEconometrics.gmmBetaOrZero X Z y W)) c))
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose
+                (Matrix.inv.inv (HansenEconometrics.gmmNormalizedGram X Z W)))
+              R))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.gmmBetaOrZero</code></li><li><code>HansenEconometrics.gmmConstrainedBetaStar</code></li><li><code>HansenEconometrics.gmmDistanceStat</code></li><li><code>HansenEconometrics.gmmNormalizedGram</code></li><li><code>HansenEconometrics.restrictionWaldStatOrZero</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L317">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:317</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-14">
+<summary><span>Theorem 13.14</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumption 12.2, the efficient two-step GMM overidentification criterion converges to <code>chiSquared(l-k)</code> and its upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepjstatorzero-tendstoindistribution-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepJStatOrZero_tendstoInDistribution_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.14, observed-row form.</strong> Under the literal
+observed-row Assumption 12.2 package, the efficient two-step GMM criterion at
+the GMM estimator converges to <code>chiSquared (card l - card k)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real} {b : k → Real}
+  [inst_6 : Fact (instLTNat.lt 0 (instHSub.hSub (Fintype.card l) (Fintype.card k)))],
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+    MeasureTheory.TendstoInDistribution
+      (fun n omega =&gt;
+        HansenEconometrics.gmmUncenteredTwoStepJStatOrZero (HansenEconometrics.stackRegressors X n omega)
+          (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega))
+      Filter.atTop (fun x =&gt; x) (fun x =&gt; mu)
+      (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card l) (Fintype.card k)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepJStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L1407">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:1407</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepjtest-rejectionprob-tendsto-alpha-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepJTest_rejectionProb_tendsto_alpha_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Asymptotic-size conclusion in Hansen Theorem 13.14 for the actual
+efficient two-step GMM overidentification criterion. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] {Z : Nat → OmegaSpace → l → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real} {b : k → Real}
+  [Fact (instLTNat.lt 0 (instHSub.hSub (Fintype.card l) (Fintype.card k)))] {crit : Real} {alpha : ENNReal},
+  Eq
+      (MeasureTheory.Measure.instFunLike.coe
+        (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card l) (Fintype.card k))) (Set.Ioi crit))
+      alpha →
+    HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu Z X e Y b →
+      Filter.Tendsto
+        (fun n =&gt;
+          MeasureTheory.Measure.instFunLike.coe mu
+            (setOf fun omega =&gt;
+              Real.instLT.lt crit
+                (HansenEconometrics.gmmUncenteredTwoStepJStatOrZero (HansenEconometrics.stackRegressors X n omega)
+                  (HansenEconometrics.stackRegressors Z n omega) (HansenEconometrics.stackOutcomes Y n omega))))
+        Filter.atTop (nhds alpha)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepJStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L1561">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:1561</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmjstatorzero-tendstoindistribution-chisquared-of-factorsymmidem">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmJStatOrZero_tendstoInDistribution_chiSquared_of_factorSymmIdem</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Generic Gaussian factor/symmetric-idempotent specialization of the
+feasible-quadratic transfer engine used by Hansen Theorem 13.14. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {l : Type u_2} [inst_2 : Fintype l] [inst_3 : DecidableEq l]
+  {df : Nat} [inst_4 : Fact (instLTNat.lt 0 df)] {T : Nat → OmegaSpace → l → Real}
+  {OmegaHat : Nat → OmegaSpace → Matrix l l Real} {Omega B : Matrix l l Real},
+  MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+      (ProbabilityTheory.multivariateGaussian 0 (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B B.transpose)) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (OmegaHat n) mu) →
+      (MeasureTheory.TendstoInMeasure mu OmegaHat Filter.atTop fun x =&gt; Omega) →
+        Omega.PosDef →
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B.transpose (Matrix.inv.inv Omega)) B).IsHermitian →
+            IsIdempotentElem
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B.transpose (Matrix.inv.inv Omega)) B) →
+              Eq
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B.transpose (Matrix.inv.inv Omega)) B).rank
+                  df →
+                MeasureTheory.TendstoInDistribution
+                  (fun n omega =&gt; HansenEconometrics.gmmJStatOrZero (T n omega) (OmegaHat n omega)) Filter.atTop
+                  (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared df)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmJStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L1366">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:1366</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-15">
+<summary><span>Theorem 13.15</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>For <code>Z=(Za,Zb)</code>, the full-minus-maintained efficient two-step GMM criteria <code>C=Jhat-Jtilde</code> converge to <code>chiSquared(lb)</code> under Assumption 12.2 and full rank of <code>E[Za X']</code>; the upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepsubsetjstatorzero">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmUncenteredTwoStepSubsetJStatOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's subset overidentification statistic formed from the efficient
+two-step GMM criteria for the full and maintained instrument sets. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    {la : Type u_3} →
+      {lb : Type u_4} →
+        [Fintype n] →
+          [Fintype k] →
+            [Fintype la] →
+              [Fintype lb] →
+                [DecidableEq k] →
+                  [DecidableEq la] →
+                    [DecidableEq lb] → Matrix n k Real → Matrix n la Real → Matrix n lb Real → (n → Real) → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L2489">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:2489</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepsubsetjstatorzero-tendstoindistribution-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepSubsetJStatOrZero_tendstoInDistribution_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.15, observed-row form.</strong> Under Assumption 12.2 for
+the full instrument vector and full rank of the maintained moment derivative,
+the full-minus-maintained efficient-GMM criterion converges to chi-square with
+degrees of freedom equal to the number of tested moments. This result is
+slightly more general than Hansen's displayed context because it also covers
+an exactly identified maintained model. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {la : Type u_3} {lb : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype la] [inst_4 : Fintype lb] [inst_5 : DecidableEq k] [inst_6 : DecidableEq la]
+  [inst_7 : DecidableEq lb] {Za : Nat → OmegaSpace → la → Real} {Zb : Nat → OmegaSpace → lb → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real} {b : k → Real}
+  [inst_8 : Fact (instLTNat.lt 0 (Fintype.card lb))],
+  HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu
+      (fun i omega =&gt; Sum.elim (Za i omega) (Zb i omega)) X e Y b →
+    Function.Injective
+        (HansenEconometrics.twoSLSCombinedQZX
+            (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Za X))).mulVec →
+      MeasureTheory.TendstoInDistribution
+        (fun n omega =&gt;
+          HansenEconometrics.gmmUncenteredTwoStepSubsetJStatOrZero (HansenEconometrics.stackRegressors X n omega)
+            (HansenEconometrics.stackRegressors Za n omega) (HansenEconometrics.stackRegressors Zb n omega)
+            (HansenEconometrics.stackOutcomes Y n omega))
+        Filter.atTop (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared (Fintype.card lb))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (9)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepSubsetJStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L2506">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:2506</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmuncenteredtwostepsubsetjtest-rejectionprob-tendsto-alpha-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmUncenteredTwoStepSubsetJTest_rejectionProb_tendsto_alpha_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Asymptotic-size conclusion in Hansen Theorem 13.15 for the actual
+full-minus-maintained efficient two-step GMM criterion. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {la : Type u_3} {lb : Type u_4} [inst_2 : Fintype k]
+  [inst_3 : Fintype la] [inst_4 : Fintype lb] [inst_5 : DecidableEq k] [inst_6 : DecidableEq la]
+  [inst_7 : DecidableEq lb] {Za : Nat → OmegaSpace → la → Real} {Zb : Nat → OmegaSpace → lb → Real}
+  {X : Nat → OmegaSpace → k → Real} {e Y : Nat → OmegaSpace → Real} {b : k → Real}
+  [Fact (instLTNat.lt 0 (Fintype.card lb))] {crit : Real} {alpha : ENNReal},
+  Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared (Fintype.card lb)) (Set.Ioi crit)) alpha →
+    HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions mu
+        (fun i omega =&gt; Sum.elim (Za i omega) (Zb i omega)) X e Y b →
+      Function.Injective
+          (HansenEconometrics.twoSLSCombinedQZX
+              (HansenEconometrics.popGram mu (HansenEconometrics.twoSLSCombinedRegressors Za X))).mulVec →
+        Filter.Tendsto
+          (fun n =&gt;
+            MeasureTheory.Measure.instFunLike.coe mu
+              (setOf fun omega =&gt;
+                Real.instLT.lt crit
+                  (HansenEconometrics.gmmUncenteredTwoStepSubsetJStatOrZero
+                    (HansenEconometrics.stackRegressors X n omega) (HansenEconometrics.stackRegressors Za n omega)
+                    (HansenEconometrics.stackRegressors Zb n omega) (HansenEconometrics.stackOutcomes Y n omega))))
+          Filter.atTop (nhds alpha)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (8)</summary><ul><li><code>HansenEconometrics.TwoSLSObservedIidFourthMomentPositiveCovarianceConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmUncenteredTwoStepSubsetJStatOrZero</code></li><li><code>HansenEconometrics.popGram</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li><li><code>HansenEconometrics.twoSLSCombinedQZX</code></li><li><code>HansenEconometrics.twoSLSCombinedRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L2814">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:2814</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-16">
+<summary><span>Theorem 13.16</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>In <code>Y=Z1'beta1+Y2'beta2+e</code>, compare instruments <code>(Z1,Z2,Y2)</code> with <code>(Z1,Z2)</code>. Under the stated rank conditions, <code>C</code> converges to <code>chiSquared(k2)</code> and the upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmendogeneitytwostepstatorzero">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmEndogeneityTwoStepStatOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's Theorem 13.16 criterion difference: efficient two-step GMM with
+instruments <code>(Z₁,Z₂,Y₂)</code> minus efficient two-step GMM with <code>(Z₁,Z₂)</code>, both
+using regressors <code>(Z₁,Y₂)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k1 : Type u_2} →
+    {k2 : Type u_3} →
+      {l2 : Type u_4} →
+        [Fintype n] →
+          [Fintype k1] →
+            [Fintype k2] →
+              [Fintype l2] →
+                [DecidableEq k1] →
+                  [DecidableEq k2] →
+                    [DecidableEq l2] → Matrix n k1 Real → Matrix n k2 Real → Matrix n l2 Real → (n → Real) → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L2983">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:2983</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmendogeneitytwostepstatorzero-tendstoindistribution-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmEndogeneityTwoStepStatOrZero_tendstoInDistribution_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.16, observed-row form.</strong> The actual full-minus-
+maintained two-step GMM criterion for testing exogeneity of <code>Y₂</code> converges to
+chi-square with <code>k₂</code> degrees of freedom. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k1 : Type u_2} {k2 : Type u_3} {l2 : Type u_4} [inst_2 : Fintype k1]
+  [inst_3 : Fintype k2] [inst_4 : Fintype l2] [inst_5 : DecidableEq k1] [inst_6 : DecidableEq k2]
+  [inst_7 : DecidableEq l2] {Z1 : Nat → OmegaSpace → k1 → Real} {Z2 : Nat → OmegaSpace → l2 → Real}
+  {Y2 : Nat → OmegaSpace → k2 → Real} {e Y : Nat → OmegaSpace → Real} {b : Sum k1 k2 → Real}
+  [inst_8 : Fact (instLTNat.lt 0 (Fintype.card k2))],
+  HansenEconometrics.GMMEndogeneityObservedRowsConditions mu Z1 Z2 Y2 e Y b →
+    MeasureTheory.TendstoInDistribution
+      (fun n omega =&gt;
+        HansenEconometrics.gmmEndogeneityTwoStepStatOrZero (HansenEconometrics.stackRegressors Z1 n omega)
+          (HansenEconometrics.stackRegressors Y2 n omega) (HansenEconometrics.stackRegressors Z2 n omega)
+          (HansenEconometrics.stackOutcomes Y n omega))
+      Filter.atTop (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared (Fintype.card k2))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.GMMEndogeneityObservedRowsConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmEndogeneityTwoStepStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L2995">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:2995</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmendogeneitytwosteptest-rejectionprob-tendsto-alpha-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmEndogeneityTwoStepTest_rejectionProb_tendsto_alpha_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Asymptotic-size conclusion in Hansen Theorem 13.16 for the concrete
+observed-row endogeneity statistic. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k1 : Type u_2} {k2 : Type u_3} {l2 : Type u_4} [inst_2 : Fintype k1]
+  [inst_3 : Fintype k2] [inst_4 : Fintype l2] [inst_5 : DecidableEq k1] [inst_6 : DecidableEq k2]
+  [inst_7 : DecidableEq l2] {Z1 : Nat → OmegaSpace → k1 → Real} {Z2 : Nat → OmegaSpace → l2 → Real}
+  {Y2 : Nat → OmegaSpace → k2 → Real} {e Y : Nat → OmegaSpace → Real} {b : Sum k1 k2 → Real}
+  [Fact (instLTNat.lt 0 (Fintype.card k2))] {crit : Real} {alpha : ENNReal},
+  Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared (Fintype.card k2)) (Set.Ioi crit)) alpha →
+    HansenEconometrics.GMMEndogeneityObservedRowsConditions mu Z1 Z2 Y2 e Y b →
+      Filter.Tendsto
+        (fun n =&gt;
+          MeasureTheory.Measure.instFunLike.coe mu
+            (setOf fun omega =&gt;
+              Real.instLT.lt crit
+                (HansenEconometrics.gmmEndogeneityTwoStepStatOrZero (HansenEconometrics.stackRegressors Z1 n omega)
+                  (HansenEconometrics.stackRegressors Y2 n omega) (HansenEconometrics.stackRegressors Z2 n omega)
+                  (HansenEconometrics.stackOutcomes Y n omega))))
+        Filter.atTop (nhds alpha)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.GMMEndogeneityObservedRowsConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmEndogeneityTwoStepStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L3024">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:3024</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-13-17">
+<summary><span>Theorem 13.17</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>In <code>Y=Z1'beta1+Y2'beta2+Y3'beta3+e</code>, compare instruments <code>(Z1,Z2,Y2)</code> with <code>(Z1,Z2)</code> to test only <code>Y2</code>. Under the stated rank conditions, <code>C</code> converges to <code>chiSquared(k2)</code> and the upper-tail test has asymptotic size <code>alpha</code>.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmsubsetendogeneitytwostepstatorzero">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.gmmSubsetEndogeneityTwoStepStatOrZero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's Theorem 13.17 criterion difference: efficient two-step GMM with
+instruments <code>(Z₁,Z₂,Y₂)</code> minus efficient two-step GMM with <code>(Z₁,Z₂)</code>, both
+using regressors <code>(Z₁,Y₂,Y₃)</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k1 : Type u_2} →
+    {k2 : Type u_3} →
+      {k3 : Type u_4} →
+        {l2 : Type u_5} →
+          [Fintype n] →
+            [Fintype k1] →
+              [Fintype k2] →
+                [Fintype k3] →
+                  [Fintype l2] →
+                    [DecidableEq k1] →
+                      [DecidableEq k2] →
+                        [DecidableEq k3] →
+                          [DecidableEq l2] →
+                            Matrix n k1 Real →
+                              Matrix n k2 Real → Matrix n k3 Real → Matrix n l2 Real → (n → Real) → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L3094">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:3094</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmsubsetendogeneitytwostepstatorzero-tendstoindistribution-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmSubsetEndogeneityTwoStepStatOrZero_tendstoInDistribution_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 13.17, observed-row form.</strong> The actual full-minus-
+maintained two-step GMM criterion for testing the <code>Y₂</code> block while retaining
+endogenous block <code>Y₃</code> converges to chi-square with <code>k₂</code> degrees of freedom. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k1 : Type u_2} {k2 : Type u_3} {k3 : Type u_4} {l2 : Type u_5}
+  [inst_2 : Fintype k1] [inst_3 : Fintype k2] [inst_4 : Fintype k3] [inst_5 : Fintype l2] [inst_6 : DecidableEq k1]
+  [inst_7 : DecidableEq k2] [inst_8 : DecidableEq k3] [inst_9 : DecidableEq l2] {Z1 : Nat → OmegaSpace → k1 → Real}
+  {Z2 : Nat → OmegaSpace → l2 → Real} {Y2 : Nat → OmegaSpace → k2 → Real} {Y3 : Nat → OmegaSpace → k3 → Real}
+  {e Y : Nat → OmegaSpace → Real} {b : Sum k1 (Sum k2 k3) → Real} [inst_10 : Fact (instLTNat.lt 0 (Fintype.card k2))],
+  HansenEconometrics.GMMSubsetEndogeneityObservedRowsConditions mu Z1 Z2 Y2 Y3 e Y b →
+    MeasureTheory.TendstoInDistribution
+      (fun n omega =&gt;
+        HansenEconometrics.gmmSubsetEndogeneityTwoStepStatOrZero (HansenEconometrics.stackRegressors Z1 n omega)
+          (HansenEconometrics.stackRegressors Y2 n omega) (HansenEconometrics.stackRegressors Y3 n omega)
+          (HansenEconometrics.stackRegressors Z2 n omega) (HansenEconometrics.stackOutcomes Y n omega))
+      Filter.atTop (fun x =&gt; x) (fun x =&gt; mu) (HansenEconometrics.chiSquared (Fintype.card k2))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.GMMSubsetEndogeneityObservedRowsConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmSubsetEndogeneityTwoStepStatOrZero</code></li><li><code>HansenEconometrics.instIsProbabilityMeasureRealChiSquaredOfFactLtNatOfNat</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L3110">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:3110</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-gmmsubsetendogeneitytwosteptest-rejectionprob-tendsto-alpha-observedrows">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.gmmSubsetEndogeneityTwoStepTest_rejectionProb_tendsto_alpha_observedRows</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Asymptotic-size conclusion in Hansen Theorem 13.17 for the concrete
+observed-row subset-endogeneity statistic. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k1 : Type u_2} {k2 : Type u_3} {k3 : Type u_4} {l2 : Type u_5}
+  [inst_2 : Fintype k1] [inst_3 : Fintype k2] [inst_4 : Fintype k3] [inst_5 : Fintype l2] [inst_6 : DecidableEq k1]
+  [inst_7 : DecidableEq k2] [inst_8 : DecidableEq k3] [inst_9 : DecidableEq l2] {Z1 : Nat → OmegaSpace → k1 → Real}
+  {Z2 : Nat → OmegaSpace → l2 → Real} {Y2 : Nat → OmegaSpace → k2 → Real} {Y3 : Nat → OmegaSpace → k3 → Real}
+  {e Y : Nat → OmegaSpace → Real} {b : Sum k1 (Sum k2 k3) → Real} [Fact (instLTNat.lt 0 (Fintype.card k2))]
+  {crit : Real} {alpha : ENNReal},
+  Eq (MeasureTheory.Measure.instFunLike.coe (HansenEconometrics.chiSquared (Fintype.card k2)) (Set.Ioi crit)) alpha →
+    HansenEconometrics.GMMSubsetEndogeneityObservedRowsConditions mu Z1 Z2 Y2 Y3 e Y b →
+      Filter.Tendsto
+        (fun n =&gt;
+          MeasureTheory.Measure.instFunLike.coe mu
+            (setOf fun omega =&gt;
+              Real.instLT.lt crit
+                (HansenEconometrics.gmmSubsetEndogeneityTwoStepStatOrZero
+                  (HansenEconometrics.stackRegressors Z1 n omega) (HansenEconometrics.stackRegressors Y2 n omega)
+                  (HansenEconometrics.stackRegressors Y3 n omega) (HansenEconometrics.stackRegressors Z2 n omega)
+                  (HansenEconometrics.stackOutcomes Y n omega))))
+        Filter.atTop (nhds alpha)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (5)</summary><ul><li><code>HansenEconometrics.GMMSubsetEndogeneityObservedRowsConditions</code></li><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.gmmSubsetEndogeneityTwoStepStatOrZero</code></li><li><code>HansenEconometrics.stackOutcomes</code></li><li><code>HansenEconometrics.stackRegressors</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/SpecificationTests.lean#L3144">HansenEconometrics/Chapter13GMM/SpecificationTests.lean:3144</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="proposition-13-1">
+<summary><span>Proposition 13.1</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>A nonlinear GMM estimator has the sandwich Gaussian limit; efficient weighting gives covariance $(Q'\Omega^{-1}Q)^{-1}$.</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlineargmmbeta-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearGMMBeta_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Proposition 13.1.</strong> A nonlinear GMM estimator with the standard
+first-order expansion has the sandwich Gaussian limit.</p>
+<p>Here <code>Q</code> is the derivative of the population moment. Therefore, the
+linearization uses the negative GMM influence matrix. Its sign cancels from
+the covariance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] (bhat : Nat → OmegaSpace → k → Real)
+  (b : k → Real) (score : Nat → OmegaSpace → l → Real) (Q : Matrix l k Real) (W Omega : Matrix l l Real),
+  Omega.PosSemidef →
+    MeasureTheory.TendstoInDistribution score Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+        (ProbabilityTheory.multivariateGaussian 0 Omega) →
+      (∀ (n : Nat),
+          AEMeasurable (fun omega =&gt; { ofLp := instHSMul.hSMul n.cast.sqrt (instHSub.hSub (bhat n omega) b) }) mu) →
+        (MeasureTheory.TendstoInMeasure mu
+            (fun n omega =&gt;
+              instHSub.hSub { ofLp := instHSMul.hSMul n.cast.sqrt (instHSub.hSub (bhat n omega) b) }
+                (ContinuousLinearMap.funLike.coe
+                  (HansenEconometrics.matrixContinuousLinearMap
+                    (Matrix.neg.neg (HansenEconometrics.LinearGMM.influenceMatrixStar Q W)))
+                  { ofLp := score n omega }))
+            Filter.atTop fun x =&gt; 0) →
+          MeasureTheory.TendstoInDistribution
+            (fun n omega =&gt; instHSMul.hSMul n.cast.sqrt (instHSub.hSub (bhat n omega) b)) Filter.atTop (fun z =&gt; z.ofLp)
+            (fun x =&gt; mu)
+            (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.gmmAsymptoticVarianceStar Q W Omega))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.LinearGMM.influenceMatrixStar</code></li><li><code>HansenEconometrics.gmmAsymptoticVarianceStar</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Nonlinear.lean#L31">HansenEconometrics/Chapter13GMM/Nonlinear.lean:31</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlineargmmbeta-tendstoindistribution-efficient">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearGMMBeta_tendstoInDistribution_efficient</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Efficient-weight form of Hansen Proposition 13.1. With a positive-definite
+moment covariance and a full-rank derivative, the sandwich covariance reduces
+to <code>(Q' Omega⁻¹ Q)⁻¹</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {OmegaSpace : Type u_1} [inst : MeasurableSpace OmegaSpace] {mu : MeasureTheory.Measure OmegaSpace}
+  [inst_1 : MeasureTheory.IsProbabilityMeasure mu] {k : Type u_2} {l : Type u_3} [inst_2 : Fintype k]
+  [inst_3 : Fintype l] [inst_4 : DecidableEq k] [inst_5 : DecidableEq l] (bhat : Nat → OmegaSpace → k → Real)
+  (b : k → Real) (score : Nat → OmegaSpace → l → Real) (Q : Matrix l k Real) (Omega : Matrix l l Real),
+  Omega.PosDef →
+    Function.Injective Q.mulVec →
+      MeasureTheory.TendstoInDistribution score Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+          (ProbabilityTheory.multivariateGaussian 0 Omega) →
+        (∀ (n : Nat),
+            AEMeasurable (fun omega =&gt; { ofLp := instHSMul.hSMul n.cast.sqrt (instHSub.hSub (bhat n omega) b) }) mu) →
+          (MeasureTheory.TendstoInMeasure mu
+              (fun n omega =&gt;
+                instHSub.hSub { ofLp := instHSMul.hSMul n.cast.sqrt (instHSub.hSub (bhat n omega) b) }
+                  (ContinuousLinearMap.funLike.coe
+                    (HansenEconometrics.matrixContinuousLinearMap
+                      (Matrix.neg.neg (HansenEconometrics.LinearGMM.influenceMatrixStar Q (Matrix.inv.inv Omega))))
+                    { ofLp := score n omega }))
+              Filter.atTop fun x =&gt; 0) →
+            MeasureTheory.TendstoInDistribution
+              (fun n omega =&gt; instHSMul.hSMul n.cast.sqrt (instHSub.hSub (bhat n omega) b)) Filter.atTop
+              (fun z =&gt; z.ofLp) (fun x =&gt; mu)
+              (ProbabilityTheory.multivariateGaussian 0
+                (Matrix.inv.inv (HansenEconometrics.gmmPopulationGram Q (Matrix.inv.inv Omega))))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.LinearGMM.influenceMatrixStar</code></li><li><code>HansenEconometrics.gmmPopulationGram</code></li><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter13GMM/Nonlinear.lean#L90">HansenEconometrics/Chapter13GMM/Nonlinear.lean:90</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

@@ -1,0 +1,15 @@
+---
+title: "Lean crash course"
+description: "A packaged computational introduction to Lean 4."
+toc: false
+---
+
+This site includes a self-contained snapshot of the [Lean crash course on lalten.org](https://lalten.org/pages/lean_crash_course/). The course adapts the [IntroToLean4](https://github.com/encosllo/IntroToLean4) examples and places the Lean source beside its observed terminal output.
+
+[Open the packaged course in a full page](assets/lean-crash-course.html){.btn .btn-primary target="_blank"}
+[Open the current course on lalten.org](https://lalten.org/pages/lean_crash_course/){.btn .btn-outline-secondary target="_blank"}
+
+The packaged snapshot covers 14 tutorial chapters. Chapters 1--12 contain executed examples. Chapters 13 and 14 are source-only because those two upstream files did not compile in the source state used to make the course.
+
+<iframe class="crash-course-frame" src="assets/lean-crash-course.html" title="Packaged Lean crash course"></iframe>
+

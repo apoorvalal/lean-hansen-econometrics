@@ -1,6 +1,6 @@
 decls_json := "site/_generated/declarations.json"
 
-# Default: render the site (walkthroughs only — auto-stub layer is paused).
+# Default: refresh generated reference pages and render the complete site.
 default: site-render
 
 # Local equivalent of the PR Lean CI gate.
@@ -9,34 +9,40 @@ ci:
     lake build @mathlib/lint-style
     lake env .lake/packages/mathlib/.lake/build/bin/lint-style HansenEconometrics
 
-# Run lake exe export_decls and write declarations.json.
-# Only needed for the full-coverage build (`site-full`).
+# Export authored public declarations and their statement dependencies.
 site-export:
     @mkdir -p site/_generated
-    lake exe export_decls > {{decls_json}}
+    lake exe export_decls > {{decls_json}}.tmp
+    mv {{decls_json}}.tmp {{decls_json}}
 
-# Regenerate site/auto/** stubs from declarations.json.
-# Only needed for the full-coverage build (`site-full`).
-site-stubs: site-export
-    uv run scripts/build_stubs.py
+# Rebuild foldable result pages and the dependency graph.
+site-generate: site-export
+    uv run --no-project scripts/build_site.py
 
-# Live-reload preview at http://localhost:port (walkthroughs only).
-site-preview:
+# Refresh generated pages, then start a live-reload preview.
+site-preview: site-generate
     cd site && quarto preview
 
-# One-shot render to docs/ (walkthroughs only — fast).
-# Auto-stub rendering is currently paused via `project.render` in _quarto.yml.
-site-render:
+# Render the complete, self-contained site to docs/.
+site-render: site-generate
     cd site && quarto render
 
 # Alias for site-render.
 site: site-render
 
-# Full-coverage build: regenerate stubs and render everything.
-# Requires editing _quarto.yml first to re-enable the auto/** render scope
-# and the "Auto-generated reference" sidebar.
-site-full: site-stubs
+# Render from the existing declaration export without loading Lean again.
+site-render-fast:
+    uv run --no-project scripts/build_site.py
     cd site && quarto render
+
+# Refresh the packaged copy of the external Lean crash course.
+site-crash-course:
+    curl -L --fail --silent --show-error https://lalten.org/pages/lean_crash_course/ -o site/assets/lean-crash-course.html.tmp
+    mv site/assets/lean-crash-course.html.tmp site/assets/lean-crash-course.html
+
+# Run documentation generator tests.
+site-test:
+    uv run --no-project --with markdown python -m unittest tests.test_build_site
 
 # Render and stage docs/ for a single "deploy" commit.
 # After running, `git commit && git push` publishes via GitHub Pages.

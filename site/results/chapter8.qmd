@@ -1,0 +1,2172 @@
+---
+title: "Chapter 8: Restricted Estimation"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 8."
+---
+
+This page is generated from the [canonical Chapter 8 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch8-inventory.md) and the compiled Lean environment. It contains 18 textbook result groups and 94 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="theorem-8-1" open>
+<summary><span>Theorem 8.1</span><span class="result-count">6 of 9 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>The CLS estimator satisﬁes</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.1 coefficient decomposition in the linear model. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq q] (X : Matrix n k Real) (β : k → Real) (e : n → Real)
+  (R : Matrix k q Real) (c : q → Real)
+  [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_6 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (R.transpose.mulVec β) c →
+    Eq (HansenEconometrics.clsBeta X (instHAdd.hAdd (X.mulVec β) e) R c)
+      (instHAdd.hAdd β
+        ((instHSub.hSub
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (inst_5.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)) X.transpose)
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.clsCorrectionMatrix X R)
+                X.transpose)).mulVec
+          e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsBeta</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsCorrectionMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L100">HansenEconometrics/Chapter8RestrictedEstimation.lean:100</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsresidual-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsResidual_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.1 residual decomposition in the linear model. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (X : Matrix n k Real) (β : k → Real)
+  (e : n → Real) (R : Matrix k q Real) (c : q → Real)
+  [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (R.transpose.mulVec β) c →
+    Eq (HansenEconometrics.clsResidual X (instHAdd.hAdd (X.mulVec β) e) R c)
+      ((HansenEconometrics.clsProjectionMatrix X R).mulVec e)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li><li><code>HansenEconometrics.clsResidual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L113">HansenEconometrics/Chapter8RestrictedEstimation.lean:113</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsprojectionmatrix-rank">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsProjectionMatrix_rank</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.1: the rank of the CLS residual-maker is <code>n - k + q</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (X : Matrix n k Real) (R : Matrix k q Real)
+  [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (HansenEconometrics.clsProjectionMatrix X R).rank
+    (instHAdd.hAdd (instHSub.hSub (Fintype.card n) (Fintype.card k)) (Fintype.card q))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L273">HansenEconometrics/Chapter8RestrictedEstimation.lean:273</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsprojectionmatrix-trace">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsProjectionMatrix_trace</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.1: trace of the CLS residual-maker matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (X : Matrix n k Real) (R : Matrix k q Real)
+  [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (HansenEconometrics.clsProjectionMatrix X R).trace
+    (instHAdd.hAdd (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast) (Fintype.card q).cast)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L231">HansenEconometrics/Chapter8RestrictedEstimation.lean:231</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsprojectionmatrix-transpose">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsProjectionMatrix_transpose</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.1: symmetry of the CLS residual-maker matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (X : Matrix n k Real) (R : Matrix k q Real)
+  [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (HansenEconometrics.clsProjectionMatrix X R).transpose (HansenEconometrics.clsProjectionMatrix X R)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L184">HansenEconometrics/Chapter8RestrictedEstimation.lean:184</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsprojectionmatrix-idempotent">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsProjectionMatrix_idempotent</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.1: the CLS residual-maker matrix is idempotent. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (X : Matrix n k Real) (R : Matrix k q Real)
+  [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq
+    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.clsProjectionMatrix X R)
+      (HansenEconometrics.clsProjectionMatrix X R))
+    (HansenEconometrics.clsProjectionMatrix X R)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L201">HansenEconometrics/Chapter8RestrictedEstimation.lean:201</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-2">
+<summary><span>Theorem 8.2</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>In the linear regression model (8.14)-(8.15) under (8.1),</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-cls-condexp-unbiased">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_condExp_unbiased</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.2 conditional-unbiasedness bridge for CLS.</p>
+<p>The stochastic input is the conditional mean of the linear CLS error term, while the theorem
+rewrites the estimator itself using <code>clsBeta_linear_model</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq q] {Ω : Type u_4} {m : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real) (R : Matrix k q Real) (c : q → Real)
+  [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_6 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (R.transpose.mulVec β) c →
+    ((MeasureTheory.ae μ).EventuallyEq
+        (MeasureTheory.condExp m μ fun ω =&gt;
+          instHAdd.hAdd β
+            ((instHSub.hSub
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (inst_5.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)) X.transpose)
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.clsCorrectionMatrix X R)
+                    X.transpose)).mulVec
+              (e ω)))
+        fun x =&gt; β) →
+      (MeasureTheory.ae μ).EventuallyEq
+        (MeasureTheory.condExp m μ fun ω =&gt; HansenEconometrics.clsBeta X (instHAdd.hAdd (X.mulVec β) (e ω)) R c)
+        fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsBeta</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsCorrectionMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L290">HansenEconometrics/Chapter8RestrictedEstimation.lean:290</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-cls-condexp-unbiased-of-error-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_condExp_unbiased_of_error_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.2 conditional unbiasedness from coordinatewise mean-zero errors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq q] {Ω : Type u_4} {m m₀ : MeasurableSpace Ω}
+  {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real) (R : Matrix k q Real)
+  (c : q → Real) [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_6 : Invertible (HansenEconometrics.clsConstraintGram X R)] [MeasureTheory.IsProbabilityMeasure μ],
+  Eq (R.transpose.mulVec β) c →
+    ∀ (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+      (∀ (i : n), MeasureTheory.Integrable (fun ω =&gt; e ω i) μ) →
+        (∀ (i : n), (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; e ω i) fun x =&gt; 0) →
+          (MeasureTheory.ae μ).EventuallyEq
+            (MeasureTheory.condExp m μ fun ω =&gt; HansenEconometrics.clsBeta X (instHAdd.hAdd (X.mulVec β) (e ω)) R c)
+            fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsBeta</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L308">HansenEconometrics/Chapter8RestrictedEstimation.lean:308</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-3">
+<summary><span>Theorem 8.3</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>In the homoskedastic linear regression model (8.14)-(8.15) with</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-cls-conditionalvariance-homoskedastic">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_conditionalVariance_homoskedastic</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.3 homoskedastic covariance bridge from the deterministic sandwich core. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (X : Matrix n k Real) (R : Matrix k q Real)
+  (σ2 : Real) [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq
+      (have B :=
+        instHSub.hSub
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (inst_6.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)) X.transpose)
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.clsCorrectionMatrix X R) X.transpose);
+      Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B B.transpose)
+      (instHSub.hSub (inst_6.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X))
+        (HansenEconometrics.clsCorrectionMatrix X R)) →
+    Eq (HansenEconometrics.clsConditionalVarianceMatrix X R (instHSMul.hSMul σ2 1))
+      (HansenEconometrics.clsHomoskedasticVarianceMatrix X R σ2)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.clsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsCorrectionMatrix</code></li><li><code>HansenEconometrics.clsHomoskedasticVarianceMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L445">HansenEconometrics/Chapter8RestrictedEstimation.lean:445</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-cls-conditionalvariance-homoskedastic-composed">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_conditionalVariance_homoskedastic_composed</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.3: composed homoskedastic CLS covariance formula. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] (X : Matrix n k Real) (R : Matrix k q Real)
+  (σ2 : Real) [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (HansenEconometrics.clsConditionalVarianceMatrix X R (instHSMul.hSMul σ2 1))
+    (HansenEconometrics.clsHomoskedasticVarianceMatrix X R σ2)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsConditionalVarianceMatrix</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsHomoskedasticVarianceMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L462">HansenEconometrics/Chapter8RestrictedEstimation.lean:462</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-cls-sandwichcore-eq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_sandwichCore_eq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Lean-only deterministic bridge for Hansen Theorem 8.3's homoskedastic sandwich core. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq q] (X : Matrix n k Real) (R : Matrix k q Real)
+  [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_6 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq
+    (have B :=
+      instHSub.hSub
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (inst_5.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)) X.transpose)
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (HansenEconometrics.clsCorrectionMatrix X R) X.transpose);
+    Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B B.transpose)
+    (instHSub.hSub (inst_5.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X))
+      (HansenEconometrics.clsCorrectionMatrix X R))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsCorrectionMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L401">HansenEconometrics/Chapter8RestrictedEstimation.lean:401</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-4">
+<summary><span>Theorem 8.4</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>In the homoskedastic linear regression model (8.14)-(8.15) with</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-cls-residualvariance-condexp-eq-sigmasq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_residualVariance_condExp_eq_sigmaSq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.4 residual-variance conditional expectation bridge.</p>
+<p>The stochastic input is stated for the quadratic form of the structural error after applying the
+CLS residual-maker. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] {Ω : Type u_4} {m : MeasurableSpace Ω}
+  {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real) (R : Matrix k q Real)
+  (c : q → Real) (σ2 : Real) [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (R.transpose.mulVec β) c →
+    ((MeasureTheory.ae μ).EventuallyEq
+        (MeasureTheory.condExp m μ fun ω =&gt;
+          instHMul.hMul
+            (Real.instInv.inv
+              (instHAdd.hAdd (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast) (Fintype.card q).cast))
+            (dotProduct ((HansenEconometrics.clsProjectionMatrix X R).mulVec (e ω))
+              ((HansenEconometrics.clsProjectionMatrix X R).mulVec (e ω))))
+        fun x =&gt; σ2) →
+      (MeasureTheory.ae μ).EventuallyEq
+        (MeasureTheory.condExp m μ fun ω =&gt;
+          HansenEconometrics.clsResidualVariance X (instHAdd.hAdd (X.mulVec β) (e ω)) R c)
+        fun x =&gt; σ2</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li><li><code>HansenEconometrics.clsResidualVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L473">HansenEconometrics/Chapter8RestrictedEstimation.lean:473</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-cls-residualvariance-condexp-eq-sigmasq-of-homoskedastic">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.cls_residualVariance_condExp_eq_sigmaSq_of_homoskedastic</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.4 residual-variance conditional expectation from homoskedastic second
+moments. The explicit degrees-of-freedom nonzero assumption is needed because
+<code>clsResidualVariance</code> uses a totalized inverse. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] {Ω : Type u_4} {m m₀ : MeasurableSpace Ω}
+  {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real) (R : Matrix k q Real)
+  (c : q → Real) (σ2 : Real) [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)] [MeasureTheory.IsProbabilityMeasure μ],
+  Eq (R.transpose.mulVec β) c →
+    ∀ (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+      (∀ (i j : n), MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (e ω i) (e ω j)) μ) →
+        (∀ (i j : n),
+            (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (e ω i) (e ω j))
+              fun x =&gt; instHMul.hMul σ2 (1 i j)) →
+          Ne (instHAdd.hAdd (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast) (Fintype.card q).cast) 0 →
+            (MeasureTheory.ae μ).EventuallyEq
+              (MeasureTheory.condExp m μ fun ω =&gt;
+                HansenEconometrics.clsResidualVariance X (instHAdd.hAdd (X.mulVec β) (e ω)) R c)
+              fun x =&gt; σ2</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsResidualVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L495">HansenEconometrics/Chapter8RestrictedEstimation.lean:495</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-5">
+<summary><span>Theorem 8.5</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>In the normal linear regression model (8.14)-(8.15) with con-</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsnormalregressionfinitesamplelaws">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsNormalRegressionFiniteSampleLaws</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.5: exact finite-sample Gaussian, chi-square, and Student-t laws for CLS. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] {Ω : Type u_4} [inst_6 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    ∀ (R : Matrix k q Real) (c : q → Real)
+      [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+      [inst_8 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+      Eq (R.transpose.mulVec β) c →
+        instLTNat.lt (Fintype.card k) (instHAdd.hAdd (Fintype.card n) (Fintype.card q)) →
+          ∀ (ε : Ω → EuclideanSpace Real n),
+            ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+              ProbabilityTheory.HasGaussianLaw (Function.comp WithLp.ofLp ε) μ →
+                ∀ (Z : Ω → Real),
+                  ProbabilityTheory.HasLaw Z (ProbabilityTheory.gaussianReal 0 1) μ →
+                    ProbabilityTheory.IndepFun Z
+                        (HansenEconometrics.scaledClsResidualVarianceStatistic X β σ2 R c (Function.comp WithLp.ofLp ε))
+                        μ →
+                      HansenEconometrics.ClsNormalRegressionFiniteSampleLaws μ X β σ2 R c ε Z</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ClsNormalRegressionFiniteSampleLaws</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.scaledClsResidualVarianceStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L815">HansenEconometrics/Chapter8RestrictedEstimation.lean:815</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-hasgaussianlaw-of-gaussian-error">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_hasGaussianLaw_of_gaussian_error</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>If the error vector has a Gaussian law, then the CLS coefficient vector is Gaussian as an
+affine image of the error vector. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq k] [inst_4 : DecidableEq q] {Ω : Type u_4} [inst_5 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real) (R : Matrix k q Real)
+  (c : q → Real) [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (R.transpose.mulVec β) c →
+    ProbabilityTheory.HasGaussianLaw e μ →
+      ProbabilityTheory.HasGaussianLaw (fun ω =&gt; HansenEconometrics.clsBeta X (instHAdd.hAdd (X.mulVec β) (e ω)) R c) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsBeta</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L587">HansenEconometrics/Chapter8RestrictedEstimation.lean:587</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scaledclsresvarstat-eq-sum-sq-eigenvector-coords">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledClsResVarStat_eq_sum_sq_eigenvector_coords</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The scaled CLS residual statistic is the sum of squared standardized Gaussian coordinates on
+ the <code>1</code>-eigenspace of the CLS residual-maker. This is the deterministic bridge for Hansen
+Theorem 8.5. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] {Ω : Type u_4} [MeasurableSpace Ω]
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    ∀ (R : Matrix k q Real) (c : q → Real)
+      [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+      [inst_8 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+      Eq (R.transpose.mulVec β) c →
+        instLTNat.lt (Fintype.card k) (instHAdd.hAdd (Fintype.card n) (Fintype.card q)) →
+          ∀ (ε : Ω → EuclideanSpace Real n),
+            let P := HansenEconometrics.clsProjectionMatrix X R;
+            have hP := ⋯;
+            have b := hP.eigenvectorBasis;
+            Eq (HansenEconometrics.scaledClsResidualVarianceStatistic X β σ2 R c (Function.comp WithLp.ofLp ε))
+              (HansenEconometrics.sumSquaresRV
+                (HansenEconometrics.restrictedStandardizedCoords b (fun i =&gt; i.val) σ2 ε))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (6)</summary><ul><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li><li><code>HansenEconometrics.clsProjectionMatrix_isHermitian</code></li><li><code>HansenEconometrics.restrictedStandardizedCoords</code></li><li><code>HansenEconometrics.scaledClsResidualVarianceStatistic</code></li><li><code>HansenEconometrics.sumSquaresRV</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L630">HansenEconometrics/Chapter8RestrictedEstimation.lean:630</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scaledclsresidualvariancestatistic-haslaw-chisquared">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledClsResidualVarianceStatistic_hasLaw_chiSquared</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.5, chi-square component: under homoskedastic Gaussian structural errors,
+the scaled CLS residual variance statistic has a chi-square law with <code>n - k + q</code> degrees of
+freedom. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] {Ω : Type u_4} [inst_6 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    ∀ (R : Matrix k q Real) (c : q → Real)
+      [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+      [inst_8 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+      Eq (R.transpose.mulVec β) c →
+        instLTNat.lt (Fintype.card k) (instHAdd.hAdd (Fintype.card n) (Fintype.card q)) →
+          ∀ (ε : Ω → EuclideanSpace Real n),
+            ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+              ProbabilityTheory.HasLaw
+                (HansenEconometrics.scaledClsResidualVarianceStatistic X β σ2 R c (Function.comp WithLp.ofLp ε))
+                (HansenEconometrics.chiSquared
+                  (instHAdd.hAdd (instHSub.hSub (Fintype.card n) (Fintype.card k)) (Fintype.card q)))
+                μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.scaledClsResidualVarianceStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L699">HansenEconometrics/Chapter8RestrictedEstimation.lean:699</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scaledclsresidualvariancestatistic-haschisquarelaw">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledClsResidualVarianceStatistic_hasChiSquareLaw</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.5 chi-square law bridge for the scaled CLS residual statistic.</p>
+<p>The law input is stated for the residual-maker quadratic form of the structural error; the theorem
+transfers it to the named CLS residual-variance statistic using <code>clsResidual_linear_model</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} {q : Type u_3} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : Fintype q]
+  [inst_3 : DecidableEq n] [inst_4 : DecidableEq k] [inst_5 : DecidableEq q] {Ω : Type u_4} [inst_6 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (σ2 : Real) (R : Matrix k q Real) (c : q → Real)
+  [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_8 : Invertible (HansenEconometrics.clsConstraintGram X R)] (e : Ω → n → Real) (ν : Nat),
+  Eq (R.transpose.mulVec β) c →
+    ProbabilityTheory.HasLaw
+        (fun ω =&gt;
+          instHDiv.hDiv
+            (instHMul.hMul
+              (instHAdd.hAdd (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast) (Fintype.card q).cast)
+              (instHMul.hMul
+                (Real.instInv.inv
+                  (instHAdd.hAdd (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast) (Fintype.card q).cast))
+                (dotProduct ((HansenEconometrics.clsProjectionMatrix X R).mulVec (e ω))
+                  ((HansenEconometrics.clsProjectionMatrix X R).mulVec (e ω)))))
+            σ2)
+        (HansenEconometrics.chiSquared ν) μ →
+      ProbabilityTheory.HasLaw (HansenEconometrics.scaledClsResidualVarianceStatistic X β σ2 R c e)
+        (HansenEconometrics.chiSquared ν) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li><li><code>HansenEconometrics.clsProjectionMatrix</code></li><li><code>HansenEconometrics.scaledClsResidualVarianceStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L751">HansenEconometrics/Chapter8RestrictedEstimation.lean:751</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clststat-hasstudenttlaw">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsTStat_hasStudentTLaw</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.5 Student-t bridge from the standard-normal numerator, chi-square
+studentizer, and independence inputs. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_4} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (Z Q : Ω → Real) (ν : Nat),
+  instLTNat.lt 0 ν →
+    ProbabilityTheory.HasLaw Z (ProbabilityTheory.gaussianReal 0 1) μ →
+      ProbabilityTheory.HasLaw Q (HansenEconometrics.chiSquared ν) μ →
+        ProbabilityTheory.IndepFun Z Q μ →
+          ProbabilityTheory.HasLaw (fun ω =&gt; HansenEconometrics.clsTStatFromComponents (Z ω) (Q ω) ν)
+            (HansenEconometrics.studentT ν) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.clsTStatFromComponents</code></li><li><code>HansenEconometrics.studentT</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8RestrictedEstimation.lean#L782">HansenEconometrics/Chapter8RestrictedEstimation.lean:782</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-6">
+<summary><span>Theorem 8.6</span><span class="result-count">6 of 9 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Consistency</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoinmeasure-beta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInMeasure_beta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.6 MD consistency from explicit continuity and convergence inputs.</p>
+<p>The assumptions are convergence of the unrestricted estimator and the weight matrix plus continuity
+of the MD map at the limiting values. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsFiniteMeasure μ] (bhat : Nat → Ω → k → Real) (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real)
+  (R : Matrix k q Real) (c : q → Real) (β : k → Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) μ) →
+      (∀ (n : Nat),
+          MeasureTheory.AEStronglyMeasurable (fun ω =&gt; HansenEconometrics.mdBetaStar (What n ω) R c (bhat n ω)) μ) →
+        (MeasureTheory.TendstoInMeasure μ bhat Filter.atTop fun x =&gt; β) →
+          (MeasureTheory.TendstoInMeasure μ What Filter.atTop fun x =&gt; W) →
+            ContinuousAt (fun p =&gt; HansenEconometrics.mdBetaStar p.snd R c p.fst) { fst := β, snd := W } →
+              Eq (R.transpose.mulVec β) c →
+                MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; HansenEconometrics.mdBetaStar (What n ω) R c (bhat n ω))
+                  Filter.atTop fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2148">HansenEconometrics/Chapter8Asymptotics.lean:2148</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoinmeasure-beta-of-nonsingular">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInMeasure_beta_of_nonsingular</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.6 consistency wrapper with the MD-map continuity and measurability
+side conditions discharged from nonsingularity of the population weight and restriction Gram. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsFiniteMeasure μ] (bhat : Nat → Ω → k → Real) (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real)
+  (R : Matrix k q Real) (c : q → Real) (β : k → Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) μ) →
+      (MeasureTheory.TendstoInMeasure μ bhat Filter.atTop fun x =&gt; β) →
+        (MeasureTheory.TendstoInMeasure μ What Filter.atTop fun x =&gt; W) →
+          IsUnit W.det →
+            IsUnit
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R).det →
+              Eq (R.transpose.mulVec β) c →
+                MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; HansenEconometrics.mdBetaStar (What n ω) R c (bhat n ω))
+                  Filter.atTop fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2177">HansenEconometrics/Chapter8Asymptotics.lean:2177</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoinmeasure-beta-of-consistency">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInMeasure_beta_of_consistency</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.6 from the stable minimum-distance consistency interface. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsFiniteMeasure μ] (bhat : Nat → Ω → k → Real) (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real)
+  (R : Matrix k q Real) (c : q → Real) (β : k → Real),
+  HansenEconometrics.MinimumDistanceConsistencyConditions μ bhat What W R c β →
+    MeasureTheory.TendstoInMeasure μ (fun n ω =&gt; HansenEconometrics.mdBetaStar (What n ω) R c (bhat n ω)) Filter.atTop
+      fun x =&gt; β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.MinimumDistanceConsistencyConditions</code></li><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2197">HansenEconometrics/Chapter8Asymptotics.lean:2197</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-restrict">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_restrict</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The closed-form minimum-distance estimator satisfies the imposed linear restriction. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (bhat : k → Real)
+  [inst_4 : Invertible W]
+  [inst_5 :
+    Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (inst_4.invOf W)) R)],
+  Eq (R.transpose.mulVec (HansenEconometrics.mdBeta W R c bhat)) c</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L36">HansenEconometrics/Chapter8Asymptotics.lean:36</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-minimumdistanceconsistencyconditions-of-weight-posdef">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.minimumDistanceConsistencyConditions_of_weight_posDef</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Positive-definite limiting weights and full-column-rank restrictions construct the stable
+minimum-distance consistency interface. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (bhat : Nat → Ω → k → Real) (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real) (R : Matrix k q Real)
+  (c : q → Real) (β : k → Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) μ) →
+      (MeasureTheory.TendstoInMeasure μ bhat Filter.atTop fun x =&gt; β) →
+        (MeasureTheory.TendstoInMeasure μ What Filter.atTop fun x =&gt; W) →
+          W.PosDef →
+            Function.Injective R.mulVec →
+              Eq (R.transpose.mulVec β) c → HansenEconometrics.MinimumDistanceConsistencyConditions μ bhat What W R c β</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.MinimumDistanceConsistencyConditions</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2065">HansenEconometrics/Chapter8Asymptotics.lean:2065</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-eq-mdbetastar">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_eq_mdBetaStar</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>On nonsingular inputs, the totalized Star MD estimator agrees with the base estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (bhat : k → Real)
+  [inst_4 : Invertible W]
+  [inst_5 :
+    Invertible
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (inst_4.invOf W)) R)],
+  Eq (HansenEconometrics.mdBeta W R c bhat) (HansenEconometrics.mdBetaStar W R c bhat)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdBeta</code></li><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L53">HansenEconometrics/Chapter8Asymptotics.lean:53</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-7">
+<summary><span>Theorem 8.7</span><span class="result-count">6 of 31 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Asymptotic Normality</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.7 current-assumption MD asymptotic-normality/Slutsky wrapper. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap W R).mulVec (T n ω)) Filter.atTop Z
+      (fun x =&gt; μ) ν →
+    (MeasureTheory.TendstoInMeasure μ
+        (instHSub.hSub (HansenEconometrics.mdScaledError root bhat What R c β) fun n ω =&gt;
+          (HansenEconometrics.mdLinearMap W R).mulVec (T n ω))
+        Filter.atTop fun x =&gt; 0) →
+      (∀ (n : Nat), AEMeasurable (HansenEconometrics.mdScaledError root bhat What R c β n) μ) →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.mdScaledError root bhat What R c β) Filter.atTop Z
+          (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdLinearMap</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3140">HansenEconometrics/Chapter8Asymptotics.lean:3140</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-eq-hansen-expanded">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdAsymptoticVariance_eq_hansen_expanded</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.7, equation (8.24): the compact MD sandwich variance expands to
+the four-term textbook formula when the weight matrix is symmetric. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (V : Matrix k k Real),
+  Eq W.transpose W →
+    Eq (HansenEconometrics.mdAsymptoticVariance W R V)
+      (instHAdd.hAdd
+        (instHSub.hSub
+          (instHSub.hSub V
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv W) R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R)))
+                R.transpose)
+              V))
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul V R)
+                (Matrix.inv.inv
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R)))
+              R.transpose)
+            (Matrix.inv.inv W)))
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv W) R)
+                      (Matrix.inv.inv
+                        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R)))
+                    R.transpose)
+                  V)
+                R)
+              (Matrix.inv.inv
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R)))
+            R.transpose)
+          (Matrix.inv.inv W)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L294">HansenEconometrics/Chapter8Asymptotics.lean:294</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.7 with the fixed-linear Gaussian limit and scaled-error measurability
+discharged from explicit inputs. The stable-interface version
+<code>mdBeta_tendstoInDistribution_multivariateGaussian_of_linearization</code> packages the same
+linearization capability as <code>AsymptoticallyLinearEstimator</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (S : Matrix k k Real) (T : Nat → Ω → k → Real),
+  S.PosSemidef →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+      (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) μ) →
+        MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+            (ProbabilityTheory.multivariateGaussian 0 S) →
+          (MeasureTheory.TendstoInMeasure μ
+              (instHSub.hSub (HansenEconometrics.mdScaledError root bhat What R c β) fun n ω =&gt;
+                (HansenEconometrics.mdLinearMap W R).mulVec (T n ω))
+              Filter.atTop fun x =&gt; 0) →
+            MeasureTheory.TendstoInDistribution (HansenEconometrics.mdScaledError root bhat What R c β) Filter.atTop
+              (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+              (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdLinearMap</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3180">HansenEconometrics/Chapter8Asymptotics.lean:3180</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-tendstoindistribution-gaussian-of-measurable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_tendstoInDistribution_gaussian_of_measurable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.7 with scaled-error measurability discharged from measurability of the
+unrestricted estimator and weight process. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) μ) →
+      MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap W R).mulVec (T n ω)) Filter.atTop
+          Z (fun x =&gt; μ) ν →
+        (MeasureTheory.TendstoInMeasure μ
+            (instHSub.hSub (HansenEconometrics.mdScaledError root bhat What R c β) fun n ω =&gt;
+              (HansenEconometrics.mdLinearMap W R).mulVec (T n ω))
+            Filter.atTop fun x =&gt; 0) →
+          MeasureTheory.TendstoInDistribution (HansenEconometrics.mdScaledError root bhat What R c β) Filter.atTop Z
+            (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdLinearMap</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3159">HansenEconometrics/Chapter8Asymptotics.lean:3159</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-fixedweight-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_fixedWeight_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.7 in the fixed-weight MD case: the exact fixed-weight linearization
+discharges the remainder side condition. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real) (W : Matrix k k Real)
+  (R : Matrix k q Real) (c : q → Real) (β : k → Real) (S : Matrix k k Real),
+  S.PosSemidef →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+      Eq (R.transpose.mulVec β) c →
+        MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))
+            Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ) (ProbabilityTheory.multivariateGaussian 0 S) →
+          MeasureTheory.TendstoInDistribution (HansenEconometrics.mdScaledError root bhat (fun x x_1 =&gt; W) R c β)
+            Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+            (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3238">HansenEconometrics/Chapter8Asymptotics.lean:3238</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbeta-randomweight-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBeta_randomWeight_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.7 random-weight MD case. Assumption 8.2 supplies <code>What →ₚ W</code>;
+continuity of the MD linear map and the random matrix Slutsky wrapper discharge the
+linearization step. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (S : Matrix k k Real),
+  S.PosSemidef →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) μ) →
+      (MeasureTheory.TendstoInMeasure μ What Filter.atTop fun x =&gt; W) →
+        IsUnit W.det →
+          IsUnit
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R).det →
+            Eq (R.transpose.mulVec β) c →
+              MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))
+                  Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ) (ProbabilityTheory.multivariateGaussian 0 S) →
+                MeasureTheory.TendstoInDistribution (HansenEconometrics.mdScaledError root bhat What R c β) Filter.atTop
+                  (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+                  (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3259">HansenEconometrics/Chapter8Asymptotics.lean:3259</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-8">
+<summary><span>Theorem 8.8</span><span class="result-count">6 of 14 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Asymptotic Distribution of CLS Estimator</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.8 CLS asymptotic-normality wrapper as the MD specialization. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (Qhat : Nat → Ω → Matrix k k Real) (Q : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap Q R).mulVec (T n ω)) Filter.atTop Z
+      (fun x =&gt; μ) ν →
+    (MeasureTheory.TendstoInMeasure μ
+        (instHSub.hSub (HansenEconometrics.clsMDScaledError root bhat Qhat R c β) fun n ω =&gt;
+          (HansenEconometrics.mdLinearMap Q R).mulVec (T n ω))
+        Filter.atTop fun x =&gt; 0) →
+      (∀ (n : Nat), AEMeasurable (HansenEconometrics.clsMDScaledError root bhat Qhat R c β n) μ) →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.clsMDScaledError root bhat Qhat R c β) Filter.atTop Z
+          (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3306">HansenEconometrics/Chapter8Asymptotics.lean:3306</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsasymptoticvariance-eq-hansen-expanded">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsAsymptoticVariance_eq_hansen_expanded</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.8: the CLS asymptotic variance is the Theorem 8.7 four-term
+minimum-distance formula with the population Gram weight. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (Q : Matrix k k Real) (R : Matrix k q Real) (V : Matrix k k Real),
+  Eq Q.transpose Q →
+    Eq (HansenEconometrics.clsAsymptoticVariance Q R V)
+      (instHAdd.hAdd
+        (instHSub.hSub
+          (instHSub.hSub V
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv Q) R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv Q)) R)))
+                R.transpose)
+              V))
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul V R)
+                (Matrix.inv.inv
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv Q)) R)))
+              R.transpose)
+            (Matrix.inv.inv Q)))
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv Q) R)
+                      (Matrix.inv.inv
+                        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv Q)) R)))
+                    R.transpose)
+                  V)
+                R)
+              (Matrix.inv.inv
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv Q)) R)))
+            R.transpose)
+          (Matrix.inv.inv Q)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.clsAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L335">HansenEconometrics/Chapter8Asymptotics.lean:335</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.8 with the fixed-linear Gaussian limit and scaled-error measurability
+discharged from explicit inputs. The stable-interface version
+<code>clsBeta_tendstoInDistribution_multivariateGaussian_of_linearization</code> packages the same
+CLS-as-MD linearization capability as <code>AsymptoticallyLinearEstimator</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (Qhat : Nat → Ω → Matrix k k Real) (Q : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (S : Matrix k k Real) (T : Nat → Ω → k → Real),
+  S.PosSemidef →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+      (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (Qhat n) μ) →
+        MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+            (ProbabilityTheory.multivariateGaussian 0 S) →
+          (MeasureTheory.TendstoInMeasure μ
+              (instHSub.hSub (HansenEconometrics.clsMDScaledError root bhat Qhat R c β) fun n ω =&gt;
+                (HansenEconometrics.mdLinearMap Q R).mulVec (T n ω))
+              Filter.atTop fun x =&gt; 0) →
+            MeasureTheory.TendstoInDistribution (HansenEconometrics.clsMDScaledError root bhat Qhat R c β) Filter.atTop
+              (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+              (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3344">HansenEconometrics/Chapter8Asymptotics.lean:3344</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-gaussian-of-measurable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_tendstoInDistribution_gaussian_of_measurable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.8 with scaled CLS error measurability discharged from estimator and
+sample-Gram measurability. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (Qhat : Nat → Ω → Matrix k k Real) (Q : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (Qhat n) μ) →
+      MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap Q R).mulVec (T n ω)) Filter.atTop
+          Z (fun x =&gt; μ) ν →
+        (MeasureTheory.TendstoInMeasure μ
+            (instHSub.hSub (HansenEconometrics.clsMDScaledError root bhat Qhat R c β) fun n ω =&gt;
+              (HansenEconometrics.mdLinearMap Q R).mulVec (T n ω))
+            Filter.atTop fun x =&gt; 0) →
+          MeasureTheory.TendstoInDistribution (HansenEconometrics.clsMDScaledError root bhat Qhat R c β) Filter.atTop Z
+            (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3323">HansenEconometrics/Chapter8Asymptotics.lean:3323</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-randomweight-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_randomWeight_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.8 random-weight CLS-as-MD case. Convergence of the sample Gram weight
+discharges the CLS-as-MD linearization through the random-weight MD theorem. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (Qhat : Nat → Ω → Matrix k k Real) (Q : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (S : Matrix k k Real),
+  S.PosSemidef →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (Qhat n) μ) →
+      (MeasureTheory.TendstoInMeasure μ Qhat Filter.atTop fun x =&gt; Q) →
+        IsUnit Q.det →
+          IsUnit
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv Q)) R).det →
+            Eq (R.transpose.mulVec β) c →
+              MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))
+                  Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ) (ProbabilityTheory.multivariateGaussian 0 S) →
+                MeasureTheory.TendstoInDistribution (HansenEconometrics.clsMDScaledError root bhat Qhat R c β)
+                  Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+                  (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.clsMDScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3403">HansenEconometrics/Chapter8Asymptotics.lean:3403</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbeta-tendstoindistribution-multivariategaussian-of-linearization">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBeta_tendstoInDistribution_multivariateGaussian_of_linearization</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.8 from the stable asymptotically linear estimator interface. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (Qhat : Nat → Ω → Matrix k k Real) (Q : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (β : k → Real)
+  (S : Matrix k k Real) (T : Nat → Ω → k → Real),
+  S.PosSemidef →
+    HansenEconometrics.AsymptoticallyLinearEstimator μ (HansenEconometrics.clsMDScaledError root bhat Qhat R c β)
+        (HansenEconometrics.mdLinearMap Q R) T →
+      MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 S) →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.clsMDScaledError root bhat Qhat R c β) Filter.atTop
+          (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.AsymptoticallyLinearEstimator</code></li><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.clsMDScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3369">HansenEconometrics/Chapter8Asymptotics.lean:3369</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-8-7">
+<summary><span>Section 8.7</span><span class="result-count">6 of 13 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Variance Estimation and Standard Errors</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-covariancestderrorscale-aemeasurable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covarianceStdErrorScale_aemeasurable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>A fixed-linear-combination standard-error scale is a.e. measurable whenever the covariance
+estimator is. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] {Ω : Type u_3} [inst_1 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (h : k → Real) {Vhat : Ω → Matrix k k Real},
+  MeasureTheory.AEStronglyMeasurable Vhat μ →
+    AEMeasurable (fun ω =&gt; HansenEconometrics.covarianceStdErrorScale h (Vhat ω)) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.covarianceStdErrorScale</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L486">HansenEconometrics/Chapter8Asymptotics.lean:486</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-aestronglymeasurable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdAsymptoticVariance_aestronglyMeasurable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The MD asymptotic-variance plug-in map is a.e. strongly measurable whenever its weight and
+unrestricted covariance inputs are. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (Wseq Vseq : Ω → Matrix k k Real) (R : Matrix k q Real),
+  MeasureTheory.AEStronglyMeasurable Wseq μ →
+    MeasureTheory.AEStronglyMeasurable Vseq μ →
+      MeasureTheory.AEStronglyMeasurable (fun ω =&gt; HansenEconometrics.mdAsymptoticVariance (Wseq ω) R (Vseq ω)) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L586">HansenEconometrics/Chapter8Asymptotics.lean:586</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdcovarianceestimatorconsistent-of-consistency">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdCovarianceEstimatorConsistent_of_consistency</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Stable-interface constructor for consistency of the MD asymptotic-variance plug-in estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsFiniteMeasure μ] {What Vhat : Nat → Ω → Matrix k k Real} {W V : Matrix k k Real}
+  (R : Matrix k q Real),
+  HansenEconometrics.CovarianceEstimatorConsistent μ What W →
+    HansenEconometrics.CovarianceEstimatorConsistent μ Vhat V →
+      IsUnit W.det →
+        IsUnit
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R).det →
+          HansenEconometrics.CovarianceEstimatorConsistent μ
+            (fun n ω =&gt; HansenEconometrics.mdAsymptoticVariance (What n ω) R (Vhat n ω))
+            (HansenEconometrics.mdAsymptoticVariance W R V)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.CovarianceEstimatorConsistent</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L661">HansenEconometrics/Chapter8Asymptotics.lean:661</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clscovarianceestimatorconsistent-of-consistency">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsCovarianceEstimatorConsistent_of_consistency</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>CLS covariance-estimator consistency is the MD plug-in consistency theorem with the Gram
+matrix as the weight. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsFiniteMeasure μ] {Qhat Vhat : Nat → Ω → Matrix k k Real} {Q V : Matrix k k Real}
+  (R : Matrix k q Real),
+  HansenEconometrics.CovarianceEstimatorConsistent μ Qhat Q →
+    HansenEconometrics.CovarianceEstimatorConsistent μ Vhat V →
+      IsUnit Q.det →
+        IsUnit
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv Q)) R).det →
+          HansenEconometrics.CovarianceEstimatorConsistent μ
+            (fun n ω =&gt; HansenEconometrics.clsAsymptoticVariance (Qhat n ω) R (Vhat n ω))
+            (HansenEconometrics.clsAsymptoticVariance Q R V)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.CovarianceEstimatorConsistent</code></li><li><code>HansenEconometrics.clsAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L681">HansenEconometrics/Chapter8Asymptotics.lean:681</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-continuousat-of-nonsingular">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdAsymptoticVariance_continuousAt_of_nonsingular</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The MD asymptotic-variance plug-in map is continuous at nonsingular limiting weights whose
+restriction Gram is nonsingular. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (V : Matrix k k Real),
+  IsUnit W.det →
+    IsUnit
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R).det →
+      ContinuousAt (fun p =&gt; HansenEconometrics.mdAsymptoticVariance p.fst R p.snd) { fst := W, snd := V }</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L607">HansenEconometrics/Chapter8Asymptotics.lean:607</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-feasiblestandarderrorconsistent-of-tendstoinmeasure">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.feasibleStandardErrorConsistent_of_tendstoInMeasure</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Constructor for the feasible-standard-error interface from explicit measurability and
+convergence fields. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (sehat : Nat → Ω → Real) (se : Real),
+  (∀ (n : Nat), AEMeasurable (sehat n) μ) →
+    (MeasureTheory.TendstoInMeasure μ sehat Filter.atTop fun x =&gt; se) →
+      HansenEconometrics.FeasibleStandardErrorConsistent μ sehat se</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.FeasibleStandardErrorConsistent</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L526">HansenEconometrics/Chapter8Asymptotics.lean:526</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-9">
+<summary><span>Theorem 8.9</span><span class="result-count">6 of 24 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Efﬁcient Minimum Distance Estimator</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-sub-emd-factor">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdAsymptoticVariance_sub_emd_factor</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.9, equation (8.28): concrete factorization of the arbitrary-weight
+minimum-distance variance gap relative to the efficient-MD variance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (V : Matrix k k Real),
+  Eq W.transpose W →
+    Eq V.transpose V →
+      IsUnit
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).det →
+        Eq
+          (instHSub.hSub (HansenEconometrics.mdAsymptoticVariance W R V) (HansenEconometrics.emdAsymptoticVariance R V))
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (instHSub.hSub
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv W) R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R)))
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul V R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R))))
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R))
+            (instHSub.hSub
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv W) R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R)))
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul V R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R)))).transpose)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3907">HansenEconometrics/Chapter8Asymptotics.lean:3907</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdasymptoticvariance-le-md-concrete">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdAsymptoticVariance_le_md_concrete</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.9, equation (8.28): efficient MD weakly lowers asymptotic variance
+relative to any symmetric minimum-distance weight at this abstraction layer. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (V : Matrix k k Real),
+  Eq W.transpose W →
+    Eq V.transpose V →
+      IsUnit
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).det →
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).PosSemidef →
+          (instHSub.hSub (HansenEconometrics.mdAsymptoticVariance W R V)
+              (HansenEconometrics.emdAsymptoticVariance R V)).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3961">HansenEconometrics/Chapter8Asymptotics.lean:3961</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdbeta-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdBeta_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.9 efficient-MD distribution wrapper. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → k → Real) (R : Matrix k q Real)
+  (c : q → Real) (V : Matrix k k Real) (β : k → Real) (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap (Matrix.inv.inv V) R).mulVec (T n ω))
+      Filter.atTop Z (fun x =&gt; μ) ν →
+    (MeasureTheory.TendstoInMeasure μ
+        (instHSub.hSub (HansenEconometrics.emdScaledError root bhat R c V β) fun n ω =&gt;
+          (HansenEconometrics.mdLinearMap (Matrix.inv.inv V) R).mulVec (T n ω))
+        Filter.atTop fun x =&gt; 0) →
+      (∀ (n : Nat), AEMeasurable (HansenEconometrics.emdScaledError root bhat R c V β n) μ) →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.emdScaledError root bhat R c V β) Filter.atTop Z
+          (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3632">HansenEconometrics/Chapter8Asymptotics.lean:3632</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-efficientweight-eq-emd">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdAsymptoticVariance_efficientWeight_eq_emd</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.9: the MD asymptotic variance at the efficient weight <code>V⁻¹</code>
+equals the efficient-MD asymptotic variance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (R : Matrix k q Real) (V : Matrix k k Real),
+  IsUnit V.det →
+    Eq V.transpose V →
+      IsUnit
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).det →
+        Eq (HansenEconometrics.mdAsymptoticVariance (Matrix.inv.inv V) R V)
+          (HansenEconometrics.emdAsymptoticVariance R V)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3717">HansenEconometrics/Chapter8Asymptotics.lean:3717</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdbeta-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdBeta_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.9 efficient-MD distribution with the final covariance written as
+<code>emdAsymptoticVariance</code>, from explicit linearization inputs. The stable-interface version
+<code>emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization</code> packages the same
+EMD linearization capability as <code>AsymptoticallyLinearEstimator</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real) (R : Matrix k q Real)
+  (c : q → Real) (V : Matrix k k Real) (β : k → Real) (T : Nat → Ω → k → Real),
+  V.PosSemidef →
+    IsUnit V.det →
+      Eq V.transpose V →
+        IsUnit
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).det →
+          (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+            MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+                (ProbabilityTheory.multivariateGaussian 0 V) →
+              (MeasureTheory.TendstoInMeasure μ
+                  (instHSub.hSub (HansenEconometrics.emdScaledError root bhat R c V β) fun n ω =&gt;
+                    (HansenEconometrics.mdLinearMap (Matrix.inv.inv V) R).mulVec (T n ω))
+                  Filter.atTop fun x =&gt; 0) →
+                MeasureTheory.TendstoInDistribution (HansenEconometrics.emdScaledError root bhat R c V β) Filter.atTop
+                  (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+                  (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.emdAsymptoticVariance R V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.emdScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3761">HansenEconometrics/Chapter8Asymptotics.lean:3761</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdbeta-tendstoindistribution-gaussian-of-measurable">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdBeta_tendstoInDistribution_gaussian_of_measurable</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.9 efficient-MD distribution wrapper with scaled-error measurability
+discharged from unrestricted-estimator measurability. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → k → Real) (R : Matrix k q Real)
+  (c : q → Real) (V : Matrix k k Real) (β : k → Real) (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (bhat n) μ) →
+    MeasureTheory.TendstoInDistribution
+        (fun n ω =&gt; (HansenEconometrics.mdLinearMap (Matrix.inv.inv V) R).mulVec (T n ω)) Filter.atTop Z (fun x =&gt; μ)
+        ν →
+      (MeasureTheory.TendstoInMeasure μ
+          (instHSub.hSub (HansenEconometrics.emdScaledError root bhat R c V β) fun n ω =&gt;
+            (HansenEconometrics.mdLinearMap (Matrix.inv.inv V) R).mulVec (T n ω))
+          Filter.atTop fun x =&gt; 0) →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.emdScaledError root bhat R c V β) Filter.atTop Z
+          (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3650">HansenEconometrics/Chapter8Asymptotics.lean:3650</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-8-9">
+<summary><span>Section 8.9</span><span class="result-count">6 of 9 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Exclusion Restriction Revisited</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarschurvariance-heteroskedasticexample">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarSchurVariance_heteroskedasticExample</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.9 heteroskedastic example: <code>Q₁₁·₂ = 3/4</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Eq (HansenEconometrics.scalarSchurVariance 1 (1 / 2) (1 / 2) 1) (3 / 4)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarSchurVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L372">HansenEconometrics/Chapter8Asymptotics.lean:372</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarlongregressionasymptoticvariance-heteroskedasticexample">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarLongRegressionAsymptoticVariance_heteroskedasticExample</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.32) in the Section 8.9 heteroskedastic example. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Eq (HansenEconometrics.scalarLongRegressionAsymptoticVariance 1 (1 / 2) (1 / 2) 1 1 (7 / 8) (7 / 8) 1) (2 / 3)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarLongRegressionAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L377">HansenEconometrics/Chapter8Asymptotics.lean:377</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarshortregressionasymptoticvariance-heteroskedasticexample">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarShortRegressionAsymptoticVariance_heteroskedasticExample</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.33) in the Section 8.9 heteroskedastic example. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Eq (HansenEconometrics.scalarShortRegressionAsymptoticVariance 1 1) 1</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarShortRegressionAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L383">HansenEconometrics/Chapter8Asymptotics.lean:383</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarexclusionrestriction-heteroskedasticexample-variance-order">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarExclusionRestriction_heteroskedasticExample_variance_order</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.9 heteroskedastic example: efficient MD has the smallest variance, while
+the short-regression CLS variance exceeds the unrestricted long-regression variance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">And
+  (Real.instLT.lt (HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance (2 / 3) (1 / 6) (1 / 6) (2 / 3))
+    (HansenEconometrics.scalarLongRegressionAsymptoticVariance 1 (1 / 2) (1 / 2) 1 1 (7 / 8) (7 / 8) 1))
+  (Real.instLT.lt (HansenEconometrics.scalarLongRegressionAsymptoticVariance 1 (1 / 2) (1 / 2) 1 1 (7 / 8) (7 / 8) 1)
+    (HansenEconometrics.scalarShortRegressionAsymptoticVariance 1 1))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance</code></li><li><code>HansenEconometrics.scalarLongRegressionAsymptoticVariance</code></li><li><code>HansenEconometrics.scalarShortRegressionAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L395">HansenEconometrics/Chapter8Asymptotics.lean:395</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarefficientrestrictedasymptoticvariance-heteroskedasticexample">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance_heteroskedasticExample</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.34) in the Section 8.9 heteroskedastic example. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Eq (HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance (2 / 3) (1 / 6) (1 / 6) (2 / 3)) (5 / 8)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.scalarEfficientRestrictedAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L388">HansenEconometrics/Chapter8Asymptotics.lean:388</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarschurvariance">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.scalarSchurVariance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Scalar Schur-complement variance <code>Q₁₁·₂</code> used in Hansen Section 8.9. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">Real → Real → Real → Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L347">HansenEconometrics/Chapter8Asymptotics.lean:347</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-8-10">
+<summary><span>Section 8.10</span><span class="result-count">6 of 20 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Variance and Standard Error Estimation</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdcovarianceestimator-eq-hansen">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdCovarianceEstimator_eq_hansen</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.35) written in expanded matrix form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq q] (R : Matrix k q Real)
+  (Vhat : Matrix k k Real),
+  Eq (HansenEconometrics.emdCovarianceEstimator R Vhat)
+    (instHSub.hSub Vhat
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Vhat R)
+            (Matrix.inv.inv
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose Vhat) R)))
+          R.transpose)
+        Vhat))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.emdCovarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L708">HansenEconometrics/Chapter8Asymptotics.lean:708</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdstderror">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.emdStdError</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.36) specialized to the efficient-MD plug-in covariance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} →
+  {q : Type u_2} →
+    [Fintype k] → [Fintype q] → [DecidableEq q] → Real → (k → Real) → Matrix k q Real → Matrix k k Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L715">HansenEconometrics/Chapter8Asymptotics.lean:715</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-covariancestderror">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.covarianceStdError</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.36): finite-sample standard error for <code>h'β̂</code>, written as the
+asymptotic covariance scale divided by the square-root normalization. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} → [Fintype k] → Real → (k → Real) → Matrix k k Real → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L454">HansenEconometrics/Chapter8Asymptotics.lean:454</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdcovarianceestimator">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.emdCovarianceEstimator</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.35): efficient-MD plug-in covariance estimator from an unrestricted
+covariance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} →
+  {q : Type u_2} → [Fintype k] → [Fintype q] → [DecidableEq q] → Matrix k q Real → Matrix k k Real → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L702">HansenEconometrics/Chapter8Asymptotics.lean:702</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdstderror-eq-hansen">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdStdError_eq_hansen</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Expanded form of the efficient-MD standard error for <code>h'β</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq q] (root : Real)
+  (h : k → Real) (R : Matrix k q Real) (Vhat : Matrix k k Real),
+  Eq (HansenEconometrics.emdStdError root h R Vhat)
+    (instHDiv.hDiv (dotProduct h ((HansenEconometrics.emdCovarianceEstimator R Vhat).mulVec h)).sqrt root)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdCovarianceEstimator</code></li><li><code>HansenEconometrics.emdStdError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L721">HansenEconometrics/Chapter8Asymptotics.lean:721</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-covariancestderror-eq-inv-mul-scale">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covarianceStdError_eq_inv_mul_scale</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The finite-sample standard error in (8.36) is the same as <code>root⁻¹</code> times the
+asymptotic standard-error scale. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] (root : Real) (h : k → Real) (V : Matrix k k Real),
+  Eq (HansenEconometrics.covarianceStdError root h V)
+    (instHMul.hMul (Real.instInv.inv root) (HansenEconometrics.covarianceStdErrorScale h V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.covarianceStdError</code></li><li><code>HansenEconometrics.covarianceStdErrorScale</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L466">HansenEconometrics/Chapter8Asymptotics.lean:466</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-8-11">
+<summary><span>Section 8.11</span><span class="result-count">6 of 8 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Hausman Equality</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-emddifferenceasymptoticvariance-eq-gap">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdDifferenceAsymptoticVariance_eq_gap</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.11, equation (8.37): the asymptotic variance of the Hausman difference
+equals the unrestricted asymptotic variance minus the efficient restricted asymptotic variance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq q] (R : Matrix k q Real)
+  (V : Matrix k k Real),
+  Eq V.transpose V →
+    IsUnit
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).det →
+      Eq (HansenEconometrics.emdDifferenceAsymptoticVariance R V)
+        (instHSub.hSub V (HansenEconometrics.emdAsymptoticVariance R V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.emdDifferenceAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4035">HansenEconometrics/Chapter8Asymptotics.lean:4035</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emddifference-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdDifference_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.11: Gaussian limit for the Hausman difference between the unrestricted
+estimator and the efficient minimum-distance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real) (R : Matrix k q Real)
+  (c : q → Real) (V : Matrix k k Real) (β : k → Real),
+  V.PosSemidef →
+    IsUnit V.det →
+      Eq (R.transpose.mulVec β) c →
+        MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))
+            Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ) (ProbabilityTheory.multivariateGaussian 0 V) →
+          MeasureTheory.TendstoInDistribution (HansenEconometrics.emdDifferenceScaledError root bhat R c V) Filter.atTop
+            (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+            (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.emdDifferenceAsymptoticVariance R V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdDifferenceAsymptoticVariance</code></li><li><code>HansenEconometrics.emdDifferenceScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4092">HansenEconometrics/Chapter8Asymptotics.lean:4092</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emddifference-tendstoindistribution-multivariategaussian-gap">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdDifference_tendstoInDistribution_multivariateGaussian_gap</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.11: the Hausman-difference Gaussian covariance can be written as
+<code>V - V*</code>, the difference between the unrestricted and efficient restricted asymptotic variances. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real) (R : Matrix k q Real)
+  (c : q → Real) (V : Matrix k k Real) (β : k → Real),
+  V.PosSemidef →
+    IsUnit V.det →
+      Eq V.transpose V →
+        IsUnit
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).det →
+          Eq (R.transpose.mulVec β) c →
+            MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))
+                Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ) (ProbabilityTheory.multivariateGaussian 0 V) →
+              MeasureTheory.TendstoInDistribution (HansenEconometrics.emdDifferenceScaledError root bhat R c V)
+                Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+                (ProbabilityTheory.multivariateGaussian 0
+                  (instHSub.hSub V (HansenEconometrics.emdAsymptoticVariance R V)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li><li><code>HansenEconometrics.emdDifferenceScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4119">HansenEconometrics/Chapter8Asymptotics.lean:4119</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emddifferencescalederror-eq-linearmap">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdDifferenceScaledError_eq_linearMap</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The scaled Hausman difference is exactly the fixed Hausman linear map applied to the
+unrestricted scaled error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} (root : Nat → Real) (bhat : Nat → Ω → k → Real) (R : Matrix k q Real)
+  (c : q → Real) (V : Matrix k k Real) (β : k → Real),
+  IsUnit V.det →
+    Eq (R.transpose.mulVec β) c →
+      Eq (HansenEconometrics.emdDifferenceScaledError root bhat R c V) fun n ω =&gt;
+        (HansenEconometrics.emdDifferenceLinearMap R V).mulVec (instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdDifferenceLinearMap</code></li><li><code>HansenEconometrics.emdDifferenceScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4079">HansenEconometrics/Chapter8Asymptotics.lean:4079</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdbetastar-difference-eq-linearmap">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdBetaStar_difference_eq_linearMap</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Efficient-MD pointwise Hausman-difference algebra under the maintained restriction. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (R : Matrix k q Real) (c : q → Real) (V : Matrix k k Real) (β bhat : k → Real),
+  IsUnit V.det →
+    Eq (R.transpose.mulVec β) c →
+      Eq (instHSub.hSub bhat (HansenEconometrics.emdBetaStar R c V bhat))
+        ((HansenEconometrics.emdDifferenceLinearMap R V).mulVec (instHSub.hSub bhat β))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.emdBetaStar</code></li><li><code>HansenEconometrics.emdDifferenceLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4059">HansenEconometrics/Chapter8Asymptotics.lean:4059</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emddifferencelinearmap">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.emdDifferenceLinearMap</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Linear map for the Hausman difference between the unrestricted estimator and the efficient
+minimum-distance estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} →
+  {q : Type u_2} → [Fintype k] → [Fintype q] → [DecidableEq q] → Matrix k q Real → Matrix k k Real → Matrix k k Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4003">HansenEconometrics/Chapter8Asymptotics.lean:4003</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-8-13">
+<summary><span>Section 8.13</span><span class="result-count">6 of 19 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Misspecification</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdmisspecified-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdMisspecified_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.13, equation (8.40): misspecified MD has the same centered Gaussian
+variance when centered at the sample pseudo-true value. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real)
+  (What : Nat → Ω → Matrix k k Real) (W : Matrix k k Real) (R : Matrix k q Real) (cStar c : q → Real) (β : k → Real)
+  (S : Matrix k k Real),
+  S.PosSemidef →
+    (∀ (n : Nat), MeasureTheory.AEStronglyMeasurable (What n) μ) →
+      (MeasureTheory.TendstoInMeasure μ What Filter.atTop fun x =&gt; W) →
+        IsUnit W.det →
+          IsUnit
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R).det →
+            Eq (R.transpose.mulVec β) cStar →
+              MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) β))
+                  Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ) (ProbabilityTheory.multivariateGaussian 0 S) →
+                MeasureTheory.TendstoInDistribution
+                  (HansenEconometrics.mdMisspecifiedScaledError root bhat What R cStar c β) Filter.atTop
+                  (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+                  (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdMisspecifiedScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3086">HansenEconometrics/Chapter8Asymptotics.lean:3086</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdlocalalternative-fixedweight-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.13, equations (8.41)--(8.43), fixed-weight local-alternative MD
+limit. Under the local restriction <code>root n • (Rᵀ β_n - c) = δ</code>, the centered estimator has
+the usual MD covariance and a fixed local-alternative mean shift. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (bhat : Nat → Ω → k → Real) (W : Matrix k k Real)
+  (R : Matrix k q Real) (c : q → Real) (βseq : Nat → k → Real) (δ : q → Real) (S : Matrix k k Real),
+  S.PosSemidef →
+    HansenEconometrics.LocalAlternativeRestriction root R c βseq δ →
+      MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHSMul.hSMul (root n) (instHSub.hSub (bhat n ω) (βseq n)))
+          Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ) (ProbabilityTheory.multivariateGaussian 0 S) →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.mdLocalAlternativeScaledError root bhat W R c βseq)
+          Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian { ofLp := HansenEconometrics.mdLocalAlternativeBias W R δ }
+            (HansenEconometrics.mdAsymptoticVariance W R S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.LocalAlternativeRestriction</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li><li><code>HansenEconometrics.mdLocalAlternativeBias</code></li><li><code>HansenEconometrics.mdLocalAlternativeScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2830">HansenEconometrics/Chapter8Asymptotics.lean:2830</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdpseudotruevalue">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.mdPseudoTrueValue</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.13, equation (8.38): the pseudo-true MD projection value when the
+population restriction is <code>Rᵀ β = cStar</code>, but the imposed restriction is <code>c</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} →
+  {q : Type u_2} →
+    [Fintype k] →
+      [Fintype q] →
+        [DecidableEq k] →
+          [DecidableEq q] → Matrix k k Real → Matrix k q Real → (q → Real) → (q → Real) → (k → Real) → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2265">HansenEconometrics/Chapter8Asymptotics.lean:2265</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdsamplepseudotruevalue">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.mdSamplePseudoTrueValue</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.13, equation (8.39): the sample pseudo-true value obtained by replacing
+the limiting weight in (8.38) with the sample weight. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} →
+  {q : Type u_2} →
+    [Fintype k] →
+      [Fintype q] →
+        [DecidableEq k] →
+          [DecidableEq q] →
+            {Ω : Type u_3} →
+              (Nat → Ω → Matrix k k Real) → Matrix k q Real → (q → Real) → (q → Real) → (k → Real) → Nat → Ω → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2428">HansenEconometrics/Chapter8Asymptotics.lean:2428</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-localunrestrictedscalederror">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.localUnrestrictedScaledError</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.13, equation (8.42): unrestricted scaled error under a local
+parameter sequence. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} → {Ω : Type u_3} → (Nat → Real) → (Nat → Ω → k → Real) → (Nat → k → Real) → Nat → Ω → k → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2318">HansenEconometrics/Chapter8Asymptotics.lean:2318</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdpseudotruevalue-restrict">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdPseudoTrueValue_restrict</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The pseudo-true value satisfies the imposed restriction when the restriction Gram is
+nonsingular. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (cStar c : q → Real) (β : k → Real),
+  Eq (R.transpose.mulVec β) cStar →
+    IsUnit
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R).det →
+      Eq (R.transpose.mulVec (HansenEconometrics.mdPseudoTrueValue W R cStar c β)) c</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdPseudoTrueValue</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2272">HansenEconometrics/Chapter8Asymptotics.lean:2272</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-8-10">
+<summary><span>Theorem 8.10</span><span class="result-count">6 of 54 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under Assumptions 7.2, 8.2, and 8.3, for ˜β = ˜βmd and ˜β = ˜βcls</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearmdbeta-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearMdBeta_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.10 for nonlinear minimum distance at the stable-interface layer. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (btilde : Nat → Ω → k → Real) (β : k → Real)
+  (W : Matrix k k Real) (Rderiv : Matrix k q Real) (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap W Rderiv).mulVec (T n ω)) Filter.atTop
+      Z (fun x =&gt; μ) ν →
+    HansenEconometrics.ConstrainedEstimatorLinearization μ root btilde β W Rderiv T →
+      MeasureTheory.TendstoInDistribution (HansenEconometrics.constrainedScaledError root btilde β) Filter.atTop Z
+        (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4545">HansenEconometrics/Chapter8Asymptotics.lean:4545</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearclsbeta-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearClsBeta_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.10 for nonlinear constrained least squares at the stable-interface layer.</p>
+<p>The CLS specialization uses the population Gram weight in the linearized MD map, matching the linear
+restriction specialization in Theorem 8.8. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (btilde : Nat → Ω → k → Real) (β : k → Real)
+  (Q : Matrix k k Real) (Rderiv : Matrix k q Real) (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap Q Rderiv).mulVec (T n ω)) Filter.atTop
+      Z (fun x =&gt; μ) ν →
+    HansenEconometrics.ConstrainedEstimatorLinearization μ root btilde β Q Rderiv T →
+      MeasureTheory.TendstoInDistribution (HansenEconometrics.constrainedScaledError root btilde β) Filter.atTop Z
+        (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4594">HansenEconometrics/Chapter8Asymptotics.lean:4594</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearfirstorder-lagrangemultiplier-eq-hansen">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearFirstOrder_lagrangeMultiplier_eq_hansen</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen's solved multiplier formula in the proof of Theorem 8.10. This is the line
+between the linearized constraint (8.53) and the substitution producing (8.54). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (Rhat Rstar : Matrix k q Real) (β bhat btilde : k → Real)
+  (lam : q → Real),
+  Eq (instHSub.hSub bhat btilde)
+      ((Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv W) Rhat).mulVec lam) →
+    Eq (Rstar.transpose.mulVec (instHSub.hSub btilde β)) 0 →
+      IsUnit
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Rstar.transpose (Matrix.inv.inv W)) Rhat).det →
+        Eq lam
+          ((Matrix.inv.inv
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul Rstar.transpose (Matrix.inv.inv W)) Rhat)).mulVec
+            (Rstar.transpose.mulVec (instHSub.hSub bhat β)))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L1562">HansenEconometrics/Chapter8Asymptotics.lean:1562</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearmdbeta-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearMdBeta_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.10 for nonlinear minimum distance with the Gaussian image limit
+derived from the unrestricted estimator CLT. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (btilde : Nat → Ω → k → Real) (β : k → Real)
+  (W : Matrix k k Real) (Rderiv : Matrix k q Real) (T : Nat → Ω → k → Real) (S : Matrix k k Real),
+  S.PosSemidef →
+    MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+        (ProbabilityTheory.multivariateGaussian 0 S) →
+      HansenEconometrics.ConstrainedEstimatorLinearization μ root btilde β W Rderiv T →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.constrainedScaledError root btilde β) Filter.atTop
+          (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.mdAsymptoticVariance W Rderiv S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4560">HansenEconometrics/Chapter8Asymptotics.lean:4560</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearclsbeta-tendstoindistribution-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearClsBeta_tendstoInDistribution_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.10 for nonlinear constrained least squares with the Gaussian image limit
+derived from the unrestricted estimator CLT. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  [inst_5 : MeasureTheory.IsProbabilityMeasure μ] (root : Nat → Real) (btilde : Nat → Ω → k → Real) (β : k → Real)
+  (Q : Matrix k k Real) (Rderiv : Matrix k q Real) (T : Nat → Ω → k → Real) (S : Matrix k k Real),
+  S.PosSemidef →
+    MeasureTheory.TendstoInDistribution T Filter.atTop (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+        (ProbabilityTheory.multivariateGaussian 0 S) →
+      HansenEconometrics.ConstrainedEstimatorLinearization μ root btilde β Q Rderiv T →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.constrainedScaledError root btilde β) Filter.atTop
+          (fun z =&gt; z.ofLp) (fun x =&gt; μ)
+          (ProbabilityTheory.multivariateGaussian 0 (HansenEconometrics.clsAsymptoticVariance Q Rderiv S))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.clsAsymptoticVariance</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4609">HansenEconometrics/Chapter8Asymptotics.lean:4609</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonlinearconstrainedestimator-tendstoindistribution-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonlinearConstrainedEstimator_tendstoInDistribution_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 8.10, interface-level nonlinear constrained-estimator limit.</p>
+<p>The estimator-specific work is isolated in <code>ConstrainedEstimatorLinearization</code>: consistency of the
+constrained optimizer, differentiability of the restriction map, and first-order conditions should
+be used to construct that interface. This theorem performs the stable Slutsky step from the
+linearized representation to the asymptotic distribution. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst_4 : MeasurableSpace Ω] [inst_5 : MeasurableSpace Ω&#x27;]
+  {μ : MeasureTheory.Measure Ω} {ν : MeasureTheory.Measure Ω&#x27;} [inst_6 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_7 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (btilde : Nat → Ω → k → Real) (β : k → Real)
+  (W : Matrix k k Real) (Rderiv : Matrix k q Real) (T : Nat → Ω → k → Real) (Z : Ω&#x27; → k → Real),
+  MeasureTheory.TendstoInDistribution (fun n ω =&gt; (HansenEconometrics.mdLinearMap W Rderiv).mulVec (T n ω)) Filter.atTop
+      Z (fun x =&gt; μ) ν →
+    HansenEconometrics.ConstrainedEstimatorLinearization μ root btilde β W Rderiv T →
+      MeasureTheory.TendstoInDistribution (HansenEconometrics.constrainedScaledError root btilde β) Filter.atTop Z
+        (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ConstrainedEstimatorLinearization</code></li><li><code>HansenEconometrics.constrainedScaledError</code></li><li><code>HansenEconometrics.mdLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L4493">HansenEconometrics/Chapter8Asymptotics.lean:4493</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="section-8-15">
+<summary><span>Section 8.15</span><span class="result-count">6 of 10 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Inequality Restrictions</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeinterior-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonnegativeInterior_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.15 interior case for a scalar nonnegativity restriction: if the
+constraint is asymptotically inactive, the constrained estimator has the same limit as the
+unrestricted estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst : MeasurableSpace Ω] [inst_1 : MeasurableSpace Ω&#x27;] {μ : MeasureTheory.Measure Ω}
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_2 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_3 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → Real) (β : Real)
+  (Z : Ω&#x27; → Real),
+  (∀ (n : Nat), AEMeasurable (HansenEconometrics.nonnegativeConstrainedScalarScaledError root bhat β n) μ) →
+    Real.instLT.lt 0 β →
+      (MeasureTheory.TendstoInMeasure μ bhat Filter.atTop fun x =&gt; β) →
+        MeasureTheory.TendstoInDistribution (HansenEconometrics.scalarScaledError root bhat β) Filter.atTop Z
+            (fun x =&gt; μ) ν →
+          MeasureTheory.TendstoInDistribution (HansenEconometrics.nonnegativeConstrainedScalarScaledError root bhat β)
+            Filter.atTop Z (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.nonnegativeConstrainedScalarScaledError</code></li><li><code>HansenEconometrics.scalarScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2985">HansenEconometrics/Chapter8Asymptotics.lean:2985</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeinterior-asymptoticallyinactiveconstraint">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonnegativeInterior_asymptoticallyInactiveConstraint</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.15 interior case: consistency for a strictly positive parameter makes the
+scalar nonnegativity constraint asymptotically inactive. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  (root : Nat → Real) (bhat : Nat → Ω → Real) (β : Real),
+  (∀ (n : Nat), AEMeasurable (HansenEconometrics.nonnegativeConstrainedScalarScaledError root bhat β n) μ) →
+    Real.instLT.lt 0 β →
+      (MeasureTheory.TendstoInMeasure μ bhat Filter.atTop fun x =&gt; β) →
+        HansenEconometrics.ScalarAsymptoticallyInactiveConstraint μ (HansenEconometrics.scalarScaledError root bhat β)
+          (HansenEconometrics.nonnegativeConstrainedScalarScaledError root bhat β)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.ScalarAsymptoticallyInactiveConstraint</code></li><li><code>HansenEconometrics.nonnegativeConstrainedScalarScaledError</code></li><li><code>HansenEconometrics.scalarScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2951">HansenEconometrics/Chapter8Asymptotics.lean:2951</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeboundaryscalederror-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonnegativeBoundaryScaledError_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Section 8.15 boundary case for a scalar nonnegativity restriction: if the
+unconstrained boundary statistic converges, the constrained statistic converges to the continuous
+image <code>max Z 0</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst : MeasurableSpace Ω] [inst_1 : MeasurableSpace Ω&#x27;] {μ : MeasureTheory.Measure Ω}
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_2 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_3 : MeasureTheory.IsProbabilityMeasure ν] (root : Nat → Real) (bhat : Nat → Ω → Real) (Z : Ω&#x27; → Real),
+  (∀ (n : Nat), Real.instLE.le 0 (root n)) →
+    MeasureTheory.TendstoInDistribution (fun n ω =&gt; instHMul.hMul (root n) (bhat n ω)) Filter.atTop Z (fun x =&gt; μ) ν →
+      MeasureTheory.TendstoInDistribution (HansenEconometrics.nonnegativeBoundaryScaledError root bhat) Filter.atTop
+        (fun ω =&gt; Real.instMax.max (Z ω) 0) (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.nonnegativeBoundaryScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3022">HansenEconometrics/Chapter8Asymptotics.lean:3022</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-nonnegativeboundaryscalederror-eq-max-scaled">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.nonnegativeBoundaryScaledError_eq_max_scaled</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>With a nonnegative scaling sequence, scaling commutes with the one-dimensional
+nonnegativity projection at the boundary. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} (root : Nat → Real) (bhat : Nat → Ω → Real),
+  (∀ (n : Nat), Real.instLE.le 0 (root n)) →
+    Eq (HansenEconometrics.nonnegativeBoundaryScaledError root bhat) fun n ω =&gt;
+      Real.instMax.max (instHMul.hMul (root n) (bhat n ω)) 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.nonnegativeBoundaryScaledError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3009">HansenEconometrics/Chapter8Asymptotics.lean:3009</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarasymptoticallyinactiveconstraint-of-eventuallyeq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarAsymptoticallyInactiveConstraint_of_eventuallyEq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Constructor for the scalar inactive-constraint interface from eventual almost-sure equality
+of the scaled constrained and unrestricted statistics. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} [inst : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsFiniteMeasure μ]
+  (unrestricted constrained : Nat → Ω → Real),
+  (∀ (n : Nat), AEMeasurable (constrained n) μ) →
+    Filter.Eventually (fun n =&gt; (MeasureTheory.ae μ).EventuallyEq (constrained n) (unrestricted n)) Filter.atTop →
+      HansenEconometrics.ScalarAsymptoticallyInactiveConstraint μ unrestricted constrained</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.ScalarAsymptoticallyInactiveConstraint</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2915">HansenEconometrics/Chapter8Asymptotics.lean:2915</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-scalarasymptoticallyinactiveconstraint-tendstoindistribution">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scalarAsymptoticallyInactiveConstraint_tendstoInDistribution</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>If a scalar inequality constraint is asymptotically inactive, the constrained statistic has
+the same distributional limit as the unrestricted statistic. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} {Ω&#x27; : Type u_4} [inst : MeasurableSpace Ω] [inst_1 : MeasurableSpace Ω&#x27;] {μ : MeasureTheory.Measure Ω}
+  {ν : MeasureTheory.Measure Ω&#x27;} [inst_2 : MeasureTheory.IsProbabilityMeasure μ]
+  [inst_3 : MeasureTheory.IsProbabilityMeasure ν] (unrestricted constrained : Nat → Ω → Real) (Z : Ω&#x27; → Real),
+  HansenEconometrics.ScalarAsymptoticallyInactiveConstraint μ unrestricted constrained →
+    MeasureTheory.TendstoInDistribution unrestricted Filter.atTop Z (fun x =&gt; μ) ν →
+      MeasureTheory.TendstoInDistribution constrained Filter.atTop Z (fun x =&gt; μ) ν</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.ScalarAsymptoticallyInactiveConstraint</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L2902">HansenEconometrics/Chapter8Asymptotics.lean:2902</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="exercise-8-10">
+<summary><span>Exercise 8.10</span><span class="result-count">6 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Verify (8.22), (8.23), and that MD with <code>W = QXX</code> equals CLS</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdlagrangemultiplier">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.mdLagrangeMultiplier</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.22), the solved minimum-distance Lagrange multiplier. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{k : Type u_1} →
+  {q : Type u_2} →
+    [Fintype k] →
+      [Fintype q] →
+        [DecidableEq k] →
+          [DecidableEq q] → Real → Matrix k k Real → Matrix k q Real → (q → Real) → (k → Real) → q → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L76">HansenEconometrics/Chapter8Asymptotics.lean:76</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdlagrangemultiplier-eq-hansen-822">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdLagrangeMultiplier_eq_hansen_822</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Displayed formula for Hansen equation (8.22). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (sampleSize : Real) (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real)
+  (bhat : k → Real),
+  Eq (HansenEconometrics.mdLagrangeMultiplier sampleSize W R c bhat)
+    (instHSMul.hSMul sampleSize
+      ((Matrix.inv.inv
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R)).mulVec
+        (instHSub.hSub (R.transpose.mulVec bhat) c)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdLagrangeMultiplier</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L82">HansenEconometrics/Chapter8Asymptotics.lean:82</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbetastar-eq-hansen-823">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBetaStar_eq_hansen_823</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Displayed formula for Hansen equation (8.23). </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (W : Matrix k k Real) (R : Matrix k q Real) (c : q → Real) (bhat : k → Real),
+  Eq (HansenEconometrics.mdBetaStar W R c bhat)
+    (instHSub.hSub bhat
+      ((Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.inv.inv W) R)
+            (Matrix.inv.inv
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose (Matrix.inv.inv W)) R))).mulVec
+        (instHSub.hSub (R.transpose.mulVec bhat) c)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdBetaStar</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L89">HansenEconometrics/Chapter8Asymptotics.lean:89</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-samplegram-nonsinginv-eq-card-smul-invof">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.sampleGram_nonsingInv_eq_card_smul_invOf</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>On nonsingular designs, the inverse of the sample Gram is the sample size times the
+typeclass inverse of the unnormalized Gram. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] {n : Type u_3} [inst_2 : Fintype n] (X : Matrix n k Real)
+  [inst_3 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (Matrix.inv.inv (HansenEconometrics.sampleGram X))
+    (instHSMul.hSMul (Fintype.card n).cast
+      (inst_3.invOf (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.sampleGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L96">HansenEconometrics/Chapter8Asymptotics.lean:96</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdbetastar-samplegram-olsbetastar-eq-clsbetastar">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdBetaStar_sampleGram_olsBetaStar_eq_clsBetaStar</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Exercise 8.10 bridge: MD with the sample-Gram weight is the Star CLS estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {n : Type u_3} [inst_4 : Fintype n] (X : Matrix n k Real) (y : n → Real)
+  (R : Matrix k q Real) (c : q → Real),
+  Eq (HansenEconometrics.mdBetaStar (HansenEconometrics.sampleGram X) R c (HansenEconometrics.olsBetaStar X y))
+    (HansenEconometrics.clsBetaStar X y R c)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (4)</summary><ul><li><code>HansenEconometrics.clsBetaStar</code></li><li><code>HansenEconometrics.mdBetaStar</code></li><li><code>HansenEconometrics.olsBetaStar</code></li><li><code>HansenEconometrics.sampleGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L104">HansenEconometrics/Chapter8Asymptotics.lean:104</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-clsbetastar-eq-clsbeta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.clsBetaStar_eq_clsBeta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Exercise 8.10 bridge: under the usual nonsingularity hypotheses, the sample-Gram
+minimum-distance specialization agrees with the finite-sample CLS estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] {n : Type u_3} [inst_4 : Fintype n] [Nonempty n] (X : Matrix n k Real) (y : n → Real)
+  (R : Matrix k q Real) (c : q → Real)
+  [inst_6 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)]
+  [inst_7 : Invertible (HansenEconometrics.clsConstraintGram X R)],
+  Eq (HansenEconometrics.clsBetaStar X y R c) (HansenEconometrics.clsBeta X y R c)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.clsBeta</code></li><li><code>HansenEconometrics.clsBetaStar</code></li><li><code>HansenEconometrics.clsConstraintGram</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L111">HansenEconometrics/Chapter8Asymptotics.lean:111</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="exercises-8-14-8-15">
+<summary><span>Exercises 8.14-8.15</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Verify (8.26) as the efficient-weight MD variance and prove (8.27)</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdasymptoticvariance-eq-hansen-826">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdAsymptoticVariance_eq_hansen_826</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen equation (8.26), the displayed efficient-MD asymptotic variance formula. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq q] (R : Matrix k q Real)
+  (V : Matrix k k Real),
+  Eq (HansenEconometrics.emdAsymptoticVariance R V)
+    (instHSub.hSub V
+      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+        (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul V R)
+            (Matrix.inv.inv
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R)))
+          R.transpose)
+        V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3890">HansenEconometrics/Chapter8Asymptotics.lean:3890</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-mdasymptoticvariance-efficientweight-eq-hansen-826">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.mdAsymptoticVariance_efficientWeight_eq_hansen_826</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Exercise 8.14: Hansen equation (8.26) is the generic MD variance at efficient
+weight <code>W = V⁻¹</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq k]
+  [inst_3 : DecidableEq q] (R : Matrix k q Real) (V : Matrix k k Real),
+  IsUnit V.det →
+    Eq V.transpose V →
+      IsUnit
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R).det →
+        Eq (HansenEconometrics.mdAsymptoticVariance (Matrix.inv.inv V) R V)
+          (instHSub.hSub V
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+              (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                  (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul V R)
+                  (Matrix.inv.inv
+                    (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+                      (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R)))
+                R.transpose)
+              V))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.mdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3897">HansenEconometrics/Chapter8Asymptotics.lean:3897</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-emdasymptoticvariance-le-unrestricted-hansen-827">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.emdAsymptoticVariance_le_unrestricted_hansen_827</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Exercise 8.15, Hansen equation (8.27): efficient MD weakly lowers asymptotic
+variance relative to the unrestricted estimator. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} {q : Type u_2} [inst : Fintype k] [inst_1 : Fintype q] [inst_2 : DecidableEq q] (R : Matrix k q Real)
+  (V : Matrix k k Real),
+  Eq V.transpose V →
+    (Matrix.inv.inv
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul R.transpose V) R)).PosSemidef →
+      (instHSub.hSub V (HansenEconometrics.emdAsymptoticVariance R V)).PosSemidef</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.emdAsymptoticVariance</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter8Asymptotics.lean#L3994">HansenEconometrics/Chapter8Asymptotics.lean:3994</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

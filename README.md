@@ -141,7 +141,7 @@ does not yet use `lake build --wfail` as a required gate.
 Run the tooling tests with:
 
 ```sh
-uv run --no-project python -m unittest discover -s tests -p 'test_*.py'
+uv run --no-project --with markdown python -m unittest discover -s tests -p 'test_*.py'
 ```
 
 ## Review harness
@@ -154,19 +154,24 @@ stores reports in `review/reports/`.
 See [`review/README.md`](review/README.md) for the Codex, Claude Code, and manual
 workflows.
 
-## Walkthrough site
+## Documentation site
 
-The Quarto site contains selected theorem walkthroughs for Chapters 3, 5, and
-7. With Quarto and `just` installed, the fast site build renders those
-walkthroughs to `docs/`:
+The Quarto site contains a packaged Lean crash course, a generated
+statement-dependency graph, foldable important-result pages for Chapters
+2--13, and hand-written walkthroughs for selected results in Chapters 3, 5,
+and 7. The generated result pages use the canonical inventory crosswalks and
+metadata from the compiled Lean environment.
+
+With Quarto and `just` installed, refresh and render the complete site to
+`docs/`:
 
 ```sh
 just site-render
 ```
 
-Use `just site-preview` for local preview. The generated all-declaration
-reference layer is currently paused; `site/README.md` documents the full export
-and stub workflow.
+Use `just site-preview` for local preview or `just site-render-fast` to reuse an
+existing declaration export. [`site/README.md`](site/README.md) documents the
+generation, test, crash-course refresh, and publishing workflow.
 
 ## Working method
 

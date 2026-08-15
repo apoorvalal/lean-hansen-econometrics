@@ -1,0 +1,697 @@
+---
+title: "Chapter 5: Normal Regression"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 5."
+---
+
+This page is generated from the [canonical Chapter 5 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch5-inventory.md) and the compiled Lean environment. It contains 14 textbook result groups and 26 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="theorem-5-2-affine-image-of-a-multivariate-normal" open>
+<summary><span>Theorem 5.2 affine image of a multivariate normal</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $X \sim N(\mu,\Sigma)$ and $Y = a + B X$, then $Y \sim N(a + B\mu, B \Sigma B')$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-map-affine-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.map_affine_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p><strong>Hansen Theorem 5.2.</strong> If <code>X ∼ N(μ, Σ)</code>, then <code>a + B X</code> has law
+<code>N(a + B μ, B Σ B')</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {m : Type u_1} {n : Type u_2} [inst : Fintype m] [inst_1 : DecidableEq m] [inst_2 : Fintype n]
+  [inst_3 : DecidableEq n] {μ : EuclideanSpace Real n} {S : Matrix n n Real},
+  S.PosSemidef →
+    ∀ (a : EuclideanSpace Real m) (B : Matrix m n Real),
+      Eq
+        (MeasureTheory.Measure.map
+          (fun x =&gt;
+            instHAdd.hAdd a (ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap B) x))
+          (ProbabilityTheory.multivariateGaussian μ S))
+        (ProbabilityTheory.multivariateGaussian
+          (instHAdd.hAdd a (ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap B) μ))
+          (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B S)
+            B.conjTranspose))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L111">HansenEconometrics/MultivariateNormal.lean:111</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-haslaw-affine-multivariategaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.hasLaw_affine_multivariateGaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Random-variable version of Hansen Theorem 5.2. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m : Type u_2} {n : Type u_3} [inst : MeasurableSpace Ω] [inst_1 : Fintype m] [inst_2 : DecidableEq m]
+  [inst_3 : Fintype n] [inst_4 : DecidableEq n] {P : MeasureTheory.Measure Ω} {X : Ω → EuclideanSpace Real n}
+  {μ : EuclideanSpace Real n} {S : Matrix n n Real},
+  S.PosSemidef →
+    ProbabilityTheory.HasLaw X (ProbabilityTheory.multivariateGaussian μ S) P →
+      ∀ (a : EuclideanSpace Real m) (B : Matrix m n Real),
+        ProbabilityTheory.HasLaw
+          (fun ω =&gt;
+            instHAdd.hAdd a (ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap B) (X ω)))
+          (ProbabilityTheory.multivariateGaussian
+            (instHAdd.hAdd a (ContinuousLinearMap.funLike.coe (HansenEconometrics.matrixContinuousLinearMap B) μ))
+            (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul B S)
+              B.conjTranspose))
+          P</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.matrixContinuousLinearMap</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L129">HansenEconometrics/MultivariateNormal.lean:129</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-3-properties-of-the-multivariate-normal">
+<summary><span>Theorem 5.3 properties of the multivariate normal</span><span class="result-count">5 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>For $X \sim N(\mu,\Sigma)$: $\mathbb{E}[X] = \mu$, $\operatorname{Var}(X) = \Sigma$, uncorrelated subvectors are independent, affine images are normal, and the standard quadratic-form laws give $\chi^2$, non-central $\chi^2$, and $t/F$ consequences</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-multivariategaussian-mean">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.multivariateGaussian_mean</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The mean vector of <code>N(μ, Σ)</code> is <code>μ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} [inst : Fintype n] [inst_1 : DecidableEq n] {μ : EuclideanSpace Real n} {S : Matrix n n Real},
+  Eq (MeasureTheory.integral (ProbabilityTheory.multivariateGaussian μ S) fun x =&gt; x) μ</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L151">HansenEconometrics/MultivariateNormal.lean:151</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-multivariategaussian-covariancebilin">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.multivariateGaussian_covarianceBilin</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The covariance bilinear form of <code>N(μ, Σ)</code> is represented by <code>Σ</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} [inst : Fintype n] [inst_1 : DecidableEq n] {μ : EuclideanSpace Real n} {S : Matrix n n Real},
+  S.PosSemidef →
+    ∀ (u v : EuclideanSpace Real n),
+      Eq
+        (ContinuousLinearMap.funLike.coe
+          (ContinuousLinearMap.funLike.coe
+            (ProbabilityTheory.covarianceBilin (ProbabilityTheory.multivariateGaussian μ S)) u)
+          v)
+        (dotProduct u.ofLp (S.mulVec v.ofLp))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L158">HansenEconometrics/MultivariateNormal.lean:158</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-multivariategaussian-eval-haslaw">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.multivariateGaussian_eval_hasLaw</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>A coordinate projection of a multivariate normal is univariate normal. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} [inst : Fintype n] [inst_1 : DecidableEq n] {μ : EuclideanSpace Real n} {S : Matrix n n Real},
+  S.PosSemidef →
+    ∀ (i : n),
+      ProbabilityTheory.HasLaw (fun x =&gt; x.ofLp i) (ProbabilityTheory.gaussianReal (μ.ofLp i) (S i i).toNNReal)
+        (ProbabilityTheory.multivariateGaussian μ S)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L182">HansenEconometrics/MultivariateNormal.lean:182</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-multivariategaussian-restrict-haslaw">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.multivariateGaussian_restrict₂_hasLaw</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>A coordinate subvector of a multivariate normal is multivariate normal with the corresponding
+subvector mean and covariance submatrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {ι : Type u_1} [inst : DecidableEq ι] {I J : Finset ι}
+  {μ : EuclideanSpace Real (Subtype fun x =&gt; SetLike.instMembership.mem I x)}
+  {S : Matrix (Subtype fun x =&gt; SetLike.instMembership.mem I x) (Subtype fun x =&gt; SetLike.instMembership.mem I x) Real},
+  S.PosSemidef →
+    ∀ (hJI : Finset.instHasSubset.Subset J I),
+      ProbabilityTheory.HasLaw (ContinuousLinearMap.funLike.coe (EuclideanSpace.restrict₂ hJI))
+        (ProbabilityTheory.multivariateGaussian (ContinuousLinearMap.funLike.coe (EuclideanSpace.restrict₂ hJI) μ)
+          (S.submatrix (fun i =&gt; ⟨i.val, ⋯⟩) fun i =&gt; ⟨i.val, ⋯⟩))
+        (ProbabilityTheory.multivariateGaussian μ S)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L192">HansenEconometrics/MultivariateNormal.lean:192</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-jointgaussian-indepfun-iff-cov-eq-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.jointGaussian_indepFun_iff_cov_eq_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>For scalar jointly Gaussian variables, independence is equivalent to zero covariance.  This is
+the scalar Hansen-facing form of the uncorrelated-subvector property in Theorem 5.3. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} [inst : MeasurableSpace Ω] {P : MeasureTheory.Measure Ω} {X Y : Ω → Real},
+  ProbabilityTheory.HasGaussianLaw (fun ω =&gt; { fst := X ω, snd := Y ω }) P →
+    Iff (ProbabilityTheory.IndepFun X Y P) (Eq (ProbabilityTheory.covariance X Y P) 0)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/MultivariateNormal.lean#L204">HansenEconometrics/MultivariateNormal.lean:204</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-4-conditional-law-of-the-ols-coefficient-vector">
+<summary><span>Theorem 5.4 conditional law of the OLS coefficient vector</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{\beta} \mid X \sim N!\left(\beta, \sigma^2 (X'X)^{-1}\right)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-hasgaussianlaw-of-error">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_hasGaussianLaw_of_error</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>If the error vector has a Gaussian law, then the OLS coefficient vector is Gaussian as an affine
+image of the error vector. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [DecidableEq n] [inst_3 : DecidableEq k]
+  {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real)
+  (e : Ω → n → Real) [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  ProbabilityTheory.HasGaussianLaw e μ →
+    ProbabilityTheory.HasGaussianLaw (fun ω =&gt; HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω))) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L37">HansenEconometrics/Chapter5NormalRegression.lean:37</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-memlp-of-error-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_memLp_of_error_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Fixed-design normal-regression coefficient vectors have finite moments of
+every finite order.  This is the fixed-<code>X</code> finite-moment face behind the normal
+coefficient law; the random-design Kinal threshold is a separate tail statement
+about the inverse random Gram matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  [inst_3 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] (p : ENNReal),
+  Ne p instTopENNReal.top →
+    ProbabilityTheory.HasGaussianLaw e μ →
+      MeasureTheory.MemLp (fun ω =&gt; HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω))) p μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L68">HansenEconometrics/Chapter5NormalRegression.lean:68</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-5-kinal-1980-moment-existence">
+<summary><span>Theorem 5.5 Kinal (1980) moment existence</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $(Y,X)$ are jointly normal, then $\mathbb{E}\|\hat{\beta}\|^r &lt; \infty$ if and only if $r &lt; n-k+1$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-memlp-of-error-gaussian">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_memLp_of_error_gaussian</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Fixed-design normal-regression coefficient vectors have finite moments of
+every finite order.  This is the fixed-<code>X</code> finite-moment face behind the normal
+coefficient law; the random-design Kinal threshold is a separate tail statement
+about the inverse random Gram matrix. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] {Ω : Type u_3}
+  [inst_3 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real) (e : Ω → n → Real)
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] (p : ENNReal),
+  Ne p instTopENNReal.top →
+    ProbabilityTheory.HasGaussianLaw e μ →
+      MeasureTheory.MemLp (fun ω =&gt; HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (e ω))) p μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L68">HansenEconometrics/Chapter5NormalRegression.lean:68</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-6-conditional-law-of-the-ols-residual-vector">
+<summary><span>Theorem 5.6 conditional law of the OLS residual vector</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{e} \mid X \sim N(0,\sigma^2 M)$ and $\hat{e}$ is independent of $\hat{\beta}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-residual-hasgaussianlaw-of-error">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.residual_hasGaussianLaw_of_error</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>If the error vector has a Gaussian law, then the OLS residual vector is Gaussian
+as a linear image of the error vector. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [DecidableEq n] [inst_3 : DecidableEq k]
+  {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω} (X : Matrix n k Real) (β : k → Real)
+  (e : Ω → n → Real) [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  ProbabilityTheory.HasGaussianLaw e μ →
+    ProbabilityTheory.HasGaussianLaw (fun ω =&gt; HansenEconometrics.residual X (instHAdd.hAdd (X.mulVec β) (e ω))) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.residual</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L79">HansenEconometrics/Chapter5NormalRegression.lean:79</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="residual-variance-estimator">
+<summary><span>Residual variance estimator</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$s^2 = \hat{e}' \hat{e} / (n-k)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsresidualvarianceestimator">
+<summary><span class="declaration-kind">def</span> <code>HansenEconometrics.olsResidualVarianceEstimator</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Finite-sample residual variance estimator in the homoskedastic linear regression model. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">{n : Type u_1} →
+  {k : Type u_2} →
+    [inst : Fintype n] →
+      [inst_1 : Fintype k] →
+        [inst_2 : DecidableEq k] →
+          (X : Matrix n k Real) →
+            (n → Real) →
+              [DecidableEq n] → [Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)] → Real</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1362">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1362</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="residual-variance-under-the-linear-model">
+<summary><span>Residual variance under the linear model</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$s^2 = (M e)' (M e) / (n-k)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsresidualvarianceestimator-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsResidualVarianceEstimator_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Under the linear model, the residual variance estimator is the residual quadratic form
+divided by <code>n-k</code>, expressed directly in terms of the model error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (β : k → Real) (e : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq (HansenEconometrics.olsResidualVarianceEstimator X (instHAdd.hAdd (X.mulVec β) e))
+    (instHDiv.hDiv
+      (dotProduct ((HansenEconometrics.annihilatorMatrix X).mulVec e)
+        ((HansenEconometrics.annihilatorMatrix X).mulVec e))
+      (instHSub.hSub (Fintype.card n).cast (Fintype.card k).cast))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li><li><code>HansenEconometrics.olsResidualVarianceEstimator</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1375">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1375</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="residual-quadratic-form-identity">
+<summary><span>Residual quadratic form identity</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{e}' \hat{e} = e' M e$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-residual-quadratic-form-of-linear-model">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.residual_quadratic_form_of_linear_model</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>The residual sum of squares in the linear model is the annihilator quadratic form <code>e'Me</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq k] (X : Matrix n k Real)
+  (e : n → Real) [inst_3 : DecidableEq n]
+  [inst_4 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+  Eq
+    (dotProduct ((HansenEconometrics.annihilatorMatrix X).mulVec e) ((HansenEconometrics.annihilatorMatrix X).mulVec e))
+    (dotProduct e ((HansenEconometrics.annihilatorMatrix X).mulVec e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.annihilatorMatrix</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1387">HansenEconometrics/Chapter4LeastSquaresRegression.lean:1387</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-7-residual-variance-estimator-distribution">
+<summary><span>Theorem 5.7 residual variance estimator distribution</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\dfrac{(n-k)s^2}{\sigma^2} \sim \chi^2_{n-k}$ and $s^2$ is independent of $\hat{\beta}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-scaledolsresidualvariancestatistic-haslaw-chisquared">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.scaledOlsResidualVarianceStatistic_hasLaw_chiSquared</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.7, chi-square component: in the homoskedastic normal regression model,
+<code>(n-k) s² / σ²</code> has a chi-square distribution with <code>n-k</code> degrees of freedom. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt (Fintype.card k) (Fintype.card n) →
+      ∀ (ε : Ω → EuclideanSpace Real n)
+        [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+        ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+          ProbabilityTheory.HasLaw (HansenEconometrics.scaledOlsResidualVarianceStatistic X β σ2 ε)
+            (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card n) (Fintype.card k))) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.scaledOlsResidualVarianceStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L216">HansenEconometrics/Chapter5NormalRegression.lean:216</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsbeta-indep-scaledolsresidualvariancestatistic">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsBeta_indep_scaledOlsResidualVarianceStatistic</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>No plain-language docstring is available.</p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt (Fintype.card k) (Fintype.card n) →
+      ∀ (ε : Ω → EuclideanSpace Real n)
+        [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+        ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+          ProbabilityTheory.IndepFun (fun ω =&gt; HansenEconometrics.olsBeta X (instHAdd.hAdd (X.mulVec β) (ε ω).ofLp))
+            (HansenEconometrics.scaledOlsResidualVarianceStatistic X β σ2 ε) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.olsBeta</code></li><li><code>HansenEconometrics.scaledOlsResidualVarianceStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L305">HansenEconometrics/Chapter5NormalRegression.lean:305</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-8-exact-t-statistic-law">
+<summary><span>Theorem 5.8 exact $t$ statistic law</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$T = \dfrac{\hat{\beta}<em>j - \beta_j}{\sqrt{s^2[(X'X)^{-1}]</em>{jj}}} \sim t_{n-k}$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olststat-haslaw-classicalstudentt">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsTStat_hasLaw_classicalStudentT</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.8 in classical form: the OLS t-statistic has the standalone density-backed
+Student-t law with <code>n-k</code> degrees of freedom. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real} (j : k),
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt (Fintype.card k) (Fintype.card n) →
+      ∀ (ε : Ω → EuclideanSpace Real n)
+        [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+        ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+          ProbabilityTheory.HasLaw (HansenEconometrics.olsTStat X β σ2 j ε)
+            (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k))) μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalStudentT</code></li><li><code>HansenEconometrics.olsTStat</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L607">HansenEconometrics/Chapter5NormalRegression.lean:607</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-9-regression-coefficient-confidence-interval">
+<summary><span>Theorem 5.9 regression-coefficient confidence interval</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{C} = [\hat{\beta} - c\, s(\hat{\beta}), \hat{\beta} + c\, s(\hat{\beta})]$ with $c = F^{-1}(1-\alpha/2)$ satisfies $\mathbb{P}[\beta \in \hat{C}] = 1 - \alpha$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsconfidenceinterval-coverage-eq-classicalstudentt-interval">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsConfidenceInterval_coverage_eq_classicalStudentT_interval</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Classical version of the exact coverage theorem for Hansen's Chapter 5 coefficient confidence
+interval for an arbitrary critical value <code>c</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real} (j : k) (c : Real),
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt (Fintype.card k) (Fintype.card n) →
+      ∀ (ε : Ω → EuclideanSpace Real n)
+        [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+        ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+          Eq
+            (μ.real
+              (setOf fun ω =&gt;
+                Set.instMembership.mem
+                  (HansenEconometrics.olsConfidenceInterval X j c (instHAdd.hAdd (X.mulVec β) (ε ω).ofLp)) (β j)))
+            ((HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k))).real
+              (Set.Icc (Real.instNeg.neg c) c))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalStudentT</code></li><li><code>HansenEconometrics.olsConfidenceInterval</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L833">HansenEconometrics/Chapter5NormalRegression.lean:833</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsconfidenceinterval-coverage-eq-classicalstudentt-cdf">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsConfidenceInterval_coverage_eq_classicalStudentT_cdf</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Classical CDF version of the exact coverage theorem for Hansen's Chapter 5 coefficient
+confidence interval. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real} (j : k) (c : Real),
+  Real.instLE.le 0 c →
+    Real.instLT.lt 0 σ2 →
+      instLTNat.lt (Fintype.card k) (Fintype.card n) →
+        ∀ (ε : Ω → EuclideanSpace Real n)
+          [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+          ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+            Eq
+              (μ.real
+                (setOf fun ω =&gt;
+                  Set.instMembership.mem
+                    (HansenEconometrics.olsConfidenceInterval X j c (instHAdd.hAdd (X.mulVec β) (ε ω).ofLp)) (β j)))
+              (instHSub.hSub
+                ((ProbabilityTheory.cdf
+                      (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+                  c)
+                (Function.leftLim
+                  (ProbabilityTheory.cdf
+                      (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+                  (Real.instNeg.neg c)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalStudentT</code></li><li><code>HansenEconometrics.olsConfidenceInterval</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L903">HansenEconometrics/Chapter5NormalRegression.lean:903</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsconfidenceinterval-coverage-eq-one-sub-classical">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsConfidenceInterval_coverage_eq_one_sub_classical</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Classical confidence-interval version of Hansen Theorem 5.9: if the critical value <code>c</code>
+matches the desired tail probabilities for the standalone density-backed Student-t law, then the
+classical OLS interval has exact coverage <code>1 - α</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 α : Real} (j : k) (c : Real),
+  Real.instLE.le 0 c →
+    Eq
+        ((ProbabilityTheory.cdf
+              (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+          c)
+        (instHSub.hSub 1 (instHDiv.hDiv α 2)) →
+      Eq
+          (Function.leftLim
+            (ProbabilityTheory.cdf
+                (HansenEconometrics.classicalStudentT (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+            (Real.instNeg.neg c))
+          (instHDiv.hDiv α 2) →
+        Real.instLT.lt 0 σ2 →
+          instLTNat.lt (Fintype.card k) (Fintype.card n) →
+            ∀ (ε : Ω → EuclideanSpace Real n)
+              [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+              ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+                Eq
+                  (μ.real
+                    (setOf fun ω =&gt;
+                      Set.instMembership.mem
+                        (HansenEconometrics.olsConfidenceInterval X j c (instHAdd.hAdd (X.mulVec β) (ε ω).ofLp)) (β j)))
+                  (instHSub.hSub 1 α)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalStudentT</code></li><li><code>HansenEconometrics.olsConfidenceInterval</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L977">HansenEconometrics/Chapter5NormalRegression.lean:977</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-10-rule-of-thumb-95-interval">
+<summary><span>Theorem 5.10 rule-of-thumb $95\%$ interval</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $n-k \ge 61$, then $\hat{C} = [\hat{\beta} - 2 s(\hat{\beta}), \hat{\beta} + 2 s(\hat{\beta})]$ has coverage probability at least $0.95$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsconfidenceinterval-two-se-coverage-ge-nineteen-twentieths">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.10: if the residual degrees of freedom satisfy <code>n - k ≥ 61</code>, then the
+two-standard-error OLS coefficient confidence interval has at least <code>95%</code> coverage. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real} (j : k),
+  Real.instLT.lt 0 σ2 →
+    instLENat.le 61 (instHSub.hSub (Fintype.card n) (Fintype.card k)) →
+      ∀ (ε : Ω → EuclideanSpace Real n)
+        [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+        ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+          Real.instLE.le (19 / 20)
+            (μ.real
+              (setOf fun ω =&gt;
+                Set.instMembership.mem
+                  (HansenEconometrics.olsConfidenceInterval X j 2 (instHAdd.hAdd (X.mulVec β) (ε ω).ofLp)) (β j)))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.olsConfidenceInterval</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L995">HansenEconometrics/Chapter5NormalRegression.lean:995</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-11-error-variance-confidence-interval">
+<summary><span>Theorem 5.11 error-variance confidence interval</span><span class="result-count">3 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\hat{C} = \left[\dfrac{(n-k)s^2}{c_2}, \dfrac{(n-k)s^2}{c_1}\right]$ with $c_1 = F^{-1}(\alpha/2)$ and $c_2 = F^{-1}(1-\alpha/2)$ satisfies $\mathbb{P}[\sigma^2 \in \hat{C}] = 1 - \alpha$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsvarianceci-coverage-eq-chisquared-interval">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsVarianceCI_coverage_eq_chiSquared_interval</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Exact interval-probability statement underlying Hansen Theorem 5.11. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real} (c₁ c₂ : Real),
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt (Fintype.card k) (Fintype.card n) →
+      Real.instLT.lt 0 c₁ →
+        Real.instLE.le c₁ c₂ →
+          ∀ (ε : Ω → EuclideanSpace Real n)
+            [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+            ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+              Eq
+                (μ.real
+                  (setOf fun ω =&gt;
+                    Set.instMembership.mem (HansenEconometrics.olsVarianceConfidenceInterval X β c₁ c₂ ε ω) σ2))
+                ((HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card n) (Fintype.card k))).real (Set.Icc c₁ c₂))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.olsVarianceConfidenceInterval</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1059">HansenEconometrics/Chapter5NormalRegression.lean:1059</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsvarianceconfidenceinterval-coverage-eq-chisquared-cdf">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsVarianceConfidenceInterval_coverage_eq_chiSquared_cdf</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>CDF version of the exact variance-interval coverage identity from Hansen Theorem 5.11. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 : Real} (c₁ c₂ : Real),
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt (Fintype.card k) (Fintype.card n) →
+      Real.instLT.lt 0 c₁ →
+        Real.instLE.le c₁ c₂ →
+          ∀ (ε : Ω → EuclideanSpace Real n)
+            [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+            ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+              Eq
+                (μ.real
+                  (setOf fun ω =&gt;
+                    Set.instMembership.mem (HansenEconometrics.olsVarianceConfidenceInterval X β c₁ c₂ ε ω) σ2))
+                (instHSub.hSub
+                  ((ProbabilityTheory.cdf
+                        (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+                    c₂)
+                  ((ProbabilityTheory.cdf
+                        (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+                    c₁))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.olsVarianceConfidenceInterval</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1082">HansenEconometrics/Chapter5NormalRegression.lean:1082</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsvarianceconfidenceinterval-coverage-eq-one-sub">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsVarianceConfidenceInterval_coverage_eq_one_sub</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Critical-value wrapper for Hansen Theorem 5.11: if the chi-square interval endpoints match the
+desired <code>α/2</code> and <code>1 - α/2</code> cdf values, then the variance interval has exact coverage <code>1 - α</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} {k : Type u_2} [inst : Fintype n] [inst_1 : Fintype k] [inst_2 : DecidableEq n]
+  [inst_3 : DecidableEq k] {Ω : Type u_3} [inst_4 : MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+  (X : Matrix n k Real) (β : k → Real) {σ2 α : Real} (c₁ c₂ : Real),
+  Eq
+      ((ProbabilityTheory.cdf (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+        c₁)
+      (instHDiv.hDiv α 2) →
+    Eq
+        ((ProbabilityTheory.cdf (HansenEconometrics.chiSquared (instHSub.hSub (Fintype.card n) (Fintype.card k)))).toFun
+          c₂)
+        (instHSub.hSub 1 (instHDiv.hDiv α 2)) →
+      Real.instLT.lt 0 σ2 →
+        instLTNat.lt (Fintype.card k) (Fintype.card n) →
+          Real.instLT.lt 0 c₁ →
+            Real.instLE.le c₁ c₂ →
+              ∀ (ε : Ω → EuclideanSpace Real n)
+                [inst_5 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X.transpose X)],
+                ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+                  Eq
+                    (μ.real
+                      (setOf fun ω =&gt;
+                        Set.instMembership.mem (HansenEconometrics.olsVarianceConfidenceInterval X β c₁ c₂ ε ω) σ2))
+                    (instHSub.hSub 1 α)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.chiSquared</code></li><li><code>HansenEconometrics.olsVarianceConfidenceInterval</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1111">HansenEconometrics/Chapter5NormalRegression.lean:1111</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="theorem-5-13-likelihood-ratio-f-test-layer">
+<summary><span>Theorem 5.13 likelihood-ratio / $F$-test layer</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under $H_0 : \beta_2 = 0$, if $F = \dfrac{(\tilde{\sigma}^2 - \hat{\sigma}^2)/q}{\hat{\sigma}^2/(n-k)}$, then $F \sim F_{q,n-k}$ and the test "reject $H_0$ if $F &gt; c$" has significance level $\alpha$ when $\mathbb{P}(F_{q,n-k} \ge c) = \alpha$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsfstatistic-haslaw-classicalfdist">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsFStatistic_hasLaw_classicalFDist</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.13 in classical form: the block F statistic has the classical
+Fisher-Snedecor distribution under the null. This is a thin wrapper over the ratio-law result
+using the standalone <code>fDist = classicalFDist</code> bridge in <code>FDist.lean</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} [inst : Fintype n] [inst_1 : DecidableEq n] {k₁ : Type u_3} {k₂ : Type u_4} [inst_2 : Fintype k₁]
+  [inst_3 : DecidableEq k₁] [inst_4 : Fintype k₂] [inst_5 : DecidableEq k₂] {Ω : Type u_5} [inst_6 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} (X₁ : Matrix n k₁ Real) (X₂ : Matrix n k₂ Real) (β₁ : k₁ → Real) {σ2 : Real},
+  Real.instLT.lt 0 σ2 →
+    instLTNat.lt 0 (Fintype.card k₂) →
+      instLTNat.lt (Fintype.card (Sum k₁ k₂)) (Fintype.card n) →
+        ∀ (ε : Ω → EuclideanSpace Real n)
+          [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₁.transpose X₁)]
+          [inst_8 :
+            Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (X₁.fromCols X₂).transpose (X₁.fromCols X₂))],
+          ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+            ProbabilityTheory.HasLaw
+              (fun ω =&gt; HansenEconometrics.olsFStatistic X₁ X₂ (instHAdd.hAdd (X₁.mulVec β₁) (ε ω).ofLp))
+              (HansenEconometrics.classicalFDist (Fintype.card k₂)
+                (instHSub.hSub (Fintype.card n) (Fintype.card (Sum k₁ k₂))))
+              μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalFDist</code></li><li><code>HansenEconometrics.olsFStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5LikelihoodRatioTest.lean#L472">HansenEconometrics/Chapter5LikelihoodRatioTest.lean:472</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-olsfstatistic-rejection-probability-eq-alpha-classical">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.olsFStatistic_rejection_probability_eq_alpha_classical</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 5.13 rejection statement in classical form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {n : Type u_1} [inst : Fintype n] [inst_1 : DecidableEq n] {k₁ : Type u_3} {k₂ : Type u_4} [inst_2 : Fintype k₁]
+  [inst_3 : DecidableEq k₁] [inst_4 : Fintype k₂] [inst_5 : DecidableEq k₂] {Ω : Type u_5} [inst_6 : MeasurableSpace Ω]
+  {μ : MeasureTheory.Measure Ω} (X₁ : Matrix n k₁ Real) (X₂ : Matrix n k₂ Real) (β₁ : k₁ → Real) {σ2 α : Real}
+  (c : Real),
+  Eq
+      ((HansenEconometrics.classicalFDist (Fintype.card k₂)
+            (instHSub.hSub (Fintype.card n) (Fintype.card (Sum k₁ k₂)))).real
+        (Set.Ioi c))
+      α →
+    Real.instLT.lt 0 σ2 →
+      instLTNat.lt 0 (Fintype.card k₂) →
+        instLTNat.lt (Fintype.card (Sum k₁ k₂)) (Fintype.card n) →
+          ∀ (ε : Ω → EuclideanSpace Real n)
+            [inst_7 : Invertible (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul X₁.transpose X₁)]
+            [inst_8 :
+              Invertible
+                (Matrix.instHMulOfFintypeOfMulOfAddCommMonoid.hMul (X₁.fromCols X₂).transpose (X₁.fromCols X₂))],
+            ProbabilityTheory.HasLaw ε (ProbabilityTheory.multivariateGaussian 0 (instHSMul.hSMul σ2 1)) μ →
+              Eq
+                (μ.real
+                  (setOf fun ω =&gt;
+                    Real.instLT.lt c
+                      (HansenEconometrics.olsFStatistic X₁ X₂ (instHAdd.hAdd (X₁.mulVec β₁) (ε ω).ofLp))))
+                α</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.classicalFDist</code></li><li><code>HansenEconometrics.olsFStatistic</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5LikelihoodRatioTest.lean#L513">HansenEconometrics/Chapter5LikelihoodRatioTest.lean:513</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

@@ -2,7 +2,47 @@
 title: "Hansen Econometrics in Lean"
 ---
 
-A companion site for the Lean formalization of Hansen's *Econometrics*.
+This site is the reader-facing companion to the Lean 4 formalization of Bruce E. Hansen's *Econometrics*. The repository proves reusable results in probability, linear algebra, asymptotic theory, and econometrics, and it records the exact relation between each formal endpoint and the textbook.
 
-- **Walkthroughs** — hand-written explanations of headline theorems with assumptions, proof sketches, and Lean-vs-textbook contrasts.
-- **Auto-generated reference** — every public declaration in the Lean library, grouped by chapter.
+## Current scope
+
+- Chapters 2--13 have compiled Lean modules.
+- Chapter 1 and Chapters 14--29 have inventories but no chapter Lean module.
+- The compiled public environment contains 7,496 authored definitions and theorems after generated Lean companions are removed.
+- The canonical inventories remain the source of truth for coverage, qualifications, corrected statements, and open gaps.
+
+The project does not claim line-by-line coverage of every derivation, example, and exercise. A chapter can have all numbered theorems represented while it remains partial in that broader sense.
+
+## Start here
+
+::: {.grid}
+::: {.g-col-12 .g-col-md-6}
+### Learn Lean
+
+The [Lean crash course](crash-course.qmd) packages a self-contained, source-and-output introduction to Lean 4. It is a practical entry point for readers who know econometrics but do not yet read Lean.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### Browse important results
+
+The [important-results explorer](results/index.qmd) contains 250 textbook result groups. Each group has foldable plain-language documentation, formal statements, source links, and direct dependencies.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### Inspect dependencies
+
+The [dependency graph](dependencies.qmd) uses the constants named in each formal statement. Arrows run from prerequisites to the results that use them. The graph has a chapter overview and a declaration view for each implemented chapter.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### Read walkthroughs
+
+The hand-written walkthroughs explain selected results from Chapters 3, 5, and 7. They discuss assumptions, proof structure, and differences between the textbook notation and the formal API.
+:::
+:::
+
+## How the generated views work
+
+The Lean exporter loads the compiled root library and records every authored public declaration, its source position, its docstring, and the project declarations used in its type. The site generator then reads the canonical chapter crosswalks and selects the theorem-facing endpoints for each textbook result. This keeps the site synchronized with both the formal code and the coverage record.
+
+For full detail, use the [repository README](https://github.com/apoorvalal/lean-hansen-econometrics#readme) and the chapter inventories in the source tree.

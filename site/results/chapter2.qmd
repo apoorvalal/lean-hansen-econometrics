@@ -1,0 +1,470 @@
+---
+title: "Chapter 2: Conditional Expectation and Projection"
+description: "Foldable textbook-to-Lean result crosswalk for Chapter 2."
+---
+
+This page is generated from the [canonical Chapter 2 inventory](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/inventory/ch2-inventory.md) and the compiled Lean environment. It contains 11 textbook result groups and 23 selected Lean endpoints. When an inventory row links a large proof surface, this page shows at most six theorem-facing endpoints. The inventory remains the source of truth for all supporting links, qualifications, and open gaps.
+
+<div class="results-toolbar" role="group" aria-label="Result display controls">
+<button type="button" data-results-action="expand">Expand all results</button>
+<button type="button" data-results-action="collapse">Collapse all results</button>
+</div>
+
+<div class="result-groups">
+<details class="result-group" id="t2-1-simple-law-of-iterated-expectations" open>
+<summary><span>T2.1 Simple Law of Iterated Expectations</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\int \mathbb{E}[Y \mid \mathcal{G}] \, d\mu = \int Y \, d\mu$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-simple-law-iterated-expectation">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.simple_law_iterated_expectation</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Theorem 2.1, specialized to Mathlib notation: simple law of iterated expectations. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y : Ω → Real}
+  (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  Eq (MeasureTheory.integral μ fun ω =&gt; MeasureTheory.condExp m μ Y ω) (MeasureTheory.integral μ fun ω =&gt; Y ω)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L18">HansenEconometrics/Chapter2CondExp.lean:18</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-2-tower-property">
+<summary><span>T2.2 Tower Property</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\mathbb{E}[\mathbb{E}[Y \mid \mathcal{G}_2] \mid \mathcal{G}_1] = \mathbb{E}[Y \mid \mathcal{G}_1]$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-tower-property">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tower_property</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Theorem 2.2: tower property for nested sigma-algebras. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m₁ m₂ m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y : Ω → Real},
+  MeasurableSpace.instLE.le m₁ m₂ →
+    ∀ (hm₂₀ : MeasurableSpace.instLE.le m₂ m₀) [MeasureTheory.SigmaFinite (μ.trim hm₂₀)],
+      (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m₁ μ (MeasureTheory.condExp m₂ μ Y))
+        (MeasureTheory.condExp m₁ μ Y)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L26">HansenEconometrics/Chapter2CondExp.lean:26</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-tower-property-x1-x2">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.tower_property_X1_X2</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Theorem 2.2 written as <code>E[E[Y | X₁, X₂] | X₁] = E[Y | X₁]</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {β : Type u_2} {γ : Type u_3} {m₀ : MeasurableSpace Ω} {mβ : MeasurableSpace β}
+  {mγ : MeasurableSpace γ} {μ : MeasureTheory.Measure Ω} {Y : Ω → Real} {X1 : Ω → β} {X2 : Ω → γ} (hX1 : Measurable X1)
+  (hX2 : Measurable X2) [MeasureTheory.SigmaFinite (μ.trim ⋯)],
+  (MeasureTheory.ae μ).EventuallyEq
+    (MeasureTheory.condExp (MeasurableSpace.comap X1 mβ) μ
+      (MeasureTheory.condExp (SemilatticeSup.toMax.max (MeasurableSpace.comap X1 mβ) (MeasurableSpace.comap X2 mγ)) μ
+        Y))
+    (MeasureTheory.condExp (MeasurableSpace.comap X1 mβ) μ Y)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L37">HansenEconometrics/Chapter2CondExp.lean:37</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-3-conditioning-theorem">
+<summary><span>T2.3 Conditioning Theorem</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\int gY \, d\mu = \int g \, \mathbb{E}[Y \mid X] \, d\mu$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-conditioning-theorem-ae">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.conditioning_theorem_ae</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Theorem 2.3, a.e. version: pull out an <code>m</code>-measurable factor from conditional expectation. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {g Y : Ω → Real},
+  MeasureTheory.AEStronglyMeasurable g μ →
+    MeasureTheory.Integrable (fun ω =&gt; instHMul.hMul (g ω) (Y ω)) μ →
+      MeasureTheory.Integrable Y μ →
+        (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ fun ω =&gt; instHMul.hMul (g ω) (Y ω)) fun ω =&gt;
+          instHMul.hMul (g ω) (MeasureTheory.condExp m μ Y ω)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L54">HansenEconometrics/Chapter2CondExp.lean:54</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-4-properties-of-the-cef-error">
+<summary><span>T2.4 Properties of the CEF Error</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\int g(X) e \, d\mu = 0$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexp-ceferror-zero">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExp_cefError_zero</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Theorem 2.4.1: the CEF error has conditional mean zero. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y : Ω → Real}
+  (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  MeasureTheory.Integrable Y μ →
+    (MeasureTheory.ae μ).EventuallyEq (MeasureTheory.condExp m μ (HansenEconometrics.cefError μ Y m)) 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.cefError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L78">HansenEconometrics/Chapter2CondExp.lean:78</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-5-finite-regression-error-variance">
+<summary><span>T2.5 Finite Regression-error Variance</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\mathbb{E}[Y^2] &lt; \infty \Longrightarrow \mathbb{E}[e^2] &lt; \infty$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-memlp-ceferror">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.memLp_cefError</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.5: if <code>Y</code> has a finite second moment (<code>MemLp Y 2 μ</code>),
+then the CEF error <code>e = Y - E[Y|m]</code> also has a finite second moment,
+i.e., the regression-error variance σ² &lt; ∞. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y : Ω → Real},
+  MeasureTheory.MemLp Y 2 μ → MeasureTheory.MemLp (HansenEconometrics.cefError μ Y m) 2 μ</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.cefError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L26">HansenEconometrics/Chapter2Variance.lean:26</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-6-more-information-weakly-reduces-residual-variance">
+<summary><span>T2.6 More Information Weakly Reduces Residual Variance</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{Var}(Y - \mathbb{E}[Y \mid \mathcal{G}_2]) \le \operatorname{Var}(Y - \mathbb{E}[Y \mid \mathcal{G}_1])$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-variance-ceferror-antitone">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.variance_cefError_antitone</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.6:
+monotonic decrease of residual variance under larger conditioning sets.
+If <code>m₁ ≤ m₂ ≤ m₀</code>, then <code>Var[Y - E[Y|m₂]] ≤ Var[Y - E[Y|m₁]]</code>,
+i.e., conditioning on more information (weakly) reduces
+the variance of the regression error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {m₁ m₂ : MeasurableSpace Ω} {Y : Ω → Real},
+  MeasurableSpace.instLE.le m₁ m₂ →
+    MeasurableSpace.instLE.le m₂ m₀ →
+      ∀ [MeasureTheory.IsProbabilityMeasure μ],
+        MeasureTheory.MemLp Y 2 μ →
+          Real.instLE.le (ProbabilityTheory.variance (HansenEconometrics.cefError μ Y m₂) μ)
+            (ProbabilityTheory.variance (HansenEconometrics.cefError μ Y m₁) μ)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.cefError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L74">HansenEconometrics/Chapter2Variance.lean:74</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-7-conditional-expectation-as-best-predictor">
+<summary><span>T2.7 Conditional Expectation as Best Predictor</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\mathbb{E}[(Y - g(X))^2] \ge \mathbb{E}[(Y - \mathbb{E}[Y \mid X])^2]$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-integral-sq-sub-condexp-le-integral-sq-sub">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.integral_sq_sub_condExp_le_integral_sq_sub</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.7 in sigma-algebra form: the conditional mean minimizes mean squared
+prediction error among <code>m</code>-measurable square-integrable predictors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y g : Ω → Real}
+  (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)] [MeasureTheory.IsFiniteMeasure μ],
+  MeasureTheory.MemLp Y 2 μ →
+    MeasureTheory.MemLp g 2 μ →
+      MeasureTheory.AEStronglyMeasurable g μ →
+        Real.instLE.le
+          (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (instHSub.hSub (Y ω) (MeasureTheory.condExp m μ Y ω)) 2)
+          (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (instHSub.hSub (Y ω) (g ω)) 2)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L175">HansenEconometrics/Chapter2CondExp.lean:175</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-8-law-of-total-variance">
+<summary><span>T2.8 Law of Total Variance</span><span class="result-count">1 endpoint</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\operatorname{Var}(Y) = \mathbb{E}[\operatorname{Var}(Y \mid X)] + \operatorname{Var}(\mathbb{E}[Y \mid X])$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-law-total-variance">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.law_total_variance</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.8 / law of total variance in Mathlib form. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y : Ω → Real},
+  MeasurableSpace.instLE.le m m₀ →
+    ∀ [MeasureTheory.IsProbabilityMeasure μ],
+      MeasureTheory.MemLp Y 2 μ →
+        Eq
+          (instHAdd.hAdd (MeasureTheory.integral μ fun x =&gt; ProbabilityTheory.condVar m Y μ x)
+            (ProbabilityTheory.variance (MeasureTheory.condExp m μ Y) μ))
+          (ProbabilityTheory.variance Y μ)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L33">HansenEconometrics/Chapter2Variance.lean:33</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-9-linear-projection-model">
+<summary><span>T2.9 Linear Projection Model</span><span class="result-count">6 of 7 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>If $EXX = E[XX']$, $EXY = E[XY]$, and $EY2 = E[Y^2]$, then $S(\beta) \le S(b)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionbeta-minimizes-mse">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionBeta_minimizes_MSE</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Definition 2.5 / Theorem 2.9: the projection coefficient minimizes the population
+linear-prediction mean squared error. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] (QXX : Matrix k k Real) (QXY : k → Real) (QYY : Real)
+  [inst_2 : Invertible QXX],
+  Eq QXX.transpose QXX →
+    (∀ (v : k → Real), Real.instLE.le 0 (dotProduct v (QXX.mulVec v))) →
+      ∀ (b : k → Real),
+        Real.instLE.le
+          (HansenEconometrics.linearProjectionMSE QXX QXY QYY (HansenEconometrics.linearProjectionBeta QXX QXY))
+          (HansenEconometrics.linearProjectionMSE QXX QXY QYY b)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.linearProjectionBeta</code></li><li><code>HansenEconometrics.linearProjectionMSE</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L95">HansenEconometrics/Chapter2LinearProjection.lean:95</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionbeta-normal-equations">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionBeta_normal_equations</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.9: the projection coefficient satisfies the population normal equations. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] (QXX : Matrix k k Real) (QXY : k → Real)
+  [inst_2 : Invertible QXX], Eq (QXX.mulVec (HansenEconometrics.linearProjectionBeta QXX QXY)) QXY</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.linearProjectionBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L24">HansenEconometrics/Chapter2LinearProjection.lean:24</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionbeta-orthogonal-moment">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionBeta_orthogonal_moment</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.9: population projection residuals are orthogonal to the regressors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] (QXX : Matrix k k Real) (QXY : k → Real)
+  [inst_2 : Invertible QXX], Eq (instHSub.hSub QXY (QXX.mulVec (HansenEconometrics.linearProjectionBeta QXX QXY))) 0</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.linearProjectionBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L33">HansenEconometrics/Chapter2LinearProjection.lean:33</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionbeta-minimizes-mse-of-moments">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionBeta_minimizes_MSE_of_moments</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.9 in textbook moment notation: if <code>EXX = E[XXᵀ]</code>, <code>EXY = E[XY]</code>, and
+<code>EY2 = E[Y²]</code>, then <code>β = (EXX)⁻¹ EXY</code> minimizes the population linear-prediction criterion. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] (EXX : Matrix k k Real) (EXY : k → Real) (EY2 : Real)
+  [inst_2 : Invertible EXX],
+  Eq EXX.transpose EXX →
+    (∀ (v : k → Real), Real.instLE.le 0 (dotProduct v (EXX.mulVec v))) →
+      ∀ (b : k → Real),
+        Real.instLE.le
+          (HansenEconometrics.linearProjectionMSE EXX EXY EY2 (HansenEconometrics.linearProjectionBeta EXX EXY))
+          (HansenEconometrics.linearProjectionMSE EXX EXY EY2 b)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.linearProjectionBeta</code></li><li><code>HansenEconometrics.linearProjectionMSE</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L107">HansenEconometrics/Chapter2LinearProjection.lean:107</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionmse-at-beta">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionMSE_at_beta</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>At the projection coefficient, the quadratic criterion simplifies to <code>E[Y²] - β'QXY</code>. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] (QXX : Matrix k k Real) (QXY : k → Real) (QYY : Real)
+  [inst_2 : Invertible QXX],
+  Eq (HansenEconometrics.linearProjectionMSE QXX QXY QYY (HansenEconometrics.linearProjectionBeta QXX QXY))
+    (instHSub.hSub QYY (dotProduct (HansenEconometrics.linearProjectionBeta QXX QXY) QXY))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.linearProjectionBeta</code></li><li><code>HansenEconometrics.linearProjectionMSE</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L51">HansenEconometrics/Chapter2LinearProjection.lean:51</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionbeta-eq-of-mse-eq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionBeta_eq_of_MSE_eq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Under strict positive definiteness of the quadratic form, the projection coefficient is the
+unique minimizer of the population linear-prediction criterion. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] (QXX : Matrix k k Real) (QXY : k → Real) (QYY : Real)
+  (b : k → Real) [inst_2 : Invertible QXX],
+  Eq QXX.transpose QXX →
+    (∀ (v : k → Real), Ne v 0 → Real.instLT.lt 0 (dotProduct v (QXX.mulVec v))) →
+      Eq (HansenEconometrics.linearProjectionMSE QXX QXY QYY b)
+          (HansenEconometrics.linearProjectionMSE QXX QXY QYY (HansenEconometrics.linearProjectionBeta QXX QXY)) →
+        Eq b (HansenEconometrics.linearProjectionBeta QXX QXY)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.linearProjectionBeta</code></li><li><code>HansenEconometrics.linearProjectionMSE</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L118">HansenEconometrics/Chapter2LinearProjection.lean:118</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-10-regression-coefficients">
+<summary><span>T2.10 Regression Coefficients</span><span class="result-count">2 endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>$\beta = \operatorname{var}[X]^{-1} \operatorname{cov}(X, Y)$</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionintercept-eq-mean-sub-dotproduct">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionIntercept_eq_mean_sub_dotProduct</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.10 intercept formula in the linear projection model. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] {Ω : Type u_2} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  [MeasureTheory.IsProbabilityMeasure μ] (X : Ω → k → Real) (Y e : Ω → Real) (α : Real) (β : k → Real),
+  (∀ (i : k), MeasureTheory.MemLp (fun ω =&gt; X ω i) 2 μ) →
+    MeasureTheory.MemLp e 2 μ →
+      (Eq Y fun ω =&gt; instHAdd.hAdd (instHAdd.hAdd α (dotProduct (X ω) β)) (e ω)) →
+        Eq (MeasureTheory.integral μ fun ω =&gt; e ω) 0 →
+          Eq α (instHSub.hSub (MeasureTheory.integral μ fun ω =&gt; Y ω) (dotProduct (HansenEconometrics.meanVec μ X) β))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.meanVec</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L158">HansenEconometrics/Chapter2LinearProjection.lean:158</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-linearprojectionbeta-eq-covmat-inv-covvec">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.linearProjectionBeta_eq_covMat_inv_covVec</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Theorem 2.10 slope formula in the linear projection model. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {k : Type u_1} [inst : Fintype k] [inst_1 : DecidableEq k] {Ω : Type u_2} {mΩ : MeasurableSpace Ω}
+  {μ : MeasureTheory.Measure Ω} [MeasureTheory.IsProbabilityMeasure μ] (X : Ω → k → Real) (Y e : Ω → Real) (α : Real)
+  (β : k → Real) [inst_3 : Invertible (HansenEconometrics.covMat μ X)],
+  (∀ (i : k), MeasureTheory.MemLp (fun ω =&gt; X ω i) 2 μ) →
+    MeasureTheory.MemLp e 2 μ →
+      (Eq Y fun ω =&gt; instHAdd.hAdd (instHAdd.hAdd α (dotProduct (X ω) β)) (e ω)) →
+        Eq (HansenEconometrics.covVec μ X e) 0 →
+          Eq β
+            (HansenEconometrics.linearProjectionBeta (HansenEconometrics.covMat μ X) (HansenEconometrics.covVec μ X Y))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (3)</summary><ul><li><code>HansenEconometrics.covMat</code></li><li><code>HansenEconometrics.covVec</code></li><li><code>HansenEconometrics.linearProjectionBeta</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L187">HansenEconometrics/Chapter2LinearProjection.lean:187</a></p>
+</div>
+</details>
+</div>
+</details>
+
+<details class="result-group" id="t2-12-conditional-average-causal-effects">
+<summary><span>T2.12 Conditional Average Causal Effects</span><span class="result-count">6 of 27 linked endpoints</span></summary>
+<div class="result-body">
+<div class="textbook-statement"><p>Under CIA, CATE conditioned on treatment and covariates equals CATE conditioned on covariates</p></div>
+<details class="lean-declaration" id="decl-hanseneconometrics-integral-condvar-eq-integral-ceferror-sq">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.integral_condVar_eq_integral_cefError_sq</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Hansen Chapter 2.12: the expected conditional variance equals the expected squared
+CEF error. This is the regression-error variance identity following Definitions 2.1-2.2. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y : Ω → Real}
+  (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.SigmaFinite (μ.trim hm)],
+  MeasureTheory.Integrable (instHPow.hPow (instHSub.hSub Y (MeasureTheory.condExp m μ Y)) 2) μ →
+    Eq (MeasureTheory.integral μ fun ω =&gt; ProbabilityTheory.condVar m Y μ ω)
+      (MeasureTheory.integral μ fun ω =&gt; instHPow.hPow (HansenEconometrics.cefError μ Y m ω) 2)</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (1)</summary><ul><li><code>HansenEconometrics.cefError</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L14">HansenEconometrics/Chapter2Variance.lean:14</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexp-apply">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExp_apply</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Coordinate projection commutes with conditional expectation for finite-dimensional
+real-valued random vectors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} {ι : Type u_4} {E : Type u_6} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  [inst : Fintype ι] [inst_1 : NormedAddCommGroup E] [inst_2 : NormedSpace Real E] [inst_3 : CompleteSpace E]
+  {f : Ω → ι → E},
+  MeasureTheory.Integrable f μ →
+    ∀ (i : ι),
+      (MeasureTheory.ae μ).EventuallyEq (fun ω =&gt; MeasureTheory.condExp m μ f ω i)
+        (MeasureTheory.condExp m μ fun ω =&gt; f ω i)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ProbabilityUtils.lean#L326">HansenEconometrics/ProbabilityUtils.lean:326</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-integral-apply">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.integral_apply</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Coordinate projection commutes with integration for finite-dimensional real-valued random
+vectors. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} {ι : Type u_4} {E : Type u_6} {m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : Fintype ι]
+  [inst_1 : NormedAddCommGroup E] [inst_2 : NormedSpace Real E] [CompleteSpace E] {f : Ω → ι → E},
+  MeasureTheory.Integrable f μ →
+    ∀ (i : ι), Eq (MeasureTheory.integral μ (fun ω =&gt; f ω) i) (MeasureTheory.integral μ fun ω =&gt; f ω i)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ProbabilityUtils.lean#L349">HansenEconometrics/ProbabilityUtils.lean:349</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexpl2-minimal">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExpL2_minimal</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Conditional expectation in <code>L²</code> is the orthogonal projection onto the space of
+<code>m</code>-measurable square-integrable functions, hence it minimizes <code>L²</code> distance. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_1} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} {Y g : Ω → Real}
+  (hm : MeasurableSpace.instLE.le m m₀) [MeasureTheory.IsFiniteMeasure μ] (hY : MeasureTheory.MemLp Y 2 μ)
+  (hg : MeasureTheory.MemLp g 2 μ),
+  MeasureTheory.AEStronglyMeasurable g μ →
+    Real.instLE.le
+      (MeasureTheory.Lp.instNorm.norm
+        (instHSub.hSub (MeasureTheory.MemLp.toLp Y hY)
+          (ContinuousLinearMap.funLike.coe (MeasureTheory.condExpL2 Real Real hm) (MeasureTheory.MemLp.toLp Y hY)).val))
+      (MeasureTheory.Lp.instNorm.norm (instHSub.hSub (MeasureTheory.MemLp.toLp Y hY) (MeasureTheory.MemLp.toLp g hg)))</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L137">HansenEconometrics/Chapter2CondExp.lean:137</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-covvec-affinemodel">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.covVec_affineModel</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Covariances in an affine linear model decompose into the fitted part and the residual part. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} {k : Type u_4} {mΩ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω} [inst : Fintype k]
+  [MeasureTheory.IsProbabilityMeasure μ] (X : Ω → k → Real) (e : Ω → Real) (α : Real) (β : k → Real),
+  (∀ (i : k), MeasureTheory.MemLp (fun ω =&gt; X ω i) 2 μ) →
+    MeasureTheory.MemLp e 2 μ →
+      Eq (HansenEconometrics.covVec μ X fun ω =&gt; instHAdd.hAdd (instHAdd.hAdd α (dotProduct (X ω) β)) (e ω))
+        (instHAdd.hAdd ((HansenEconometrics.covMat μ X).mulVec β) (HansenEconometrics.covVec μ X e))</code></pre>
+</details>
+<details class="dependency-list"><summary>Direct statement dependencies (2)</summary><ul><li><code>HansenEconometrics.covMat</code></li><li><code>HansenEconometrics.covVec</code></li></ul></details>
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ProbabilityUtils.lean#L717">HansenEconometrics/ProbabilityUtils.lean:717</a></p>
+</div>
+</details>
+<details class="lean-declaration" id="decl-hanseneconometrics-condexp-apply-apply">
+<summary><span class="declaration-kind">theorem</span> <code>HansenEconometrics.condExp_apply_apply</code></summary>
+<div class="declaration-body">
+<div class="declaration-doc"><p>Applying two coordinate projections in succession commutes with conditional expectation for
+finite-dimensional real-valued arrays. </p></div>
+<details class="formal-statement"><summary>Formal statement</summary>
+<pre><code class="language-lean">∀ {Ω : Type u_3} {ι : Type u_4} {κ : Type u_5} {m m₀ : MeasurableSpace Ω} {μ : MeasureTheory.Measure Ω}
+  [inst : Fintype ι] [inst_1 : Fintype κ] {f : Ω → ι → κ → Real},
+  MeasureTheory.Integrable f μ →
+    ∀ (i : ι) (j : κ),
+      (MeasureTheory.ae μ).EventuallyEq (fun ω =&gt; MeasureTheory.condExp m μ f ω i j)
+        (MeasureTheory.condExp m μ fun ω =&gt; f ω i j)</code></pre>
+</details>
+
+<p class="declaration-meta"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/ProbabilityUtils.lean#L336">HansenEconometrics/ProbabilityUtils.lean:336</a></p>
+</div>
+</details>
+</div>
+</details>
+</div>

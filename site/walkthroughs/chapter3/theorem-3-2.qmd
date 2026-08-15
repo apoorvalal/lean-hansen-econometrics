@@ -25,19 +25,19 @@ vector. So the regressors are orthogonal to the OLS residuals.
 The corresponding Lean objects all live in
 `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`:
 
-- [`olsBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20)
+- [`olsBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20)
   (definition, line 20) — the closed-form OLS coefficient
   $(X^\top X)^{-1} X^\top y$, defined under `[Invertible (Xᵀ * X)]`.
-- [`fitted`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L38)
+- [`fitted`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L38)
   (definition, line 38) — the fitted vector $X\hat\beta$.
-- [`residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L42)
+- [`residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L42)
   (definition, line 42) — the residual vector $y - X\hat\beta$.
-- [`normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
+- [`normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
   (theorem, **line 46**) — the headline result:
   `Xᵀ *ᵥ residual X y = 0`.
-- [`regressors_orthogonal_to_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61)
+- [`regressors_orthogonal_to_residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61)
   (theorem, line 61) — same statement, packaged under the orthogonality reading.
-- [`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
+- [`olsBeta_eq_of_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
   (theorem, line 67) — uniqueness: any `b` satisfying the normal equations
   equals `olsBeta`.
 
@@ -79,7 +79,7 @@ the signature.)
 - The pair `olsBeta` (using `⅟`) and `olsBetaStar` (using `Matrix.nonsingInv`)
   coexist because Chapter 7's stochastic story needs the total version. They
   agree under invertibility
-  ([`olsBetaStar_eq_olsBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L31)
+  ([`olsBetaStar_eq_olsBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L31)
   at line 31).
 
 ## Proof sketch
@@ -97,7 +97,7 @@ $b = (X^\top X)^{-1} X^\top y = \hat\beta$.
 ## Lean proof structure
 
 The Lean proof of
-[`normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
+[`normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
 mirrors the textbook proof in three short steps:
 
 - Unfold `residual`, `fitted`, and `olsBeta`, then split the `mulVec` over
@@ -153,7 +153,7 @@ Line by line:
 - **`calc` step 4** — `simp` clears `1 *ᵥ v = v`, then $X^\top y - X^\top y = 0$.
 
 For uniqueness,
-[`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
+[`olsBeta_eq_of_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
 (line 67) takes the hypothesis $X^\top(y - Xb) = 0$, rewrites it as
 $X^\top y = (X^\top X) b$, and multiplies both sides by $⅟(X^\top X)$ to
 identify $b$ with `olsBeta X y`.
@@ -163,12 +163,12 @@ identify $b$ with `olsBeta X y`.
 `normal_equations` is one of the most reused lemmas in the algebra of OLS.
 Direct consumers in this repo include:
 
-- [`residual_sum_zero_of_one_mem_colspan`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98)
+- [`residual_sum_zero_of_one_mem_colspan`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98)
   (Chapter3LeastSquaresAlgebra.lean:98) — when $\mathbf{1} \in \mathrm{col}(X)$,
   residuals sum to zero (Hansen equation 3.17).
-- [`regressors_transpose_mul_annihilator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
+- [`regressors_transpose_mul_annihilator`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
   (Chapter3FWL.lean:37) — $X^\top M = 0$, used throughout FWL.
-- [`fitted_dot_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L217)
+- [`fitted_dot_residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L217)
   (Chapter3Projections.lean:217) — fitted values are orthogonal to residuals.
 - The Frisch–Waugh–Lovell theorems of Hansen Theorem 3.5 consume this
   transitively through the annihilator identity.
