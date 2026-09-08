@@ -824,6 +824,34 @@ theorem conditioningSpace_le
     conditioningSpace X ≤ (inferInstance : MeasurableSpace Ω) :=
   hX.comap_le
 
+/-- With a finite conditioning variable, matching integrals on its fibers
+identifies a conditional expectation. This supports finite probability examples
+without requiring positive mass in every fiber. -/
+theorem condExpOn_eq_of_finite_fiber_integrals [Finite β] [MeasurableSingletonClass β]
+    [IsFiniteMeasure μ] {X : Ω → β} (hX : Measurable X) {f g : Ω → ℝ}
+    (hf : Integrable f μ) (hg : Integrable g μ) (hgm : XMeasurable μ X g)
+    (hcell : ∀ x, (∫ ω in {ω | X ω = x}, g ω ∂μ) =
+      ∫ ω in {ω | X ω = x}, f ω ∂μ) : condExpOn μ f X =ᵐ[μ] g := by
+  classical
+  apply (ae_eq_condExp_of_forall_setIntegral_eq (conditioningSpace_le hX) hf
+    (fun _ _ _ => hg.integrableOn) ?_ hgm).symm
+  intro s hs _
+  obtain ⟨t, _, rfl⟩ := hs
+  let u := t.toFinite.toFinset
+  have he : X ⁻¹' t = ⋃ x ∈ u, {ω | X ω = x} := by
+    ext ω
+    simp [u]
+  have hm (x : β) (_ : x ∈ u) : MeasurableSet {ω | X ω = x} :=
+    hX (measurableSet_singleton x)
+  have hd : Set.Pairwise (↑u) (fun x y => Disjoint {ω | X ω = x} {ω | X ω = y}) := by
+    intro x _ y _ hxy
+    apply Set.disjoint_left.mpr
+    intro ω hx hy
+    exact hxy (hx.symm.trans hy)
+  rw [he, integral_biUnion_finset u hm hd (fun _ _ => hg.integrableOn),
+    integral_biUnion_finset u hm hd (fun _ _ => hf.integrableOn)]
+  exact Finset.sum_congr rfl fun x _ => hcell x
+
 /-- Conditional independence given a random variable factors the conditional
 expectation of an integrable product. -/
 theorem condExpOn_mul_eq_mul_condExpOn_of_condIndepFun

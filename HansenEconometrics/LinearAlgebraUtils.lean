@@ -12,7 +12,8 @@ This module provides the repository's reusable real-matrix support layer. Its
 public surface includes finite-matrix Borel measurability, total inverse and
 Gram identities, Hermitian idempotent projection formulas, rectangular-Gram
 spectrum transfer, Hermitian eigenvalue expansions, compression/interlacing
-bounds, and Ky Fan-style leading-eigenvalue inequalities.
+bounds, Ky Fan-style leading-eigenvalue inequalities, and entrywise inverse
+nonnegativity for positive-definite matrices with nonpositive off-diagonals.
 
 Chapter files should reuse these declarations before introducing local matrix
 algebra. Proof scaffolding for list sorting, determinant expansions, and column
@@ -1638,5 +1639,99 @@ theorem matrix_mul_mulVec_injective_of_transpose_mul_mul_posDef
   apply hGram
   have hleft := congrArg (fun z : l → ℝ => Aᵀ *ᵥ z) hxy
   simpa [Matrix.mul_assoc, Matrix.mulVec_mulVec] using hleft
+
+private theorem nonneg_of_mulVec_nonneg_on_neg
+    {k : Type*} [Fintype k] {A : Matrix k k ℝ}
+    (hA : A.PosDef) (hoff : ∀ i j, i ≠ j → A i j ≤ 0)
+    (x : k → ℝ) (hb : ∀ i, x i < 0 → 0 ≤ (A *ᵥ x) i) : ∀ i, 0 ≤ x i := by
+  classical
+  let n : k → ℝ := fun i => min (x i) 0
+  let p : k → ℝ := fun i => max (x i) 0
+  have hnp : ∀ i, n i * p i = 0 := by
+    intro i
+    dsimp [n, p]
+    rcases le_total (x i) 0 with hi | hi
+    · rw [min_eq_left hi, max_eq_right hi, mul_zero]
+    · rw [min_eq_right hi, max_eq_left hi, zero_mul]
+  have hx : x = p + n := by
+    funext i
+    simp [p, n, max_add_min]
+  have hn : n ⬝ᵥ (A *ᵥ x) ≤ 0 := by
+    apply Finset.sum_nonpos
+    intro i _
+    by_cases hi : x i < 0
+    · exact mul_nonpos_of_nonpos_of_nonneg (min_le_right _ _) (hb i hi)
+    · simp [n, min_eq_right (le_of_not_gt hi)]
+  have hcross : 0 ≤ n ⬝ᵥ (A *ᵥ p) := by
+    simp only [Matrix.mulVec, dotProduct, Finset.mul_sum]
+    apply Finset.sum_nonneg
+    intro i _
+    apply Finset.sum_nonneg
+    intro j _
+    by_cases hij : i = j
+    · subst j
+      have he : n i * (A i i * p i) = A i i * (n i * p i) := by ring
+      rw [he, hnp, mul_zero]
+    · exact mul_nonneg_of_nonpos_of_nonpos (min_le_right _ _)
+        (mul_nonpos_of_nonpos_of_nonneg (hoff i j hij) (le_max_right _ _))
+  have hnzero : n = 0 := by
+    by_contra hne
+    have hp := hA.dotProduct_mulVec_pos hne
+    simp only [star_trivial] at hp
+    rw [hx, Matrix.mulVec_add, dotProduct_add] at hn
+    linarith
+  intro i
+  have hni := congrFun hnzero i
+  change min (x i) 0 = 0 at hni
+  have hh := min_le_left (x i) 0
+  rwa [hni] at hh
+
+/-- A positive-definite real matrix with nonpositive off-diagonal entries
+preserves nonnegativity when solving a linear system. -/
+theorem nonneg_of_mulVec_nonneg_of_posDef
+    {k : Type*} [Fintype k] {A : Matrix k k ℝ}
+    (hA : A.PosDef) (hoff : ∀ i j, i ≠ j → A i j ≤ 0)
+    (x : k → ℝ) (hb : ∀ i, 0 ≤ (A *ᵥ x) i) : ∀ i, 0 ≤ x i :=
+  nonneg_of_mulVec_nonneg_on_neg hA hoff x (fun i _ => hb i)
+
+/-- The inverse of a positive-definite real matrix with nonpositive off-diagonal
+entries is entrywise nonnegative. This is distinct from positive definiteness
+of the inverse as a quadratic form. -/
+theorem invOf_nonneg_of_posDef
+    {k : Type*} [Fintype k] [DecidableEq k] {A : Matrix k k ℝ}
+    [Invertible A] (hA : A.PosDef) (hoff : ∀ i j, i ≠ j → A i j ≤ 0) :
+    ∀ i j, 0 ≤ (⅟ A) i j := by
+  intro i j
+  apply nonneg_of_mulVec_nonneg_of_posDef hA hoff (fun l => (⅟ A) l j) _ i
+  intro l
+  have h := congrArg (fun B : Matrix k k ℝ => B l j) (mul_invOf_self A)
+  change (A *ᵥ (fun l => (⅟ A) l j)) l = (1 : Matrix k k ℝ) l j at h
+  rw [h]
+  simp only [Matrix.one_apply]
+  split_ifs <;> norm_num
+
+/-- For a positive-definite matrix with nonpositive off-diagonal entries and
+nonnegative row sums, every inverse column is bounded above by its diagonal entry. -/
+theorem invOf_apply_le_diag_of_posDef
+    {k : Type*} [Fintype k] [DecidableEq k] {A : Matrix k k ℝ}
+    [Invertible A] (hA : A.PosDef) (hoff : ∀ i j, i ≠ j → A i j ≤ 0)
+    (hrow : ∀ i, 0 ≤ ∑ l, A i l) (i j : k) : (⅟ A) i j ≤ (⅟ A) j j := by
+  let x : k → ℝ := fun l => (⅟ A) j j - (⅟ A) l j
+  have hx : ∀ l, 0 ≤ x l := by
+    apply nonneg_of_mulVec_nonneg_on_neg hA hoff x
+    intro l hl
+    have hlj : l ≠ j := by
+      intro he
+      subst l
+      simp [x] at hl
+    have hi := congrArg (fun B : Matrix k k ℝ => B l j) (mul_invOf_self A)
+    have hz : ∑ r, A l r * (⅟ A) r j = 0 := by
+      simpa [Matrix.mul_apply, Matrix.one_apply, hlj] using hi
+    have hm : (A *ᵥ x) l = (∑ r, A l r) * (⅟ A) j j := by
+      simp only [Matrix.mulVec, dotProduct, x, mul_sub, Finset.sum_sub_distrib,
+        ← Finset.sum_mul, hz, sub_zero]
+    rw [hm]
+    exact mul_nonneg (hrow l) (invOf_nonneg_of_posDef hA hoff j j)
+  exact sub_nonneg.mp (hx i)
 
 end HansenEconometrics
