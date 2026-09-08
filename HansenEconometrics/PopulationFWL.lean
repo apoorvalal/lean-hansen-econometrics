@@ -244,6 +244,25 @@ theorem auxiliaryResidual_norm_sq_pos (G : Submodule ℝ E) [G.HasOrthogonalProj
   exact smul_ne_zero (inv_ne_zero (pow_ne_zero _ (norm_ne_zero_iff.mpr
     (dualRegressor_ne_zero G X j)))) (dualRegressor_ne_zero G X j)
 
+/-- The auxiliary-residual variance is the reciprocal squared dual norm. -/
+theorem auxiliaryResidual_norm_sq (G : Submodule ℝ E) [G.HasOrthogonalProjection]
+    (X : k → E) [Invertible (Matrix.gram ℝ (residualized G X))] (j : k) :
+    ‖auxiliaryResidual G X j‖ ^ 2 = (‖dualRegressor G X j‖ ^ 2)⁻¹ := by
+  have hn : ‖dualRegressor G X j‖ ≠ 0 :=
+    norm_ne_zero_iff.mpr (dualRegressor_ne_zero G X j)
+  simp only [auxiliaryResidual, norm_smul, Real.norm_eq_abs, abs_inv, abs_pow, abs_norm]
+  field_simp
+
+/-- The dual regressor is the auxiliary residual divided by its variance. -/
+theorem dualRegressor_eq_scaled_auxiliaryResidual (G : Submodule ℝ E)
+    [G.HasOrthogonalProjection] (X : k → E)
+    [Invertible (Matrix.gram ℝ (residualized G X))] (j : k) :
+    dualRegressor G X j = (‖auxiliaryResidual G X j‖ ^ 2)⁻¹ • auxiliaryResidual G X j := by
+  have hn : ‖dualRegressor G X j‖ ^ 2 ≠ 0 :=
+    pow_ne_zero _ (norm_ne_zero_iff.mpr (dualRegressor_ne_zero G X j))
+  rw [auxiliaryResidual_norm_sq, inv_inv, auxiliaryResidual, smul_smul,
+    mul_inv_cancel₀ hn, one_smul]
+
 /-- Scalar population FWL formula in the auxiliary-residual notation. -/
 theorem coefficient_eq_auxiliaryResidual_ratio (G : Submodule ℝ E)
     [G.HasOrthogonalProjection] (X : k → E) (Y : E)
@@ -340,7 +359,9 @@ open MeasureTheory
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 omit [DecidableEq k] in
-private theorem coe_predictor_ae (X : k → Lp ℝ 2 μ) (b : k → ℝ) :
+/-- A finite L² predictor agrees almost surely with its pointwise sum. This
+bridge supports downstream conditional-moment calculations. -/
+theorem coe_predictor_ae (X : k → Lp ℝ 2 μ) (b : k → ℝ) :
     (fun ω => predictor X b ω) =ᵐ[μ] fun ω => ∑ j, b j * X j ω := by
   classical
   have hsum : ∀ s : Finset k, (fun ω => (∑ j ∈ s, b j • X j) ω) =ᵐ[μ]
