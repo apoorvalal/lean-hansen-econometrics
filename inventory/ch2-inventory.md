@@ -381,3 +381,23 @@ Hansen's notation and the Lean formalization.
   CIA-facing variable/a.e. CATE bridges for Hansen Theorem 2.12.
 - [`condExpOn_observedOutcome_treatment_covariates_eq_branch_of_CIA`](../HansenEconometrics/Chapter2PotentialOutcomes.lean):
   CIA-facing observed-regression bridge for Hansen Theorem 2.12.
+
+## Population partial-regression bridge
+
+[PopulationFWL.lean](../HansenEconometrics/PopulationFWL.lean) extends the population
+projection infrastructure to treatment regressors and a general control subspace
+admitting an orthogonal projection. It does not change the Chapter 2 theorem APIs.
+The reusable surface is also available through MetricsLib's regression facade.
+
+| Lean-only bridge | Declaration |
+|---|---|
+| Residual Gram coefficient jointly minimizes the control/treatment loss | `PopulationFWL.minimizes` |
+| Any minimizing fit has that same treatment coefficient | `PopulationFWL.coefficient_unique` |
+| The criterion is an integral of squared errors on L² | `PopulationFWL.loss_eq_integral` |
+| Population expected-square-error minimization | `PopulationFWL.minimizes_expected_sq_error` |
+| Scalar FWL numerator/denominator representation | `PopulationFWL.coefficient_eq_auxiliaryResidual_ratio` |
+| Auxiliary residual really partials out other treatments and controls | `PopulationFWL.auxiliaryResidual_projection` |
+
+The causal interpretation of these coefficients belongs in applications. These
+bridges impose no causal assumptions. Nonsingularity applies to the aggregate
+residual Gram matrix; it is not an overlap assumption for each covariate value.
