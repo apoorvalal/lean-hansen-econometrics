@@ -1,0 +1,30 @@
+[
+  {
+    "file": "HansenEconometrics/PopulationFWL.lean",
+    "line": 56,
+    "decl": "residualized_inner_control",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate and Proof strategy policy: add @[simp] lemmas for recurring canonical rewrites",
+    "claim": "The recurring canonical control-orthogonality rewrite is not tagged @[simp], so proofs repeatedly supply its name explicitly.",
+    "evidence": "residualized_inner_control at PopulationFWL.lean:56-59 reduces inner \u211d (residualized G X j) g to 0 when g \u2208 G, but has no @[simp]. It is manually supplied in separate proofs at lines 69, 86, 114, and 187, and Applications/ContaminationBias.lean:770. The scratch check /private/tmp/PopulationFWLHygieneSimp.lean compiles with attribute [local simp] residualized_inner_control: both the arbitrary-control goal (by simp [hg]) and the projected-control goal (by simp [G.starProjection_apply_mem]) close. The theorem has application callers and should remain public.",
+    "suggested_fix": "Add @[simp] to residualized_inner_control; keep its statement and visibility unchanged.",
+    "mechanical": true,
+    "confidence": "high",
+    "id": "b7c75f6526de390024ca1ab98428a1da547ee72b"
+  },
+  {
+    "file": "HansenEconometrics/PopulationFWL.lean",
+    "line": 267,
+    "decl": "coefficient_eq_auxiliaryResidual_ratio",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md Core principles \u00a72 reuse repo theorems; \u00a74 bridge-lemma discipline",
+    "claim": "The scalar FWL notation bridge repeats norm and reciprocal algebra that the immediately preceding scaling theorem has already established.",
+    "evidence": "PopulationFWL.lean:272-277 rewrites the coefficient, proves dual-regressor nonzeroness, unfolds auxiliaryResidual, expands norm_smul/absolute values, and invokes field_simp. Lines 257-264 already prove dualRegressor_eq_scaled_auxiliaryResidual. The scratch file /private/tmp/PopulationFWLProofQuality.lean compiles the identical theorem statement using only rw [coefficient_eq_inner_dualRegressor, dualRegressor_eq_scaled_auxiliaryResidual, real_inner_smul_left, div_eq_mul_inv, mul_comm].",
+    "suggested_fix": "Replace the proof body with rw [coefficient_eq_inner_dualRegressor, dualRegressor_eq_scaled_auxiliaryResidual, real_inner_smul_left, div_eq_mul_inv, mul_comm].",
+    "mechanical": false,
+    "confidence": "high",
+    "id": "8bcec3c4ce4dd84dbe741ab4e83829dc753e18e6"
+  }
+]

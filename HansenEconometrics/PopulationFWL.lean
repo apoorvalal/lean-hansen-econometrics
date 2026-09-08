@@ -53,7 +53,7 @@ private theorem inner_predictor (X : k → E) (b : k → ℝ) (v : E) :
 
 omit [Fintype k] [DecidableEq k] in
 /-- Control-residualized regressors are orthogonal to every included control. -/
-theorem residualized_inner_control (G : Submodule ℝ E) [G.HasOrthogonalProjection]
+@[simp] theorem residualized_inner_control (G : Submodule ℝ E) [G.HasOrthogonalProjection]
     (X : k → E) (j : k) {g : E} (hg : g ∈ G) :
     inner ℝ (residualized G X j) g = 0 :=
   G.starProjection_inner_eq_zero _ g hg
@@ -269,12 +269,8 @@ theorem coefficient_eq_auxiliaryResidual_ratio (G : Submodule ℝ E)
     [Invertible (Matrix.gram ℝ (residualized G X))] (j : k) :
     coefficient G X Y j =
       inner ℝ (auxiliaryResidual G X j) Y / ‖auxiliaryResidual G X j‖ ^ 2 := by
-  rw [coefficient_eq_inner_dualRegressor]
-  have hn : ‖dualRegressor G X j‖ ≠ 0 := norm_ne_zero_iff.mpr
-    (dualRegressor_ne_zero G X j)
-  simp only [auxiliaryResidual, real_inner_smul_left, norm_smul, Real.norm_eq_abs,
-    abs_inv, abs_pow, abs_norm]
-  field_simp
+  rw [coefficient_eq_inner_dualRegressor, dualRegressor_eq_scaled_auxiliaryResidual,
+    real_inner_smul_left, div_eq_mul_inv, mul_comm]
 
 /-- The controls and all treatment regressors other than a specified arm. -/
 def auxiliaryControls (G : Submodule ℝ E) (X : k → E) (j : k) : Submodule ℝ E :=

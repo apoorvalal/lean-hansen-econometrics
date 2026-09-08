@@ -397,7 +397,18 @@ The reusable surface is also available through MetricsLib's regression facade.
 | Population expected-square-error minimization | `PopulationFWL.minimizes_expected_sq_error` |
 | Scalar FWL numerator/denominator representation | `PopulationFWL.coefficient_eq_auxiliaryResidual_ratio` |
 | Auxiliary residual really partials out other treatments and controls | `PopulationFWL.auxiliaryResidual_projection` |
+| Auxiliary projection has an additive fit with own-arm coefficient zero | `PopulationFWL.auxiliaryResidual_has_fit` |
+| Dual/auxiliary residual variance and scaling bridges | `PopulationFWL.auxiliaryResidual_norm_sq`, `PopulationFWL.dualRegressor_eq_scaled_auxiliaryResidual` |
+| L² finite predictor equals its pointwise sum almost surely | `PopulationFWL.coe_predictor_ae` |
+| Finite conditioning identified by fiber integrals, allowing zero-mass fibers | `condExpOn_eq_of_finite_fiber_integrals` |
 
 The causal interpretation of these coefficients belongs in applications. These
 bridges impose no causal assumptions. Nonsingularity applies to the aggregate
 residual Gram matrix; it is not an overlap assumption for each covariate value.
+
+[LinearAlgebraUtils.lean](../HansenEconometrics/LinearAlgebraUtils.lean) also supplies
+`invOf_nonneg_of_posDef` and `invOf_apply_le_diag_of_posDef`. A positive-definite
+matrix with nonpositive off-diagonal entries has an entrywise nonnegative inverse;
+nonnegative row sums additionally bound each inverse column by its diagonal entry.
+These reusable algebraic facts support the applications own-weight sign proof.
+All additions are new APIs; existing Chapter 2 signatures remain unchanged.
