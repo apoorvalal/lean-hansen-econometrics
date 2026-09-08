@@ -340,6 +340,35 @@ theorem auxiliaryResidual_projection (G : Submodule ℝ E) [G.HasOrthogonalProje
   rw [auxiliaryResidual, real_inner_smul_left,
     dualRegressor_inner_auxiliaryControls G X j hg, mul_zero]
 
+/-- The auxiliary projection has an additive fit in the original regressors
+and controls, with zero coefficient on the arm being residualized. -/
+theorem auxiliaryResidual_has_fit (G : Submodule ℝ E) [G.HasOrthogonalProjection]
+    (X : k → E) [Invertible (Matrix.gram ℝ (residualized G X))] (j : k) :
+    ∃ b : k → ℝ, b j = 0 ∧ ∃ g ∈ G,
+      auxiliaryResidual G X j = X j - predictor X b - g := by
+  obtain ⟨g, hg, v, hv, he⟩ := Submodule.mem_sup.mp (auxiliaryResidual_projection G X j).1
+  have hs : {i | i ≠ j} = (↑(Finset.univ.erase j) : Set k) := by ext; simp
+  rw [hs] at hv
+  obtain ⟨b, hb⟩ := (Submodule.mem_span_image_finset_iff_exists_fun' ℝ).mp hv
+  let c := Function.update b j 0
+  have hc : predictor X c = v := by
+    unfold predictor
+    rw [← Finset.sum_erase_add _ _ (Finset.mem_univ j)]
+    simp only [c, Function.update_self, zero_smul, add_zero]
+    rw [← hb]
+    apply Finset.sum_congr rfl
+    intro i hi
+    rw [Function.update_of_ne (Finset.mem_erase.mp hi).1]
+  refine ⟨c, Function.update_self j 0 b, g, hg, ?_⟩
+  rw [hc]
+  have he' : g + v = X j - auxiliaryResidual G X j := he
+  rw [eq_sub_iff_add_eq] at he'
+  apply eq_sub_iff_add_eq.mpr
+  apply eq_sub_iff_add_eq.mpr
+  calc
+    auxiliaryResidual G X j + g + v = g + v + auxiliaryResidual G X j := by abel
+    _ = X j := he'
+
 /-- Whenever expressed through Mathlib's orthogonal projection, the auxiliary
 residual agrees with the projection error. -/
 theorem auxiliaryResidual_eq_sub_projection (G : Submodule ℝ E)
